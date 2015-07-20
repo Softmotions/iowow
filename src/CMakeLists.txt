@@ -1,0 +1,202 @@
+if (NOT CMAKE_BUILD_TYPE)
+    message(FATAL_ERROR "Please specify the build type -DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo")
+endif()
+
+set(MODULES utils platform)
+set(PROJECT_LLIBRARIES)
+set(PROJECT_INCLUDE_DIRS)
+set(ALL_SRC)
+set(ALL_HDRS)
+set(PUB_HDRS)
+set(PROJECT_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
+list(APPEND PROJECT_INCLUDE_DIRS "${PROJECT_GENERATED_DIR}"
+                                  "${CMAKE_CURRENT_SOURCE_DIR}")    
+                                  
+if(APPLE)
+    option(BUILD_FRAMEWORK "Build an OS X framework" OFF)
+    set(FRAMEWORK_INSTALL_DIR "/Library/Frameworks" CACHE STRING "Directory to install frameworks to.")
+endif()
+
+include(CheckIncludeFile)
+include(CheckIncludeFiles)
+include(CheckLibraryExists)
+
+if (WIN32)
+    include(Win32LIBTools)
+endif()
+
+find_package(Threads REQUIRED CMAKE_THREAD_PREFER_PTHREAD)
+if (CMAKE_USE_WIN32_THREADS_INIT)
+    add_definitions(-DIOWOW_WIN32_THREADS)
+elseif (CMAKE_USE_PTHREADS_INIT)
+    add_definitions(-DIOWOW_PTHREADS)
+else()
+    mesage(FATAL_ERROR "Unable to find suitable threading library")
+endif(CMAKE_USE_WIN32_THREADS_INIT)
+
+if (NOT WIN32)
+    list(APPEND PROJECT_LLIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+endif()
+
+foreach(HF IN ITEMS stdlib stdint unistd dirent stddef)
+    string(TOUPPER "${HF}" UHF)
+    check_include_file(${HF}.h "IOW_HAVE_${UHF}")
+    if (NOT IOW_HAVE_${UHF})
+        message(FATAL_ERROR "Include file '${HF}.h' not FOUND")
+    endif()
+endforeach(HF)
+
+foreach(MODULE IN LISTS MODULES)
+    list(APPEND PROJECT_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}")
+    file(GLOB MODULE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/*.c)
+    file(GLOB MODULE_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/*.h)
+    list(APPEND ALL_SRC ${MODULE_SRC})
+    list(APPEND ALL_HDRS ${MODULE_HDRS})
+    list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/${MODULE}.h)
+endforeach(MODULE)
+
+list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)
+list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
+include_directories(${PROJECT_INCLUDE_DIRS})
+
+if (NOT BUILD_SHARED_LIBS)
+    add_definitions(-DIOWOW_NODLL)
+    add_library(iowow STATIC ${ALL_SRC})
+    add_library(iowow_s ALIAS iowow)
+else() 
+    add_library(iowow SHARED ${ALL_SRC})    
+    add_library(iowow_s STATIC ${ALL_SRC})
+endif()
+
+target_link_libraries(iowow ${PROJECT_LLIBRARIES})
+if (BUILD_SHARED_LIBS)
+    target_link_libraries(iowow_s ${PROJECT_LLIBRARIES})
+endif()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wno-unknown-pragmas")
+if (NOT WIN32) ## todo review
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+endif()
+
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g -Werror -DDEBUG -D_DEBUG -UNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g")
+
+if (CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    if (BUILD_SHARED_LIBS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+    endif(BUILD_SHARED_LIBS)
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+    if (BUILD_SHARED_LIBS)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+    endif(BUILD_SHARED_LIBS)
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/iowcfg.h ${PROJECT_GENERATED_DIR}/iowcfg.h)
+file(GLOB PROJECT_GENERATED_HDRS ${PROJECT_GENERATED_DIR}/*.h)
+list(APPEND ALL_HDRS ${PROJECT_GENERATED_HDRS})
+
+if (NOT APPLE AND NOT BUILD_FRAMEWORK)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/libiowow.pc.in ${PROJECT_GENERATED_DIR}/libiowow.pc @ONLY)
+    install(FILES ${PROJECT_GENERATED_DIR}/libiowow.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif(NOT APPLE AND NOT BUILD_FRAMEWORK)
+
+foreach(MODULE IN LISTS MODULES)
+    if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/CMakeLists.txt)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/${MODULE})
+    endif()
+    if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/tools/CMakeLists.txt)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/tools)
+    endif()
+    if (BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/tests/CMakeLists.txt)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/tests)
+    endif() 
+endforeach(MODULE)
+
+
+if (BUILD_SHARED_LIBS)
+
+    set_target_properties(iowow PROPERTIES
+                          VERSION ${PROJECT_VERSION}
+                          SOVERSION ${PROJECT_VERSION_MAJOR}
+                          PUBLIC_HEADER "${PUB_HDRS}"
+                          DEFINE_SYMBOL IOWOW_API_EXPORTS)
+                      
+    set_target_properties(iowow_s PROPERTIES
+                          VERSION ${PROJECT_VERSION}
+                          COMPILE_FLAGS "-DIOWOW_NODLL"
+                          OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})
+else()
+
+    set_target_properties(iowow PROPERTIES
+                          VERSION ${PROJECT_VERSION}
+                          PUBLIC_HEADER "${PUB_HDRS}"
+                          COMPILE_FLAGS "-DIOWOW_NODLL"
+                          OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})                          
+endif(BUILD_SHARED_LIBS)
+
+install(TARGETS iowow
+        EXPORT iowow-exports
+        FRAMEWORK DESTINATION ${FRAMEWORK_INSTALL_DIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+
+install(EXPORT iowow-exports
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME})
+
+if (BUILD_SHARED_LIBS)
+    install(TARGETS iowow_s
+        EXPORT iowow-static-exports
+        FRAMEWORK DESTINATION ${FRAMEWORK_INSTALL_DIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+endif()
+
+install(FILES 
+        ${CMAKE_SOURCE_DIR}/LICENSE
+        ${CMAKE_SOURCE_DIR}/INSTALL
+        ${CMAKE_SOURCE_DIR}/Changelog
+        DESTINATION ${CMAKE_INSTALL_DOCDIR})
+
+install(FILES 
+        ${CMAKE_SOURCE_DIR}/README.md
+        RENAME README
+        DESTINATION ${CMAKE_INSTALL_DOCDIR})
+
+if (CMAKE_VERSION VERSION_GREATER 3.0)
+    export(EXPORT iowow-exports)    
+    if (BUILD_SHARED_LIBS)
+        export(EXPORT iowow-static-exports)
+        endif()
+    else()
+        export(TARGETS iowow FILE iowow-exports.cmake)
+        if (BUILD_SHARED_LIBS)
+        export(TARGETS iowow_s FILE iowow-static-exports.cmake) 
+    endif()
+endif()
+
+include(InstallRequiredSystemLibraries)
+
+message("")
+message("LINK LIBS: ${PROJECT_LLIBRARIES}")
+message("\nINCLUDE DIRS: ${PROJECT_INCLUDE_DIRS}")
+message("\nSOURCES: ${ALL_SRC}")
+message("\nPUB_HDRS: ${PUB_HDRS}")
+message("\nCMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+message("BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
+message("BUILD_TESTS: ${BUILD_TESTS}")
+message("BUILD_SAMPLES: ${BUILD_SAMPLES}")
+
+
+
+
+
+
