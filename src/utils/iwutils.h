@@ -14,10 +14,8 @@
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
 
-#ifndef IOW_CFG_H
-#define IOW_CFG_H
-
-
+#ifndef IWUTILS_H
+#define IWUTILS_H
 
 
 #endif

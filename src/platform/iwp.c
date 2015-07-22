@@ -1,4 +1,4 @@
-#include "platform/platform.h"
+#include "platform/iwp.h"
 
 #if defined(__linux) || defined(__unix)
 #include "linux/linux.c"

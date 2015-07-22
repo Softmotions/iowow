@@ -9,7 +9,7 @@
   "sourceDirectory": "$(ProjectPath)",
   "generator": "",
   "buildType": "Debug",
-  "arguments": [],
+  "arguments": ["-DBUILD_TESTS:BOOL=ON"],
   "parentProject": ""
  }]]]>
     </Plugin>
@@ -35,23 +35,37 @@
   <VirtualDirectory Name="src">
     <File Name="src/iowow.h"/>
     <VirtualDirectory Name="tmpl">
-      <File Name="src/tmpl/iowcfg.h"/>
       <File Name="src/tmpl/libiowow.pc.in"/>
+      <File Name="src/tmpl/iwcfg.h"/>
     </VirtualDirectory>
     <File Name="src/CMakeLists.txt"/>
     <VirtualDirectory Name="utils">
-      <File Name="src/utils/utils.h"/>
-      <File Name="src/utils/utils.c"/>
+      <File Name="src/utils/khash.h"/>
+      <File Name="src/utils/kbtree.h"/>
+      <File Name="src/utils/iwutils.h"/>
+      <File Name="src/utils/iwutils.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="platform">
-      <File Name="src/platform/platform.c"/>
       <VirtualDirectory Name="linux">
         <File Name="src/platform/linux/linux.c"/>
       </VirtualDirectory>
-      <File Name="src/platform/platform.h"/>
+      <File Name="src/platform/iwp.h"/>
+      <File Name="src/platform/iwp.c"/>
     </VirtualDirectory>
+    <VirtualDirectory Name="log">
+      <File Name="src/log/iwlog.h"/>
+      <File Name="src/log/iwlog.c"/>
+      <VirtualDirectory Name="tests">
+        <File Name="src/log/tests/CMakeLists.txt"/>
+        <File Name="src/log/tests/iwlog_test1.c"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+    <File Name="src/basedefs.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="tools"/>
+  <VirtualDirectory Name="installer">
+    <File Name="installer/CMakeLists.txt"/>
+  </VirtualDirectory>
   <Settings Type="Dynamic Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -62,16 +76,17 @@
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug" CompilerType="clang( based on LLVM 3.6.0 )" DebuggerType="LLDB Debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g -Wall" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
+        <Preprocessor Value="_DEBUG"/>
       </Compiler>
       <Linker Options="-O0" Required="yes">
         <LibraryPath Value="."/>
         <LibraryPath Value="Debug"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="./Debug" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="" IntermediateDirectory="./Debug" Command="$(ProjectPath)/build/src/log/tests/iwlog_test1" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(ProjectPath)/build/src/log/tests" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>
@@ -104,7 +119,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <VirtualDirectory Name="installer">
-    <File Name="installer/CMakeLists.txt"/>
-  </VirtualDirectory>
 </CodeLite_Project>

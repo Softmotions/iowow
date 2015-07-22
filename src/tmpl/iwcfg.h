@@ -14,9 +14,34 @@
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
 
-#include "utils.h"
+#ifndef IW_CFG_H
+#define IW_CFG_H
 
-void foo(void) {
-    
+#include "basedefs.h"
 
-}
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#if defined(__GNUC__) || defined(__clang__)
+#define IW_INLINE static __inline__
+#else
+#define IW_INLINE static inline
+#endif
+
+#include <stddef.h>
+#include <stdint.h>
+
+
+#ifdef _WIN32
+#define IW_PATH_CHR       '\\'
+#define IW_PATH_STR       "\\"
+#define IW_LINE_SEP       "\r\n"
+#else
+#define IW_PATH_CHR       '/'
+#define IW_PATH_STR       "/"
+#define IW_LINE_SEP       "\n"
+#endif
+
+
+
+#endif

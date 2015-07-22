@@ -14,10 +14,11 @@
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
 
-#ifndef IOW_H
-#define IOW_H
+#ifndef IOWOW_H
+#define IOWOW_H
 
-
-
-
+#ifndef _LARGEFILE_SOURCE
+#error "You must compile your application with -D_LARGEFILE_SOURCE"
 #endif
+
+#inclide "basedefs.h"

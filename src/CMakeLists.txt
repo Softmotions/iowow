@@ -2,7 +2,7 @@ if (NOT CMAKE_BUILD_TYPE)
     message(FATAL_ERROR "Please specify the build type -DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo")
 endif()
 
-set(MODULES utils platform)
+set(MODULES log utils platform)
 set(PROJECT_LLIBRARIES)
 set(PROJECT_INCLUDE_DIRS)
 set(ALL_SRC)
@@ -33,10 +33,15 @@ elseif (CMAKE_USE_PTHREADS_INIT)
 else()
     mesage(FATAL_ERROR "Unable to find suitable threading library")
 endif(CMAKE_USE_WIN32_THREADS_INIT)
-
 if (NOT WIN32)
     list(APPEND PROJECT_LLIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 endif()
+
+find_library(M_LIB m)
+if (NOT M_LIB)
+	message(FATAL_ERROR "Library 'libm' not FOUND")
+endif(NOT M_LIB)
+list(APPEND PROJECT_LLIBRARIES "${M_LIB}")
 
 foreach(HF IN ITEMS stdlib stdint unistd dirent stddef)
     string(TOUPPER "${HF}" UHF)
@@ -46,8 +51,10 @@ foreach(HF IN ITEMS stdlib stdint unistd dirent stddef)
     endif()
 endforeach(HF)
 
+add_definitions(-D_LARGEFILE_SOURCE)
+add_definitions(-D_GNU_SOURCE)
+
 foreach(MODULE IN LISTS MODULES)
-    list(APPEND PROJECT_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}")
     file(GLOB MODULE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/*.c)
     file(GLOB MODULE_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/*.h)
     list(APPEND ALL_SRC ${MODULE_SRC})
@@ -78,6 +85,8 @@ if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
+
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g -Werror -DDEBUG -D_DEBUG -UNDEBUG")
 set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g")
@@ -96,7 +105,7 @@ if (CMAKE_COMPILER_IS_GNUCC)
     endif(BUILD_SHARED_LIBS)
 endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/iowcfg.h ${PROJECT_GENERATED_DIR}/iowcfg.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/iwcfg.h ${PROJECT_GENERATED_DIR}/iwcfg.h)
 file(GLOB PROJECT_GENERATED_HDRS ${PROJECT_GENERATED_DIR}/*.h)
 list(APPEND ALL_HDRS ${PROJECT_GENERATED_HDRS})
 
@@ -124,7 +133,7 @@ if (BUILD_SHARED_LIBS)
                           VERSION ${PROJECT_VERSION}
                           SOVERSION ${PROJECT_VERSION_MAJOR}
                           PUBLIC_HEADER "${PUB_HDRS}"
-                          DEFINE_SYMBOL IOWOW_API_EXPORTS)
+                          DEFINE_SYMBOL IW_API_EXPORTS)
                       
     set_target_properties(iowow_s PROPERTIES
                           VERSION ${PROJECT_VERSION}

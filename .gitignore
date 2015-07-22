@@ -3,3 +3,8 @@
 #iowow.project
 #iowow.workspace
 build/
+.cmake_dirty
+Makefile
+Testing/
+compile_commands.json
+iowow.mk
