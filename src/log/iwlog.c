@@ -204,9 +204,6 @@ const char* default_ecodefn(locale_t locale, int64_t ecode) {
         default:
             return 0;
     }
-
-
-
     return 0;
 }
 
