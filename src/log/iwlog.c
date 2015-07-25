@@ -36,8 +36,8 @@ static int default_logfn(locale_t locale,
     struct tm* timeinfo;
     size_t sz, sz2;
     char tbuf[TBUF_SZ], ebuf[EBUF_SZ];
-    char *errno_msg = NULL, *werror_msg = NULL;
-    const char *ecode_msg = NULL, *cat;
+    char *errno_msg = 0, *werror_msg = 0;
+    const char *ecode_msg = 0, *cat;
 
     if (errno_code) {
         errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ);
@@ -125,22 +125,22 @@ static int default_logfn(locale_t locale,
     }
 
     if (ecode || errno_code || werror_code) {
-        if (file != NULL && line > 0) {
+        if (file && line > 0) {
             file = basename(file);
             fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, file, line,
                     ecode, errno_code, werror_code,
-                    (ecode_msg != NULL ? ecode_msg : ""),
-                    (errno_msg != NULL ? errno_msg : ""),
-                    (werror_msg != NULL ? werror_msg : ""));
+                    (ecode_msg ? ecode_msg : ""),
+                    (errno_msg ? errno_msg : ""),
+                    (werror_msg ? werror_msg : ""));
         } else {
             fprintf(out, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat,
                     ecode, errno_code, werror_code,
-                    (ecode_msg != NULL ? ecode_msg : ""),
-                    (errno_msg != NULL ? errno_msg : ""),
-                    (werror_msg != NULL ? werror_msg : ""));
+                    (ecode_msg ? ecode_msg : ""),
+                    (errno_msg ? errno_msg : ""),
+                    (werror_msg ? werror_msg : ""));
         }
     } else {
-        if (file != NULL && line > 0) {
+        if (file && line > 0) {
             file = basename(file);
             fprintf(out, "%s %s %s:%d: ", tbuf, cat, file, line);
         } else {
@@ -148,7 +148,7 @@ static int default_logfn(locale_t locale,
         }
     }
 
-    if (fmt != NULL) {
+    if (fmt) {
         vfprintf(out, fmt, argp);
     }
 
@@ -173,11 +173,45 @@ finish:
 }
 
 const char* default_ecodefn(locale_t locale, int64_t ecode) {
-    return NULL;
+
+    switch (ecode) {
+        
+        case IW_ERROR_FAIL:
+            return "Unspecified error";
+        case IW_ERROR_ERRNO:
+            return "Error with expected errno status set";
+        case IW_ERROR_IO_ERRNO:
+            return "IO error with expected errno status set";
+        case IW_ERROR_NOT_EXISTS:
+            return "Resource is not exists";
+        case IW_ERROR_READONLY:
+            return "Resource is readonly";
+        case IW_ERROR_ALREADY_OPENED:
+            return "Resource is already opened";
+        case IW_ERROR_THREADING:
+            return "Threading error";
+        case IW_ERROR_THREADING_ERRNO:
+            return "Threading error with errno status set";
+        case IW_ERROR_ASSERTION:
+            return "Generic assertion error";
+        case IW_ERROR_INVALID_HANDLE:
+            return "Invalid HANDLE value";
+        case IW_ERROR_OUT_OF_BOUNDS:
+            return "Argument/parameter/value is out of bounds";
+        case IW_ERROR_NOT_IMPLEMENTED:
+            return "Method is not implemented";
+        case IW_OK:
+        default:
+            return 0;
+    }
+
+
+
+    return 0;
 }
 
 static IWLOG_FN current_logfn = default_logfn;
-static void *current_logfn_options = NULL;
+static void *current_logfn_options = 0;
 static IWLOG_ECODE_FN current_ecodefn = default_ecodefn;
 
 
@@ -223,7 +257,7 @@ int iwlog_va(IWLOG_LEVEL lvl,
 #endif
     int errno_code = errno;
     int rv;
-    locale_t locale = uselocale(NULL);
+    locale_t locale = uselocale(0);
     int64_t ts;
 
     if (iwp_current_time_ms(&ts)) {
@@ -249,7 +283,7 @@ int iwlog_va(IWLOG_LEVEL lvl,
 void iwlog_set_logfn(IWLOG_FN fp) {
     pthread_mutex_lock(&iwlog_mtx);
 
-    if (fp == NULL) {
+    if (!fp) {
         current_logfn = default_logfn;
     } else {
         current_logfn = fp;
@@ -275,7 +309,7 @@ void iwlog_set_logfn_opts(void *opts) {
 const char* iwlog_ecode_explained(int64_t ecode) {
     IWLOG_ECODE_FN ecf = iwlog_get_ecodefn();
     assert(ecf);
-    return ecf(NULL, ecode);
+    return ecf(0, ecode);
 }
 
 IWLOG_ECODE_FN iwlog_get_ecodefn(void) {
@@ -289,7 +323,7 @@ IWLOG_ECODE_FN iwlog_get_ecodefn(void) {
 void iwlog_set_ecodefn(IWLOG_ECODE_FN fp) {
     pthread_mutex_lock(&iwlog_mtx);
 
-    if (fp == NULL) {
+    if (!fp) {
         current_ecodefn = fp;
     } else {
         current_ecodefn = fp;

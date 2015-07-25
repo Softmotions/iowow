@@ -61,6 +61,10 @@
       </VirtualDirectory>
     </VirtualDirectory>
     <File Name="src/basedefs.h"/>
+    <VirtualDirectory Name="fs">
+      <File Name="src/fs/iwfile.h"/>
+      <File Name="src/fs/iwfile.c"/>
+    </VirtualDirectory>
   </VirtualDirectory>
   <VirtualDirectory Name="tools"/>
   <VirtualDirectory Name="installer">

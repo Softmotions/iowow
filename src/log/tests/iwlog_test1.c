@@ -61,20 +61,20 @@ int main() {
     CU_pSuite pSuite = NULL;
 
     /* Initialize the CUnit test registry */
-    if(CUE_SUCCESS != CU_initialize_registry())
+    if (CUE_SUCCESS != CU_initialize_registry())
         return CU_get_error();
 
     /* Add a suite to the registry */
     pSuite = CU_add_suite("iwlog_test1", init_suite, clean_suite);
 
-    if(NULL == pSuite) {
+    if (NULL == pSuite) {
         CU_cleanup_registry();
         return CU_get_error();
     }
 
     /* Add the tests to the suite */
-    if((NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1))
-      ) {
+    if ((NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1))
+       ) {
         CU_cleanup_registry();
         return CU_get_error();
     }

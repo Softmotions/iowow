@@ -27,8 +27,17 @@
 #   endif
 #endif
 
+#define IW_ARR_STATIC static
+#define IW_ARR_CONST const
 
-
+#ifdef _WIN32
+#include <windows.h>
+#define INVALIDHANDLE(_HNDL) (((_HNDL) == INVALID_HANDLE_VALUE) || (_HNDL) == NULL)
+#else
+typedef int HANDLE;
+#define INVALID_HANDLE_VALUE (-1)
+#define INVALIDHANDLE(_HNDL) ((_HNDL) < 0 || (_HNDL) == UINT16_MAX)
+#endif
 
 
 #endif

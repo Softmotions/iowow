@@ -15,6 +15,26 @@
 
 IW_EXTERN_C_START
 
+#define IW_ERROR_START 70000
+
+/**
+ * @brief Common error codes. 
+ */
+typedef enum {
+    IW_OK           = 0,                /**< No error. */
+    IW_ERROR_FAIL   = IW_ERROR_START,   /**< Unspecified error. */
+    IW_ERROR_ERRNO,                     /**< Error with expected errno status set. */
+    IW_ERROR_IO_ERRNO,                  /**< IO error with expected errno status set. */
+    IW_ERROR_NOT_EXISTS,                /**< Resource is not exists. */    
+    IW_ERROR_READONLY,                  /**< Resource is readonly. */
+    IW_ERROR_ALREADY_OPENED,            /**< Resource is already opened. */ 
+    IW_ERROR_THREADING,                 /**< Threading error. */
+    IW_ERROR_THREADING_ERRNO,           /**< Threading error with errno status set. */
+    IW_ERROR_ASSERTION,                 /**< Generic assertion error. */
+    IW_ERROR_INVALID_HANDLE,            /**< Invalid HANDLE value. */
+    IW_ERROR_OUT_OF_BOUNDS,             /**< Invalid bounds specified. */
+    IW_ERROR_NOT_IMPLEMENTED            /**< Method is not implemented */  
+} iw_ecode;
 
 /**
  * @enum
@@ -27,14 +47,13 @@ typedef enum {
     IWLOG_DEBUG = 3
 } IWLOG_LEVEL;
 
-
 /**
  * @struct
  * @brief Options for the default logging function.
  * @see iwlog_set_logfn_opts(void*)
  */
 typedef struct {
-    FILE *out; /**< Output file stream. Default: @em stderr  */
+    FILE *out; /**< Output file stream. Default: `stderr`  */
 } IWLOG_DEFAULT_OPTS;
 
 /**
@@ -44,10 +63,10 @@ typedef struct {
  * @param lvl Log level.
  * @param ecode Error code specified.
  * @param errno_code Optional errno code. Set it to 0 if errno not used.
- * @param file File name. Can be @em NULL
+ * @param file File name. Can be `NULL`
  * @param line Line number in the file.
  * @param ts Message time-stamp
- * @param fmt @em printf style message format
+ * @param fmt `printf` style message format
  * @return Not zero error code in the case of error.
  *
  * @see iwlog_set_logfn(IWLOG_FN)
@@ -65,9 +84,9 @@ typedef int (*IWLOG_FN)(locale_t locale,
 /**
  * @brief Return the locale aware error code explanation message.
  *
- * @param locale Locale used. Can be @em NULL
+ * @param locale Locale used. Can be `NULL`
  * @param ecode Error code
- * @return Message string describes a given error code or @em NULL if
+ * @return Message string describes a given error code or `NULL` if
  *         no message found.
  */
 typedef const char* (*IWLOG_ECODE_FN)(locale_t locale, int64_t ecode);
