@@ -8,7 +8,8 @@
 
 
 int init_suite(void) {
-    return 0;
+    int rc = iwlog_init();
+    return rc;
 }
 
 int clean_suite(void) {
@@ -16,6 +17,16 @@ int clean_suite(void) {
 }
 
 void iwlog_test1() {
+    uint32_t ec = (0xfffffffdU & 0x3fffffffU);
+    uint64_t rc = 0xfafafafaULL;
+    rc = iwrc_set_errno(rc, ec); 
+    uint32_t ec2 = iwrc_strip_errno(&rc);
+    CU_ASSERT_EQUAL(ec, ec2);
+    CU_ASSERT_EQUAL(rc, 0xfafafafaULL);
+}
+
+
+void iwlog_test2() {
     IWLOG_DEFAULT_OPTS opts = {0};
     int rv = 0;
     char fname[] = "iwlog_test1_XXXXXX";
@@ -31,9 +42,12 @@ void iwlog_test1() {
 
     iwlog_info2("7fa79c75beac413d83f35ffb6bf571b9");
     iwlog_error("7e94f7214af64513b30ab4df3f62714a%s", "C");
+    iwlog_ecode_warn(IW_ERROR_READONLY, "c94645c3b107433497ef295b1c00dcff%d", 12);
+    
 
     errno = ENOENT;
-    rv = iwlog(IWLOG_DEBUG, 0, NULL, 0, "ERRNO Message");
+    iwrc ecode = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+    rv = iwlog(IWLOG_DEBUG, ecode, NULL, 0, "ERRNO Message");
     CU_ASSERT_EQUAL(rv, 0);
     errno = 0;
     fclose(out);
@@ -48,9 +62,12 @@ void iwlog_test1() {
 
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "7fa79c75beac413d83f35ffb6bf571b9"));
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "7e94f7214af64513b30ab4df3f62714aC"));
-    CU_ASSERT_PTR_NOT_NULL(strstr(buf, "DEBUG 0|2|0||"));
+    CU_ASSERT_PTR_NOT_NULL(strstr(buf, "DEBUG 70001|2|0|Error with expected errno status set|"));
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERRNO Message"));
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERROR iwlog_test1.c:"));
+    CU_ASSERT_PTR_NOT_NULL(strstr(buf, "70004|0|0|Resource is readonly|"));
+    CU_ASSERT_PTR_NOT_NULL(strstr(buf, "c94645c3b107433497ef295b1c00dcff12"));
+    
 
     fclose(out);
     unlink(fname);
@@ -73,7 +90,9 @@ int main() {
     }
 
     /* Add the tests to the suite */
-    if ((NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1))
+    if (
+        (NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1)) ||
+        (NULL == CU_add_test(pSuite, "iwlog_test2", iwlog_test2))
        ) {
         CU_cleanup_registry();
         return CU_get_error();

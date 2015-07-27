@@ -22,3 +22,9 @@
 #endif
 
 #inclide "basedefs.h"
+
+/**
+ * @brief Init iowow subsystem.
+ * @return `0` on success of error code. 
+ */
+IW_EXPORT iwrc iw_init(void);

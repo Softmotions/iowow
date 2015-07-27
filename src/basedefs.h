@@ -39,5 +39,11 @@ typedef int HANDLE;
 #define INVALIDHANDLE(_HNDL) ((_HNDL) < 0 || (_HNDL) == UINT16_MAX)
 #endif
 
+#define IW_ERROR_START 70000
+
+#include<stdint.h>
+
+typedef uint64_t iwrc; 
+
 
 #endif

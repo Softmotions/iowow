@@ -64,7 +64,9 @@
     <VirtualDirectory Name="fs">
       <File Name="src/fs/iwfile.h"/>
       <File Name="src/fs/iwfile.c"/>
+      <File Name="src/fs/iwfs.c"/>
     </VirtualDirectory>
+    <File Name="src/iowow.c"/>
   </VirtualDirectory>
   <VirtualDirectory Name="tools"/>
   <VirtualDirectory Name="installer">

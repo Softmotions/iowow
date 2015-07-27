@@ -15,25 +15,27 @@
 
 IW_EXTERN_C_START
 
+#ifndef IW_ERROR_START
 #define IW_ERROR_START 70000
+#endif
 
 /**
- * @brief Common error codes. 
+ * @brief Common error codes.
  */
 typedef enum {
     IW_OK           = 0,                /**< No error. */
     IW_ERROR_FAIL   = IW_ERROR_START,   /**< Unspecified error. */
     IW_ERROR_ERRNO,                     /**< Error with expected errno status set. */
     IW_ERROR_IO_ERRNO,                  /**< IO error with expected errno status set. */
-    IW_ERROR_NOT_EXISTS,                /**< Resource is not exists. */    
+    IW_ERROR_NOT_EXISTS,                /**< Resource is not exists. */
     IW_ERROR_READONLY,                  /**< Resource is readonly. */
-    IW_ERROR_ALREADY_OPENED,            /**< Resource is already opened. */ 
+    IW_ERROR_ALREADY_OPENED,            /**< Resource is already opened. */
     IW_ERROR_THREADING,                 /**< Threading error. */
     IW_ERROR_THREADING_ERRNO,           /**< Threading error with errno status set. */
     IW_ERROR_ASSERTION,                 /**< Generic assertion error. */
     IW_ERROR_INVALID_HANDLE,            /**< Invalid HANDLE value. */
     IW_ERROR_OUT_OF_BOUNDS,             /**< Invalid bounds specified. */
-    IW_ERROR_NOT_IMPLEMENTED            /**< Method is not implemented */  
+    IW_ERROR_NOT_IMPLEMENTED            /**< Method is not implemented */
 } iw_ecode;
 
 /**
@@ -45,7 +47,7 @@ typedef enum {
     IWLOG_WARN = 1,
     IWLOG_INFO = 2,
     IWLOG_DEBUG = 3
-} IWLOG_LEVEL;
+} iwlog_lvl;
 
 /**
  * @struct
@@ -71,9 +73,9 @@ typedef struct {
  *
  * @see iwlog_set_logfn(IWLOG_FN)
  */
-typedef int (*IWLOG_FN)(locale_t locale,
-                        IWLOG_LEVEL lvl,
-                        int64_t ecode,
+typedef iwrc(*IWLOG_FN)(locale_t locale,
+                        iwlog_lvl lvl,
+                        iwrc ecode,
                         int errno_code,
                         int werror_code,
                         const char *file, int line, uint64_t ts,
@@ -89,7 +91,46 @@ typedef int (*IWLOG_FN)(locale_t locale,
  * @return Message string describes a given error code or `NULL` if
  *         no message found.
  */
-typedef const char* (*IWLOG_ECODE_FN)(locale_t locale, int64_t ecode);
+typedef const char* (*IWLOG_ECODE_FN)(locale_t locale, uint32_t ecode);
+
+/**
+ * @brief Attach the specified @a errno_code code into @a rc code
+ * @param rc IOWOW error code
+ * @param errno_code Error code will be embedded into.
+ * @return Updated rc code
+ */
+IW_EXPORT iwrc iwrc_set_errno(iwrc rc, uint32_t errno_code);
+
+/**
+ * @brief Strip the attached `errno` code from the specified @a rc and
+ * return this errno code.
+ *
+ * @param rc `errno` code or `0`
+ */
+IW_EXPORT uint32_t iwrc_strip_errno(iwrc *rc);
+
+#ifdef _WIN32
+
+/**
+ * @brief Attach the specified windows @a werror code into @a rc code
+ * @param rc IOWOW error code
+ * @param errno_code Error code will be embedded into.
+ * @return Updated rc code
+ */
+IW_EXPORT iwrc iwrc_set_werror(iwrc rc, uint32_t werror);
+
+/**
+ * @brief Strip the attached windows `werror` code from the specified @a rc and
+ * return this errno code.
+ *
+ * @param rc `errno` code or `0`
+ */
+IW_EXPORT uint32_t iwrc_strip_werror(iwrc *rc);
+
+#endif
+
+
+IW_EXPORT void iwrc_strip_code(iwrc *rc);
 
 /**
  * @brief Sets default logging function.
@@ -116,40 +157,39 @@ IW_EXPORT void iwlog_set_logfn_opts(void *opts);
  * @param ecode Error code
  * @return
  */
-IW_EXPORT const char* iwlog_ecode_explained(int64_t ecode);
+IW_EXPORT const char* iwlog_ecode_explained(iwrc ecode);
 
 /**
- * @brief Get an error code explanation function.
- */
-IW_EXPORT IWLOG_ECODE_FN iwlog_get_ecodefn(void);
-
-/**
- * @brief Set default error code explanation function.
+ * @brief Register error code explanation function.
+ *
+ * Up to `128` @a fp function can be registered.
+ *
  * @param fp
+ * @return `0` on success or error code.
  */
-IW_EXPORT void iwlog_set_ecodefn(IWLOG_ECODE_FN fp);
+IW_EXPORT iwrc iwlog_register_ecodefn(IWLOG_ECODE_FN fp);
 
 
-int iwlog(IWLOG_LEVEL lvl,
-          int64_t ecode,
-          const char *file,
-          int line,
-          const char *fmt, ...);
+iwrc iwlog(iwlog_lvl lvl,
+           iwrc ecode,
+           const char *file,
+           int line,
+           const char *fmt, ...);
 
 
-void iwlog2(IWLOG_LEVEL lvl,
-            int64_t ecode,
+void iwlog2(iwlog_lvl lvl,
+            iwrc ecode,
             const char *file,
             int line,
             const char *fmt, ...);
 
 
-int iwlog_va(IWLOG_LEVEL lvl,
-             int64_t ecode,
-             const char *file,
-             int line,
-             const char *fmt,
-             va_list argp);
+iwrc iwlog_va(iwlog_lvl lvl,
+              iwrc ecode,
+              const char *file,
+              int line,
+              const char *fmt,
+              va_list argp);
 
 #ifdef _DEBUG
 #define iwlog_debug(IW_fmt,...) iwlog2(IWLOG_DEBUG, 0, __FILE__, __LINE__, (IW_fmt),##__VA_ARGS__)
@@ -188,6 +228,13 @@ int iwlog_va(IWLOG_LEVEL lvl,
 #define iwlog_ecode_info2(IW_ecode, IW_fmt) iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_warn2(IW_ecode, IW_fmt) iwlog2(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_error2(IW_ecode, IW_fmt) iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+
+/**
+ * @brief Init logging submodule.
+ * @return `0` on success or error code.
+ */
+IW_EXPORT iwrc iwlog_init(void);
+
 
 IW_EXTERN_C_END
 #endif

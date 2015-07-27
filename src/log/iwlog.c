@@ -11,25 +11,264 @@
 #include <math.h>
 #include <stdlib.h>
 
-static IWLOG_ECODE_FN current_ecodefn;
-static IWLOG_FN current_logfn;
-static pthread_mutex_t iwlog_mtx  = PTHREAD_MUTEX_INITIALIZER;
+static iwrc _default_logfn(locale_t locale,
+                           iwlog_lvl lvl,
+                           iwrc ecode,
+                           int errno_code,
+                           int werror_code,
+                           const char* file, int line,
+                           uint64_t ts,
+                           void *opts,
+                           const char *fmt,
+                           va_list argp);
 
-static int default_logfn(locale_t locale,
-                         IWLOG_LEVEL lvl,
-                         int64_t ecode,
-                         int errno_code,
-                         int werror_code,
-                         const char* file, int line,
-                         uint64_t ts,
-                         void *opts,
-                         const char *fmt,
-                         va_list argp) {
+static const char* _ecode_explained(locale_t locale, uint32_t ecode);
+static const char* _default_ecodefn(locale_t locale, uint32_t ecode);
+
+static IWLOG_FN _current_logfn;
+static pthread_mutex_t _mtx  = PTHREAD_MUTEX_INITIALIZER;
+static IWLOG_FN _current_logfn = _default_logfn;
+static void *_current_logfn_options = 0;
+#define _IWLOG_MAX_ECODE_FUN 256
+static IWLOG_ECODE_FN _ecode_functions[_IWLOG_MAX_ECODE_FUN] = {0};
+
+iwrc iwlog(iwlog_lvl lvl,
+           iwrc ecode,
+           const char *file,
+           int line,
+           const char *fmt, ...) {
+    va_list argp;
+    int rv;
+    va_start(argp, fmt);
+    rv = iwlog_va(lvl, ecode, file, line, fmt, argp);
+    va_end(argp);
+    return rv;
+}
+
+void iwlog2(iwlog_lvl lvl,
+            iwrc ecode,
+            const char *file,
+            int line,
+            const char *fmt, ...) {
+    va_list argp;
+    va_start(argp, fmt);
+    iwlog_va(lvl, ecode, file, line, fmt, argp);
+    va_end(argp);
+}
+
+iwrc iwlog_va(iwlog_lvl lvl,
+              iwrc ecode,
+              const char *file,
+              int line,
+              const char *fmt,
+              va_list argp) {
+
+    assert(_current_logfn);
+
+#ifdef _WIN32
+    werror_code = iwrc_strip_werror(&ecode);
+#else
+    int werror_code = 0;
+#endif
+    int errno_code = iwrc_strip_errno(&ecode);
+    iwrc rc;
+    locale_t locale = uselocale(0);
+    int64_t ts;
+
+    if (iwp_current_time_ms(&ts)) {
+        return -1;
+    }
+
+    pthread_mutex_lock(&_mtx);
+    IWLOG_FN logfn = _current_logfn;
+    void *opts = _current_logfn_options;
+    pthread_mutex_unlock(&_mtx);
+
+    rc = logfn(locale, lvl, ecode, errno_code, werror_code,
+               file, line,
+               ts, opts, fmt, argp);
+
+    if (rc) {
+        fprintf(stderr, "Logging function returned with error: %" PRIu64 IW_LINE_SEP, rc);
+    }
+    return rc;
+}
+
+#define _IWLOG_ERRNO_RC_MASK    0x01U
+#define _IWLOG_WERR_EC_MASK     0x02U
+
+iwrc iwrc_set_errno(iwrc rc, uint32_t errno_code) {
+    uint64_t ret = _IWLOG_ERRNO_RC_MASK;
+    ret <<= 30;
+    ret |= (uint32_t) errno_code & 0x3fffffffU;
+    ret <<= 32;
+    ret |= (uint32_t) rc;
+    return ret;
+}
+
+uint32_t iwrc_strip_errno(iwrc *rc) {
+    uint64_t rcv = *rc;
+    if (((rcv >> 62) & 0x03U) != _IWLOG_ERRNO_RC_MASK) {
+        return 0;
+    }
+    *rc = rcv & 0x00000000ffffffffULL;
+    return (uint32_t)(rcv >> 32) & 0x3fffffffU;
+}
+
+#ifdef _WIN32
+
+iwrc iwrc_set_werror(iwrc rc, uint32_t werror) {
+    uint64_t ret = _IWLOG_WERR_EC_MASK;
+    ret <<= 30;
+    ret |= (uint32_t) werror & 0x3fffffffU;
+    ret <<= 32;
+    ret |= (uint32_t) rc;
+    return ret;
+}
+
+uint32_t iwrc_strip_werror(iwrc *rc) {
+    uint64_t rcv = *rc;
+    if (((rcv >> 62) & 0x03U) != _IWLOG_WERR_EC_MASK) {
+        return 0;
+    }
+    *rc = rcv & 0x00000000ffffffffULL;
+    return (uint32_t)(rcv >> 32) & 0x3fffffffU;
+}
+#endif
+
+void iwrc_strip_code(iwrc *rc) {
+    *rc = *rc & 0x00000000ffffffffULL;
+}
+
+void iwlog_set_logfn(IWLOG_FN fp) {
+    pthread_mutex_lock(&_mtx);
+
+    if (!fp) {
+        _current_logfn = _default_logfn;
+    } else {
+        _current_logfn = fp;
+    }
+
+    pthread_mutex_unlock(&_mtx);
+}
+
+IWLOG_FN iwlog_get_logfn(void) {
+    IWLOG_FN res;
+    pthread_mutex_lock(&_mtx);
+    res = _current_logfn;
+    pthread_mutex_unlock(&_mtx);
+    return res;
+}
+
+void iwlog_set_logfn_opts(void *opts) {
+    pthread_mutex_lock(&_mtx);
+    _current_logfn_options = opts;
+    pthread_mutex_unlock(&_mtx);
+}
+
+const char* iwlog_ecode_explained(iwrc ecode) {
+    const char *res;
+    pthread_mutex_lock(&_mtx);
+    res = _ecode_explained(0, ecode);
+    pthread_mutex_unlock(&_mtx);
+    return res;
+}
+
+iwrc iwlog_register_ecodefn(IWLOG_ECODE_FN fp) {
+    assert(fp);
+    int success = 0;
+    pthread_mutex_lock(&_mtx);
+    for (int i = 0; i < _IWLOG_MAX_ECODE_FUN; ++i) {
+        if (_ecode_functions[i] == 0) {
+            _ecode_functions[i] = fp;
+            success = 1;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&_mtx);
+    return success ? 0 : IW_ERROR_FAIL;
+}
+
+iwrc iwlog_init(void) {
+    static int _iwlog_initialized = 0;
+    iwrc rc;
+    if (!__sync_bool_compare_and_swap(&_iwlog_initialized, 0, 1)) {
+        return 0; //initialized already
+    }
+    rc = iwlog_register_ecodefn(_default_ecodefn);
+    return rc;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Assumed:
+//   1. `_mtx` is locked.
+static const char* _ecode_explained(locale_t locale, uint32_t ecode) {
+    const char *ret = 0;
+    for (int i = 0; i < _IWLOG_MAX_ECODE_FUN; ++i) {
+        if (_ecode_functions[i] == 0) {
+            break;
+        } else {
+            ret = _ecode_functions[i](locale, ecode);
+            if (ret) {
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
+static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
+
+    switch (ecode) {
+        case IW_ERROR_FAIL:
+            return "Unspecified error";
+        case IW_ERROR_ERRNO:
+            return "Error with expected errno status set";
+        case IW_ERROR_IO_ERRNO:
+            return "IO error with expected errno status set";
+        case IW_ERROR_NOT_EXISTS:
+            return "Resource is not exists";
+        case IW_ERROR_READONLY:
+            return "Resource is readonly";
+        case IW_ERROR_ALREADY_OPENED:
+            return "Resource is already opened";
+        case IW_ERROR_THREADING:
+            return "Threading error";
+        case IW_ERROR_THREADING_ERRNO:
+            return "Threading error with errno status set";
+        case IW_ERROR_ASSERTION:
+            return "Generic assertion error";
+        case IW_ERROR_INVALID_HANDLE:
+            return "Invalid HANDLE value";
+        case IW_ERROR_OUT_OF_BOUNDS:
+            return "Argument/parameter/value is out of bounds";
+        case IW_ERROR_NOT_IMPLEMENTED:
+            return "Method is not implemented";
+        case IW_OK:
+        default:
+            return 0;
+    }
+    return 0;
+}
+
+
+static iwrc _default_logfn(locale_t locale,
+                           iwlog_lvl lvl,
+                           iwrc ecode,
+                           int errno_code,
+                           int werror_code,
+                           const char* file, int line,
+                           uint64_t ts,
+                           void *opts,
+                           const char *fmt,
+                           va_list argp) {
 
 #define TBUF_SZ 96
 #define EBUF_SZ 128
 
-    int rv = 0;
+    iwrc rc = 0;
     IWLOG_DEFAULT_OPTS myopts = {0};
     FILE *out = stderr;
     time_t ts_sec = ((long double) ts / 1000);
@@ -77,9 +316,7 @@ static int default_logfn(locale_t locale,
             out = myopts.out;
         }
     }
-
     sz = strftime(tbuf, TBUF_SZ, "%d %b %H:%M:%S", timeinfo);
-
     if (sz == 0) {
         tbuf[0] = '\0';
     } else if (TBUF_SZ - sz > 4) { // .000 suffix
@@ -95,35 +332,28 @@ static int default_logfn(locale_t locale,
         case IWLOG_DEBUG:
             cat = "DEBUG";
             break;
-
         case IWLOG_INFO:
             cat = "INFO";
             break;
-
         case IWLOG_WARN:
             cat = "WARN";
             break;
-
         case IWLOG_ERROR:
             cat = "ERROR";
             break;
-
         default:
             cat = "UNKNOW";
             assert(0);
             break;
     }
 
-    if (pthread_mutex_lock(&iwlog_mtx)) {
-        rv = -1;
+    if (pthread_mutex_lock(&_mtx)) {
+        rc = IW_ERROR_THREADING_ERRNO;
         goto finish;
     }
-
     if (ecode) {
-        assert(current_ecodefn);
-        ecode_msg = current_ecodefn(locale, ecode);
+        ecode_msg = _ecode_explained(locale, ecode);
     }
-
     if (ecode || errno_code || werror_code) {
         if (file && line > 0) {
             file = basename(file);
@@ -153,7 +383,7 @@ static int default_logfn(locale_t locale,
     }
 
     fprintf(out, IW_LINE_SEP);
-    pthread_mutex_unlock(&iwlog_mtx);
+    pthread_mutex_unlock(&_mtx);
     fflush(out);
 
 finish:
@@ -166,165 +396,7 @@ finish:
 
 #endif
 
-
 #undef TBUF_SZ
 #undef EBUF_SZ
-    return rv;
-}
-
-const char* default_ecodefn(locale_t locale, int64_t ecode) {
-
-    switch (ecode) {
-        
-        case IW_ERROR_FAIL:
-            return "Unspecified error";
-        case IW_ERROR_ERRNO:
-            return "Error with expected errno status set";
-        case IW_ERROR_IO_ERRNO:
-            return "IO error with expected errno status set";
-        case IW_ERROR_NOT_EXISTS:
-            return "Resource is not exists";
-        case IW_ERROR_READONLY:
-            return "Resource is readonly";
-        case IW_ERROR_ALREADY_OPENED:
-            return "Resource is already opened";
-        case IW_ERROR_THREADING:
-            return "Threading error";
-        case IW_ERROR_THREADING_ERRNO:
-            return "Threading error with errno status set";
-        case IW_ERROR_ASSERTION:
-            return "Generic assertion error";
-        case IW_ERROR_INVALID_HANDLE:
-            return "Invalid HANDLE value";
-        case IW_ERROR_OUT_OF_BOUNDS:
-            return "Argument/parameter/value is out of bounds";
-        case IW_ERROR_NOT_IMPLEMENTED:
-            return "Method is not implemented";
-        case IW_OK:
-        default:
-            return 0;
-    }
-    return 0;
-}
-
-static IWLOG_FN current_logfn = default_logfn;
-static void *current_logfn_options = 0;
-static IWLOG_ECODE_FN current_ecodefn = default_ecodefn;
-
-
-int iwlog(IWLOG_LEVEL lvl,
-          int64_t ecode,
-          const char *file,
-          int line,
-          const char *fmt, ...
-         ) {
-    va_list argp;
-    int rv;
-    va_start(argp, fmt);
-    rv = iwlog_va(lvl, ecode, file, line, fmt, argp);
-    va_end(argp);
-    return rv;
-}
-
-void iwlog2(IWLOG_LEVEL lvl,
-            int64_t ecode,
-            const char *file,
-            int line,
-            const char *fmt, ...) {
-    va_list argp;
-    va_start(argp, fmt);
-    iwlog_va(lvl, ecode, file, line, fmt, argp);
-    va_end(argp);
-}
-
-int iwlog_va(IWLOG_LEVEL lvl,
-             int64_t ecode,
-             const char *file,
-             int line,
-             const char *fmt,
-             va_list argp) {
-
-    assert(current_logfn);
-    assert(current_ecodefn);
-
-#ifdef _WIN32
-    int werror_code = GetLastError();
-#else
-    int werror_code = 0;
-#endif
-    int errno_code = errno;
-    int rv;
-    locale_t locale = uselocale(0);
-    int64_t ts;
-
-    if (iwp_current_time_ms(&ts)) {
-        return -1;
-    }
-
-    pthread_mutex_lock(&iwlog_mtx);
-    IWLOG_FN logfn = current_logfn;
-    void *opts = current_logfn_options;
-    pthread_mutex_unlock(&iwlog_mtx);
-
-    rv = logfn(locale, lvl, ecode, errno_code, werror_code,
-               file, line,
-               ts, opts, fmt, argp);
-
-    if (rv) {
-        fprintf(stderr, "Logging function returned with error: %d" IW_LINE_SEP, rv);
-    }
-
-    return rv;
-}
-
-void iwlog_set_logfn(IWLOG_FN fp) {
-    pthread_mutex_lock(&iwlog_mtx);
-
-    if (!fp) {
-        current_logfn = default_logfn;
-    } else {
-        current_logfn = fp;
-    }
-
-    pthread_mutex_unlock(&iwlog_mtx);
-}
-
-IWLOG_FN iwlog_get_logfn(void) {
-    IWLOG_FN res;
-    pthread_mutex_lock(&iwlog_mtx);
-    res = current_logfn;
-    pthread_mutex_unlock(&iwlog_mtx);
-    return res;
-}
-
-void iwlog_set_logfn_opts(void *opts) {
-    pthread_mutex_lock(&iwlog_mtx);
-    current_logfn_options = opts;
-    pthread_mutex_unlock(&iwlog_mtx);
-}
-
-const char* iwlog_ecode_explained(int64_t ecode) {
-    IWLOG_ECODE_FN ecf = iwlog_get_ecodefn();
-    assert(ecf);
-    return ecf(0, ecode);
-}
-
-IWLOG_ECODE_FN iwlog_get_ecodefn(void) {
-    IWLOG_ECODE_FN res;
-    pthread_mutex_lock(&iwlog_mtx);
-    res = current_ecodefn;
-    pthread_mutex_unlock(&iwlog_mtx);
-    return res;
-}
-
-void iwlog_set_ecodefn(IWLOG_ECODE_FN fp) {
-    pthread_mutex_lock(&iwlog_mtx);
-
-    if (!fp) {
-        current_ecodefn = fp;
-    } else {
-        current_ecodefn = fp;
-    }
-
-    pthread_mutex_unlock(&iwlog_mtx);
+    return rc;
 }

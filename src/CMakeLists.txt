@@ -55,6 +55,8 @@ endforeach(HF)
 add_definitions(-D_LARGEFILE_SOURCE)
 add_definitions(-D_GNU_SOURCE)
 
+list(APPEND ALL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/iowow.c)
+
 foreach(MODULE IN LISTS MODULES)
     file(GLOB MODULE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/*.c)
     file(GLOB MODULE_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/*.h)
@@ -88,7 +90,7 @@ endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g -Werror -DDEBUG -D_DEBUG -UNDEBUG")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable")
 set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g")
 
