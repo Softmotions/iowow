@@ -65,6 +65,9 @@
       <File Name="src/fs/iwfile.h"/>
       <File Name="src/fs/iwfile.c"/>
       <File Name="src/fs/iwfs.c"/>
+      <VirtualDirectory Name="tests"/>
+      <File Name="src/fs/iwexfile.h"/>
+      <File Name="src/fs/iwexfile.c"/>
     </VirtualDirectory>
     <File Name="src/iowow.c"/>
   </VirtualDirectory>

@@ -1,7 +1,10 @@
-/** @file */
+/**
+ * @file
+ * @brief Simple read-write file abstraction implementation.
+ */
 
-#ifndef IW_FILE
-#define IW_FILE
+#ifndef IW_FILE_H
+#define IW_FILE_H
 
 #include "log/iwlog.h"
 #include "platform/iwp.h"
@@ -41,7 +44,7 @@ typedef enum {
 
 /**
  * @struct IWFS_FILE_OPTS
- * @brief File open options.
+ * @brief File options.
  * @see
  */
 typedef struct {
@@ -61,6 +64,7 @@ typedef struct {
     int is_open;                /**< `1` if file in open state */
     iwfs_openstatus ostatus;    /**< File open status. */
     IWFS_FILE_OPTS opts;        /**< File open options. */
+    HANDLE fh;                  /**< File handle */
 } IWFS_FILE_STATE;
 
 /**
@@ -85,14 +89,14 @@ typedef struct IWFS_FILE {
     IWFS_FILE_IMPL *impl; /**< Implementation specific data */
 
 #define IWFS_FILE_METHODS(IW_self) \
-    iwrc (*write)  (IW_self, uint64_t off, const void *buf, int64_t siz, int64_t *sp); \
-    iwrc (*read)   (IW_self, uint64_t off, void *buf, int64_t siz, int64_t *sp); \
+    iwrc (*write)  (IW_self, off_t off, const void *buf, size_t siz, size_t *sp); \
+    iwrc (*read)   (IW_self, off_t off, void *buf, size_t siz, size_t *sp); \
     iwrc (*close)  (IW_self); \
     iwrc (*sync)   (IW_self); \
     iwrc (*state)  (IW_self);
 
     /**
-     * @fn int write(struct IWFS_FILE *f, uint64_t off, const void *buf, int64_t siz, int64_t *sp)
+     * @fn int write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp)
      * @brief Write @a buf bytes into the file
      *
      * @param f `struct IWFS_FILE` pointer
@@ -102,10 +106,10 @@ typedef struct IWFS_FILE {
      * @param [out] sp Number of bytes actually written
      * @return `0` on success or error code.
      */
-    iwrc (*write)(struct IWFS_FILE *f, uint64_t off, const void *buf, int64_t siz, int64_t *sp);
+    iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
 
     /**
-     * @fn int read(struct IWFS_FILE *f, uint64_t off, void *buf, int64_t siz, int64_t *sp)
+     * @fn int read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp)
      * @brief Read @a siz bytes into @a buf at the specified offset @a off
      *
      * @param f `struct IWFS_FILE` pointer.
@@ -114,7 +118,7 @@ typedef struct IWFS_FILE {
      * @param siz [out] sp Number of bytes actually read.
      * @return `0` on success or error code.
      */
-    iwrc (*read)(struct IWFS_FILE *f, uint64_t off, void *buf, int64_t siz, int64_t *sp);
+    iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp);
 
     /**
      * @fn int close(struct IWFS_FILE *f)
@@ -122,7 +126,7 @@ typedef struct IWFS_FILE {
      *
      * @return `0` on success or error code.
      */
-    iwrc (*close)(struct IWFS_FILE *f);
+    iwrc(*close)(struct IWFS_FILE *f);
 
     /**
      * @fn int sync(struct IWFS_FILE *f, const IWFS_FILE_SYNC_OPTS *opts)
@@ -131,7 +135,7 @@ typedef struct IWFS_FILE {
      * @param f `struct IWFS_FILE` pointer.
      * @param opts File sync options.
      */
-    iwrc (*sync)(struct IWFS_FILE *f, const IWFS_FILE_SYNC_OPTS *opts);
+    iwrc(*sync)(struct IWFS_FILE *f, const IWFS_FILE_SYNC_OPTS *opts);
 
     /**
      * @fn int state(struct IWFS_FILE *f, IWFS_FILE_STATE* state)
@@ -143,7 +147,7 @@ typedef struct IWFS_FILE {
      *
      * @see struct IWFS_FILE_STATE
      */
-    iwrc (*state)(struct IWFS_FILE *f, IWFS_FILE_STATE* state);
+    iwrc(*state)(struct IWFS_FILE *f, IWFS_FILE_STATE* state);
 
 } IWFS_FILE;
 
@@ -154,8 +158,7 @@ typedef struct IWFS_FILE {
  * @param opts [in] File open options
  */
 IW_EXPORT iwrc iwfs_file_open(IWFS_FILE *f,
-                               const IWFS_FILE_OPTS *opts);
-
+                              const IWFS_FILE_OPTS *opts);
 
 /**
  * @brief Init `iwfile` submodule.

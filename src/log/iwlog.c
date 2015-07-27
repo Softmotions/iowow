@@ -98,6 +98,9 @@ iwrc iwlog_va(iwlog_lvl lvl,
 #define _IWLOG_WERR_EC_MASK     0x02U
 
 iwrc iwrc_set_errno(iwrc rc, uint32_t errno_code) {
+    if (!errno_code) {
+        return rc;
+    }
     uint64_t ret = _IWLOG_ERRNO_RC_MASK;
     ret <<= 30;
     ret |= (uint32_t) errno_code & 0x3fffffffU;
@@ -118,6 +121,9 @@ uint32_t iwrc_strip_errno(iwrc *rc) {
 #ifdef _WIN32
 
 iwrc iwrc_set_werror(iwrc rc, uint32_t werror) {
+    if (!werror) {
+        return rc;
+    }
     uint64_t ret = _IWLOG_WERR_EC_MASK;
     ret <<= 30;
     ret |= (uint32_t) werror & 0x3fffffffU;
@@ -246,6 +252,10 @@ static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
             return "Argument/parameter/value is out of bounds";
         case IW_ERROR_NOT_IMPLEMENTED:
             return "Method is not implemented";
+        case IW_ERROR_ALLOC:
+            return "Memory allocation failed";
+        case IW_ERROR_ISTATE:
+            return "Illegal state error";
         case IW_OK:
         default:
             return 0;

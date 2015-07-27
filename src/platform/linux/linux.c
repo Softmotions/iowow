@@ -86,3 +86,42 @@ iwrc iwp_unlock(HANDLE fd) {
     }
     return 0;
 }
+
+
+iwrc iwp_closefh(HANDLE fh) {
+    if (INVALIDHANDLE(fh)) {
+        return 0;
+    }
+    if (close(fh) == -1) {
+        return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    }
+    return 0;
+}
+
+iwrc iwp_read(HANDLE fh, off_t off, void *buf,
+              size_t siz, size_t *sp) {
+
+    assert(buf && sp && siz >= 0);
+    ssize_t rs = pread(fh, buf, siz, off);
+    if (rs == -1) {
+        *sp = 0;
+        return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    } else {
+        *sp = rs;
+        return 0;
+    }
+}
+
+iwrc iwp_write(HANDLE fh, off_t off, const void *buf,
+               size_t siz, size_t *sp) {
+
+    assert(buf && sp && siz >= 0);
+    ssize_t ws = pwrite(fh, buf, siz, off);
+    if (ws == -1) {
+        *sp = 0;
+        return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    } else {
+        *sp = ws;
+        return 0;
+    }
+}

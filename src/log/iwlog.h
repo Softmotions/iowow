@@ -4,8 +4,8 @@
  *  @brief Error logging/reporting rputines.
  */
 
-#ifndef IWLOG
-#define IWLOG
+#ifndef IWLOG_H
+#define IWLOG_H
 
 #include "basedefs.h"
 #include <stdint.h>
@@ -35,7 +35,9 @@ typedef enum {
     IW_ERROR_ASSERTION,                 /**< Generic assertion error. */
     IW_ERROR_INVALID_HANDLE,            /**< Invalid HANDLE value. */
     IW_ERROR_OUT_OF_BOUNDS,             /**< Invalid bounds specified. */
-    IW_ERROR_NOT_IMPLEMENTED            /**< Method is not implemented */
+    IW_ERROR_NOT_IMPLEMENTED,           /**< Method is not implemented. */
+    IW_ERROR_ALLOC,                     /**< Memory allocation failed. */
+    IW_ERROR_ISTATE                     /**< Illegal state error. */
 } iw_ecode;
 
 /**
@@ -228,6 +230,29 @@ iwrc iwlog_va(iwlog_lvl lvl,
 #define iwlog_ecode_info2(IW_ecode, IW_fmt) iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_warn2(IW_ecode, IW_fmt) iwlog2(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_error2(IW_ecode, IW_fmt) iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+
+#define IWRC(IW_act, IW_rc) \
+    {   iwrc __iwrc = (IW_act); \
+        if (__iwrc) { \
+            if (!(IW_rc)) (IW_rc) = __iwrc; \
+            iwlog2(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, ""); \
+        } \
+    }
+
+#define IWRC2(IW_act, IW_lvl) \
+    {   iwrc __iwrc = (IW_act); \
+        if (__iwrc) { \
+            iwlog2(IWLOG_##IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+        } \
+    }
+    
+#define IWRC3(IW_act, IW_rc, IW_lvl) \
+    {   iwrc __iwrc = (IW_act); \
+        if (__iwrc) { \
+            if (!(IW_rc)) (IW_rc) = __iwrc; \
+            iwlog2(IWLOG_##IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+        } \
+    }
 
 /**
  * @brief Init logging submodule.

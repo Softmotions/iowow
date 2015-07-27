@@ -46,4 +46,13 @@ typedef int HANDLE;
 typedef uint64_t iwrc; 
 
 
+/**
+ * @brief Rational number.
+ */
+typedef struct IW_RNUM {
+    int32_t n;  /**< Numerator */
+    int32_t dn; /**< Denometator */
+} IW_RNUM;
+
+
 #endif

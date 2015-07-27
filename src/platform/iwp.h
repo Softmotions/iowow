@@ -50,7 +50,7 @@ typedef enum {
  * @brief File info.
  */
 typedef struct IWP_FILE_STAT {
-    uint64_t size;          /**< File size. */
+    off_t size;          /**< File size. */
     uint64_t atime;         /**< Time of last access. */
     uint64_t ctime;         /**< Time of last status change. */
     uint64_t mtime;         /**< Time of last modification. */
@@ -69,18 +69,56 @@ IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *stat);
 /**
  * @brief Lock the file.
  *
- * @param fd File handle.
+ * @param fh File handle.
  * @param lmode Lock mode specified.
  * @return `0` on sucess or error code.
  */
-IW_EXPORT iwrc iwp_flock(HANDLE fd, iwp_lockmode lmode);
+IW_EXPORT iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode);
 
 /**
- * @brief Unlock the file specified by @a fd
- * @param fd File handle
+ * @brief Unlock the file specified by @a fh
+ * @param fh File handle
  * @return `0` on sucess or error code.
  */
-IW_EXPORT iwrc iwp_unlock(HANDLE fd);
+IW_EXPORT iwrc iwp_unlock(HANDLE fh);
+
+
+/**
+ * @brief Close the specified file handle (File descriptor).
+ * @param fh File handle.
+ */
+IW_EXPORT iwrc iwp_closefh(HANDLE fh);
+
+
+/**
+ * @brief Read @a siz bytes from file @a fh
+ *        into @a buf at the specified offset @a off.
+ *
+ * @param fh        File handle.
+ * @param off       Offset from start of the file.
+ * @param buf [out] Buffer into which bytes will read.
+ * @param siz       Number of bytes to read.
+ * @param sp  [out] Number of bytes read actually
+ * @return `0` on sucess or error code.
+ */
+IW_EXPORT iwrc iwp_read(HANDLE fh, off_t off, void *buf,
+                        size_t siz, size_t *sp);
+
+
+/**
+ * @brief Write @a siz bytes into file @a fh 
+ *        at the specified offset @a off 
+ *        from buffer @a buf.
+ * 
+ * @param fh    File handle.
+ * @param off   Offset from start of the file.
+ * @param buf   Data buffer to write.
+ * @param siz   Number of bytes to write.
+ * @param sp [out]  Number of bytes written.
+ */
+IW_EXPORT iwrc iwp_write(HANDLE fh, off_t off, const void *buf,
+                         size_t siz, size_t *sp);
+
 
 /**
  * @brief Init iwp module.
