@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Workspace Name="iowow" Database="iowow.tags">
   <Project Name="iowow" Path="iowow.project" Active="Yes"/>
-  <Environment>
-    <![CDATA[]]>
-  </Environment>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Project Name="iowow" ConfigName="Debug"/>
@@ -12,4 +9,7 @@
       <Project Name="iowow" ConfigName="Debug"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
+  <Environment>
+    <![CDATA[]]>
+  </Environment>
 </CodeLite_Workspace>

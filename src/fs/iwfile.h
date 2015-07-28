@@ -92,8 +92,8 @@ typedef struct IWFS_FILE {
     iwrc (*write)  (IW_self, off_t off, const void *buf, size_t siz, size_t *sp); \
     iwrc (*read)   (IW_self, off_t off, void *buf, size_t siz, size_t *sp); \
     iwrc (*close)  (IW_self); \
-    iwrc (*sync)   (IW_self); \
-    iwrc (*state)  (IW_self);
+    iwrc (*sync)   (IW_self, const IWFS_FILE_SYNC_OPTS *opts); \
+    iwrc (*state)  (IW_self, IWFS_FILE_STATE* state)
 
     /**
      * @fn int write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp)

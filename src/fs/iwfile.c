@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 struct IWFS_FILE_IMPL {
-    HANDLE fh;              /**< File handle. */
+    HANDLE fh;                  /**< File handle. */
     int is_open;                /**< `1` if file in open state */
     iwfs_openstatus ostatus;    /**< File open status. */
     IWFS_FILE_OPTS opts;        /**< File open options. */
@@ -18,7 +18,7 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off,
     assert(f);
     IWFS_FILE_IMPL *impl = f->impl;
     if (!impl) {
-        return IW_ERROR_ISTATE;
+        return IW_ERROR_INVALID_STATE;
     }
     return iwp_write(impl->fh, off, buf, siz, sp);
 }
@@ -29,7 +29,7 @@ static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off,
     assert(f);
     IWFS_FILE_IMPL *impl = f->impl;
     if (!impl) {
-        return IW_ERROR_ISTATE;
+        return IW_ERROR_INVALID_STATE;
     }
     return iwp_read(impl->fh, off, buf, siz, sp);
 }
@@ -58,7 +58,7 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
 static iwrc _iwfs_sync(struct IWFS_FILE *f, const IWFS_FILE_SYNC_OPTS *opts) {
     assert(f);
     if (!f->impl) {
-        return IW_ERROR_ISTATE;
+        return IW_ERROR_INVALID_STATE;
     }
     if (opts && opts->fdata_sync) {
         if (fdatasync(f->impl->fh) == -1) {
@@ -87,9 +87,8 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE* state) {
 
 iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     assert(f);
-    assert(_opts);
-    assert(_opts->path);
-
+    assert(_opts && _opts->path);
+    
     IWFS_FILE_OPTS *opts;
     IWFS_FILE_IMPL *impl;
     IWP_FILE_STAT fstat;
@@ -103,6 +102,12 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         goto finish;
     }
+    
+    f->write = _iwfs_write;
+    f->read = _iwfs_read;
+    f->close = _iwfs_close;
+    f->sync = _iwfs_sync;
+    f->state = _iwfs_state;    
 
     impl->opts = *_opts;
     opts = &impl->opts;
@@ -123,12 +128,6 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
         opts->open_mode |= IWFS_OWRITE;
     }
     omode = opts->open_mode;
-
-    f->write = _iwfs_write;
-    f->read = _iwfs_read;
-    f->close = _iwfs_close;
-    f->sync = _iwfs_sync;
-    f->state = _iwfs_state;
 
     rc = iwp_fstat(opts->path, &fstat);
     if (!rc && !(opts->open_mode & IWFS_OTRUNC)) {
@@ -154,7 +153,9 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
             goto finish;
         }
     }
+    
     impl->is_open = 1;
+
 finish:
     if (rc) {
         impl->ostatus = IWFS_OPEN_FAIL;

@@ -67,7 +67,7 @@ typedef struct IWP_FILE_STAT {
 IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *stat);
 
 /**
- * @brief Lock the file.
+ * @brief Lock the file. 
  *
  * @param fh File handle.
  * @param lmode Lock mode specified.
@@ -115,10 +115,24 @@ IW_EXPORT iwrc iwp_read(HANDLE fh, off_t off, void *buf,
  * @param buf   Data buffer to write.
  * @param siz   Number of bytes to write.
  * @param sp [out]  Number of bytes written.
+ * @return `0` on sucess or error code.
  */
 IW_EXPORT iwrc iwp_write(HANDLE fh, off_t off, const void *buf,
                          size_t siz, size_t *sp);
 
+/**
+ * @brief Get system page size.
+ */
+IW_EXPORT size_t iwp_page_size(void);
+
+
+/**
+ * @brief Truncate a file specified by @a fh to a size of @a len bytes
+ * @param fh File handle
+ * @param len File size
+ * @return `0` on sucess or error code.
+ */
+IW_EXPORT iwrc iwp_ftruncate(HANDLE fh, off_t len);
 
 /**
  * @brief Init iwp module.

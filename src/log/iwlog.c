@@ -254,7 +254,7 @@ static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
             return "Method is not implemented";
         case IW_ERROR_ALLOC:
             return "Memory allocation failed";
-        case IW_ERROR_ISTATE:
+        case IW_ERROR_INVALID_STATE:
             return "Illegal state error";
         case IW_OK:
         default:

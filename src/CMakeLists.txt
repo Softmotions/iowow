@@ -21,6 +21,12 @@ endif()
 include(CheckIncludeFile)
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
+include(TestBigEndian)
+
+TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
+if (IS_BIG_ENDIAN EQUAL 1)
+add_definitions(-DIW_BIGENDIAN=1)
+endif()
 
 if (WIN32)
     include(Win32LIBTools)
@@ -28,9 +34,9 @@ endif()
 
 find_package(Threads REQUIRED CMAKE_THREAD_PREFER_PTHREAD)
 if (CMAKE_USE_WIN32_THREADS_INIT)
-    add_definitions(-DIOWOW_WIN32_THREADS)
+    add_definitions(-DIW_WIN32_THREADS)
 elseif (CMAKE_USE_PTHREADS_INIT)
-    add_definitions(-DIOWOW_PTHREADS)
+    add_definitions(-DIW_PTHREADS)
 else()
     mesage(FATAL_ERROR "Unable to find suitable threading library")
 endif(CMAKE_USE_WIN32_THREADS_INIT)
@@ -70,7 +76,7 @@ list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
 include_directories(${PROJECT_INCLUDE_DIRS})
 
 if (NOT BUILD_SHARED_LIBS)
-    add_definitions(-DIOWOW_NODLL)
+    add_definitions(-DIW_NODLL)
     add_library(iowow STATIC ${ALL_SRC})
     add_library(iowow_s ALIAS iowow)
 else() 
@@ -83,7 +89,7 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(iowow_s ${PROJECT_LLIBRARIES})
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wno-unknown-pragmas")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wno-unknown-pragmas -Wno-unused-function")
 if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
@@ -140,14 +146,14 @@ if (BUILD_SHARED_LIBS)
                       
     set_target_properties(iowow_s PROPERTIES
                           VERSION ${PROJECT_VERSION}
-                          COMPILE_FLAGS "-DIOWOW_NODLL"
+                          COMPILE_FLAGS "-DIW_NODLL"
                           OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})
 else()
 
     set_target_properties(iowow PROPERTIES
                           VERSION ${PROJECT_VERSION}
                           PUBLIC_HEADER "${PUB_HDRS}"
-                          COMPILE_FLAGS "-DIOWOW_NODLL"
+                          COMPILE_FLAGS "-DIW_NODLL"
                           OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})                          
 endif(BUILD_SHARED_LIBS)
 

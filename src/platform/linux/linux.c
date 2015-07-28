@@ -125,3 +125,16 @@ iwrc iwp_write(HANDLE fh, off_t off, const void *buf,
         return 0;
     }
 }
+
+size_t iwp_page_size(void) {
+    static off_t _iwp_pagesize = 0;
+    if (!_iwp_pagesize) {
+        _iwp_pagesize = sysconf(_SC_PAGESIZE);
+    }
+    return _iwp_pagesize;
+}
+
+iwrc iwp_ftruncate(HANDLE fh, off_t len) {
+    int rv = ftruncate(fh, len);
+    return !rv ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+}
