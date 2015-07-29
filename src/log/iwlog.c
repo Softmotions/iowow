@@ -229,33 +229,35 @@ static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
 
     switch (ecode) {
         case IW_ERROR_FAIL:
-            return "Unspecified error";
+            return "Unspecified error. (IW_ERROR_FAIL)";
         case IW_ERROR_ERRNO:
-            return "Error with expected errno status set";
+            return "Error with expected errno status set. (IW_ERROR_ERRNO)";
         case IW_ERROR_IO_ERRNO:
-            return "IO error with expected errno status set";
+            return "IO error with expected errno status set. (IW_ERROR_IO_ERRNO)";
         case IW_ERROR_NOT_EXISTS:
-            return "Resource is not exists";
+            return "Resource is not exists. (IW_ERROR_NOT_EXISTS)";
         case IW_ERROR_READONLY:
-            return "Resource is readonly";
+            return "Resource is readonly. (IW_ERROR_READONLY)";
         case IW_ERROR_ALREADY_OPENED:
-            return "Resource is already opened";
+            return "Resource is already opened. (IW_ERROR_ALREADY_OPENED)";
         case IW_ERROR_THREADING:
-            return "Threading error";
+            return "Threading error. (IW_ERROR_THREADING)";
         case IW_ERROR_THREADING_ERRNO:
-            return "Threading error with errno status set";
+            return "Threading error with errno status set. (IW_ERROR_THREADING_ERRNO)";
         case IW_ERROR_ASSERTION:
-            return "Generic assertion error";
+            return "Generic assertion error. (IW_ERROR_ASSERTION)";
         case IW_ERROR_INVALID_HANDLE:
-            return "Invalid HANDLE value";
+            return "Invalid HANDLE value. (IW_ERROR_INVALID_HANDLE)";
         case IW_ERROR_OUT_OF_BOUNDS:
-            return "Argument/parameter/value is out of bounds";
+            return "Argument/parameter/value is out of bounds. (IW_ERROR_OUT_OF_BOUNDS)";
         case IW_ERROR_NOT_IMPLEMENTED:
-            return "Method is not implemented";
+            return "Method is not implemented. (IW_ERROR_NOT_IMPLEMENTED)";
         case IW_ERROR_ALLOC:
-            return "Memory allocation failed";
+            return "Memory allocation failed. (IW_ERROR_ALLOC)";
         case IW_ERROR_INVALID_STATE:
-            return "Illegal state error";
+            return "Illegal state error. (IW_ERROR_INVALID_STATE)";
+        case IW_ERROR_NOT_ALIGNED:
+            return "Argument is not aligned properly. (IW_ERROR_NOT_ALIGNED)";
         case IW_OK:
         default:
             return 0;
@@ -282,7 +284,7 @@ static iwrc _default_logfn(locale_t locale,
     IWLOG_DEFAULT_OPTS myopts = {0};
     FILE *out = stderr;
     time_t ts_sec = ((long double) ts / 1000);
-    struct tm* timeinfo;
+    struct tm timeinfo;
     size_t sz, sz2;
     char tbuf[TBUF_SZ], ebuf[EBUF_SZ];
     char *errno_msg = 0, *werror_msg = 0;
@@ -317,7 +319,8 @@ static iwrc _default_logfn(locale_t locale,
 
 #endif
 
-    timeinfo = localtime(&ts_sec);
+    // cppcheck-suppress portability
+    localtime_r(&ts_sec, &timeinfo);
 
     if (opts) {
         myopts = * (IWLOG_DEFAULT_OPTS*) opts;
@@ -326,7 +329,7 @@ static iwrc _default_logfn(locale_t locale,
             out = myopts.out;
         }
     }
-    sz = strftime(tbuf, TBUF_SZ, "%d %b %H:%M:%S", timeinfo);
+    sz = strftime(tbuf, TBUF_SZ, "%d %b %H:%M:%S", &timeinfo);
     if (sz == 0) {
         tbuf[0] = '\0';
     } else if (TBUF_SZ - sz > 4) { // .000 suffix

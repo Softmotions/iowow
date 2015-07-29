@@ -101,7 +101,7 @@ iwrc iwp_closefh(HANDLE fh) {
 iwrc iwp_read(HANDLE fh, off_t off, void *buf,
               size_t siz, size_t *sp) {
 
-    assert(buf && sp && siz >= 0);
+    assert(buf && sp);
     ssize_t rs = pread(fh, buf, siz, off);
     if (rs == -1) {
         *sp = 0;
@@ -115,7 +115,7 @@ iwrc iwp_read(HANDLE fh, off_t off, void *buf,
 iwrc iwp_write(HANDLE fh, off_t off, const void *buf,
                size_t siz, size_t *sp) {
 
-    assert(buf && sp && siz >= 0);
+    assert(buf && sp);
     ssize_t ws = pwrite(fh, buf, siz, off);
     if (ws == -1) {
         *sp = 0;

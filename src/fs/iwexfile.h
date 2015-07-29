@@ -18,6 +18,18 @@
 struct IWFS_EXFILE_OPTS;
 struct IWFS_EXFILE;
 
+
+/**
+ * @enum iwfs_extfile_ecode
+ * @brief Error codes.
+ */
+typedef enum {
+    _IWFS_EXFILE_ERROR_START = (IW_ERROR_START + 2000UL),
+    IWFS_ERROR_MMAP_OVERLAP,
+    IWFS_ERROR_NOT_MMAPED,
+    _IWFS_EXFILE_ERROR_END
+} iwfs_extfile_ecode;
+
 /**
  * @brief File resize policy function type.
  * Returned size cannot be lesser than requested @a size and must be page aligned.
@@ -44,11 +56,11 @@ typedef struct IWFS_EXFILE_STATE {
     off_t fsize;             /**< Current file size */
 } IWFS_EXFILE_STATE;
 
-struct IWFS_EXFILE_IMPL;
-typedef struct IWFS_EXFILE_IMPL IWFS_EXFILE_IMPL;
+struct _EXFILE_IMPL;
+typedef struct _EXFILE_IMPL _EXFILE_IMPL;
 
 typedef struct IWFS_EXFILE {
-    IWFS_EXFILE_IMPL *impl;
+    _EXFILE_IMPL *impl;
 
     iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
     iwrc(*read)(struct IWFS_EXFILE* f, off_t off, void *buf, size_t siz, size_t *sp);
@@ -59,8 +71,9 @@ typedef struct IWFS_EXFILE {
     iwrc(*ensure_size)(struct IWFS_EXFILE* f, off_t size);
     iwrc(*truncate)(struct IWFS_EXFILE* f, off_t size);
     iwrc(*add_mmap)(struct IWFS_EXFILE* f, off_t off, size_t maxlen);
+    iwrc(*get_mmap)(struct IWFS_EXFILE* f, off_t off, uint8_t **mm, size_t *sp);
     iwrc(*remove_mmap)(struct IWFS_EXFILE* f, off_t off);
-    iwrc(*sync_mmap)(struct IWFS_EXFILE* f, off_t off);
+    iwrc(*sync_mmap)(struct IWFS_EXFILE* f, off_t off, int flags);
 
 } IWFS_EXFILE;
 

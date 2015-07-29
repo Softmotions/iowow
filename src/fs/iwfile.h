@@ -77,8 +77,8 @@ typedef struct {
 } IWFS_FILE_SYNC_OPTS;
 
 
-struct IWFS_FILE_IMPL;
-typedef struct IWFS_FILE_IMPL IWFS_FILE_IMPL;
+struct _IWFILE_IMPL;
+typedef struct _IWFILE_IMPL _IWFILE_IMPL;
 
 /**
  * @struct IWFS_FILE
@@ -86,7 +86,7 @@ typedef struct IWFS_FILE_IMPL IWFS_FILE_IMPL;
  */
 typedef struct IWFS_FILE {
 
-    IWFS_FILE_IMPL *impl; /**< Implementation specific data */
+    _IWFILE_IMPL *impl; /**< Implementation specific data */
 
 #define IWFS_FILE_METHODS(IW_self) \
     iwrc (*write)  (IW_self, off_t off, const void *buf, size_t siz, size_t *sp); \

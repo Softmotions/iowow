@@ -37,7 +37,8 @@ typedef enum {
     IW_ERROR_OUT_OF_BOUNDS,             /**< Invalid bounds specified. */
     IW_ERROR_NOT_IMPLEMENTED,           /**< Method is not implemented. */
     IW_ERROR_ALLOC,                     /**< Memory allocation failed. */
-    IW_ERROR_INVALID_STATE                     /**< Illegal state error. */
+    IW_ERROR_INVALID_STATE,             /**< Illegal state error. */
+    IW_ERROR_NOT_ALIGNED                /**< Argument is not aligned properly. */
 } iw_ecode;
 
 /**
