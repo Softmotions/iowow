@@ -76,17 +76,13 @@ typedef struct {
     int fdata_sync; /**< Fie */
 } IWFS_FILE_SYNC_OPTS;
 
-
-struct _IWFILE_IMPL;
-typedef struct _IWFILE_IMPL _IWFILE_IMPL;
-
 /**
  * @struct IWFS_FILE
  * @brief Simple file implementation.
  */
 typedef struct IWFS_FILE {
 
-    _IWFILE_IMPL *impl; /**< Implementation specific data */
+    struct IWFS_FILE_IMPL *impl; /**< Implementation specific data */
 
 #define IWFS_FILE_METHODS(IW_self) \
     iwrc (*write)  (IW_self, off_t off, const void *buf, size_t siz, size_t *sp); \

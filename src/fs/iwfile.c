@@ -6,17 +6,17 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-struct _IWFILE_IMPL {
+typedef struct IWFS_FILE_IMPL {
     HANDLE fh;                  /**< File handle. */
     int is_open;                /**< `1` if file in open state */
     iwfs_openstatus ostatus;    /**< File open status. */
     IWFS_FILE_OPTS opts;        /**< File open options. */
-};
+} _IWF;
 
 static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off,
                         const void *buf, size_t siz, size_t *sp) {
     assert(f);
-    _IWFILE_IMPL *impl = f->impl;
+    _IWF *impl = f->impl;
     if (!impl) {
         return IW_ERROR_INVALID_STATE;
     }
@@ -27,7 +27,7 @@ static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off,
                        void *buf, size_t siz, size_t *sp) {
 
     assert(f);
-    _IWFILE_IMPL *impl = f->impl;
+    _IWF *impl = f->impl;
     if (!impl) {
         return IW_ERROR_INVALID_STATE;
     }
@@ -37,7 +37,7 @@ static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off,
 static iwrc _iwfs_close(struct IWFS_FILE *f) {
     assert(f);
     iwrc rc = 0;
-    _IWFILE_IMPL *impl = f->impl;
+    _IWF *impl = f->impl;
     if (!impl) {
         return 0;
     }
@@ -74,7 +74,7 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE* state) {
     assert(f);
     assert(state);
     memset(state, 0, sizeof(*state));
-    _IWFILE_IMPL *impl = f->impl;
+    _IWF *impl = f->impl;
     state->is_open = !!impl;
     if (!state->is_open) {
         return 0;
@@ -90,7 +90,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     assert(_opts && _opts->path);
     
     IWFS_FILE_OPTS *opts;
-    _IWFILE_IMPL *impl;
+    _IWF *impl;
     IWP_FILE_STAT fstat;
     iwfs_omode omode;
     iwrc rc = 0;

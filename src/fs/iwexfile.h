@@ -56,11 +56,8 @@ typedef struct IWFS_EXFILE_STATE {
     off_t fsize;             /**< Current file size */
 } IWFS_EXFILE_STATE;
 
-struct _EXFILE_IMPL;
-typedef struct _EXFILE_IMPL _EXFILE_IMPL;
-
 typedef struct IWFS_EXFILE {
-    _EXFILE_IMPL *impl;
+    struct IWFS_EXFILE_IMPL *impl;
 
     iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
     iwrc(*read)(struct IWFS_EXFILE* f, off_t off, void *buf, size_t siz, size_t *sp);
