@@ -50,7 +50,7 @@ static iwrc _exfile_read(struct IWFS_EXFILE *f, off_t off, void *buf, size_t siz
 static iwrc _exfile_close(struct IWFS_EXFILE *f);
 static iwrc _exfile_initmmap(struct IWFS_EXFILE *f);
 static iwrc _exfile_initmmap_slot(struct IWFS_EXFILE *f, _MMAPSLOT *slot);
-static off_t _exfile_default_spolicy(off_t size, struct IWFS_EXFILE *f, void *ctx);
+static off_t _exfile_default_spolicy(off_t nsize, off_t osize, struct IWFS_EXFILE *f, void **ctx);
 
 
 static iwrc _exfile_sync(struct IWFS_EXFILE *f, const IWFS_FILE_SYNC_OPTS *opts) {
@@ -60,14 +60,122 @@ static iwrc _exfile_sync(struct IWFS_EXFILE *f, const IWFS_FILE_SYNC_OPTS *opts)
 
 static iwrc _exfile_write(struct IWFS_EXFILE *f, off_t off,
                           const void *buf, size_t siz, size_t *sp) {
+    _MMAPSLOT *s;
+    _IWXF *impl;
+    off_t end = off + siz;
+    off_t wp = siz, len;
 
-    return 0;
+    *sp = 0;
+    if (off < 0 || end < 0) {
+        return IW_ERROR_OUT_OF_BOUNDS;
+    }
+    iwrc rc = _exfile_rwlock(f, 0);
+    if (rc) {
+        return rc;
+    }
+    impl = f->impl;
+    if (end > impl->fsize) {
+        if ((rc = _exfile_unlock2(impl)) || (rc = _exfile_rwlock(f, 1))) {
+            goto end;
+        }
+        if (end > impl->fsize) {
+            rc = _exfile_ensure_size_impl(f, end);
+            if (rc) goto finish;
+        }
+    }
+    s = impl->mmslots;
+    while (s && wp > 0) {
+        if (!s->len || wp + off <= s->off) {
+            break;
+        }
+        if (s->off > off) {
+            len = MIN(wp, s->off - off);
+            rc = impl->file->write(impl->file, off, (const char*) buf + (siz - wp), len, sp);
+            if (rc) goto finish;
+            wp = wp - *sp;
+            off = off + *sp;
+        }
+        if (wp > 0 && s->off <= off && s->off + s->len > off) {
+            len = MIN(wp, s->off + s->len - off);
+            memcpy(s->mmap + (off - s->off), (const char*) buf + (siz - wp), len);
+            wp -= len;
+            off += len;
+        }
+        s = s->next;
+    }
+    if (wp > 0) {
+        rc = impl->file->write(impl->file, off, (const char*) buf + (siz - wp), wp, sp);
+        if (rc) {
+            goto finish;
+        }
+        wp = wp - *sp;
+        //off = off + *sp;
+    }
+    *sp = siz - wp;
+finish:
+    IWRC(_exfile_unlock2(impl), rc);
+end:
+    if (rc) {
+        *sp = 0;
+    }
+    return rc;
 }
 
 static iwrc _exfile_read(struct IWFS_EXFILE *f, off_t off,
                          void *buf, size_t siz, size_t *sp) {
-
-    return 0;
+    _MMAPSLOT *s;
+    _IWXF *impl;
+    off_t end = off + siz;
+    off_t rp = siz, len;
+    *sp = 0;
+    if (off < 0 || end < 0) {
+        return IW_ERROR_OUT_OF_BOUNDS;
+    }
+    iwrc rc = _exfile_rwlock(f, 0);
+    if (rc) {
+        return rc;
+    }
+    impl = f->impl;
+    s = impl->mmslots;
+    if (end > impl->fsize) {
+        rp = siz = impl->fsize - off;
+    }
+    while (s && rp > 0) {
+        if (!s->len || rp + off <= s->off) {
+            break;
+        }
+        if (s->off > off) {
+            len = MIN(rp, s->off - off);
+            rc = impl->file->read(impl->file, off, (char*) buf + (siz - rp), len, sp);
+            if (rc) {
+                goto finish;
+            }
+            rp = rp - *sp;
+            off = off + *sp;
+        }
+        if (rp > 0 && s->off <= off && s->off + s->len > off) {
+            len = MIN(rp, s->off + s->len - off);
+            memcpy((char*) buf + (siz - rp), s->mmap + (off - s->off), len);
+            rp -= len;
+            off += len;
+        }
+        s = s->next;
+    }
+    if (rp > 0) {
+        rc = impl->file->read(impl->file, off, (char*) buf + (siz - rp), rp, sp);
+        if (rc) {
+            goto finish;
+        }
+        rp = rp - *sp;
+        //off = off + *sp;
+    }
+    *sp = siz - rp;
+finish:
+    if (rc) {
+        *sp = 0;
+    }
+    IWRC(_exfile_unlock2(impl), rc);
+    return rc;
 }
 
 
@@ -91,6 +199,9 @@ static iwrc _exfile_close(struct IWFS_EXFILE *f) {
     _IWXF *impl = f->impl;
     IWRC(impl->file->close(impl->file), rc);
     f->impl = 0;
+    if (impl->rspolicy) { //deactivate resize policy function
+        impl->rspolicy(-1, impl->fsize, f, &impl->rspolicy_ctx);
+    }
     IWRC(_exfile_unlock2(impl), rc);
     IWRC(_exfile_destroylocks(impl), rc);
     free(impl);
@@ -102,25 +213,24 @@ static iwrc _exfile_ensure_size(struct IWFS_EXFILE* f, off_t sz) {
     if (rc) {
         return rc;
     }
-    off_t nsz = sz;
-    _IWXF *impl = f->impl;
-    
-    //impl->fsize
-    
-    
-    
-     IWRC(_exfile_unlock2(impl), rc);
+    rc = _exfile_ensure_size_impl(f, sz);
+    IWRC(_exfile_unlock2(f->impl), rc);
     return rc;
 }
 
 // Assumed:
 //  +write lock
 static iwrc _exfile_ensure_size_impl(struct IWFS_EXFILE* f, off_t sz) {
-    iwrc rc = 0;
-    off_t nsz = sz;
-    
-    
-    return rc;
+    _IWXF *impl = f->impl;
+    assert(impl && impl->rspolicy);
+    if (impl->fsize >= sz) {
+        return 0;
+    }
+    off_t nsz = impl->rspolicy(sz, impl->fsize, f, &impl->rspolicy_ctx);
+    if (nsz < sz || (nsz & (impl->psize - 1))) {
+        return IWFS_ERROR_RESIZE_POLICY_FAIL;
+    }
+    return _exfile_truncate_impl(f, nsz);
 }
 
 static iwrc _exfile_truncate(struct IWFS_EXFILE* f, off_t sz) {
@@ -142,17 +252,21 @@ static iwrc _exfile_truncate_impl(struct IWFS_EXFILE* f, off_t size) {
     iwfs_omode omode = impl->omode;
     off_t old_size = impl->fsize;
 
+    if (impl->fsize == size) {
+        return 0;
+    }
     size = IW_ROUNDUP(size, impl->psize);
-    if (impl->fsize < size) {
+    if (old_size < size) {
         if (!(omode & IWFS_OWRITE)) {
             return IW_ERROR_READONLY;
         }
+        impl->fsize = size;
         rc = iwp_ftruncate(impl->fh, size);
         if (rc) {
             goto truncfail;
         }
         rc = _exfile_initmmap(f);
-    } else if (impl->fsize > size) {
+    } else if (old_size > size) {
         if (!(omode & IWFS_OWRITE)) {
             return IW_ERROR_READONLY;
         }
@@ -398,7 +512,7 @@ finish:
 static iwrc _exfile_sync_mmap(struct IWFS_EXFILE* f, off_t off, int _flags) {
     assert(f);
     assert(off >= 0);
-    
+
     iwrc rc = _exfile_rwlock(f, 0);
     if (rc) {
         return rc;
@@ -425,7 +539,7 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXFILE* f, off_t off, int _flags) {
     if (!s) {
         rc = IWFS_ERROR_NOT_MMAPED;
     }
-    
+
     IWRC(_exfile_unlock(f), rc);
     return rc;
 }
@@ -500,8 +614,39 @@ finish:
     return rc;
 }
 
-static off_t _exfile_default_spolicy(off_t size, struct IWFS_EXFILE *f, void *ctx) {
-    return size;
+static off_t _exfile_default_spolicy(off_t nsize, off_t csize,
+                                     struct IWFS_EXFILE *f, void **ctx) {
+    if (nsize == -1) {
+        return 0;
+    }
+    return IW_ROUNDUP(nsize, iwp_page_size());
+}
+
+
+off_t iw_exfile_repolicy_fibo(off_t nsize, off_t csize,
+                              struct IWFS_EXFILE *f,
+                              void **_ctx) {
+    struct _FIBO_CTX {
+        off_t prev_sz;
+    } *ctx = *_ctx;
+    if (nsize == -1) {
+        if (ctx) {
+            free(ctx);
+            *_ctx = 0;
+        }
+        return 0;
+    }
+    if (!ctx) {
+        *_ctx = ctx = calloc(1, sizeof(*ctx));
+        if (!ctx) {
+            //fallback
+            return IW_ROUNDUP(nsize, iwp_page_size());
+        }
+    }
+    off_t res = csize + ctx->prev_sz;
+    ctx->prev_sz = csize;
+    res = MAX(res, nsize);
+    return IW_ROUNDUP(res, iwp_page_size());
 }
 
 static iwrc _exfile_initlocks(IWFS_EXFILE *f) {
@@ -568,7 +713,9 @@ static const char* _exfile_ecodefn(locale_t locale, uint32_t ecode) {
         case IWFS_ERROR_MMAP_OVERLAP:
             return "Region is mmaped already, mmaping overlaps. (IWFS_ERROR_MMAP_OVERLAP)";
         case IWFS_ERROR_NOT_MMAPED:
-            return "Region is not mmaped (IWFS_ERROR_NOT_MMAPED)";
+            return "Region is not mmaped. (IWFS_ERROR_NOT_MMAPED)";
+        case IWFS_ERROR_RESIZE_POLICY_FAIL:
+            return "Invalid result of resize policy function. (IWFS_ERROR_RESIZE_POLICY_FAIL)";
     }
     return 0;
 }

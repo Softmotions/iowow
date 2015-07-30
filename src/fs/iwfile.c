@@ -88,7 +88,7 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE* state) {
 iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     assert(f);
     assert(_opts && _opts->path);
-    
+
     IWFS_FILE_OPTS *opts;
     _IWF *impl;
     IWP_FILE_STAT fstat;
@@ -102,12 +102,12 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         goto finish;
     }
-    
+
     f->write = _iwfs_write;
     f->read = _iwfs_read;
     f->close = _iwfs_close;
     f->sync = _iwfs_sync;
-    f->state = _iwfs_state;    
+    f->state = _iwfs_state;
 
     impl->opts = *_opts;
     opts = &impl->opts;
@@ -153,7 +153,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
             goto finish;
         }
     }
-    
+
     impl->is_open = 1;
 
 finish:

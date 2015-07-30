@@ -9,7 +9,7 @@
  *    These regions used in read/write operation and automatically maintained during file resize
  *    operations.
  */
-
+ 
 #ifndef IWEXFILE_H
 #define IWEXFILE_H
 
@@ -18,26 +18,45 @@
 struct IWFS_EXFILE_OPTS;
 struct IWFS_EXFILE;
 
-
 /**
  * @enum iwfs_extfile_ecode
- * @brief Error codes.
+ * @brief Error codes specific to this module.
  */
 typedef enum {
     _IWFS_EXFILE_ERROR_START = (IW_ERROR_START + 2000UL),
-    IWFS_ERROR_MMAP_OVERLAP,
-    IWFS_ERROR_NOT_MMAPED,
+    IWFS_ERROR_MMAP_OVERLAP, /**< Region is mmaped already, mmaping overlaps */
+    IWFS_ERROR_NOT_MMAPED,   /**< Region is not mmaped */
+    IWFS_ERROR_RESIZE_POLICY_FAIL, /**< Invalid result of resize policy function. */
     _IWFS_EXFILE_ERROR_END
 } iwfs_extfile_ecode;
 
 /**
  * @brief File resize policy function type.
- * Returned size cannot be lesser than requested @a size and must be page aligned.
  *
- * @param size requested size
+ * This function called in the following cases:
+ *  - When a file needs to be resized. Returned new file size cannot
+ *      be lesser than requested @a nsize and must be page aligned.
+ *  - When a file is closed. In this case the first argument @a nsize
+ *      will be set to `-1` and function should return `0`.
+ *      This call can be used in order to release resources allocated for @a ctx
+ *      private data.
+ *
+ * @param nsize Desired file size.
+ * @param csize Current file size.
+ * @param f File reference.
+ * @param ctx Function context data pointer. A function is allowed to initialize this pointer
+ *        by oun private data stucture.
+ *
  * @return Computed new file size.
  */
-typedef off_t(*IW_EXFILE_RSPOLICY)(off_t size, struct IWFS_EXFILE *f, void *ctx);
+typedef off_t(*IW_EXFILE_RSPOLICY)(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
+
+/**
+ * @brief Fibonacci resize file policy strategy.
+ *
+ * New `file_size(n+1) = MAX(file_size(n) + file_size(n-1), nsize)`
+ */
+off_t iw_exfile_repolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
 
 /**
  * @struct IWFS_EXFILE_OPTS
