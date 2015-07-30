@@ -55,12 +55,12 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
     return rc;
 }
 
-static iwrc _iwfs_sync(struct IWFS_FILE *f, const IWFS_FILE_SYNC_OPTS *opts) {
+static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
     assert(f);
     if (!f->impl) {
         return IW_ERROR_INVALID_STATE;
     }
-    if (opts && opts->fdata_sync) {
+    if (flags & IWFS_FDATASYNC) {
         if (fdatasync(f->impl->fh) == -1) {
             return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
         }

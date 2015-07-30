@@ -44,7 +44,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXFILE* f, off_t off, size_t maxlen);
 static iwrc _exfile_get_mmap(struct IWFS_EXFILE* f, off_t off, uint8_t **mmap, size_t *sp);
 static iwrc _exfile_remove_mmap(struct IWFS_EXFILE* f, off_t off);
 static iwrc _exfile_sync_mmap(struct IWFS_EXFILE* f, off_t off, int flags);
-static iwrc _exfile_sync(struct IWFS_EXFILE *f, const IWFS_FILE_SYNC_OPTS *opts);
+static iwrc _exfile_sync(struct IWFS_EXFILE *f, iwfs_sync_flags flags);
 static iwrc _exfile_write(struct IWFS_EXFILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
 static iwrc _exfile_read(struct IWFS_EXFILE *f, off_t off, void *buf, size_t siz, size_t *sp);
 static iwrc _exfile_close(struct IWFS_EXFILE *f);
@@ -52,10 +52,28 @@ static iwrc _exfile_initmmap(struct IWFS_EXFILE *f);
 static iwrc _exfile_initmmap_slot(struct IWFS_EXFILE *f, _MMAPSLOT *slot);
 static off_t _exfile_default_spolicy(off_t nsize, off_t osize, struct IWFS_EXFILE *f, void **ctx);
 
-
-static iwrc _exfile_sync(struct IWFS_EXFILE *f, const IWFS_FILE_SYNC_OPTS *opts) {
-
-    return 0;
+static iwrc _exfile_sync(struct IWFS_EXFILE *f, iwfs_sync_flags flags) {
+    iwrc rc = _exfile_rwlock(f, 0);
+    if (rc) {
+        return rc;
+    }
+    _IWXF *impl = f->impl;
+    _MMAPSLOT *s = impl->mmslots;
+    while (s) {
+        if (s->mmap && s->mmap != MAP_FAILED) {
+            int mflags = 0;
+            if (!(flags & IWFS_NO_MMASYNC)) {
+                mflags |= MS_ASYNC;
+            }
+            if (msync(s->mmap, s->len, mflags)) {
+                rc = iwrc_set_errno(rc, errno);
+            }
+        }
+        s = s->next;
+    }
+    IWRC(impl->file->sync(impl->file, flags), rc);
+    IWRC(_exfile_unlock2(impl), rc);
+    return rc;
 }
 
 static iwrc _exfile_write(struct IWFS_EXFILE *f, off_t off,

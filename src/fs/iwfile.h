@@ -68,13 +68,14 @@ typedef struct {
 } IWFS_FILE_STATE;
 
 /**
- * @struct IWFS_FILE_SYNC_OPTS
+ * @enum iwfs_file_sync_flags
  * @brief Sync file data options.
- * @see int sync(struct IWFS_FILE *f, IWFS_FILE_SYNC_OPTS opts)
+ * @see int sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
  */
-typedef struct {
-    int fdata_sync; /**< Fie */
-} IWFS_FILE_SYNC_OPTS;
+typedef enum {
+    IWFS_FDATASYNC  = 0x01,  /**< Use `fdatasync` mode */
+    IWFS_NO_MMASYNC = 0x02   /**< Do not use `MS_ASYNC` mmap sync mode */  
+} iwfs_sync_flags;
 
 /**
  * @struct IWFS_FILE
@@ -88,7 +89,7 @@ typedef struct IWFS_FILE {
     iwrc (*write)  (IW_self, off_t off, const void *buf, size_t siz, size_t *sp); \
     iwrc (*read)   (IW_self, off_t off, void *buf, size_t siz, size_t *sp); \
     iwrc (*close)  (IW_self); \
-    iwrc (*sync)   (IW_self, const IWFS_FILE_SYNC_OPTS *opts); \
+    iwrc (*sync)   (IW_self, iwfs_sync_flags flags); \
     iwrc (*state)  (IW_self, IWFS_FILE_STATE* state)
 
     /**
@@ -125,13 +126,13 @@ typedef struct IWFS_FILE {
     iwrc(*close)(struct IWFS_FILE *f);
 
     /**
-     * @fn int sync(struct IWFS_FILE *f, const IWFS_FILE_SYNC_OPTS *opts)
+     * @fn int sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
      * @brief Sync file data with fs.
      *
      * @param f `struct IWFS_FILE` pointer.
      * @param opts File sync options.
      */
-    iwrc(*sync)(struct IWFS_FILE *f, const IWFS_FILE_SYNC_OPTS *opts);
+    iwrc(*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
 
     /**
      * @fn int state(struct IWFS_FILE *f, IWFS_FILE_STATE* state)

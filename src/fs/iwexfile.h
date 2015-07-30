@@ -81,7 +81,7 @@ typedef struct IWFS_EXFILE {
     iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
     iwrc(*read)(struct IWFS_EXFILE* f, off_t off, void *buf, size_t siz, size_t *sp);
     iwrc(*close)(struct IWFS_EXFILE* f);
-    iwrc(*sync)(struct IWFS_EXFILE* f, const IWFS_FILE_SYNC_OPTS *opts);
+    iwrc(*sync)(struct IWFS_EXFILE* f, iwfs_sync_flags flags);
     iwrc(*state)(struct IWFS_EXFILE* f, IWFS_EXFILE_STATE* state);
 
     iwrc(*ensure_size)(struct IWFS_EXFILE* f, off_t size);
