@@ -56,14 +56,14 @@ typedef off_t(*IW_EXFILE_RSPOLICY)(off_t nsize, off_t csize, struct IWFS_EXFILE 
  *
  * New `file_size(n+1) = MAX(file_size(n) + file_size(n-1), nsize)`
  */
-off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
+IW_EXPORT off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
 
 /**
  * @brief Rational number `IW_RNUM` file size multiplication policy.
  * 
  * New `file_size = MAX(file_size * (N/D), nsize)`
  */
-off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
+IW_EXPORT off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
 
 /**
  * @struct IWFS_EXFILE_OPTS

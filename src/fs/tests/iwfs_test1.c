@@ -68,7 +68,7 @@ void iwfs_exfile_test1(void) {
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL(sp, sp2);
     CU_ASSERT_FALSE(strncmp(rdata, data, sizeof(data)));
-    
+
     rc = ef.write(&ef, 1, data, sizeof(data), &sp);
     CU_ASSERT_EQUAL(IW_ERROR_READONLY, rc);
 
@@ -80,6 +80,64 @@ void iwfs_exfile_test1(void) {
 
     IWRC(ef.close(&ef), rc);
     CU_ASSERT_EQUAL(rc, 0);
+}
+
+
+void test_fibo_inc(void) {
+    const char *path = "test_fibo_inc.dat";
+    IWFS_EXFILE ef;
+    IWFS_EXFILE_OPTS opts = {
+        .fopts = {
+            .path = path,
+            .lock_mode = IWP_WLOCK,
+            .open_mode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
+        },
+        .use_locks = 0,
+        .rspolicy = iw_exfile_szpolicy_fibo
+    };
+    iwrc rc = 0;
+    size_t sp;
+    uint64_t wd = (uint64_t) (-1);
+    
+    IWRC(iwfs_exfile_open(&ef, &opts), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    
+    //iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
+    IWRC(ef.write(&ef, 0, &wd, 1, &sp), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    
+    size_t psize = iwp_page_size();
+    IWP_FILE_STAT fstat;
+    IWRC(iwp_fstat(path, &fstat), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(fstat.size, psize);
+    
+    IWRC(ef.write(&ef, fstat.size, &wd, 1, &sp), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+        
+    IWRC(iwp_fstat(path, &fstat), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(fstat.size, 2*psize);
+
+    IWRC(ef.write(&ef, fstat.size, &wd, 1, &sp), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    
+    IWRC(iwp_fstat(path, &fstat), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(fstat.size, 3*psize);
+
+    IWRC(ef.write(&ef, fstat.size, &wd, 1, &sp), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    
+    IWRC(iwp_fstat(path, &fstat), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(fstat.size, 5*psize);
+
+    IWRC(ef.close(&ef), rc);
+    CU_ASSERT_EQUAL(rc, 0);
+}
+
+void test_mmap1(void) {
 
 }
 
@@ -101,7 +159,9 @@ int main() {
 
     /* Add the tests to the suite */
     if (
-        (NULL == CU_add_test(pSuite, "iwfs_exfile_test1", iwfs_exfile_test1))
+        (NULL == CU_add_test(pSuite, "iwfs_exfile_test1", iwfs_exfile_test1)) ||
+        (NULL == CU_add_test(pSuite, "test_fibo_inc", test_fibo_inc)) ||
+        (NULL == CU_add_test(pSuite, "test_mmap1", test_mmap1)) 
     ) {
         CU_cleanup_registry();
         return CU_get_error();
