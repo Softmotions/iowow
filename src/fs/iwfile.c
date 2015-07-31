@@ -5,10 +5,10 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <limits.h>
 
 typedef struct IWFS_FILE_IMPL {
     HANDLE fh;                  /**< File handle. */
-    int is_open;                /**< `1` if file in open state */
     iwfs_openstatus ostatus;    /**< File open status. */
     IWFS_FILE_OPTS opts;        /**< File open options. */
 } _IWF;
@@ -19,6 +19,9 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off,
     _IWF *impl = f->impl;
     if (!impl) {
         return IW_ERROR_INVALID_STATE;
+    }
+    if (!(impl->opts.open_mode & IWFS_OWRITE)) {
+        return IW_ERROR_READONLY;
     }
     return iwp_write(impl->fh, off, buf, siz, sp);
 }
@@ -51,7 +54,7 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
         opts->path = 0;
     }
     free(f->impl);
-    f->impl = NULL;
+    f->impl = 0;
     return rc;
 }
 
@@ -93,7 +96,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     _IWF *impl;
     IWP_FILE_STAT fstat;
     iwfs_omode omode;
-    iwrc rc = 0;
+    iwrc rc;
     int mode;
 
     memset(f, 0, sizeof(*f));
@@ -111,7 +114,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
 
     impl->opts = *_opts;
     opts = &impl->opts;
-    opts->path = strdup(_opts->path);
+    opts->path = strndup(_opts->path, PATH_MAX);
     if (!opts->path) {
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         goto finish;
@@ -123,11 +126,19 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     if (!opts->open_mode) {
         opts->open_mode = IWFS_DEFAULT_OMODE;
     }
+    if (!opts->filemode) {
+        opts->filemode = IWFS_DEFAULT_FILEMODE;
+    }
     opts->open_mode |= IWFS_OREAD;
     if ((opts->open_mode & IWFS_OCREATE) || (opts->open_mode & IWFS_OTRUNC)) {
         opts->open_mode |= IWFS_OWRITE;
     }
     omode = opts->open_mode;
+    
+    if (!(opts->open_mode & IWFS_OWRITE) && (opts->lock_mode & IWP_WLOCK)) {
+        opts->lock_mode &= ~IWP_WLOCK;
+    }
+    
 
     rc = iwp_fstat(opts->path, &fstat);
     if (!rc && !(opts->open_mode & IWFS_OTRUNC)) {
@@ -153,8 +164,6 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
             goto finish;
         }
     }
-
-    impl->is_open = 1;
 
 finish:
     if (rc) {

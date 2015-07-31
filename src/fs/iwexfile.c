@@ -7,7 +7,7 @@
 
 struct _MMAPSLOT;
 typedef struct IWFS_EXFILE_IMPL {
-    IWFS_FILE   *file;              /**< Underlying file pointer */
+    IWFS_FILE   file;              /**< Underlying file pointer */
     off_t       fsize;              /**< Current file size */
     off_t       psize;              /**< System page size */
     pthread_rwlock_t *rwlock;       /**< Thread RW lock */
@@ -50,7 +50,7 @@ static iwrc _exfile_read(struct IWFS_EXFILE *f, off_t off, void *buf, size_t siz
 static iwrc _exfile_close(struct IWFS_EXFILE *f);
 static iwrc _exfile_initmmap(struct IWFS_EXFILE *f);
 static iwrc _exfile_initmmap_slot(struct IWFS_EXFILE *f, _MMAPSLOT *slot);
-static off_t _exfile_default_spolicy(off_t nsize, off_t osize, struct IWFS_EXFILE *f, void **ctx);
+static off_t _exfile_default_szpolicy(off_t nsize, off_t osize, struct IWFS_EXFILE *f, void **ctx);
 
 static iwrc _exfile_sync(struct IWFS_EXFILE *f, iwfs_sync_flags flags) {
     iwrc rc = _exfile_rwlock(f, 0);
@@ -71,7 +71,7 @@ static iwrc _exfile_sync(struct IWFS_EXFILE *f, iwfs_sync_flags flags) {
         }
         s = s->next;
     }
-    IWRC(impl->file->sync(impl->file, flags), rc);
+    IWRC(impl->file.sync(&impl->file, flags), rc);
     IWRC(_exfile_unlock2(impl), rc);
     return rc;
 }
@@ -108,7 +108,7 @@ static iwrc _exfile_write(struct IWFS_EXFILE *f, off_t off,
         }
         if (s->off > off) {
             len = MIN(wp, s->off - off);
-            rc = impl->file->write(impl->file, off, (const char*) buf + (siz - wp), len, sp);
+            rc = impl->file.write(&impl->file, off, (const char*) buf + (siz - wp), len, sp);
             if (rc) goto finish;
             wp = wp - *sp;
             off = off + *sp;
@@ -122,7 +122,7 @@ static iwrc _exfile_write(struct IWFS_EXFILE *f, off_t off,
         s = s->next;
     }
     if (wp > 0) {
-        rc = impl->file->write(impl->file, off, (const char*) buf + (siz - wp), wp, sp);
+        rc = impl->file.write(&impl->file, off, (const char*) buf + (siz - wp), wp, sp);
         if (rc) {
             goto finish;
         }
@@ -164,7 +164,7 @@ static iwrc _exfile_read(struct IWFS_EXFILE *f, off_t off,
         }
         if (s->off > off) {
             len = MIN(rp, s->off - off);
-            rc = impl->file->read(impl->file, off, (char*) buf + (siz - rp), len, sp);
+            rc = impl->file.read(&impl->file, off, (char*) buf + (siz - rp), len, sp);
             if (rc) {
                 goto finish;
             }
@@ -180,7 +180,7 @@ static iwrc _exfile_read(struct IWFS_EXFILE *f, off_t off,
         s = s->next;
     }
     if (rp > 0) {
-        rc = impl->file->read(impl->file, off, (char*) buf + (siz - rp), rp, sp);
+        rc = impl->file.read(&impl->file, off, (char*) buf + (siz - rp), rp, sp);
         if (rc) {
             goto finish;
         }
@@ -202,7 +202,7 @@ static iwrc _exfile_state(struct IWFS_EXFILE *f, IWFS_EXFILE_STATE* state) {
     if (rc) {
         return rc;
     }
-    IWRC(f->impl->file->state(f->impl->file, &state->fstate), rc);
+    IWRC(f->impl->file.state(&f->impl->file, &state->fstate), rc);
     state->fsize = f->impl->fsize;
     IWRC(_exfile_unlock(f), rc);
     return rc;
@@ -215,7 +215,7 @@ static iwrc _exfile_close(struct IWFS_EXFILE *f) {
         return rc;
     }
     _IWXF *impl = f->impl;
-    IWRC(impl->file->close(impl->file), rc);
+    IWRC(impl->file.close(&impl->file), rc);
     f->impl = 0;
     if (impl->rspolicy) { //deactivate resize policy function
         impl->rspolicy(-1, impl->fsize, f, &impl->rspolicy_ctx);
@@ -256,6 +256,7 @@ static iwrc _exfile_truncate(struct IWFS_EXFILE* f, off_t sz) {
     if (rc) {
         return rc;
     }
+    
     rc = _exfile_truncate_impl(f, sz);
     IWRC(_exfile_unlock(f), rc);
     return rc;
@@ -577,6 +578,7 @@ iwrc iwfs_exfile_open(IWFS_EXFILE *f,
         return iwrc_set_errno(IW_ERROR_ALLOC, errno);
     }
 
+
     f->close = _exfile_close;
     f->read = _exfile_read;
     f->write = _exfile_write;
@@ -591,7 +593,7 @@ iwrc iwfs_exfile_open(IWFS_EXFILE *f,
     f->sync_mmap = _exfile_sync_mmap;
 
     impl->psize = iwp_page_size();
-    impl->rspolicy = opts->rspolicy ? opts->rspolicy : _exfile_default_spolicy;
+    impl->rspolicy = opts->rspolicy ? opts->rspolicy : _exfile_default_szpolicy;
     impl->rspolicy_ctx = opts->rspolicy_ctx;
     impl->use_locks = opts->use_locks;
 
@@ -599,7 +601,7 @@ iwrc iwfs_exfile_open(IWFS_EXFILE *f,
     if (rc) {
         goto finish;
     }
-    rc = iwfs_file_open(impl->file, &opts->fopts);
+    rc = iwfs_file_open(&impl->file, &opts->fopts);
     if (rc) {
         goto finish;
     }
@@ -611,7 +613,7 @@ iwrc iwfs_exfile_open(IWFS_EXFILE *f,
     impl->fsize = fstat.size;
 
     IWFS_FILE_STATE fstate;
-    rc = impl->file->state(impl->file, &fstate);
+    rc = impl->file.state(&impl->file, &fstate);
     impl->omode = fstate.opts.open_mode;
     impl->fh = fstate.fh;
 
@@ -632,8 +634,8 @@ finish:
     return rc;
 }
 
-static off_t _exfile_default_spolicy(off_t nsize, off_t csize,
-                                     struct IWFS_EXFILE *f, void **ctx) {
+static off_t _exfile_default_szpolicy(off_t nsize, off_t csize,
+                                      struct IWFS_EXFILE *f, void **ctx) {
     if (nsize == -1) {
         return 0;
     }
@@ -641,7 +643,7 @@ static off_t _exfile_default_spolicy(off_t nsize, off_t csize,
 }
 
 
-off_t iw_exfile_repolicy_fibo(off_t nsize, off_t csize,
+off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize,
                               struct IWFS_EXFILE *f,
                               void **_ctx) {
     struct _FIBO_CTX {
@@ -657,15 +659,41 @@ off_t iw_exfile_repolicy_fibo(off_t nsize, off_t csize,
     if (!ctx) {
         *_ctx = ctx = calloc(1, sizeof(*ctx));
         if (!ctx) {
-            //fallback
-            return IW_ROUNDUP(nsize, iwp_page_size());
+            return _exfile_default_szpolicy(nsize, csize, f, _ctx);
         }
     }
-    off_t res = csize + ctx->prev_sz;
-    ctx->prev_sz = csize;
+    uint64_t res = csize + ctx->prev_sz;
     res = MAX(res, nsize);
-    return IW_ROUNDUP(res, iwp_page_size());
+    res = IW_ROUNDUP(res, iwp_page_size());
+    if (res > OFF_T_MAX) {
+        res = OFF_T_MAX;
+    }
+    ctx->prev_sz = csize;
+    return res;
 }
+
+off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize,
+                             struct IWFS_EXFILE *f,
+                             void **_ctx) {
+
+    IW_RNUM *mul = *_ctx;
+    if (nsize == -1) {
+        return 0;
+    }
+    if (!mul || !mul->dn || mul->n < mul->dn) {
+        iwlog_error2("Invalid iw_exfile_szpolicy_mul context arguments, fallback to the default resize policy");
+        return _exfile_default_szpolicy(nsize, csize, f, _ctx);
+    }
+    uint64_t ret = nsize;
+    ret /= mul->dn;
+    ret *= mul->n;
+    ret = IW_ROUNDUP(ret, iwp_page_size());
+    if (ret > OFF_T_MAX) {
+        ret = OFF_T_MAX;
+    }
+    return ret;
+}
+
 
 static iwrc _exfile_initlocks(IWFS_EXFILE *f) {
     assert(f && f->impl);
@@ -675,7 +703,7 @@ static iwrc _exfile_initlocks(IWFS_EXFILE *f) {
         return 0;
     }
     impl->rwlock = calloc(1, sizeof(*impl->rwlock));
-    if (impl->rwlock) {
+    if (!impl->rwlock) {
         return iwrc_set_errno(IW_ERROR_ALLOC, errno);
     }
     int rv = pthread_rwlock_init(impl->rwlock, (void*) 0);

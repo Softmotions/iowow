@@ -21,10 +21,13 @@
 #error "You must compile your application with -D_LARGEFILE_SOURCE"
 #endif
 
-#inclide "basedefs.h"
+#include "basedefs.h"
 
 /**
  * @brief Init iowow subsystem.
  * @return `0` on success of error code. 
  */
 IW_EXPORT iwrc iw_init(void);
+
+
+#endif

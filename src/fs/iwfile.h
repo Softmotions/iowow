@@ -41,6 +41,8 @@ typedef enum {
 
 #define IWFS_DEFAULT_OMODE (IWFS_OCREATE)
 #define IWFS_DEFAULT_LOCKMODE (IWP_NOLOCK)
+#define IWFS_DEFAULT_FILEMODE 00644 /**< Default permission of created files */
+
 
 /**
  * @struct IWFS_FILE_OPTS
@@ -74,7 +76,7 @@ typedef struct {
  */
 typedef enum {
     IWFS_FDATASYNC  = 0x01,  /**< Use `fdatasync` mode */
-    IWFS_NO_MMASYNC = 0x02   /**< Do not use `MS_ASYNC` mmap sync mode */  
+    IWFS_NO_MMASYNC = 0x02   /**< Do not use `MS_ASYNC` mmap sync mode */
 } iwfs_sync_flags;
 
 /**

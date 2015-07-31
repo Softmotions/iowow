@@ -58,14 +58,14 @@ void iwlog_test2() {
     char buf[1024];
     memset(buf, 0, 1024);
     fread(buf, 1, 1024, out);
-    fprintf(stderr, "%s" IW_LINE_SEP, buf);
+    fprintf(stderr, "%s\n\n" IW_LINE_SEP, buf);
 
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "7fa79c75beac413d83f35ffb6bf571b9"));
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "7e94f7214af64513b30ab4df3f62714aC"));
-    CU_ASSERT_PTR_NOT_NULL(strstr(buf, "DEBUG 70001|2|0|Error with expected errno status set|"));
+    CU_ASSERT_PTR_NOT_NULL(strstr(buf, "DEBUG 70001|2|0|Error with expected errno status set. (IW_ERROR_ERRNO)|"));
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERRNO Message"));
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERROR iwlog_test1.c:"));
-    CU_ASSERT_PTR_NOT_NULL(strstr(buf, "70004|0|0|Resource is readonly|"));
+    CU_ASSERT_PTR_NOT_NULL(strstr(buf, "70004|0|0|Resource is readonly. (IW_ERROR_READONLY)|"));
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "c94645c3b107433497ef295b1c00dcff12"));
     
 
