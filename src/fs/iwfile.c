@@ -130,6 +130,10 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
         opts->filemode = IWFS_DEFAULT_FILEMODE;
     }
     opts->open_mode |= IWFS_OREAD;
+    if (opts->open_mode & IWFS_OTRUNC) {
+        opts->open_mode |= IWFS_OWRITE;
+        opts->open_mode |= IWFS_OCREATE;
+    }
     if ((opts->open_mode & IWFS_OCREATE) || (opts->open_mode & IWFS_OTRUNC)) {
         opts->open_mode |= IWFS_OWRITE;
     }
@@ -138,7 +142,6 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     if (!(opts->open_mode & IWFS_OWRITE) && (opts->lock_mode & IWP_WLOCK)) {
         opts->lock_mode &= ~IWP_WLOCK;
     }
-    
 
     rc = iwp_fstat(opts->path, &fstat);
     if (!rc && !(opts->open_mode & IWFS_OTRUNC)) {

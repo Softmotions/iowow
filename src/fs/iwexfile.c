@@ -374,7 +374,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXFILE* f, off_t off, size_t maxlen) {
         return rc;
     }
     _IWXF *impl = f->impl;
-    if (off & (impl->psize)) {
+    if (off & (impl->psize - 1)) {
         rc = IW_ERROR_NOT_ALIGNED;
         goto finish;
     }
@@ -524,6 +524,7 @@ static iwrc _exfile_remove_mmap(struct IWFS_EXFILE* f, off_t off) {
         }
     }
 finish:
+    free(s);
     IWRC(_exfile_unlock(f), rc);
     return rc;
 }

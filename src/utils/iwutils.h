@@ -18,5 +18,26 @@
 #ifndef IWUTILS_H
 #define IWUTILS_H
 
+#include "basedefs.h"
+#include <math.h>
+
+/**
+ * @brief Create uniform distributed random number.
+ * @param avg Distribution pivot
+ * @param sd Avg square deviation
+ */
+IW_EXPORT double_t iwu_rand_dnorm(double_t avg, double_t sd);
+
+/**
+ * @brief Create uniform distributed integer random number in: `[0, range)`
+ */
+IW_EXPORT int iwu_rand(int range);
+
+/**
+ * @brief Create normal distributed integer random number.
+ */
+IW_EXPORT int iwu_rand_inorm(int range);
+
+
 
 #endif

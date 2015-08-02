@@ -1,7 +1,7 @@
 #include "iowow.h"
 #include "log/iwlog.h"
 #include "fs/iwexfile.h"
-
+#include "utils/iwutils.h"
 
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
@@ -97,48 +97,178 @@ void test_fibo_inc(void) {
     };
     iwrc rc = 0;
     size_t sp;
-    uint64_t wd = (uint64_t) (-1);
-    
+    uint64_t wd = (uint64_t)(-1);
+
     IWRC(iwfs_exfile_open(&ef, &opts), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
-    
+
     //iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
     IWRC(ef.write(&ef, 0, &wd, 1, &sp), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
-    
+
     size_t psize = iwp_page_size();
     IWP_FILE_STAT fstat;
     IWRC(iwp_fstat(path, &fstat), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL_FATAL(fstat.size, psize);
-    
-    IWRC(ef.write(&ef, fstat.size, &wd, 1, &sp), rc);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
-        
-    IWRC(iwp_fstat(path, &fstat), rc);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
-    CU_ASSERT_EQUAL_FATAL(fstat.size, 2*psize);
 
     IWRC(ef.write(&ef, fstat.size, &wd, 1, &sp), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
-    
+
     IWRC(iwp_fstat(path, &fstat), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
-    CU_ASSERT_EQUAL_FATAL(fstat.size, 3*psize);
+    CU_ASSERT_EQUAL_FATAL(fstat.size, 2 * psize);
 
     IWRC(ef.write(&ef, fstat.size, &wd, 1, &sp), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
-    
+
     IWRC(iwp_fstat(path, &fstat), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
-    CU_ASSERT_EQUAL_FATAL(fstat.size, 5*psize);
+    CU_ASSERT_EQUAL_FATAL(fstat.size, 3 * psize);
+
+    IWRC(ef.write(&ef, fstat.size, &wd, 1, &sp), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+    IWRC(iwp_fstat(path, &fstat), rc);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(fstat.size, 5 * psize);
 
     IWRC(ef.close(&ef), rc);
     CU_ASSERT_EQUAL(rc, 0);
 }
 
 void test_mmap1(void) {
+    iwrc rc = 0;
+    size_t psize = iwp_page_size();
+    size_t sp;
+    const int dsize = psize * 4;
+    uint8_t *data = malloc(dsize);
+    uint8_t *cdata = malloc(dsize);
 
+    const char *path = "test_mmap1.dat";
+    IWFS_EXFILE ef;
+    IWFS_EXFILE_OPTS opts = {
+        .fopts = {
+            .path = path,
+            .open_mode = IWFS_OTRUNC
+        },
+        .use_locks = 0
+    };
+
+    for (int i = 0; i < dsize; ++i) {
+        data[i] = iwu_rand(256);
+    }
+    rc = iwfs_exfile_open(&ef, &opts);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+    //iwrc(*add_mmap)(struct IWFS_EXFILE* f, off_t off, size_t maxlen);
+    rc = ef.add_mmap(&ef, 2 * psize, psize);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+    rc = ef.add_mmap(&ef, psize, psize);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+    rc = ef.add_mmap(&ef, 0, psize);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+    rc = ef.add_mmap(&ef, psize, 2 * psize);
+    CU_ASSERT_EQUAL_FATAL(rc, IWFS_ERROR_MMAP_OVERLAP);
+
+    rc = ef.add_mmap(&ef, 3 * psize, UINT64_MAX);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+    //iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
+    rc = ef.write(&ef, psize / 2, data, psize, &sp);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(sp, psize);
+
+    rc = ef.read(&ef, psize / 2, cdata, psize, &sp);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(sp, psize);
+    CU_ASSERT_EQUAL_FATAL(memcmp(data, cdata, psize), 0);
+
+    for (int i = 0; i < dsize; ++i) {
+        data[i] = iwu_rand(256);
+    }
+
+    //iwrc(*remove_mmap)(struct IWFS_EXFILE* f, off_t off);
+    rc = ef.remove_mmap(&ef, psize);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    rc = ef.write(&ef, psize / 2, data, psize, &sp);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(psize, sp);
+
+    rc = ef.read(&ef, psize / 2, cdata, psize, &sp);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(psize, sp);
+    CU_ASSERT_EQUAL_FATAL(memcmp(data, cdata, psize), 0);
+
+
+    for (int i = 0; i < 10; ++i) {
+        rc = ef.write(&ef, psize * i, data, dsize, &sp);
+        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        CU_ASSERT_EQUAL_FATAL(dsize, sp);
+
+        rc = ef.read(&ef, psize * i, cdata, dsize, &sp);
+        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        CU_ASSERT_EQUAL_FATAL(dsize, sp);
+        CU_ASSERT_EQUAL_FATAL(memcmp(data, cdata, psize), 0);
+    }
+
+    for (int i = 0; i < dsize; ++i) {
+        data[i] = iwu_rand(256);
+    }
+
+    rc = ef.remove_mmap(&ef, 0);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    for (int i = 0; i < 10; ++i) {
+        rc = ef.write(&ef, psize * i, data, dsize, &sp);
+        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        CU_ASSERT_EQUAL_FATAL(dsize, sp);
+
+        rc = ef.read(&ef, psize * i, cdata, dsize, &sp);
+        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        CU_ASSERT_EQUAL_FATAL(dsize, sp);
+        CU_ASSERT_EQUAL_FATAL(memcmp(data, cdata, psize), 0);
+    }
+
+    for (int i = 0; i < dsize; ++i) {
+        data[i] = iwu_rand(256);
+    }
+    rc = ef.remove_mmap(&ef, 2 * psize);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    for (int i = 0; i < 10; ++i) {
+        rc = ef.write(&ef, psize * i, data, dsize, &sp);
+        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        CU_ASSERT_EQUAL_FATAL(dsize, sp);
+
+        rc = ef.read(&ef, psize * i, cdata, dsize, &sp);
+        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        CU_ASSERT_EQUAL_FATAL(dsize, sp);
+        CU_ASSERT_EQUAL_FATAL(memcmp(data, cdata, psize), 0);
+    }
+    
+    for (int i = 0; i < dsize; ++i) {
+        data[i] = iwu_rand(256);
+    }
+    rc = ef.remove_mmap(&ef, 3 * psize);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    for (int i = 0; i < 10; ++i) {
+        rc = ef.write(&ef, psize * i, data, dsize, &sp);
+        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        CU_ASSERT_EQUAL_FATAL(dsize, sp);
+
+        rc = ef.read(&ef, psize * i, cdata, dsize, &sp);
+        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        CU_ASSERT_EQUAL_FATAL(dsize, sp);
+        CU_ASSERT_EQUAL_FATAL(memcmp(data, cdata, psize), 0);
+    }
+
+    IWRC(ef.close(&ef), rc);
+    CU_ASSERT_EQUAL(rc, 0);
+    
+    free(data);
+    free(cdata);
 }
 
 int main() {
@@ -161,7 +291,7 @@ int main() {
     if (
         (NULL == CU_add_test(pSuite, "iwfs_exfile_test1", iwfs_exfile_test1)) ||
         (NULL == CU_add_test(pSuite, "test_fibo_inc", test_fibo_inc)) ||
-        (NULL == CU_add_test(pSuite, "test_mmap1", test_mmap1)) 
+        (NULL == CU_add_test(pSuite, "test_mmap1", test_mmap1))
     ) {
         CU_cleanup_registry();
         return CU_get_error();
