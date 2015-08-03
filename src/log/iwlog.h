@@ -38,7 +38,8 @@ typedef enum {
     IW_ERROR_NOT_IMPLEMENTED,           /**< Method is not implemented. */
     IW_ERROR_ALLOC,                     /**< Memory allocation failed. */
     IW_ERROR_INVALID_STATE,             /**< Illegal state error. */
-    IW_ERROR_NOT_ALIGNED                /**< Argument is not aligned properly. */
+    IW_ERROR_NOT_ALIGNED,               /**< Argument is not aligned properly. */
+    IW_ERROR_FALSE                      /**< Request rejection/false response. */
 } iw_ecode;
 
 /**
@@ -236,7 +237,7 @@ iwrc iwlog_va(iwlog_lvl lvl,
     {   iwrc __iwrc = (IW_act); \
         if (__iwrc) { \
             if (!(IW_rc)) (IW_rc) = __iwrc; \
-            iwlog2(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, ""); \
+            else iwlog2(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, ""); \
         } \
     }
 
@@ -251,7 +252,7 @@ iwrc iwlog_va(iwlog_lvl lvl,
     {   iwrc __iwrc = (IW_act); \
         if (__iwrc) { \
             if (!(IW_rc)) (IW_rc) = __iwrc; \
-            iwlog2(IWLOG_##IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+            else iwlog2(IWLOG_##IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
         } \
     }
 

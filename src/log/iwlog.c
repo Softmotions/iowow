@@ -258,6 +258,8 @@ static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
             return "Illegal state error. (IW_ERROR_INVALID_STATE)";
         case IW_ERROR_NOT_ALIGNED:
             return "Argument is not aligned properly. (IW_ERROR_NOT_ALIGNED)";
+        case IW_ERROR_FALSE:
+            return "False response/rejection (IW_ERROR_FALSE)";
         case IW_OK:
         default:
             return 0;

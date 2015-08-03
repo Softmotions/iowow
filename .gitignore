@@ -8,3 +8,4 @@ Makefile
 Testing/
 compile_commands.json
 iowow.mk
+.tern*

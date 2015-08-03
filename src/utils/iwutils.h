@@ -21,6 +21,8 @@
 #include "basedefs.h"
 #include <math.h>
 
+IW_EXTERN_C_START
+
 /**
  * @brief Create uniform distributed random number.
  * @param avg Distribution pivot
@@ -39,5 +41,6 @@ IW_EXPORT int iwu_rand(int range);
 IW_EXPORT int iwu_rand_inorm(int range);
 
 
+IW_EXTERN_C_END
 
 #endif

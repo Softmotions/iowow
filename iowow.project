@@ -44,6 +44,8 @@
       <File Name="src/utils/kbtree.h"/>
       <File Name="src/utils/iwutils.h"/>
       <File Name="src/utils/iwutils.c"/>
+      <File Name="src/utils/iwrlock.h"/>
+      <File Name="src/utils/iwrlock.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="platform">
       <VirtualDirectory Name="linux">
