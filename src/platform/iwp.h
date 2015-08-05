@@ -136,6 +136,14 @@ IW_EXPORT iwrc iwp_ftruncate(HANDLE fh, off_t len);
 
 
 /**
+ * @brief Pause execution of current thread 
+ *        to the specified @a ms time in milliseconds.
+ * @param ms Thread pause time
+ */
+IW_EXPORT iwrc iwp_sleep(uint64_t ms);
+
+
+/**
  * @brief Init iwp module.
  * @return `0` on success or error code.
  */

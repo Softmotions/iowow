@@ -26,13 +26,13 @@ IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fstat) {
     assert(path);
     assert(fstat);
     iwrc rc = 0;
-    
     struct stat st = {0};
+    
     memset(fstat, 0, sizeof(*fstat));
     if (stat(path, &st)) {
         return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
     }
-    
+
     fstat->atime = _IW_TIMESPEC2MS(st.st_atim);
     fstat->mtime = _IW_TIMESPEC2MS(st.st_mtim);
     fstat->ctime = _IW_TIMESPEC2MS(st.st_ctim);
@@ -47,7 +47,6 @@ IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fstat) {
     } else {
         fstat->ftype = IWP_OTHER;
     }
-
     return rc;
 }
 
@@ -57,8 +56,8 @@ iwrc iwp_flock(HANDLE fd, iwp_lockmode lmode) {
         return 0;
     }
     struct flock lock = {
-       .l_type = (lmode & IWP_WLOCK) ? F_WRLCK : F_RDLCK,
-       .l_whence = SEEK_SET 
+        .l_type = (lmode & IWP_WLOCK) ? F_WRLCK : F_RDLCK,
+        .l_whence = SEEK_SET
     };
     while (fcntl(fd, (lmode & IWP_NBLOCK) ? F_SETLK : F_SETLKW, &lock) == -1) {
         if (errno != EINTR) {
@@ -81,7 +80,6 @@ iwrc iwp_unlock(HANDLE fd) {
     }
     return 0;
 }
-
 
 iwrc iwp_closefh(HANDLE fh) {
     if (INVALIDHANDLE(fh)) {
@@ -132,4 +130,15 @@ size_t iwp_page_size(void) {
 iwrc iwp_ftruncate(HANDLE fh, off_t len) {
     int rv = ftruncate(fh, len);
     return !rv ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+}
+
+iwrc iwp_sleep(uint64_t ms) {
+    iwrc rc = 0;
+    struct timespec req;
+    req.tv_sec = ms / 1000UL;
+    req.tv_nsec = (ms % 1000UL) * 1000UL * 1000UL;
+    if (nanosleep(&req, NULL)) {
+        rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, errno);
+    }
+    return rc;
 }

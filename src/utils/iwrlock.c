@@ -1,12 +1,27 @@
+/**************************************************************************************************
+ *  IOWOW library
+ *  Copyright (C) 2012-2015 Softmotions Ltd <info@softmotions.com>
+ *
+ *  This file is part of IOWOW.
+ *  IOWOW is free software; you can redistribute it and/or modify it under the terms of
+ *  the GNU Lesser General Public License as published by the Free Software Foundation; either
+ *  version 2.1 of the License or any later version. IOWOW is distributed in the hope
+ *  that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ *  License for more details.
+ *  You should have received a copy of the GNU Lesser General Public License along with IOWOW;
+ *  if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *  Boston, MA 02111-1307 USA.
+ *************************************************************************************************/
+
+/** Inspired by http://blitiri.com.ar/p/libfilo/ Alberto Bertogli (albertogli@telpin.com.ar) code */
+ 
 #include "iwrlock.h"
 #include "log/iwlog.h"
 #include "iwcfg.h"
 
 #include <pthread.h>
 #include <semaphore.h>
-
-// Writer flag in `_IWRLOCK_RANGE`
-#define _IWRL_W_FLAG 0x01
 
 /**
  * @brief Single lock range.
@@ -77,17 +92,20 @@ static int _iwrl_is_free(IWRLOCK *lk, off_t start, off_t end) {
 }
 
 static int _iwrl_is_canlock(IWRLOCK *lk, off_t start, off_t end,
-                            int lflags, pthread_t owner) {
+                            int lflags, pthread_t owner,
+                            int *_is_free) {
+    int is_free = 1;
     for (_IWRL_LOCKER_RANGE *lr = lk->lockers; lr; lr = lr->next) {
-        if (_IWRL_IS_RANGES_OVERLAP2(lr, start, end)) {
-            if (pthread_equal(lr->owner, owner)) {
-                continue;
-            }
-            if ((lflags & _IWRL_W_FLAG) || (lr->flags & _IWRL_W_FLAG)) {
-                return 0;
-            }
+        int overlap = _IWRL_IS_RANGES_OVERLAP2(lr, start, end);
+        if (is_free && overlap) {
+            is_free = 0;
+        }
+        if (overlap && ((lflags | lr->flags) & IWRL_WRITE) && !_IWRL_IS_OWNER2(lr, owner)) {
+            *_is_free = 0;
+            return 0;
         }
     }
+    *_is_free = is_free;
     return 1;
 }
 
@@ -144,7 +162,7 @@ static iwrc _iwrl_range_lock(IWRLOCK *lk, off_t start, off_t end,
     int remove_lr;
     for (_IWRL_LOCKER_RANGE * nr, *lr = lk->lockers; lr; lr = nr) {
         nr = lr->next;
-        if (!_IWRL_IS_OWNER2(lr, owner) || !_IWRL_IS_RANGES_OVERLAP2(lr, start, end)) {
+        if (!_IWRL_IS_RANGES_OVERLAP2(lr, start, end) || !_IWRL_IS_OWNER2(lr, owner)) {
             continue;
         }
         rc = _iwrl_exclude_range(lk, lr, start, end, owner, &remove_lr);
@@ -214,10 +232,10 @@ finish:
 //  _iwrl_lock is active
 static iwrc _iwrl_range_nofify(IWRLOCK *lk, off_t start, off_t end) {
     iwrc rc = 0;
+    int is_free;
     for (_IWRL_WAITER_RANGE *wr = lk->waiters; wr; wr = wr->next) {
         if (_IWRL_IS_RANGES_OVERLAP2(wr, start, end) &&
-                _iwrl_is_canlock(lk, wr->start, wr->end, wr->flags, wr->owner)) {
-
+                _iwrl_is_canlock(lk, wr->start, wr->end, wr->flags, wr->owner, &is_free)) {
             IWRC(_iwrl_range_lock(lk, wr->start, wr->end, wr->flags, wr->owner), rc);
             if (lk->waiters == wr) {
                 if (wr->next) {
@@ -287,12 +305,12 @@ iwrc iwrl_destroy(IWRLOCK *lk) {
     return rc;
 }
 
-iwrc iwrl_lock(IWRLOCK *lk, off_t start, off_t len, int is_write) {
+iwrc iwrl_lock(IWRLOCK *lk, off_t start, off_t len, iwrl_lockflags lflags) {
     assert(lk);
     iwrc rc = 0;
     off_t end = start + len - 1;
     pthread_t owner = pthread_self();
-    int mode = is_write ? _IWRL_W_FLAG : 0;
+    int is_free;
     if (start < 0 || len <= 0) {
         return IW_ERROR_OUT_OF_BOUNDS;
     }
@@ -301,27 +319,28 @@ iwrc iwrl_lock(IWRLOCK *lk, off_t start, off_t len, int is_write) {
         return rc;
     }
     if (!lk->lockers) {
-        IWRC(_iwrl_lock_append(lk, start, end, mode, owner), rc);
+        IWRC(_iwrl_lock_append(lk, start, end, lflags, owner), rc);
         IWRC(_iwrl_unlock(lk), rc);
-    } else if (_iwrl_is_free(lk, start, end)) {
-        IWRC(_iwrl_lock_append(lk, start, end, mode, owner), rc);
-        IWRC(_iwrl_unlock(lk), rc);
-    } else if (_iwrl_is_canlock(lk, start, end, mode, owner)) {
-        IWRC(_iwrl_range_lock(lk, start, end, mode, owner), rc);
+    } else if (_iwrl_is_canlock(lk, start, end, lflags, owner, &is_free)) {
+        if (is_free) {
+            IWRC(_iwrl_lock_append(lk, start, end, lflags, owner), rc);
+        } else {
+            IWRC(_iwrl_range_lock(lk, start, end, lflags, owner), rc);
+        }
         IWRC(_iwrl_unlock(lk), rc);
     } else {
         //wait, _iwrl_lock will be unlocked in _iwrl_range_wait
-        IWRC(_iwrl_range_wait(lk, start, end, mode, owner), rc);
+        IWRC(_iwrl_range_wait(lk, start, end, lflags, owner), rc);
     }
     return rc;
 }
 
-iwrc iwrl_trylock(IWRLOCK *lk, off_t start, off_t len, int is_write) {
+iwrc iwrl_trylock(IWRLOCK *lk, off_t start, off_t len, iwrl_lockflags lflags) {
     assert(lk);
     iwrc rc = 0;
     off_t end = start + len - 1;
     pthread_t owner = pthread_self();
-    int mode = is_write ? _IWRL_W_FLAG : 0;
+    int is_free;
     if (start < 0 || len <= 0) {
         return IW_ERROR_OUT_OF_BOUNDS;
     }
@@ -330,11 +349,13 @@ iwrc iwrl_trylock(IWRLOCK *lk, off_t start, off_t len, int is_write) {
         return rc;
     }
     if (!lk->lockers) {
-        IWRC(_iwrl_lock_append(lk, start, end, mode, owner), rc);
-    } else if (_iwrl_is_free(lk, start, end)) {
-        IWRC(_iwrl_lock_append(lk, start, end, mode, owner), rc);
-    } else if (_iwrl_is_canlock(lk, start, end, mode, owner)) {
-        IWRC(_iwrl_range_lock(lk, start, end, mode, owner), rc);
+        IWRC(_iwrl_lock_append(lk, start, end, lflags, owner), rc);
+    } else if (_iwrl_is_canlock(lk, start, end, lflags, owner, &is_free)) {
+        if (is_free) {
+            IWRC(_iwrl_lock_append(lk, start, end, lflags, owner), rc);
+        } else {
+            IWRC(_iwrl_range_lock(lk, start, end, lflags, owner), rc);
+        }
     } else {
         rc = IW_ERROR_FALSE;
     }
@@ -407,7 +428,7 @@ iwrc iwrl_num_writers(IWRLOCK *lk, int *ret) {
         return rc;
     }
     for (_IWRL_LOCKER_RANGE *lr = lk->lockers; lr; lr = lr->next) {
-        if (lr->flags & _IWRL_W_FLAG) { 
+        if (lr->flags & IWRL_WRITE) {
             ++cnt;
         }
     }
