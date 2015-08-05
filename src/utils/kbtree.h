@@ -1,3 +1,6 @@
+#ifndef __AC_KBTREE_H
+#define __AC_KBTREE_H
+
 /*-
  * Copyright 1997-1999, 2001, John-Mark Gurney.
  *           2008-2009, Attractive Chaos <attractor@live.co.uk>
@@ -24,9 +27,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-#ifndef __AC_KBTREE_H
-#define __AC_KBTREE_H
 
 #include <stdlib.h>
 #include <string.h>

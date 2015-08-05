@@ -404,7 +404,7 @@ iwrc iwrl_unlock(IWRLOCK *lk, off_t start, off_t len) {
     return rc;
 }
 
-iwrc iwrl_num_lockers(IWRLOCK *lk, int *ret) {
+iwrc iwrl_num_ranges(IWRLOCK *lk, int *ret) {
     assert(lk);
     int cnt = 0;
     iwrc rc = _iwrl_lock(lk);
@@ -419,7 +419,7 @@ iwrc iwrl_num_lockers(IWRLOCK *lk, int *ret) {
     return _iwrl_unlock(lk);
 }
 
-iwrc iwrl_num_writers(IWRLOCK *lk, int *ret) {
+iwrc iwrl_write_ranges(IWRLOCK *lk, int *ret) {
     assert(lk);
     int cnt = 0;
     iwrc rc = _iwrl_lock(lk);

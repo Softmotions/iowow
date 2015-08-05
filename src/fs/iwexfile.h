@@ -1,17 +1,33 @@
+#ifndef IWEXFILE_H
+#define IWEXFILE_H
+
+/**************************************************************************************************
+ *  IOWOW library
+ *  Copyright (C) 2012-2015 Softmotions Ltd <info@softmotions.com>
+ *
+ *  This file is part of IOWOW.
+ *  IOWOW is free software; you can redistribute it and/or modify it under the terms of
+ *  the GNU Lesser General Public License as published by the Free Software Foundation; either
+ *  version 2.1 of the License or any later version. IOWOW is distributed in the hope
+ *  that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ *  License for more details.
+ *  You should have received a copy of the GNU Lesser General Public License along with IOWOW;
+ *  if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *  Boston, MA 02111-1307 USA.
+ *************************************************************************************************/
+
 /** @file
  *  @brief Auto-expandable file.
  *
  *  Features:
- *  - Support tunable file expansion policies.
- *  - Support of RW method locking in multithreaded environment.
+ *  - Tunable file expansion policies.
+ *  - Read/write methods locking option in multithreaded environment.
  *  - File shrinking/truncation support.
  *  - A number mmaped regions can be registered in the file's address space.
  *    These regions used in read/write operation and automatically maintained during file resize
  *    operations.
  */
- 
-#ifndef IWEXFILE_H
-#define IWEXFILE_H
 
 #include "iwfile.h"
 
@@ -70,7 +86,7 @@ IW_EXPORT off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXF
  * @brief File options.
  */
 typedef struct IWFS_EXFILE_OPTS {
-    IWFS_FILE_OPTS          fopts;          /**< Underlying file options */
+    IWFS_FILE_OPTS          file;          /**< Underlying file options */
     off_t                   initial_size;   /**< Initial file size */
     int                     use_locks;      /**< If `1` file operation will be guarded by rw lock */
     IW_EXFILE_RSPOLICY      rspolicy;      /**< File resize policy function ptr. */
@@ -78,19 +94,21 @@ typedef struct IWFS_EXFILE_OPTS {
 } IWFS_EXFILE_OPTS;
 
 typedef struct IWFS_EXFILE_STATE {
-    IWFS_FILE_STATE fstate; /**< Simple file state */
-    off_t fsize;             /**< Current file size */
+    IWFS_FILE_STATE fstate;     /**< Simple file state */
+    off_t fsize;                /**< Current file size */
 } IWFS_EXFILE_STATE;
 
 typedef struct IWFS_EXFILE {
     struct IWFS_EXFILE_IMPL *impl;
 
+    /* See iwfile.h */
     iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
     iwrc(*read)(struct IWFS_EXFILE* f, off_t off, void *buf, size_t siz, size_t *sp);
     iwrc(*close)(struct IWFS_EXFILE* f);
     iwrc(*sync)(struct IWFS_EXFILE* f, iwfs_sync_flags flags);
     iwrc(*state)(struct IWFS_EXFILE* f, IWFS_EXFILE_STATE* state);
 
+    /* Exfile specific methods */
     iwrc(*ensure_size)(struct IWFS_EXFILE* f, off_t size);
     iwrc(*truncate)(struct IWFS_EXFILE* f, off_t size);
     iwrc(*add_mmap)(struct IWFS_EXFILE* f, off_t off, size_t maxlen);

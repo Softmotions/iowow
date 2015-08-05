@@ -1,3 +1,6 @@
+#ifndef IOWOW_H
+#define IOWOW_H
+
 /**************************************************************************************************
  *  IOWOW library
  *  Copyright (C) 2012-2015 Softmotions Ltd <info@softmotions.com>
@@ -13,9 +16,6 @@
  *  if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
-
-#ifndef IOWOW_H
-#define IOWOW_H
 
 #ifndef _LARGEFILE_SOURCE
 #error "You must compile your application with -D_LARGEFILE_SOURCE"

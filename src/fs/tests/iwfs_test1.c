@@ -1,3 +1,19 @@
+/**************************************************************************************************
+ *  IOWOW library
+ *  Copyright (C) 2012-2015 Softmotions Ltd <info@softmotions.com>
+ *
+ *  This file is part of IOWOW.
+ *  IOWOW is free software; you can redistribute it and/or modify it under the terms of
+ *  the GNU Lesser General Public License as published by the Free Software Foundation; either
+ *  version 2.1 of the License or any later version. IOWOW is distributed in the hope
+ *  that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ *  License for more details.
+ *  You should have received a copy of the GNU Lesser General Public License along with IOWOW;
+ *  if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *  Boston, MA 02111-1307 USA.
+ *************************************************************************************************/
+
 #include "iowow.h"
 #include "log/iwlog.h"
 #include "fs/iwexfile.h"
@@ -22,7 +38,7 @@ void iwfs_exfile_test1(void) {
 
     const char *path = "iwfs_exfile_test1.dat";
     IWFS_EXFILE_OPTS opts = {
-        .fopts = {
+        .file = {
             .path = path,
             .lock_mode = IWP_WLOCK,
             .open_mode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
@@ -58,7 +74,7 @@ void iwfs_exfile_test1(void) {
 
     //Now reopen the file
 
-    opts.fopts.open_mode = IWFS_OREAD;
+    opts.file.open_mode = IWFS_OREAD;
     IWRC(iwfs_exfile_open(&ef, &opts), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -87,7 +103,7 @@ void test_fibo_inc(void) {
     const char *path = "test_fibo_inc.dat";
     IWFS_EXFILE ef;
     IWFS_EXFILE_OPTS opts = {
-        .fopts = {
+        .file = {
             .path = path,
             .lock_mode = IWP_WLOCK,
             .open_mode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
@@ -148,7 +164,7 @@ void test_mmap1(void) {
     const char *path = "test_mmap1.dat";
     IWFS_EXFILE ef;
     IWFS_EXFILE_OPTS opts = {
-        .fopts = {
+        .file = {
             .path = path,
             .open_mode = IWFS_OTRUNC
         },

@@ -77,6 +77,8 @@
       </VirtualDirectory>
       <File Name="src/fs/iwexfile.h"/>
       <File Name="src/fs/iwexfile.c"/>
+      <File Name="src/fs/iwrwlfile.h"/>
+      <File Name="src/fs/iwrwlfile.c"/>
     </VirtualDirectory>
     <File Name="src/iowow.c"/>
   </VirtualDirectory>

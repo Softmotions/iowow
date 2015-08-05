@@ -69,7 +69,7 @@ static iwrc unlock(IWRLOCK *lk, off_t start, off_t len) {
 
 static int num_lockers(IWRLOCK *lk) {
     int nl;
-    iwrc rc = iwrl_num_lockers(lk, &nl);
+    iwrc rc = iwrl_num_ranges(lk, &nl);
     CU_ASSERT_FALSE_FATAL(rc);
     return nl;
 }
@@ -77,7 +77,7 @@ static int num_lockers(IWRLOCK *lk) {
 
 static int num_writers(IWRLOCK *lk) {
     int nl;
-    iwrc rc = iwrl_num_writers(lk, &nl);
+    iwrc rc = iwrl_write_ranges(lk, &nl);
     CU_ASSERT_FALSE_FATAL(rc);
     return nl;
 }

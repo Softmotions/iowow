@@ -1,3 +1,19 @@
+/**************************************************************************************************
+ *  IOWOW library
+ *  Copyright (C) 2012-2015 Softmotions Ltd <info@softmotions.com>
+ *
+ *  This file is part of IOWOW.
+ *  IOWOW is free software; you can redistribute it and/or modify it under the terms of
+ *  the GNU Lesser General Public License as published by the Free Software Foundation; either
+ *  version 2.1 of the License or any later version. IOWOW is distributed in the hope
+ *  that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ *  License for more details.
+ *  You should have received a copy of the GNU Lesser General Public License along with IOWOW;
+ *  if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *  Boston, MA 02111-1307 USA.
+ *************************************************************************************************/
+
 #include "iwexfile.h"
 #include "log/iwlog.h"
 #include "iwcfg.h"
@@ -7,7 +23,7 @@
 
 struct _MMAPSLOT;
 typedef struct IWFS_EXFILE_IMPL {
-    IWFS_FILE   file;              /**< Underlying file pointer */
+    IWFS_FILE   file;               /**< Underlying file */
     off_t       fsize;              /**< Current file size */
     off_t       psize;              /**< System page size */
     pthread_rwlock_t *rwlock;       /**< Thread RW lock */
@@ -17,7 +33,7 @@ typedef struct IWFS_EXFILE_IMPL {
     int         use_locks;          /**< Use rwlocks to guard method access */
     iwfs_omode  omode;              /**< File open mode. */
     HANDLE      fh;                 /**< File handle */
-} _IWXF;
+} _EXF;
 
 typedef struct _MMAPSLOT {
     off_t off;                      /**< Offset to a memory mapped region */
@@ -34,8 +50,8 @@ typedef struct _MMAPSLOT {
 static iwrc _exfile_initlocks(IWFS_EXFILE *f);
 static iwrc _exfile_rwlock(IWFS_EXFILE *f, int wl);
 static iwrc _exfile_unlock(IWFS_EXFILE *f);
-static iwrc _exfile_unlock2(_IWXF *impl);
-static iwrc _exfile_destroylocks(_IWXF *impl);
+static iwrc _exfile_unlock2(_EXF *impl);
+static iwrc _exfile_destroylocks(_EXF *impl);
 static iwrc _exfile_ensure_size(struct IWFS_EXFILE* f, off_t size);
 static iwrc _exfile_ensure_size_impl(struct IWFS_EXFILE* f, off_t sz);
 static iwrc _exfile_truncate(struct IWFS_EXFILE* f, off_t size);
@@ -57,7 +73,7 @@ static iwrc _exfile_sync(struct IWFS_EXFILE *f, iwfs_sync_flags flags) {
     if (rc) {
         return rc;
     }
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     _MMAPSLOT *s = impl->mmslots;
     while (s) {
         if (s->mmap && s->mmap != MAP_FAILED) {
@@ -79,7 +95,7 @@ static iwrc _exfile_sync(struct IWFS_EXFILE *f, iwfs_sync_flags flags) {
 static iwrc _exfile_write(struct IWFS_EXFILE *f, off_t off,
                           const void *buf, size_t siz, size_t *sp) {
     _MMAPSLOT *s;
-    _IWXF *impl;
+    _EXF *impl;
     off_t end = off + siz;
     off_t wp = siz, len;
 
@@ -142,7 +158,7 @@ end:
 static iwrc _exfile_read(struct IWFS_EXFILE *f, off_t off,
                          void *buf, size_t siz, size_t *sp) {
     _MMAPSLOT *s;
-    _IWXF *impl;
+    _EXF *impl;
     off_t end = off + siz;
     off_t rp = siz, len;
     *sp = 0;
@@ -214,7 +230,7 @@ static iwrc _exfile_close(struct IWFS_EXFILE *f) {
     if (rc) {
         return rc;
     }
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     IWRC(impl->file.close(&impl->file), rc);
     f->impl = 0;
     if (impl->rspolicy) { //deactivate resize policy function
@@ -239,7 +255,7 @@ static iwrc _exfile_ensure_size(struct IWFS_EXFILE* f, off_t sz) {
 // Assumed:
 //  +write lock
 static iwrc _exfile_ensure_size_impl(struct IWFS_EXFILE* f, off_t sz) {
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     assert(impl && impl->rspolicy);
     if (impl->fsize >= sz) {
         return 0;
@@ -267,7 +283,7 @@ static iwrc _exfile_truncate(struct IWFS_EXFILE* f, off_t sz) {
 static iwrc _exfile_truncate_impl(struct IWFS_EXFILE* f, off_t size) {
     assert(f && f->impl);
     iwrc rc = 0;
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     iwfs_omode omode = impl->omode;
     off_t old_size = impl->fsize;
 
@@ -314,7 +330,7 @@ truncfail:
 static iwrc _exfile_initmmap(struct IWFS_EXFILE *f) {
     assert(f);
     iwrc rc = 0;
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     assert(!(impl->fsize & (impl->psize - 1)));
     _MMAPSLOT *s = impl->mmslots;
     while (s) {
@@ -332,7 +348,7 @@ static iwrc _exfile_initmmap(struct IWFS_EXFILE *f) {
 static iwrc _exfile_initmmap_slot(struct IWFS_EXFILE *f, _MMAPSLOT *s) {
     assert(f && s);
     size_t nlen;
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     if (s->off >= impl->fsize) {
         nlen = 0;
     } else {
@@ -373,7 +389,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXFILE* f, off_t off, size_t maxlen) {
     if (rc) {
         return rc;
     }
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     if (off & (impl->psize - 1)) {
         rc = IW_ERROR_NOT_ALIGNED;
         goto finish;
@@ -465,7 +481,7 @@ iwrc _exfile_get_mmap(struct IWFS_EXFILE* f, off_t off, uint8_t **mm, size_t *sp
     if (rc) {
         return rc;
     }
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     _MMAPSLOT *s = impl->mmslots;
     while (s) {
         if (s->off == off) {
@@ -493,7 +509,7 @@ static iwrc _exfile_remove_mmap(struct IWFS_EXFILE* f, off_t off) {
     if (rc) {
         return rc;
     }
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     _MMAPSLOT *s = impl->mmslots;
     while (s) {
         if (s->off == off) {
@@ -537,7 +553,7 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXFILE* f, off_t off, int _flags) {
     if (rc) {
         return rc;
     }
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     _MMAPSLOT *s = impl->mmslots;
     while (s) {
         if (s->off == off) {
@@ -569,17 +585,17 @@ iwrc iwfs_exfile_open(IWFS_EXFILE *f,
 
     assert(f);
     assert(opts);
-    assert(opts->fopts.path);
     iwrc rc = 0;
-    const char *path = opts->fopts.path;
-
+    const char *path = opts->file.path;
+    if (!path) {
+        return IW_ERROR_INVALID_ARGS;
+    }
     memset(f, 0, sizeof(*f));
-    _IWXF *impl = f->impl = calloc(1, sizeof(*f->impl));
-    if (!f->impl) {
+    _EXF *impl = f->impl = calloc(1, sizeof(*f->impl));
+    if (!impl) {
         return iwrc_set_errno(IW_ERROR_ALLOC, errno);
     }
-
-
+    
     f->close = _exfile_close;
     f->read = _exfile_read;
     f->write = _exfile_write;
@@ -602,7 +618,7 @@ iwrc iwfs_exfile_open(IWFS_EXFILE *f,
     if (rc) {
         goto finish;
     }
-    rc = iwfs_file_open(&impl->file, &opts->fopts);
+    rc = iwfs_file_open(&impl->file, &opts->file);
     if (rc) {
         goto finish;
     }
@@ -699,7 +715,7 @@ off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize,
 static iwrc _exfile_initlocks(IWFS_EXFILE *f) {
     assert(f && f->impl);
     assert(!f->impl->rwlock);
-    _IWXF *impl = f->impl;
+    _EXF *impl = f->impl;
     if (!impl->use_locks) {
         return 0;
     }
@@ -716,7 +732,7 @@ static iwrc _exfile_initlocks(IWFS_EXFILE *f) {
     return 0;
 }
 
-static iwrc _exfile_destroylocks(_IWXF *impl) {
+static iwrc _exfile_destroylocks(_EXF *impl) {
     if (!impl) return IW_ERROR_INVALID_STATE;
     if (!impl->rwlock) return 0;
     int rv = pthread_rwlock_destroy(impl->rwlock);
@@ -744,7 +760,7 @@ IW_INLINE iwrc _exfile_unlock(IWFS_EXFILE *f) {
     return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
-IW_INLINE iwrc _exfile_unlock2(_IWXF *impl) {
+IW_INLINE iwrc _exfile_unlock2(_EXF *impl) {
     if (!impl) return IW_ERROR_INVALID_STATE;
     if (!impl->use_locks) return 0;
     if (!impl->rwlock) return IW_ERROR_INVALID_STATE;

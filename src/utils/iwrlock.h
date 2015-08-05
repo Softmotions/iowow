@@ -1,12 +1,27 @@
-/** @file
- *  @brief Implement `fcntl()` rw-locking style over abstract address space within a threads.   
- */
-
 #ifndef IWRLOCK_H
 #define IWRLOCK_H
 
-#include "basedefs.h"
+/**************************************************************************************************
+ *  IOWOW library
+ *  Copyright (C) 2012-2015 Softmotions Ltd <info@softmotions.com>
+ *
+ *  This file is part of IOWOW.
+ *  IOWOW is free software; you can redistribute it and/or modify it under the terms of
+ *  the GNU Lesser General Public License as published by the Free Software Foundation; either
+ *  version 2.1 of the License or any later version. IOWOW is distributed in the hope
+ *  that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ *  License for more details.
+ *  You should have received a copy of the GNU Lesser General Public License along with IOWOW;
+ *  if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+ *  Boston, MA 02111-1307 USA.
+ *************************************************************************************************/
 
+/** @file
+ *  @brief Implement `fcntl()` rw-locking style over abstract address space within a threads.   
+ */
+ 
+#include "basedefs.h"
 #include <sys/types.h>
 
 
@@ -72,7 +87,7 @@ IW_EXPORT iwrc iwrl_unlock(IWRLOCK *lk, off_t start, off_t len);
  * @param ret [out] Number of read/write ranges placeholder.
  * @return `0` on success or error coded
  */
-IW_EXPORT iwrc iwrl_num_lockers(IWRLOCK *lk,  int *ret);
+IW_EXPORT iwrc iwrl_num_ranges(IWRLOCK *lk,  int *ret);
 
 /**
  * @brief Returns number of write-locked ranges.
@@ -80,7 +95,7 @@ IW_EXPORT iwrc iwrl_num_lockers(IWRLOCK *lk,  int *ret);
  * @param ret [out] Number of write ranges placeholder.
  * @return `0` on success or error code
  */
-IW_EXPORT iwrc iwrl_num_writers(IWRLOCK *lk, int *ret);
+IW_EXPORT iwrc iwrl_write_ranges(IWRLOCK *lk, int *ret);
 
 
 IW_EXTERN_C_END
