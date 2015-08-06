@@ -31,20 +31,20 @@
 
 #include "iwfile.h"
 
-struct IWFS_EXFILE_OPTS;
-struct IWFS_EXFILE;
+struct IWFS_EXT_OPTS;
+struct IWFS_EXT;
 
 /**
- * @enum iwfs_extfile_ecode
+ * @enum iwfs_ext_ecode
  * @brief Error codes specific to this module.
  */
 typedef enum {
-    _IWFS_EXFILE_ERROR_START = (IW_ERROR_START + 2000UL),
+    _IWFS_EXT_ERROR_START = (IW_ERROR_START + 3000UL),
     IWFS_ERROR_MMAP_OVERLAP, /**< Region is mmaped already, mmaping overlaps */
     IWFS_ERROR_NOT_MMAPED,   /**< Region is not mmaped */
     IWFS_ERROR_RESIZE_POLICY_FAIL, /**< Invalid result of resize policy function. */
-    _IWFS_EXFILE_ERROR_END
-} iwfs_extfile_ecode;
+    _IWFS_EXT_ERROR_END
+} iwfs_ext_ecode;
 
 /**
  * @brief File resize policy function type.
@@ -65,66 +65,66 @@ typedef enum {
  *
  * @return Computed new file size.
  */
-typedef off_t(*IW_EXFILE_RSPOLICY)(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
+typedef off_t(*IW_EXT_RSPOLICY)(off_t nsize, off_t csize, struct IWFS_EXT *f, void **ctx);
 
 /**
  * @brief Fibonacci resize file policy strategy.
  *
  * New `file_size(n+1) = MAX(file_size(n) + file_size(n-1), nsize)`
  */
-IW_EXPORT off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
+IW_EXPORT off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXT *f, void **ctx);
 
 /**
  * @brief Rational number `IW_RNUM` file size multiplication policy.
  * 
  * New `file_size = MAX(file_size * (N/D), nsize)`
  */
-IW_EXPORT off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXFILE *f, void **ctx);
+IW_EXPORT off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f, void **ctx);
 
 /**
- * @struct IWFS_EXFILE_OPTS
+ * @struct IWFS_EXT_OPTS
  * @brief File options.
  */
-typedef struct IWFS_EXFILE_OPTS {
-    IWFS_FILE_OPTS          file;          /**< Underlying file options */
+typedef struct IWFS_EXT_OPTS {
+    IWFS_FILE_OPTS          file;           /**< Underlying file options */
     off_t                   initial_size;   /**< Initial file size */
     int                     use_locks;      /**< If `1` file operation will be guarded by rw lock */
-    IW_EXFILE_RSPOLICY      rspolicy;      /**< File resize policy function ptr. */
+    IW_EXT_RSPOLICY         rspolicy;       /**< File resize policy function ptr. */
     void                    *rspolicy_ctx;  /**< Custom opaque data for policy functions. */
-} IWFS_EXFILE_OPTS;
+} IWFS_EXT_OPTS;
 
-typedef struct IWFS_EXFILE_STATE {
+typedef struct IWFS_EXT_STATE {
     IWFS_FILE_STATE fstate;     /**< Simple file state */
     off_t fsize;                /**< Current file size */
-} IWFS_EXFILE_STATE;
+} IWFS_EXT_STATE;
 
-typedef struct IWFS_EXFILE {
-    struct IWFS_EXFILE_IMPL *impl;
+typedef struct IWFS_EXT {
+    struct IWFS_EXT_IMPL *impl;
 
     /* See iwfile.h */
-    iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
-    iwrc(*read)(struct IWFS_EXFILE* f, off_t off, void *buf, size_t siz, size_t *sp);
-    iwrc(*close)(struct IWFS_EXFILE* f);
-    iwrc(*sync)(struct IWFS_EXFILE* f, iwfs_sync_flags flags);
-    iwrc(*state)(struct IWFS_EXFILE* f, IWFS_EXFILE_STATE* state);
+    iwrc(*write)(struct IWFS_EXT* f, off_t off, const void *buf, size_t siz, size_t *sp);
+    iwrc(*read)(struct IWFS_EXT* f, off_t off, void *buf, size_t siz, size_t *sp);
+    iwrc(*close)(struct IWFS_EXT* f);
+    iwrc(*sync)(struct IWFS_EXT* f, iwfs_sync_flags flags);
+    iwrc(*state)(struct IWFS_EXT* f, IWFS_EXT_STATE* state);
 
     /* Exfile specific methods */
-    iwrc(*ensure_size)(struct IWFS_EXFILE* f, off_t size);
-    iwrc(*truncate)(struct IWFS_EXFILE* f, off_t size);
-    iwrc(*add_mmap)(struct IWFS_EXFILE* f, off_t off, size_t maxlen);
-    iwrc(*get_mmap)(struct IWFS_EXFILE* f, off_t off, uint8_t **mm, size_t *sp);
-    iwrc(*remove_mmap)(struct IWFS_EXFILE* f, off_t off);
-    iwrc(*sync_mmap)(struct IWFS_EXFILE* f, off_t off, int flags);
+    iwrc(*ensure_size)(struct IWFS_EXT* f, off_t size);
+    iwrc(*truncate)(struct IWFS_EXT* f, off_t size);
+    iwrc(*add_mmap)(struct IWFS_EXT* f, off_t off, size_t maxlen);
+    iwrc(*get_mmap)(struct IWFS_EXT* f, off_t off, uint8_t **mm, size_t *sp);
+    iwrc(*remove_mmap)(struct IWFS_EXT* f, off_t off);
+    iwrc(*sync_mmap)(struct IWFS_EXT* f, off_t off, int flags);
 
-} IWFS_EXFILE;
+} IWFS_EXT;
 
 /**
  * @brief Open exfile.
  * @param f Exfile handle
  * @param opts File open options
  */
-IW_EXPORT iwrc iwfs_exfile_open(IWFS_EXFILE *f,
-                                const IWFS_EXFILE_OPTS *opts);
+IW_EXPORT iwrc iwfs_exfile_open(IWFS_EXT *f,
+                                const IWFS_EXT_OPTS *opts);
 
 /**
  * @brief Init `iwexfile` submodule.

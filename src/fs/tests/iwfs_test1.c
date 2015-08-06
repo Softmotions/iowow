@@ -34,10 +34,10 @@ int clean_suite(void) {
 
 void iwfs_exfile_test1(void) {
     iwrc rc = 0;
-    IWFS_EXFILE ef;
+    IWFS_EXT ef;
 
     const char *path = "iwfs_exfile_test1.dat";
-    IWFS_EXFILE_OPTS opts = {
+    IWFS_EXT_OPTS opts = {
         .file = {
             .path = path,
             .lock_mode = IWP_WLOCK,
@@ -51,7 +51,7 @@ void iwfs_exfile_test1(void) {
     char data[] = "b069a540-bc92-49ba-95e9-d1a2ee9e8c8f";
     size_t sp, sp2;
 
-    //iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
+    //iwrc(*write)(struct IWFS_EXT* f, off_t off, const void *buf, size_t siz, size_t *sp);
     IWRC(ef.write(&ef, 0, 0, 0, &sp), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL(sp, 0);
@@ -79,7 +79,7 @@ void iwfs_exfile_test1(void) {
     CU_ASSERT_EQUAL_FATAL(rc, 0);
 
     char rdata[37];
-    //iwrc(*read)(struct IWFS_EXFILE* f, off_t off, void *buf, size_t siz, size_t *sp);
+    //iwrc(*read)(struct IWFS_EXT* f, off_t off, void *buf, size_t siz, size_t *sp);
     IWRC(ef.read(&ef, 1, rdata, sp, &sp2), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL(sp, sp2);
@@ -101,8 +101,8 @@ void iwfs_exfile_test1(void) {
 
 void test_fibo_inc(void) {
     const char *path = "test_fibo_inc.dat";
-    IWFS_EXFILE ef;
-    IWFS_EXFILE_OPTS opts = {
+    IWFS_EXT ef;
+    IWFS_EXT_OPTS opts = {
         .file = {
             .path = path,
             .lock_mode = IWP_WLOCK,
@@ -118,7 +118,7 @@ void test_fibo_inc(void) {
     IWRC(iwfs_exfile_open(&ef, &opts), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-    //iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
+    //iwrc(*write)(struct IWFS_EXT* f, off_t off, const void *buf, size_t siz, size_t *sp);
     IWRC(ef.write(&ef, 0, &wd, 1, &sp), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -162,8 +162,8 @@ void test_mmap1(void) {
     uint8_t *cdata = malloc(dsize);
 
     const char *path = "test_mmap1.dat";
-    IWFS_EXFILE ef;
-    IWFS_EXFILE_OPTS opts = {
+    IWFS_EXT ef;
+    IWFS_EXT_OPTS opts = {
         .file = {
             .path = path,
             .open_mode = IWFS_OTRUNC
@@ -177,7 +177,7 @@ void test_mmap1(void) {
     rc = iwfs_exfile_open(&ef, &opts);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-    //iwrc(*add_mmap)(struct IWFS_EXFILE* f, off_t off, size_t maxlen);
+    //iwrc(*add_mmap)(struct IWFS_EXT* f, off_t off, size_t maxlen);
     rc = ef.add_mmap(&ef, 2 * psize, psize);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -193,7 +193,7 @@ void test_mmap1(void) {
     rc = ef.add_mmap(&ef, 3 * psize, UINT64_MAX);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-    //iwrc(*write)(struct IWFS_EXFILE* f, off_t off, const void *buf, size_t siz, size_t *sp);
+    //iwrc(*write)(struct IWFS_EXT* f, off_t off, const void *buf, size_t siz, size_t *sp);
     rc = ef.write(&ef, psize / 2, data, psize, &sp);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL_FATAL(sp, psize);
@@ -207,7 +207,7 @@ void test_mmap1(void) {
         data[i] = iwu_rand(256);
     }
 
-    //iwrc(*remove_mmap)(struct IWFS_EXFILE* f, off_t off);
+    //iwrc(*remove_mmap)(struct IWFS_EXT* f, off_t off);
     rc = ef.remove_mmap(&ef, psize);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     rc = ef.write(&ef, psize / 2, data, psize, &sp);
