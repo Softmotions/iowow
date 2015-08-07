@@ -20,9 +20,8 @@
 
 typedef struct IWFS_RWL_IMPL {
     IWFS_EXT exfile;         /**< Underlying exfile */
-    IWRLOCK *lk;                /**< Address range lock */
+    IWRLOCK *lk;             /**< Address range lock */
 } _RWL;
-
 
 #define _RWL_ENSURE_OPEN(f) \
     if (!f || !f->impl || !f->impl->lk) \

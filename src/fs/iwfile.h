@@ -67,7 +67,7 @@ typedef enum {
  */
 typedef struct {
     const char      *path;      /**< Required file path. */
-    iwfs_omode      open_mode;  /**< File open mode. */
+    iwfs_omode      omode;  /**< File open mode. */
     iwp_lockmode    lock_mode;  /**< File locking mode. */
     /**< Specifies the permissions to use in case a new file is created,
          @sa int ::open(const char *pathname, int flags, mode_t mode) */

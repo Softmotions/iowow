@@ -94,7 +94,7 @@ typedef struct IWFS_EXT_OPTS {
 } IWFS_EXT_OPTS;
 
 typedef struct IWFS_EXT_STATE {
-    IWFS_FILE_STATE fstate;     /**< Simple file state */
+    IWFS_FILE_STATE file;     /**< Simple file state */
     off_t fsize;                /**< Current file size */
 } IWFS_EXT_STATE;
 

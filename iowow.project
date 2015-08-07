@@ -50,6 +50,7 @@
         <File Name="src/utils/tests/CMakeLists.txt"/>
         <File Name="src/utils/tests/iwrlock_test1.c"/>
       </VirtualDirectory>
+      <File Name="src/utils/iwbits.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="platform">
       <VirtualDirectory Name="linux">

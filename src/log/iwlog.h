@@ -55,7 +55,8 @@ typedef enum {
     IW_ERROR_INVALID_STATE,             /**< Illegal state error. */
     IW_ERROR_NOT_ALIGNED,               /**< Argument is not aligned properly. */
     IW_ERROR_FALSE,                     /**< Request rejection/false response. */
-    IW_ERROR_INVALID_ARGS               /**< Invalid function arguments. */
+    IW_ERROR_INVALID_ARGS,              /**< Invalid function arguments. */
+    IW_ERROR_OVERFLOW                   /**< Overflow. */        
 } iw_ecode;
 
 /**
@@ -248,6 +249,17 @@ iwrc iwlog_va(iwlog_lvl lvl,
 #define iwlog_ecode_info2(IW_ecode, IW_fmt) iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_warn2(IW_ecode, IW_fmt) iwlog2(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_error2(IW_ecode, IW_fmt) iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+
+
+#ifdef _DEBUG
+#define iwlog_ecode_debug3(IW_ecode) iwlog2(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, "")
+#else
+#define iwlog_ecode_debug3(IW_ecode, IW_fmt)
+#endif
+#define iwlog_ecode_info3(IW_ecode) iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, ""))
+#define iwlog_ecode_warn3(IW_ecode) iwlog2(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, "")
+#define iwlog_ecode_error3(IW_ecode) iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, "")
+
 
 #define IWRC(IW_act, IW_rc) \
     {   iwrc __iwrc = (IW_act); \

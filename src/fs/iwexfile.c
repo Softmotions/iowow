@@ -218,7 +218,7 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE* state) {
     if (rc) {
         return rc;
     }
-    IWRC(f->impl->file.state(&f->impl->file, &state->fstate), rc);
+    IWRC(f->impl->file.state(&f->impl->file, &state->file), rc);
     state->fsize = f->impl->fsize;
     IWRC(_exfile_unlock(f), rc);
     return rc;
@@ -631,7 +631,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f,
 
     IWFS_FILE_STATE fstate;
     rc = impl->file.state(&impl->file, &fstate);
-    impl->omode = fstate.opts.open_mode;
+    impl->omode = fstate.opts.omode;
     impl->fh = fstate.fh;
 
     if (impl->fsize < opts->initial_size) {

@@ -86,18 +86,24 @@ typedef enum {
     _IWFS_FSM_ERROR_START = (IW_ERROR_START + 4000UL),
     IWFS_ERROR_NO_FREE_SPACE,       /**< No free space. */
     IWFS_ERROR_INVALID_BLOCK_SIZE,  /**< Invalid block size specified */
+    IWFS_ERROR_RANGE_NOT_ALIGNED,   /**< Specified range/offset is not aligned with page/block */
+    IWFS_ERROR_FSM_SEGMENTATION,    /**< Free-space map segmentation error */
+    IWFS_ERROR_INVALID_FILEMETA,    /**< Invalid file-metadata */
+    IWFS_ERROR_PLATFORM_PAGE,       /**< Platform page size incopatibility, data migration required. */
     _IWFS_FSM_ERROR_END
 } iwfs_fsm_ecode;
 
-
 typedef enum {
-    IWFSM_NOLOCKS  = 0x01 /**< Do not use threading locks */ 
+    IWFSM_NOLOCKS       = 0x01,     /**< Do not use threading locks */ 
+    IWFSM_STRICT        = 0x02      /**< Strict block checking for alloc/dealloc operations */  
 } iwfs_fsm_openflags;
 
 typedef struct IWFS_FSM_OPTS {
-    IWFS_RWL_OPTS       rwlfile;
-    iwfs_fsm_openflags  oflags;
-    uint8_t             bpow;       /**< Block size power of 2 */           
+    IWFS_RWL_OPTS       rwlfile;     
+    iwfs_fsm_openflags  oflags;     /**< Operation mode flags */
+    uint8_t             bpow;       /**< Block size power of 2 */   
+    size_t              bmlen;      /**< Initial size of free-space bitmap */
+    size_t              hdrlen;     /**< Length of custom file header.*/    
 } IWFS_FSM_OPTS;
 
 
@@ -139,7 +145,6 @@ typedef struct IWFS_FSM {
     
 } IWFS_FSM;
 
-
 /**
  * @brief Open file.
  * @param f File handle
@@ -147,7 +152,6 @@ typedef struct IWFS_FSM {
  */
 IW_EXPORT iwrc iwfs_fsmfile_open(IWFS_FSM *f,
                                 const IWFS_FSM_OPTS *opts);
-
 /**
  * @brief Init `iwfsmfile` submodule.
  */

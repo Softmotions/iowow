@@ -22,14 +22,9 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#if defined(__GNUC__) || defined(__clang__)
-#define IW_INLINE static __inline__
-#else
-#define IW_INLINE static inline
-#endif
-
 #include <stddef.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>

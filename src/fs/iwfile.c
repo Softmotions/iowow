@@ -36,7 +36,7 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off,
     if (!impl) {
         return IW_ERROR_INVALID_STATE;
     }
-    if (!(impl->opts.open_mode & IWFS_OWRITE)) {
+    if (!(impl->opts.omode & IWFS_OWRITE)) {
         return IW_ERROR_READONLY;
     }
     return iwp_write(impl->fh, off, buf, siz, sp);
@@ -139,28 +139,28 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     if (!opts->lock_mode) {
         opts->lock_mode = IWFS_DEFAULT_LOCKMODE;
     }
-    if (!opts->open_mode) {
-        opts->open_mode = IWFS_DEFAULT_OMODE;
+    if (!opts->omode) {
+        opts->omode = IWFS_DEFAULT_OMODE;
     }
     if (!opts->filemode) {
         opts->filemode = IWFS_DEFAULT_FILEMODE;
     }
-    opts->open_mode |= IWFS_OREAD;
-    if (opts->open_mode & IWFS_OTRUNC) {
-        opts->open_mode |= IWFS_OWRITE;
-        opts->open_mode |= IWFS_OCREATE;
+    opts->omode |= IWFS_OREAD;
+    if (opts->omode & IWFS_OTRUNC) {
+        opts->omode |= IWFS_OWRITE;
+        opts->omode |= IWFS_OCREATE;
     }
-    if ((opts->open_mode & IWFS_OCREATE) || (opts->open_mode & IWFS_OTRUNC)) {
-        opts->open_mode |= IWFS_OWRITE;
+    if ((opts->omode & IWFS_OCREATE) || (opts->omode & IWFS_OTRUNC)) {
+        opts->omode |= IWFS_OWRITE;
     }
-    omode = opts->open_mode;
+    omode = opts->omode;
     
-    if (!(opts->open_mode & IWFS_OWRITE) && (opts->lock_mode & IWP_WLOCK)) {
+    if (!(opts->omode & IWFS_OWRITE) && (opts->lock_mode & IWP_WLOCK)) {
         opts->lock_mode &= ~IWP_WLOCK;
     }
 
     rc = iwp_fstat(opts->path, &fstat);
-    if (!rc && !(opts->open_mode & IWFS_OTRUNC)) {
+    if (!rc && !(opts->omode & IWFS_OTRUNC)) {
         impl->ostatus = IWFS_OPEN_EXISTING;
     } else {
         impl->ostatus = IWFS_OPEN_NEW;

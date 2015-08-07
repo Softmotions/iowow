@@ -41,7 +41,7 @@ void iwfs_exfile_test1(void) {
         .file = {
             .path = path,
             .lock_mode = IWP_WLOCK,
-            .open_mode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
+            .omode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
         },
         .use_locks = 1
     };
@@ -74,7 +74,7 @@ void iwfs_exfile_test1(void) {
 
     //Now reopen the file
 
-    opts.file.open_mode = IWFS_OREAD;
+    opts.file.omode = IWFS_OREAD;
     IWRC(iwfs_exfile_open(&ef, &opts), rc);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -106,7 +106,7 @@ void test_fibo_inc(void) {
         .file = {
             .path = path,
             .lock_mode = IWP_WLOCK,
-            .open_mode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
+            .omode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
         },
         .use_locks = 0,
         .rspolicy = iw_exfile_szpolicy_fibo
@@ -166,7 +166,7 @@ void test_mmap1(void) {
     IWFS_EXT_OPTS opts = {
         .file = {
             .path = path,
-            .open_mode = IWFS_OTRUNC
+            .omode = IWFS_OTRUNC
         },
         .use_locks = 0
     };

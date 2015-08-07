@@ -43,6 +43,12 @@
 #   endif
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#define IW_INLINE static __inline__
+#else
+#define IW_INLINE static inline
+#endif
+
 #define IW_ARR_STATIC static
 #define IW_ARR_CONST const
 
