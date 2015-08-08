@@ -57,82 +57,70 @@ static iwrc _rwl_state(struct IWFS_RWL* f, IWFS_RWL_STATE* state) {
     return rc;
 }
 
-
 static iwrc _rwl_ensure_size(struct IWFS_RWL* f, off_t size) {
-    assert(f);
     _RWL_ENSURE_OPEN(f);
     return f->impl->exfile.ensure_size(&f->impl->exfile, size);
 }
 
 static iwrc _rwl_truncate(struct IWFS_RWL* f, off_t size) {
-    assert(f);
     _RWL_ENSURE_OPEN(f);
     return f->impl->exfile.truncate(&f->impl->exfile, size);
 }
 
 static iwrc _rwl_add_mmap(struct IWFS_RWL* f, off_t off, size_t maxlen) {
-    assert(f);
     _RWL_ENSURE_OPEN(f);
     return f->impl->exfile.add_mmap(&f->impl->exfile, off, maxlen);
 }
 
 static iwrc _rwl_get_mmap(struct IWFS_RWL* f, off_t off, uint8_t **mm, size_t *sp) {
-    assert(f);
     _RWL_ENSURE_OPEN(f);
     return f->impl->exfile.get_mmap(&f->impl->exfile, off, mm, sp);
 }
 
 static iwrc _rwl_remove_mmap(struct IWFS_RWL* f, off_t off) {
-    assert(f);
     _RWL_ENSURE_OPEN(f);
     return f->impl->exfile.remove_mmap(&f->impl->exfile, off);
 }
 
 static iwrc _rwl_sync_mmap(struct IWFS_RWL* f, off_t off, int flags) {
-    assert(f);
     _RWL_ENSURE_OPEN(f);
     return f->impl->exfile.sync_mmap(&f->impl->exfile, off, flags);
 }
 
-static iwrc _rwl_lock(struct IWFS_RWL* f, off_t start, off_t len, iwrl_lockflags lflags) {
-    assert(f);
+static iwrc _rwl_lock(struct IWFS_RWL* f, off_t off, off_t len, iwrl_lockflags lflags) {
     _RWL_ENSURE_OPEN(f);
-    return iwrl_lock(f->impl->lk, start, len, lflags);
+    return iwrl_lock(f->impl->lk, off, len, lflags);
 }
 
-static iwrc _rwl_try_lock(struct IWFS_RWL* f, off_t start, off_t len, iwrl_lockflags lflags) {
-    assert(f);
+static iwrc _rwl_try_lock(struct IWFS_RWL* f, off_t off, off_t len, iwrl_lockflags lflags) {
     _RWL_ENSURE_OPEN(f);
-    return iwrl_trylock(f->impl->lk, start, len, lflags);
+    return iwrl_trylock(f->impl->lk, off, len, lflags);
 }
 
-static iwrc _rwl_unlock(struct IWFS_RWL* f, off_t start, off_t len) {
-    assert(f);
+static iwrc _rwl_unlock(struct IWFS_RWL* f, off_t off, off_t len) {
     _RWL_ENSURE_OPEN(f);
-    return iwrl_unlock(f->impl->lk, start, len);
+    return iwrl_unlock(f->impl->lk, off, len);
 }
 
-static iwrc _rwl_lwrite(struct IWFS_RWL* f, off_t start, const void *buf, size_t siz, size_t *sp) {
-    assert(f);
+static iwrc _rwl_lwrite(struct IWFS_RWL* f, off_t off, const void *buf, size_t siz, size_t *sp) {
     _RWL_ENSURE_OPEN(f);
-    iwrc rc = iwrl_lock(f->impl->lk, start, siz, IWRL_WRITE);
+    iwrc rc = iwrl_lock(f->impl->lk, off, siz, IWRL_WRITE);
     if (rc) {
         return rc;
     }
-    IWRC(f->impl->exfile.write(&f->impl->exfile, start, buf, siz, sp), rc);
-    IWRC(iwrl_unlock(f->impl->lk, start, siz), rc);
+    IWRC(f->impl->exfile.write(&f->impl->exfile, off, buf, siz, sp), rc);
+    IWRC(iwrl_unlock(f->impl->lk, off, siz), rc);
     return rc;
 }
 
-static iwrc _rwl_lread(struct IWFS_RWL* f, off_t start, void *buf, size_t siz, size_t *sp) {
-    assert(f);
+static iwrc _rwl_lread(struct IWFS_RWL* f, off_t off, void *buf, size_t siz, size_t *sp) {
     _RWL_ENSURE_OPEN(f);
-    iwrc rc = iwrl_lock(f->impl->lk, start, siz, IWRL_READ);
+    iwrc rc = iwrl_lock(f->impl->lk, off, siz, IWRL_READ);
     if (rc) {
         return rc;
     }
-    IWRC(f->impl->exfile.read(&f->impl->exfile, start, buf, siz, sp), rc);
-    IWRC(iwrl_unlock(f->impl->lk, start, siz), rc);
+    IWRC(f->impl->exfile.read(&f->impl->exfile, off, buf, siz, sp), rc);
+    IWRC(iwrl_unlock(f->impl->lk, off, siz), rc);
     return rc;
 }
 
