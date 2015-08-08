@@ -120,6 +120,15 @@ typedef struct IWFS_FSM_STATE {
 } IWFS_FSM_STATE;
 
 
+typedef struct IWFS_FSMDBG_STATE {
+    IWFS_FSM_STATE state;
+    uint64_t       bmoff;
+    uint64_t       bmlen;
+    uint64_t       lfbklen;
+    uint64_t       lfbkoff;
+} IWFS_FSMDBG_STATE;
+
+
 typedef struct IWFS_FSM {
     struct IWFS_FSM_IMPL *impl;
 
@@ -164,6 +173,5 @@ IW_EXPORT iwrc iwfs_fsmfile_open(IWFS_FSM *f,
  * @brief Init `iwfsmfile` submodule.
  */
 IW_EXPORT iwrc iwfs_fsmfile_init(void);
-
 
 #endif

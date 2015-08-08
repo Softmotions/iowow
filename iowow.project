@@ -75,6 +75,7 @@
       <VirtualDirectory Name="tests">
         <File Name="src/fs/tests/CMakeLists.txt"/>
         <File Name="src/fs/tests/iwfs_test1.c"/>
+        <File Name="src/fs/tests/iwfs_test2.c"/>
       </VirtualDirectory>
       <File Name="src/fs/iwexfile.h"/>
       <File Name="src/fs/iwexfile.c"/>
@@ -109,7 +110,7 @@
         <LibraryPath Value="Debug"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="" IntermediateDirectory="./Debug" Command="$(ProjectPath)/build/src/utils/tests/iwrlock_test1" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(ProjectPath)/build/src/utils/tests" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="" IntermediateDirectory="./Debug" Command="$(ProjectPath)/build/src/fs/tests/iwfs_test2" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(ProjectPath)/build/src/fs/tests" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>

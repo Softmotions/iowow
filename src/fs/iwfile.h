@@ -59,7 +59,6 @@ typedef enum {
 #define IWFS_DEFAULT_LOCKMODE (IWP_NOLOCK)
 #define IWFS_DEFAULT_FILEMODE 00644 /**< Default permission of created files */
 
-
 /**
  * @struct IWFS_FILE_OPTS
  * @brief File options.
@@ -67,7 +66,7 @@ typedef enum {
  */
 typedef struct {
     const char      *path;      /**< Required file path. */
-    iwfs_omode      omode;  /**< File open mode. */
+    iwfs_omode      omode;      /**< File open mode. */
     iwp_lockmode    lock_mode;  /**< File locking mode. */
     /**< Specifies the permissions to use in case a new file is created,
          @sa int ::open(const char *pathname, int flags, mode_t mode) */
@@ -79,10 +78,10 @@ typedef struct {
  * @brief File state
  */
 typedef struct {
-    int is_open;                /**< `1` if file in open state */
+    int             is_open;    /**< `1` if file in open state */
     iwfs_openstatus ostatus;    /**< File open status. */
-    IWFS_FILE_OPTS opts;        /**< File open options. */
-    HANDLE fh;                  /**< File handle */
+    IWFS_FILE_OPTS  opts;       /**< File open options. */
+    HANDLE          fh;         /**< File handle */
 } IWFS_FILE_STATE;
 
 /**
@@ -179,6 +178,5 @@ IW_EXPORT iwrc iwfs_file_open(IWFS_FILE *f,
  * @brief Init `iwfile` submodule.
  */
 IW_EXPORT iwrc iwfs_file_init(void);
-
 
 #endif

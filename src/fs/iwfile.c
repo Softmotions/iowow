@@ -24,9 +24,9 @@
 #include <limits.h>
 
 typedef struct IWFS_FILE_IMPL {
-    HANDLE fh;                  /**< File handle. */
-    iwfs_openstatus ostatus;    /**< File open status. */
-    IWFS_FILE_OPTS opts;        /**< File open options. */
+    HANDLE              fh;         /**< File handle. */
+    iwfs_openstatus     ostatus;    /**< File open status. */
+    IWFS_FILE_OPTS      opts;       /**< File open options. */
 } _IWF;
 
 static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off,

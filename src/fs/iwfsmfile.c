@@ -1,4 +1,3 @@
-
 #include "iwfsmfile.h"
 #include "log/iwlog.h"
 #include "platform/iwp.h"
@@ -1232,7 +1231,6 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
     return 0;
 }
 
-
 /**
  * @brief Check if all blocks within the specified range have been `allocated`.
  *
@@ -1676,3 +1674,62 @@ iwrc iwfs_fsmfile_init(void) {
     }
     return iwlog_register_ecodefn(_fsmfile_ecodefn);
 }
+
+
+/*************************************************************************************************
+ *                                      Debug API                                                *
+ *************************************************************************************************/
+
+uint64_t iwfs_fsmdbg_number_of_free_areas(IWFS_FSM *f) {
+    uint64_t ret = 0;
+    assert(f);
+    _FSM *impl = f->impl;
+    _fsm_ctrl_rlock(impl);
+    ret = kb_size(impl->fsm);
+    _fsm_ctrl_unlock(impl);
+    return ret;
+}
+
+uint64_t iwfs_fsmdbg_find_next_set_bit(const uint64_t *addr, uint64_t offset_bit, uint64_t max_offset_bit, int *found) {
+    return _fsm_find_next_set_bit(addr, offset_bit, max_offset_bit, found);
+}
+
+uint64_t iwfs_fsmdbg_find_prev_set_bit(const uint64_t *addr, uint64_t offset_bit, uint64_t min_offset_bit, int *found) {
+    return _fsm_find_prev_set_bit(addr, offset_bit, min_offset_bit, found);
+}
+
+void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr) {
+    assert(f);
+    _FSM *impl = f->impl;
+    fprintf(stderr, "FSM TREE: %s\n", hdr);
+    if (!impl->fsm) {
+        fprintf(stderr, "NONE\n");
+        return;
+    }
+#define _fsm_traverse(k) {                      \
+        uint64_t koff = _FSMBK_OFFSET(k);       \
+        uint64_t klen = _FSMBK_LENGTH(k);       \
+        fprintf(stderr, "[0x%" PRIx64 " 0x%" PRIx64 "]\n", koff, klen);    \
+    }
+    __kb_traverse(_FSMBK, impl->fsm, _fsm_traverse);
+#undef _fsm_traverse
+}
+
+iwrc iwfs_fsmdb_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d) {
+    _FSM_ENSURE_OPEN2(f);
+    _FSM *impl = f->impl;
+    iwrc rc = _fsm_ctrl_rlock(impl);
+    memset(d, 0, sizeof(*d));
+    IWRC(impl->pool.state(&impl->pool, &d->state.rwlfile), rc);
+    d->state.block_size = 1 << impl->bpow;
+    d->state.oflags = impl->oflags;
+    d->state.hdrlen = impl->hdrlen;
+    d->state.blocks_num = impl->bmlen << 3;
+    d->state.free_segments_num = kb_size(impl->fsm);
+    d->state.avg_alloc_size = (double_t) impl->crzsum / (double_t) impl->crznum;
+    d->state.alloc_dispersion = (double_t) impl->crzvar / (double_t) impl->crznum;
+    IWRC(_fsm_ctrl_unlock(impl), rc);
+    return rc;
+}
+
+

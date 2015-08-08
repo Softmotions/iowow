@@ -195,7 +195,6 @@ finish:
     return rc;
 }
 
-
 iwrc iwfs_rwlfile_init(void) {
     return 0;
 }

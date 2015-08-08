@@ -23,28 +23,28 @@
 
 struct _MMAPSLOT;
 typedef struct IWFS_EXT_IMPL {
-    IWFS_FILE   file;               /**< Underlying file */
-    off_t       fsize;              /**< Current file size */
-    off_t       psize;              /**< System page size */
-    pthread_rwlock_t *rwlock;       /**< Thread RW lock */
-    IW_EXT_RSPOLICY  rspolicy;   /**< File resize policy function ptr. */
-    void *rspolicy_ctx;             /**< Custom opaque data for policy functions. */
-    struct _MMAPSLOT *mmslots;      /**< Memory mapping slots. */
-    int         use_locks;          /**< Use rwlocks to guard method access */
-    iwfs_omode  omode;              /**< File open mode. */
-    HANDLE      fh;                 /**< File handle */
+    IWFS_FILE           file;           /**< Underlying file */
+    off_t               fsize;          /**< Current file size */
+    off_t               psize;          /**< System page size */
+    pthread_rwlock_t    *rwlock;        /**< Thread RW lock */
+    IW_EXT_RSPOLICY     rspolicy;       /**< File resize policy function ptr. */
+    void                *rspolicy_ctx;  /**< Custom opaque data for policy functions. */
+    struct _MMAPSLOT    *mmslots;       /**< Memory mapping slots. */
+    int                 use_locks;      /**< Use rwlocks to guard method access */
+    iwfs_omode          omode;          /**< File open mode. */
+    HANDLE              fh;             /**< File handle */
 } _EXF;
 
 typedef struct _MMAPSLOT {
-    off_t off;                      /**< Offset to a memory mapped region */
-    size_t len;                     /**< Actual size of memory mapped region. */
-    size_t maxlen;                  /**< Maximum length of memory mapped region */
+    off_t   off;                /**< Offset to a memory mapped region */
+    size_t  len;                /**< Actual size of memory mapped region. */
+    size_t  maxlen;             /**< Maximum length of memory mapped region */
 #ifdef _WIN32
-    HANDLE mmapfh;                      /**< Win32 file mapping handle. */
+    HANDLE mmapfh;              /**< Win32 file mapping handle. */
 #endif
     struct _MMAPSLOT *prev;    /**< Previous mmap slot. */
     struct _MMAPSLOT *next;    /**< Next mmap slot. */
-    uint8_t *mmap;                    /**< Pointer to a mmaped address space in the case if file data is memory mapped. */
+    uint8_t          *mmap;    /**< Pointer to a mmaped address space in the case if file data is memory mapped. */
 } _MMAPSLOT;
 
 IW_INLINE iwrc _exfile_wlock(IWFS_EXT *f) {
@@ -341,7 +341,6 @@ finish:
     return rc;
 }
 
-
 static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE* state) {
     int rc = _exfile_rlock(f);
     if (rc) {
@@ -380,7 +379,6 @@ static iwrc _exfile_ensure_size(struct IWFS_EXT* f, off_t sz) {
     IWRC(_exfile_unlock2(f->impl), rc);
     return rc;
 }
-
 
 static iwrc _exfile_truncate(struct IWFS_EXT* f, off_t sz) {
     iwrc rc = _exfile_wlock(f);
@@ -471,6 +469,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT* f, off_t off, size_t maxlen) {
             s->prev = ns;
         }
     }
+    
 finish:
     if (rc) {
         if (ns) {
@@ -604,7 +603,6 @@ static off_t _exfile_default_szpolicy(off_t nsize, off_t csize,
     return IW_ROUNDUP(nsize, iwp_page_size());
 }
 
-
 off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize,
                               struct IWFS_EXT *f,
                               void **_ctx) {
@@ -655,7 +653,6 @@ off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize,
     }
     return ret;
 }
-
 
 static iwrc _exfile_initlocks(IWFS_EXT *f) {
     assert(f && f->impl);
