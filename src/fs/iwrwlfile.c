@@ -49,11 +49,10 @@ static iwrc _rwl_sync(struct IWFS_RWL* f, iwfs_sync_flags flags) {
 static iwrc _rwl_state(struct IWFS_RWL* f, IWFS_RWL_STATE* state) {
     assert(f);
     _RWL_ENSURE_OPEN(f);
-    IWFS_RWL_STATE s;
     iwrc rc = 0;
-    IWRC(f->impl->exfile.state(&f->impl->exfile, &s.exfile), rc);
-    IWRC(iwrl_num_ranges(f->impl->lk, &s.num_ranges), rc);
-    IWRC(iwrl_write_ranges(f->impl->lk, &s.num_write_ranges), rc);
+    IWRC(f->impl->exfile.state(&f->impl->exfile, &state->exfile), rc);
+    IWRC(iwrl_num_ranges(f->impl->lk, &state->num_ranges), rc);
+    IWRC(iwrl_write_ranges(f->impl->lk, &state->num_write_ranges), rc);
     return rc;
 }
 

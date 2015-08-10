@@ -352,6 +352,45 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE* state) {
     return rc;
 }
 
+
+static iwrc _exfile_remove_mmap_wl(struct IWFS_EXT* f, off_t off) {
+    iwrc rc = 0;
+    _EXF *impl = f->impl;
+    _MMAPSLOT *s = impl->mmslots;
+    while (s) {
+        if (s->off == off) {
+            break;
+        }
+        s = s->next;
+    }
+    if (!s) {
+        rc = IWFS_ERROR_NOT_MMAPED;
+        goto finish;
+    }
+    if (impl->mmslots == s) {
+        if (s->next) {
+            s->next->prev = s->prev;
+        }
+        impl->mmslots = s->next;
+    } else if (impl->mmslots->prev == s) {
+        s->prev->next = 0;
+        impl->mmslots->prev = s->prev;
+    } else {
+        s->prev->next = s->next;
+        s->next->prev = s->prev;
+    }
+    if (s->len) {
+        if (munmap(s->mmap, s->len)) {
+            rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+            goto finish;
+        }
+    }
+    
+finish:
+    free(s);
+    return rc;
+}
+
 static iwrc _exfile_close(struct IWFS_EXT *f) {
     assert(f);
     iwrc rc = _exfile_wlock(f);
@@ -359,6 +398,12 @@ static iwrc _exfile_close(struct IWFS_EXT *f) {
         return rc;
     }
     _EXF *impl = f->impl;
+    _MMAPSLOT *s = impl->mmslots, *next;
+    while (s) {
+        next = s->next;
+        IWRC(_exfile_remove_mmap_wl(f, s->off), rc);
+        s = next;
+    }
     IWRC(impl->file.close(&impl->file), rc);
     f->impl = 0;
     if (impl->rspolicy) { //deactivate resize policy function
@@ -523,39 +568,7 @@ static iwrc _exfile_remove_mmap(struct IWFS_EXT* f, off_t off) {
     if (rc) {
         return rc;
     }
-    _EXF *impl = f->impl;
-    _MMAPSLOT *s = impl->mmslots;
-    while (s) {
-        if (s->off == off) {
-            break;
-        }
-        s = s->next;
-    }
-    if (!s) {
-        rc = IWFS_ERROR_NOT_MMAPED;
-        goto finish;
-    }
-    if (impl->mmslots == s) {
-        if (s->next) {
-            s->next->prev = s->prev;
-        }
-        impl->mmslots = s->next;
-    } else if (impl->mmslots->prev == s) {
-        s->prev->next = 0;
-        impl->mmslots->prev = s->prev;
-    } else {
-        s->prev->next = s->next;
-        s->next->prev = s->prev;
-    }
-    if (s->len) {
-        if (munmap(s->mmap, s->len)) {
-            rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
-            goto finish;
-        }
-    }
-    
-finish:
-    free(s);
+    rc = _exfile_remove_mmap_wl(f, off);
     IWRC(_exfile_unlock(f), rc);
     return rc;
 }
@@ -581,8 +594,8 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXT* f, off_t off, int _flags) {
                 if (!flags) flags = MS_ASYNC;
                 if (msync(s->mmap, s->len, flags)) {
                     rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-                    break;
                 }
+                break;
             }
         }
         s = s->next;

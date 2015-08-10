@@ -32,6 +32,11 @@
 #include <string.h>
 #include <stdint.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-Wall"
+#endif
+
 typedef struct {
 	uint32_t is_internal:1, n:31;
 } kbnode_t;
@@ -380,5 +385,9 @@ typedef struct {
 
 #define kb_generic_cmp(a, b) (((b) < (a)) - ((a) < (b)))
 #define kb_str_cmp(a, b) strcmp(a, b)
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif

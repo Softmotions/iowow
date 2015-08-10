@@ -36,11 +36,11 @@
  *
  * @verbatim
  *
- *      [FSM_CTL_MAGIC u32][block pow u8][num blocks u64]
- *      [bmoffset u64][bmlength u64]
- *      [u64 crzsum][u32 crznum][u64 crszvar][u256 reserved]
- *      [custom header size u32][custom header data...]
- *      [fsm data...]
+ *       [FSM_CTL_MAGICK u32][block pow u8]
+ *       [bmoffset u64][bmlength u64]
+ *       [u64 crzsum][u32 crznum][u64 crszvar][u256 reserved]
+ *       [custom header size u32][custom header data...]
+ *       [fsm data...]
  * 
  * @endverbatim
  *

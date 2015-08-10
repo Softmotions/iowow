@@ -25,18 +25,11 @@
 #include <unistd.h>
 #include <pthread.h>
 
-typedef struct _FSMREC {
-    uint64_t offset;
-    int64_t length;
-    int locked;
-    struct _FSMREC *prev;
-    struct _FSMREC *next;
-} FSMREC;
-
 static pthread_mutex_t records_mtx;
 
 int init_suite(void) {
     unlink("test_fsm_open_close.fsm");
+    unlink("test_fsm_uniform_alloc.fsm");
     pthread_mutex_init(&records_mtx, 0);
     int rc = iw_init();
     return rc;
@@ -51,7 +44,7 @@ uint64_t iwfs_fsmdbg_number_of_free_areas(IWFS_FSM *f);
 uint64_t iwfs_fsmdbg_find_next_set_bit(const uint64_t *addr, uint64_t offset_bit, uint64_t max_offset_bit, int *found);
 uint64_t iwfs_fsmdbg_find_prev_set_bit(const uint64_t *addr, uint64_t offset_bit, uint64_t min_offset_bit, int *found);
 void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
-iwrc iwfs_fsmdb_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d);
+iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d);
 
 void test_fsm_bitmap(void) {
 #define BMSZ1 16
@@ -186,16 +179,7 @@ void test_fsm_bitmap(void) {
 
 void test_fsm_open_close(void) {
 
-    const int nblocks = 1024;
-    const int dsize = (1 << 6) * nblocks + 1;
-    unsigned char *data = malloc(dsize);
-    unsigned char *rdata = malloc(dsize);
-    int i;
-
-    uint64_t oaddr, oaddr2;
-    int64_t olen, olen2;
-    int64_t sp;
-
+    iwrc rc;
     IWFS_FSM_OPTS opts = {
         .rwlfile = {
             .exfile = {
@@ -212,6 +196,91 @@ void test_fsm_open_close(void) {
         .oflags = IWFSM_STRICT
     };
 
+    size_t psize = iwp_page_size();
+    IWFS_FSMDBG_STATE state1, state2;
+    IWFS_FSM fsm;
+    rc = iwfs_fsmfile_open(&fsm, &opts);
+    CU_ASSERT_FALSE_FATAL(rc);
+    rc = iwfs_fsmdbg_state(&fsm, &state1);
+    CU_ASSERT_FALSE(rc);
+    CU_ASSERT_TRUE((psize * 8 -  state1.lfbklen) * 64 == 2 * psize); //allocated first 2 pages
+    rc = fsm.close(&fsm);
+    CU_ASSERT_FALSE_FATAL(rc);
+
+    rc = iwfs_fsmfile_open(&fsm, &opts);
+    CU_ASSERT_FALSE_FATAL(rc);
+    rc = iwfs_fsmdbg_state(&fsm, &state2);
+    CU_ASSERT_FALSE(rc);
+    CU_ASSERT_TRUE((psize * 8 -  state2.lfbklen) * 64 == 2 * psize);
+    CU_ASSERT_EQUAL(state1.bmlen, state2.bmlen);
+    CU_ASSERT_EQUAL(state1.bmoff, state2.bmoff);
+    CU_ASSERT_EQUAL(state1.lfbklen, state2.lfbklen);
+    CU_ASSERT_EQUAL(state1.lfbkoff, state2.lfbkoff);
+    CU_ASSERT_EQUAL(state1.state.block_size, state2.state.block_size);
+    CU_ASSERT_EQUAL(state1.state.blocks_num, state2.state.blocks_num);
+    CU_ASSERT_EQUAL(state1.state.hdrlen, state2.state.hdrlen);
+    CU_ASSERT_EQUAL(state1.state.oflags, state2.state.oflags);
+    CU_ASSERT_EQUAL(state1.state.rwlfile.exfile.fsize, state2.state.rwlfile.exfile.fsize);
+    CU_ASSERT_EQUAL(state1.state.rwlfile.exfile.fsize, 2 * psize);
+    rc = fsm.close(&fsm);
+    CU_ASSERT_FALSE_FATAL(rc);
+}
+
+//typedef struct _FSMREC {
+//    uint64_t offset;
+//    int64_t length;
+//    int locked;
+//    struct _FSMREC *prev;
+//    struct _FSMREC *next;
+//} FSMREC;
+
+typedef struct {
+    off_t addr;
+    off_t len;
+} ASLOT;
+
+void test_fsm_uniform_alloc(void) {
+    iwrc rc;
+    IWFS_FSMDBG_STATE state1;
+    IWFS_FSM_OPTS opts = {
+        .rwlfile = {
+            .exfile = {
+                .file = {
+                    .path = "test_fsm_uniform_alloc.fsm",
+                    .lock_mode = IWP_WLOCK,
+                    .omode = IWFS_OTRUNC
+                },
+                .rspolicy = iw_exfile_szpolicy_fibo
+            }
+        },
+        .bpow = 6,
+        .hdrlen = 64,
+        .oflags = IWFSM_STRICT
+    };
+
+    const int bsize = 512;
+#define bcnt 4096
+    ASLOT aslots[bcnt];
+
+    IWFS_FSM fsm;
+    rc = iwfs_fsmfile_open(&fsm, &opts);
+    CU_ASSERT_FALSE_FATAL(rc);
+
+    rc = iwfs_fsmdbg_state(&fsm, &state1);
+    CU_ASSERT_FALSE_FATAL(rc);
+    CU_ASSERT_EQUAL_FATAL(state1.state.rwlfile.exfile.file.ostatus, IWFS_OPEN_NEW);
+
+    for (int i = 0; i < bcnt; ++i) {
+        aslots[i].addr = 0;
+        rc = fsm.allocate(&fsm, bsize, &aslots[i].addr, &aslots[i].len, 0);
+        CU_ASSERT_FALSE_FATAL(rc);
+    }
+
+    rc = iwfs_fsmdbg_state(&fsm, &state1);
+    CU_ASSERT_FALSE_FATAL(rc);
+     
+    rc = fsm.close(&fsm);
+    CU_ASSERT_FALSE_FATAL(rc);
 }
 
 int main() {
@@ -233,7 +302,8 @@ int main() {
     /* Add the tests to the suite */
     if (
         (NULL == CU_add_test(pSuite, "test_fsm_bitmap", test_fsm_bitmap)) ||
-        (NULL == CU_add_test(pSuite, "test_fsm_open_close", test_fsm_open_close))
+        (NULL == CU_add_test(pSuite, "test_fsm_open_close", test_fsm_open_close)) ||
+        (NULL == CU_add_test(pSuite, "test_fsm_uniform_alloc", test_fsm_uniform_alloc))
     ) {
         CU_cleanup_registry();
         return CU_get_error();
