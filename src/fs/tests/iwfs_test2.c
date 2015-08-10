@@ -241,7 +241,7 @@ typedef struct {
 
 void test_fsm_uniform_alloc(void) {
     iwrc rc;
-    IWFS_FSMDBG_STATE state1;
+    IWFS_FSMDBG_STATE state1, state2;
     IWFS_FSM_OPTS opts = {
         .rwlfile = {
             .exfile = {
@@ -275,13 +275,82 @@ void test_fsm_uniform_alloc(void) {
         rc = fsm.allocate(&fsm, bsize, &aslots[i].addr, &aslots[i].len, 0);
         CU_ASSERT_FALSE_FATAL(rc);
     }
+    rc = iwfs_fsmdbg_state(&fsm, &state1);
+    CU_ASSERT_FALSE_FATAL(rc);
+
+    if (iwp_page_size() == 4096) {
+        CU_ASSERT_EQUAL(state1.bmlen, 8192);
+        CU_ASSERT_EQUAL(state1.bmoff, 2097152);
+        CU_ASSERT_EQUAL(state1.lfbklen, 32632);
+        CU_ASSERT_EQUAL(state1.lfbkoff, 32904);
+        CU_ASSERT_EQUAL(state1.state.blocks_num, 65536);
+        CU_ASSERT_EQUAL(state1.state.free_segments_num, 2);
+        CU_ASSERT_EQUAL(state1.state.avg_alloc_size, 8);
+        CU_ASSERT_EQUAL(state1.state.alloc_dispersion, 0);
+    }
+
+    rc = fsm.close(&fsm);
+    CU_ASSERT_FALSE_FATAL(rc);
+
+    opts.rwlfile.exfile.file.omode = IWFS_OREAD;
+    rc = iwfs_fsmfile_open(&fsm, &opts);
+    CU_ASSERT_FALSE_FATAL(rc);
+
+    rc = iwfs_fsmdbg_state(&fsm, &state2);
+    CU_ASSERT_FALSE_FATAL(rc);
+    CU_ASSERT_EQUAL_FATAL(state2.state.rwlfile.exfile.file.ostatus, IWFS_OPEN_EXISTING);
+    CU_ASSERT_FALSE(state2.state.rwlfile.exfile.file.opts.omode & IWFS_OWRITE);
+
+    CU_ASSERT_EQUAL(state1.bmlen, state2.bmlen);
+    CU_ASSERT_EQUAL(state1.bmoff, state2.bmoff);
+    CU_ASSERT_EQUAL(state1.lfbklen, state2.lfbklen);
+    CU_ASSERT_EQUAL(state1.lfbkoff, state2.lfbkoff);
+    CU_ASSERT_EQUAL(state1.state.blocks_num, state2.state.blocks_num);
+    CU_ASSERT_EQUAL(state1.state.free_segments_num, state2.state.free_segments_num);
+    CU_ASSERT_EQUAL(state1.state.avg_alloc_size, state2.state.avg_alloc_size);
+    CU_ASSERT_EQUAL(state1.state.alloc_dispersion, state2.state.alloc_dispersion);
+
+    uint32_t ibuf;
+    off_t ilen;
+    rc = fsm.allocate(&fsm, sizeof(ibuf), (void*)&ibuf, &ilen, 0);
+    CU_ASSERT_EQUAL(rc, IW_ERROR_READONLY);
+
+    rc = fsm.close(&fsm);
+    CU_ASSERT_FALSE_FATAL(rc);
+
+    opts.rwlfile.exfile.file.omode = IWFS_OWRITE;
+    rc = iwfs_fsmfile_open(&fsm, &opts);
+    CU_ASSERT_FALSE_FATAL(rc);
 
     rc = iwfs_fsmdbg_state(&fsm, &state1);
     CU_ASSERT_FALSE_FATAL(rc);
-     
+
+    if (iwp_page_size() == 4096) {
+        CU_ASSERT_EQUAL(state1.bmlen, 8192);
+        CU_ASSERT_EQUAL(state1.bmoff, 2097152);
+        CU_ASSERT_EQUAL(state1.lfbklen, 32632);
+        CU_ASSERT_EQUAL(state1.lfbkoff, 32904);
+        CU_ASSERT_EQUAL(state1.state.blocks_num, 65536);
+        CU_ASSERT_EQUAL(state1.state.free_segments_num, 2);
+        CU_ASSERT_EQUAL(state1.state.avg_alloc_size, 8);
+        CU_ASSERT_EQUAL(state1.state.alloc_dispersion, 0);
+    }
+
+    int i = 0;
+    for (; i < bcnt; ++i) {
+        rc = fsm.deallocate(&fsm, aslots[i].addr, aslots[i].len);
+        CU_ASSERT_FALSE_FATAL(rc);
+    }
+
+//    4: FSM TREE: C1
+//    4: [32896 32640]
+//    4: [3 32765]
+
+    iwfs_fsmdbg_dump_fsm_tree(&fsm, "C1");
     rc = fsm.close(&fsm);
     CU_ASSERT_FALSE_FATAL(rc);
 }
+
 
 int main() {
     setlocale(LC_ALL, "en_US.UTF-8");

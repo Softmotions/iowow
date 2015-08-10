@@ -10,6 +10,8 @@
 
 typedef struct IWFS_FSM_IMPL _FSM;
 
+void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
+
 /**
  * Free-space blocks-tree key.
  */
@@ -161,7 +163,14 @@ IW_INLINE iwrc _fsm_del_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_blk
     if (rc) {
         return rc;
     }
+#ifndef NDEBUG
+    int s2, s1 = kb_size(impl->fsm);
+#endif
     kb_delp(fsm, impl->fsm, &fbk);
+#ifndef NDEBUG
+    s2 = kb_size(impl->fsm);
+    assert(s2 < s1);
+#endif
     if (_FSMBK_OFFSET(&fbk) == impl->lfbkoff) {
         impl->lfbkoff = 0;
         impl->lfbklen = 0;
@@ -175,7 +184,14 @@ IW_INLINE iwrc _fsm_del_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_blk
  * @param fbk `_FSMBK` Fsm tree key structure.
  */
 IW_INLINE void _fsm_del_fbk2(_FSM *impl, const _FSMBK fbk) {
+#ifndef NDEBUG
+    int s2, s1 = kb_size(impl->fsm);
+#endif
     kb_delp(fsm, impl->fsm, &fbk);
+#ifndef NDEBUG
+    s2 = kb_size(impl->fsm);
+    assert(s2 < s1);
+#endif
     if (_FSMBK_OFFSET(&fbk) == impl->lfbkoff) {
         impl->lfbkoff = 0;
         impl->lfbklen = 0;
@@ -493,7 +509,7 @@ static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
     assert(sp + sizeof(impl->bpow) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
     memcpy(hdr + sp, &impl->bpow, sizeof(impl->bpow));
     sp += sizeof(impl->bpow);
-    
+
     /* fsm bitmap block offset */
     llvalue = impl->bmoff;
     llvalue = IW_HTOILL(llvalue);
@@ -696,7 +712,6 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
             left += 1;
             rm_offset = left;
             rm_length = offset_blk - left;
-            assert(_fsm_get_fbk(impl, rm_offset, rm_length));
             IWRC(_fsm_del_fbk(impl, rm_offset, rm_length), rc);
             key_offset = rm_offset;
             key_length += rm_length;
@@ -704,7 +719,6 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
     } else if (offset_blk > 0) { /* zero start */
         rm_offset = 0;
         rm_length = offset_blk;
-        assert(_fsm_get_fbk(impl, rm_offset, rm_length));
         IWRC(_fsm_del_fbk(impl, rm_offset, rm_length), rc);
         key_offset = rm_offset;
         key_length += rm_length;
@@ -712,7 +726,6 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
     if (hasright && right > offset_blk + length_blk) {
         rm_offset = offset_blk + length_blk;
         rm_length = right - (offset_blk + length_blk);
-        assert(_fsm_get_fbk(impl, rm_offset, rm_length));
         _fsm_del_fbk(impl, rm_offset, rm_length);
         key_length += rm_length;
     }
@@ -770,6 +783,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     if (sp < bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
         iwlog_ecode_error2(rc, "Fail to mmap fsm bitmap area");
+        return rc;
     }
 
     if (impl->bmlen) {
@@ -923,14 +937,21 @@ static iwrc _fsm_blk_allocate_lw(_FSM *impl,
 start:
     nk = _fsm_find_matching_fblock_lw(impl, *offset_blk, length_blk, opts);
     if (nk) { /* using existing free space block */
-//        uint64_t l =  _FSMBK_LENGTH(nk);
-//        uint64_t o = _FSMBK_OFFSET(nk);
-//        if (l && o);
+        uint64_t l =  _FSMBK_LENGTH(nk);
+        uint64_t o = _FSMBK_OFFSET(nk);
+        if (l && o);
         uint64_t nlength = _FSMBK_LENGTH(nk);
         *offset_blk = _FSMBK_OFFSET(nk);
         assert(kb_get(fsm, impl->fsm, *nk));
-        _fsm_del_fbk2(impl, *nk);
 
+#ifndef NDEBUG
+        int s2, s1 = kb_size(impl->fsm);
+#endif
+        _fsm_del_fbk2(impl, *nk);
+#ifndef NDEBUG
+        s2 = kb_size(impl->fsm);
+        assert(s1 && (s1 > s2));
+#endif
         if (nlength > length_blk) { /* re-save rest of free-space */
             if (!(opts & IWFSM_ALLOC_NO_OVERALLOCATE) && impl->crznum) {
                 /* todo use lognormal distribution? */
@@ -982,12 +1003,13 @@ start:
  * @brief Remove all free blocks from the and of file and trim its size.
  */
 static iwrc _fsm_trim_tail_lw(_FSM *impl) {
+    
     iwrc rc;
-    uint64_t offset, lastblk;
+    uint64_t offset = 0, lastblk;
     int64_t length;
     int hasleft;
 
-    if (!(impl->omode & IWFS_OWRITE)) {
+    if (!(impl->omode & IWFS_OWRITE) || !impl->lfbkoff) {
         return 0;
     }
     /* find free space for fsm with lesser offset than actual */
@@ -1014,7 +1036,6 @@ static iwrc _fsm_trim_tail_lw(_FSM *impl) {
         assert(0);
         rc = _fsm_blk_deallocate_lw(impl, offset, length);
     }
-    assert(impl->lfbkoff > 0);
     lastblk = impl->lfbkoff;
     offset = _fsm_find_prev_set_bit(impl->bmptr, impl->lfbkoff, 0, &hasleft);
     if (hasleft) {
@@ -1083,7 +1104,7 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
     uint32_t lnum;
     uint64_t llnum;
     size_t sp, rp = 0;
-    
+
     /*
         [FSM_CTL_MAGICK u32][block pow u8]
         [bmoffset u64][bmlength u64]
@@ -1091,7 +1112,7 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
         [custom header size u32][custom header data...]
         [fsm data...]
     */
-    
+
     rc = impl->pool.read(&impl->pool, 0, hdr, _FSM_CUSTOM_HDR_DATA_OFFSET, &sp);
     if (rc) {
         iwlog_ecode_error3(rc);
@@ -1712,7 +1733,7 @@ void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr) {
 #define _fsm_traverse(k) {                      \
         uint64_t koff = _FSMBK_OFFSET(k);       \
         uint64_t klen = _FSMBK_LENGTH(k);       \
-        fprintf(stderr, "[0x%" PRIx64 " 0x%" PRIx64 "]\n", koff, klen);    \
+        fprintf(stderr, "[%" PRIu64 " %" PRIu64 "]\n", koff, klen);    \
     }
     __kb_traverse(_FSMBK, impl->fsm, _fsm_traverse);
 #undef _fsm_traverse
@@ -1738,5 +1759,3 @@ iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d) {
     IWRC(_fsm_ctrl_unlock(impl), rc);
     return rc;
 }
-
-

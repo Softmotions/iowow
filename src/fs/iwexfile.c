@@ -501,6 +501,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT* f, off_t off, size_t maxlen) {
         if (s) { // insert before
             ns->next = s;
             ns->prev = s->prev;
+            s->prev->next = ns;
             s->prev = ns;
             if (s == impl->mmslots) {
                 impl->mmslots = ns;

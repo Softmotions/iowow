@@ -38,7 +38,7 @@
 #endif
 
 typedef struct {
-	uint32_t is_internal:1, n:31;
+	int32_t is_internal:1, n:31;
 } kbnode_t;
 
 #define	__KB_KEY(type, x)	((type*)((char*)x + 4))
