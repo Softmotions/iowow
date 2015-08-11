@@ -76,23 +76,22 @@ typedef enum {
 #define IWFS_DEFAULT_FILEMODE 00644 /**< Default permission of created files */
 
 /**
- * @struct IWFS_FILE_OPTS
  * @brief File options.
- * @see
+ * @see iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts)
  */
 typedef struct {
     const char      *path;      /**< Required file path. */
     iwfs_omode      omode;      /**< File open mode. */
     iwp_lockmode    lock_mode;  /**< File locking mode. */
     /**< Specifies the permissions to use in case a new file is created,
-         @sa int ::open(const char *pathname, int flags, mode_t mode) */
+         `int open(const char *pathname, int flags, mode_t mode)` */
     int             filemode;
 } IWFS_FILE_OPTS;
 
 /**
  * @struct IWFS_FILE_STATE
  * @brief File status.
- * @sa iwrc IWFS_FILE::state(struct IWFS_FILE *f, IWFS_FILE_STATE* state)
+ * @see IWFS_FILE::state
  */
 typedef struct {
     int             is_open;    /**< `1` if file in open state */
@@ -102,9 +101,9 @@ typedef struct {
 } IWFS_FILE_STATE;
 
 /**
- * @enum iwfs_file_sync_flags
+ * @enum iwfs_sync_flags
  * @brief Sync file data options.
- * @sa iwrc IWFS_FILE::sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
+ * @see IWFS_FILE::sync
  */
 typedef enum {
     IWFS_FDATASYNC  = 0x01,  /**< Use `fdatasync` mode */
@@ -132,7 +131,7 @@ typedef struct IWFS_FILE {
      */
     iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
 
-    /**
+    /**    
      * @fn iwrc IWFS_FILE::read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp)
      * @brief Read @a siz bytes into @a buf at the specified offset @a off
      *
@@ -147,11 +146,12 @@ typedef struct IWFS_FILE {
     /**
      * @fn iwrc IWFS_FILE::close(struct IWFS_FILE *f)
      * @brief Closes this file.
+     * 
      * @return `0` on success or error code.
      */
     iwrc(*close)(struct IWFS_FILE *f);
 
-    /**
+    /**    
      * @fn iwrc IWFS_FILE::sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
      * @brief Sync file data with fs.
      *
@@ -162,7 +162,7 @@ typedef struct IWFS_FILE {
 
     /**
      * @fn iwrc IWFS_FILE::state(struct IWFS_FILE *f, IWFS_FILE_STATE* state)
-     * @brief Return current file state
+     * @brief Return current file state.
      *
      * @param f `struct IWFS_FILE` pointer.
      * @param [out] state File state placeholder.
@@ -176,9 +176,25 @@ typedef struct IWFS_FILE {
 
 /**
  * @brief Open file and initialize a given @a f structure.
+ * 
+ * <strong>File open options:</strong>
+ * @code {.c}
+ *   opts = {
+ *      .path = "file path",  //File path. This options value is requied.
+ *      .omode =  ...,        //File open mode. 
+ *                            //    Default: `IWFS_DEFAULT_OMODE`  
+ *      .lock_mode = ...,     //File locking mode acquired by process opened this file. 
+ *                            //    Default: `IWP_NOLOCK`
+ *      .filemode = ..        //Specifies the permissions to use in case a new file is created.
+                              //    Default: `00644`  
+ *   }
+ * @endcode
+ * 
  *
  * @param f `struct IWFS_FILE` pointer.
  * @param opts [in] File open options
+ * @return `0` on success or error code.
+ * @relatesalso IWFS_FILE
  */
 IW_EXPORT iwrc iwfs_file_open(IWFS_FILE *f,
                               const IWFS_FILE_OPTS *opts);

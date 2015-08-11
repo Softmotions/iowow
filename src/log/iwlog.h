@@ -34,9 +34,8 @@
  *
  * The following methods normally used for logging:
  * @verbatim
- *      iwlog_{debug,info,warn,error}
- *      iwlog_ecode_{debug,info,warn,error}
- * @endverbatim
+    iwlog_{debug,info,warn,error}
+    iwlog_ecode_{debug,info,warn,error} @endverbatim
  */
 
 #include "iowow.h"
@@ -124,6 +123,7 @@ typedef iwrc(*IWLOG_FN)(locale_t locale,
                         va_list argp);
 
 /**
+ * @fn IWLOG_ECODE_FN 
  * @brief Return the locale aware error code explanation message.
  *
  * @param locale Locale used. Can be `NULL`
@@ -193,8 +193,8 @@ IW_EXPORT IWLOG_FN iwlog_get_logfn(void);
  * @brief Set opaque options structure for the
  *        current logging function implementation.
  * @param opts
- * @sa `IWLOG_DEFAULT_OPTS`
- * @sa `IWLOG_FN`
+ * @see `IWLOG_DEFAULT_OPTS`
+ * @see `IWLOG_FN`
  */
 IW_EXPORT void iwlog_set_logfn_opts(void *opts);
 

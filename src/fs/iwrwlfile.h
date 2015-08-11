@@ -53,25 +53,25 @@ typedef struct IWFS_RWL {
     struct IWFS_RWL_IMPL *impl;
 
     /* See iwfile.h */
-    iwrc(*write)(struct IWFS_RWL* f, off_t off, const void *buf, size_t siz, size_t *sp);
-    iwrc(*read)(struct IWFS_RWL* f, off_t off, void *buf, size_t siz, size_t *sp);
-    iwrc(*close)(struct IWFS_RWL* f);
-    iwrc(*sync)(struct IWFS_RWL* f, iwfs_sync_flags flags);
-    iwrc(*state)(struct IWFS_RWL* f, IWFS_RWL_STATE* state);
+    iwrc(*write)(struct IWFS_RWL *f, off_t off, const void *buf, size_t siz, size_t *sp);
+    iwrc(*read)(struct IWFS_RWL *f, off_t off, void *buf, size_t siz, size_t *sp);
+    iwrc(*close)(struct IWFS_RWL *f);
+    iwrc(*sync)(struct IWFS_RWL *f, iwfs_sync_flags flags);
+    iwrc(*state)(struct IWFS_RWL *f, IWFS_RWL_STATE* state);
 
     /* See iwexfile.h */
-    iwrc(*ensure_size)(struct IWFS_RWL* f, off_t size);
-    iwrc(*truncate)(struct IWFS_RWL* f, off_t size);
-    iwrc(*add_mmap)(struct IWFS_RWL* f, off_t off, size_t maxlen);
-    iwrc(*get_mmap)(struct IWFS_RWL* f, off_t off, uint8_t **mm, size_t *sp);
-    iwrc(*remove_mmap)(struct IWFS_RWL* f, off_t off);
-    iwrc(*sync_mmap)(struct IWFS_RWL* f, off_t off, int flags);
+    iwrc(*ensure_size)(struct IWFS_RWL *f, off_t size);
+    iwrc(*truncate)(struct IWFS_RWL *f, off_t size);
+    iwrc(*add_mmap)(struct IWFS_RWL *f, off_t off, size_t maxlen);
+    iwrc(*get_mmap)(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp);
+    iwrc(*remove_mmap)(struct IWFS_RWL *f, off_t off);
+    iwrc(*sync_mmap)(struct IWFS_RWL *f, off_t off, int flags);
 
-    iwrc(*lock)(struct IWFS_RWL* f, off_t off, off_t len, iwrl_lockflags lflags);
-    iwrc(*try_lock)(struct IWFS_RWL* f, off_t off, off_t len, iwrl_lockflags lflags);
-    iwrc(*unlock)(struct IWFS_RWL* f, off_t off, off_t len);
-    iwrc(*lwrite)(struct IWFS_RWL* f, off_t off, const void *buf, size_t siz, size_t *sp);
-    iwrc(*lread)(struct IWFS_RWL* f, off_t off, void *buf, size_t siz, size_t *sp);
+    iwrc(*lock)(struct IWFS_RWL *f, off_t off, off_t len, iwrl_lockflags lflags);
+    iwrc(*try_lock)(struct IWFS_RWL *f, off_t off, off_t len, iwrl_lockflags lflags);
+    iwrc(*unlock)(struct IWFS_RWL *f, off_t off, off_t len);
+    iwrc(*lwrite)(struct IWFS_RWL *f, off_t off, const void *buf, size_t siz, size_t *sp);
+    iwrc(*lread)(struct IWFS_RWL *f, off_t off, void *buf, size_t siz, size_t *sp);
 
 } IWFS_RWL;
 
@@ -80,6 +80,7 @@ typedef struct IWFS_RWL {
  * @brief Open file.
  * @param f File handle
  * @param opts File open options
+ * @relatesalso IWFS_RWL
  */
 IW_EXPORT iwrc iwfs_rwlfile_open(IWFS_RWL *f,
                                 const IWFS_RWL_OPTS *opts);

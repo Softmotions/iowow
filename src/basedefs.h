@@ -80,7 +80,7 @@ typedef int HANDLE;
  * In this case `uint32_t iwrc_strip_errno(iwrc *rc)` used
  * to fetch embedded errno.
  *
- * @sa iwlog.h
+ * @see iwlog.h
  */
 typedef uint64_t iwrc;
 

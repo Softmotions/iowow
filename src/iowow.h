@@ -17,6 +17,8 @@
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
 
+/** @file */
+
 #ifndef _LARGEFILE_SOURCE
 #error "You must compile your application with -D_LARGEFILE_SOURCE"
 #endif

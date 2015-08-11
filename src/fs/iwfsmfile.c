@@ -1281,7 +1281,7 @@ static iwrc _fsm_is_fully_allocated_lr(_FSM *impl, uint64_t offset_blk, int64_t 
  *                                  Public API                                                   *
  *************************************************************************************************/
 
-static iwrc _fsm_write(struct IWFS_FSM* f, off_t off, const void *buf, size_t siz, size_t *sp) {
+static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
     _FSM_ENSURE_OPEN2(f);
     _FSM *impl = f->impl;
     if (impl->oflags & IWFSM_STRICT) {
@@ -1305,7 +1305,7 @@ static iwrc _fsm_write(struct IWFS_FSM* f, off_t off, const void *buf, size_t si
     }
 }
 
-static iwrc _fsm_read(struct IWFS_FSM* f, off_t off, void *buf, size_t siz, size_t *sp) {
+static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp) {
     _FSM_ENSURE_OPEN2(f);
     _FSM *impl = f->impl;
     if (impl->oflags & IWFSM_STRICT) {
@@ -1329,7 +1329,7 @@ static iwrc _fsm_read(struct IWFS_FSM* f, off_t off, void *buf, size_t siz, size
     }
 }
 
-static iwrc _fsm_close(struct IWFS_FSM* f) {
+static iwrc _fsm_close(struct IWFS_FSM *f) {
     _FSM_ENSURE_OPEN2(f);
     _FSM *impl = f->impl;
     iwrc rc = 0;
@@ -1350,7 +1350,7 @@ static iwrc _fsm_close(struct IWFS_FSM* f) {
     return rc;
 }
 
-static iwrc _fsm_sync(struct IWFS_FSM* f, iwfs_sync_flags flags) {
+static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
     _FSM_ENSURE_OPEN2(f);
     iwrc rc = _fsm_ctrl_rlock(f->impl);
     if (rc) return rc;
@@ -1359,7 +1359,7 @@ static iwrc _fsm_sync(struct IWFS_FSM* f, iwfs_sync_flags flags) {
     return rc;
 }
 
-static iwrc _fsm_ensure_size(struct IWFS_FSM* f, off_t size) {
+static iwrc _fsm_ensure_size(struct IWFS_FSM *f, off_t size) {
     _FSM_ENSURE_OPEN2(f);
     iwrc rc = _fsm_ctrl_rlock(f->impl);
     if (rc) return rc;
@@ -1368,46 +1368,46 @@ static iwrc _fsm_ensure_size(struct IWFS_FSM* f, off_t size) {
     return rc;
 }
 
-static iwrc _fsm_truncate(struct IWFS_FSM* f, off_t size) {
+static iwrc _fsm_truncate(struct IWFS_FSM *f, off_t size) {
     return IW_ERROR_NOT_IMPLEMENTED;
 }
 
-static iwrc _fsm_add_mmap(struct IWFS_FSM* f, off_t off, size_t maxlen) {
+static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen) {
     _FSM_ENSURE_OPEN2(f);
     return f->impl->pool.add_mmap(&f->impl->pool, off, maxlen);
 }
 
-static iwrc _fsm_get_mmap(struct IWFS_FSM* f, off_t off, uint8_t **mm, size_t *sp) {
+static iwrc _fsm_get_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
     _FSM_ENSURE_OPEN2(f);
     return f->impl->pool.get_mmap(&f->impl->pool, off, mm, sp);
 }
 
-static iwrc _fsm_remove_mmap(struct IWFS_FSM* f, off_t off) {
+static iwrc _fsm_remove_mmap(struct IWFS_FSM *f, off_t off) {
     _FSM_ENSURE_OPEN2(f);
     return f->impl->pool.remove_mmap(&f->impl->pool, off);
 }
 
-static iwrc _fsm_sync_mmap(struct IWFS_FSM* f, off_t off, int flags) {
+static iwrc _fsm_sync_mmap(struct IWFS_FSM *f, off_t off, int flags) {
     _FSM_ENSURE_OPEN2(f);
     return f->impl->pool.sync_mmap(&f->impl->pool, off, flags);
 }
 
-static iwrc _fsm_lock(struct IWFS_FSM* f, off_t start, off_t len, iwrl_lockflags lflags) {
+static iwrc _fsm_lock(struct IWFS_FSM *f, off_t start, off_t len, iwrl_lockflags lflags) {
     _FSM_ENSURE_OPEN2(f);
     return f->impl->pool.lock(&f->impl->pool, start, len, lflags);
 }
 
-static iwrc _fsm_try_lock(struct IWFS_FSM* f, off_t start, off_t len, iwrl_lockflags lflags) {
+static iwrc _fsm_try_lock(struct IWFS_FSM *f, off_t start, off_t len, iwrl_lockflags lflags) {
     _FSM_ENSURE_OPEN2(f);
     return f->impl->pool.try_lock(&f->impl->pool, start, len, lflags);
 }
 
-static iwrc _fsm_unlock(struct IWFS_FSM* f, off_t start, off_t len) {
+static iwrc _fsm_unlock(struct IWFS_FSM *f, off_t start, off_t len) {
     _FSM_ENSURE_OPEN2(f);
     return f->impl->pool.unlock(&f->impl->pool, start, len);
 }
 
-static iwrc _fsm_lwrite(struct IWFS_FSM* f, off_t off, const void *buf, size_t siz, size_t *sp) {
+static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
     _FSM_ENSURE_OPEN2(f);
     _FSM *impl = f->impl;
     if (impl->oflags & IWFSM_STRICT) {
@@ -1431,7 +1431,7 @@ static iwrc _fsm_lwrite(struct IWFS_FSM* f, off_t off, const void *buf, size_t s
     }
 }
 
-static iwrc _fsm_lread(struct IWFS_FSM* f, off_t off, void *buf, size_t siz, size_t *sp) {
+static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp) {
     _FSM_ENSURE_OPEN2(f);
     _FSM *impl = f->impl;
     if (impl->oflags & IWFSM_STRICT) {
@@ -1455,7 +1455,7 @@ static iwrc _fsm_lread(struct IWFS_FSM* f, off_t off, void *buf, size_t siz, siz
     }
 }
 
-static iwrc _fsm_allocate(struct IWFS_FSM* f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
+static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
     _FSM_ENSURE_OPEN2(f);
     iwrc rc;
     int64_t nlen;
@@ -1481,7 +1481,7 @@ static iwrc _fsm_allocate(struct IWFS_FSM* f, off_t len, off_t *oaddr, off_t *ol
     return rc;
 }
 
-static iwrc _fsm_deallocate(struct IWFS_FSM* f, off_t addr, off_t len) {
+static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
     _FSM_ENSURE_OPEN2(f);
     iwrc rc;
     _FSM *impl = f->impl;
@@ -1512,7 +1512,7 @@ static iwrc _fsm_deallocate(struct IWFS_FSM* f, off_t addr, off_t len) {
     return rc;
 }
 
-static iwrc _fsm_writehdr(struct IWFS_FSM* f, off_t off, const void *buf, off_t siz) {
+static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t siz) {
     _FSM_ENSURE_OPEN2(f);
     iwrc rc;
     uint8_t *mmap;
@@ -1535,7 +1535,7 @@ static iwrc _fsm_writehdr(struct IWFS_FSM* f, off_t off, const void *buf, off_t 
     return rc;
 }
 
-static iwrc _fsm_readhdr(struct IWFS_FSM* f, off_t off, void *buf, off_t siz) {
+static iwrc _fsm_readhdr(struct IWFS_FSM *f, off_t off, void *buf, off_t siz) {
     _FSM_ENSURE_OPEN2(f);
     iwrc rc;
     uint8_t *mmap;
@@ -1558,7 +1558,7 @@ static iwrc _fsm_readhdr(struct IWFS_FSM* f, off_t off, void *buf, off_t siz) {
     return rc;
 }
 
-static iwrc _fsm_clear(struct IWFS_FSM* f, iwfs_fsm_clrfalgs clrflags)  {
+static iwrc _fsm_clear(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags)  {
     _FSM_ENSURE_OPEN2(f);
     _FSM *impl = f->impl;
     uint64_t bmoff, bmlen;
@@ -1588,7 +1588,7 @@ finish:
     return rc;
 }
 
-static iwrc _fsm_state(struct IWFS_FSM* f, IWFS_FSM_STATE* state) {
+static iwrc _fsm_state(struct IWFS_FSM *f, IWFS_FSM_STATE* state) {
     _FSM_ENSURE_OPEN2(f);
     _FSM *impl = f->impl;
     iwrc rc = _fsm_ctrl_rlock(impl);

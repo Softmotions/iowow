@@ -31,6 +31,7 @@
     <File Name="LICENSE"/>
     <File Name="INSTALL"/>
     <File Name="README.md"/>
+    <File Name="Doxyfile.in"/>
   </VirtualDirectory>
   <VirtualDirectory Name="src">
     <File Name="src/iowow.h"/>

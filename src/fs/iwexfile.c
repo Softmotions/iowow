@@ -139,7 +139,7 @@ static iwrc _exfile_initmmap_lw(struct IWFS_EXT *f) {
     return rc;
 }
 
-static iwrc _exfile_truncate_lw(struct IWFS_EXT* f, off_t size) {
+static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
     assert(f && f->impl);
     iwrc rc = 0;
     _EXF *impl = f->impl;
@@ -184,7 +184,7 @@ truncfail:
     return rc;
 }
 
-static iwrc _exfile_ensure_size_lw(struct IWFS_EXT* f, off_t sz) {
+static iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
     _EXF *impl = f->impl;
     assert(impl && impl->rspolicy);
     if (impl->fsize >= sz) {
@@ -352,7 +352,7 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE* state) {
     return rc;
 }
 
-static iwrc _exfile_remove_mmap_wl(struct IWFS_EXT* f, off_t off) {
+static iwrc _exfile_remove_mmap_wl(struct IWFS_EXT *f, off_t off) {
     iwrc rc = 0;
     _EXF *impl = f->impl;
     _MMAPSLOT *s = impl->mmslots;
@@ -414,7 +414,7 @@ static iwrc _exfile_close(struct IWFS_EXT *f) {
     return rc;
 }
 
-static iwrc _exfile_ensure_size(struct IWFS_EXT* f, off_t sz) {
+static iwrc _exfile_ensure_size(struct IWFS_EXT *f, off_t sz) {
     iwrc rc = _exfile_rlock(f);
     if (rc) {
         return rc;
@@ -424,7 +424,7 @@ static iwrc _exfile_ensure_size(struct IWFS_EXT* f, off_t sz) {
     return rc;
 }
 
-static iwrc _exfile_truncate(struct IWFS_EXT* f, off_t sz) {
+static iwrc _exfile_truncate(struct IWFS_EXT *f, off_t sz) {
     iwrc rc = _exfile_wlock(f);
     if (rc) {
         return rc;
@@ -434,7 +434,7 @@ static iwrc _exfile_truncate(struct IWFS_EXT* f, off_t sz) {
     return rc;
 }
 
-static iwrc _exfile_add_mmap(struct IWFS_EXT* f, off_t off, size_t maxlen) {
+static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
     assert(f);
     assert(off >= 0);
 
@@ -528,7 +528,7 @@ finish:
     return rc;
 }
 
-iwrc _exfile_get_mmap(struct IWFS_EXT* f, off_t off, uint8_t **mm, size_t *sp) {
+iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
     assert(f);
     assert(off >= 0);
     assert(mm);
@@ -560,7 +560,7 @@ iwrc _exfile_get_mmap(struct IWFS_EXT* f, off_t off, uint8_t **mm, size_t *sp) {
     return rc;
 }
 
-static iwrc _exfile_remove_mmap(struct IWFS_EXT* f, off_t off) {
+static iwrc _exfile_remove_mmap(struct IWFS_EXT *f, off_t off) {
     assert(f);
     assert(off >= 0);
 
@@ -573,7 +573,7 @@ static iwrc _exfile_remove_mmap(struct IWFS_EXT* f, off_t off) {
     return rc;
 }
 
-static iwrc _exfile_sync_mmap(struct IWFS_EXT* f, off_t off, int _flags) {
+static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, int _flags) {
     assert(f);
     assert(off >= 0);
 

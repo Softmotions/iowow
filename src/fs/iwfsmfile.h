@@ -36,7 +36,7 @@
  *    These regions used in read/write operation and automatically maintained during file resize
  *    operations.
  *
- * @b File format:
+ * <strong>File format:</strong>
  *
  * @verbatim
  *       [FSM_CTL_MAGICK u32][block pow u8]
@@ -75,7 +75,7 @@ typedef enum {
 
 /**
  * @brief File cleanup flags.
- * @sa clear
+ * @see clear
  */
 typedef enum {
     IWFSM_CLEAR_TRIM = 0x01 /**< Perform file trimming after cleanup */
@@ -169,6 +169,7 @@ typedef struct IWFS_FSM {
  * @brief Open file.
  * @param f File handle
  * @param opts File open options
+ * @relatesalso IWFS_FSM
  */
 IW_EXPORT iwrc iwfs_fsmfile_open(IWFS_FSM *f,
                                  const IWFS_FSM_OPTS *opts);

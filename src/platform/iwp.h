@@ -37,6 +37,8 @@ typedef enum {
 /**
  * @enum iwp_lockmode
  * @brief File locking mode.
+ *
+ * File locking mode acquired by process opened this file.
  */
 typedef enum {
     IWP_NOLOCK = 0x00UL, /**< No lock on file. */
@@ -54,7 +56,7 @@ typedef enum {
 IW_EXPORT iwrc iwp_current_time_ms(int64_t *time);
 
 /**
- * @enum IWP_FILE_TYPE
+ * @enum iwp_file_type
  * @brief File type.
  */
 typedef enum {
