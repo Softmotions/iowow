@@ -17,7 +17,9 @@
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
 
-/** @file */
+/** @file 
+ *  @author Anton Adamansky (adamansky@gmail.com)
+ **/
 
 #include "basedefs.h"
 #include <stdint.h>

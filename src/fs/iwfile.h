@@ -20,29 +20,45 @@
 /**
  * @file
  * @brief Simple read-write file abstraction implementation.
+ * @author Anton Adamansky (adamansky@gmail.com)
+ * 
+ * @note  Before using API of this module you should call 
+ * `iw_init(void)` iowow module initialization routine.  
+ * 
+ * Common use case:
+ * @code{.c}
+ * 
+ *      #include <iowow/iwfile.h>
+ *      #include 
+ * 
+ *      iw_init(); //Initialize iowoow library
+ * 
+ *      IWFS_FILE f;
+ *      IWFS_FILE_OPTS opts = { //File options
+ *          .path = "file path",
+ *          ...
+ *      };
+ *      iwrc rc = iwfs_file_open(&f, &opts);
+ *      if (!rc) {
+ *          .. //read/write operations
+ *          rc = f.close(&f);
+ *      }
+ * @endcode
  */
 
+#include "iowow.h"
 #include "log/iwlog.h"
 #include "platform/iwp.h"
 
 /**
- * @enum iwfs_ecode
- * @brief Error codes.
- */
-typedef enum {
-    _IWFS_ERROR_FS_START = (IW_ERROR_START + 1000UL),
-    _IWFS_ERROR_FS_END
-} iwfs_ecode;
-
-/**
  * @enum iwfs_omode
- * @brief File open modes
+ * @brief File open modes.
  */
 typedef enum {
-    IWFS_OREAD   = 0x01UL,     /**< Open as a reader. */
-    IWFS_OWRITE  = 0x02UL,     /**< Open as a writer. */
-    IWFS_OCREATE = 0x04UL,     /**< Writer creating. */
-    IWFS_OTRUNC  = 0x08UL      /**< Writer truncating. */
+    IWFS_OREAD   = 0x01UL,     /**< Open file as a reader. */
+    IWFS_OWRITE  = 0x02UL,     /**< Open file as a writer. */
+    IWFS_OCREATE = 0x04UL,     /**< If file is missing it will be created on open. */
+    IWFS_OTRUNC  = 0x08UL      /**< Truncate file on open. */
 } iwfs_omode;
 
 /**
@@ -75,7 +91,8 @@ typedef struct {
 
 /**
  * @struct IWFS_FILE_STATE
- * @brief File state
+ * @brief File status.
+ * @sa iwrc IWFS_FILE::state(struct IWFS_FILE *f, IWFS_FILE_STATE* state)
  */
 typedef struct {
     int             is_open;    /**< `1` if file in open state */
@@ -87,7 +104,7 @@ typedef struct {
 /**
  * @enum iwfs_file_sync_flags
  * @brief Sync file data options.
- * @see int sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
+ * @sa iwrc IWFS_FILE::sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
  */
 typedef enum {
     IWFS_FDATASYNC  = 0x01,  /**< Use `fdatasync` mode */
@@ -103,7 +120,7 @@ typedef struct IWFS_FILE {
     struct IWFS_FILE_IMPL *impl; /**< Implementation specific data */
 
     /**
-     * @fn int write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp)
+     * @fn iwrc IWFS_FILE::write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp)
      * @brief Write @a buf bytes into the file
      *
      * @param f `struct IWFS_FILE` pointer
@@ -116,7 +133,7 @@ typedef struct IWFS_FILE {
     iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
 
     /**
-     * @fn int read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp)
+     * @fn iwrc IWFS_FILE::read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp)
      * @brief Read @a siz bytes into @a buf at the specified offset @a off
      *
      * @param f `struct IWFS_FILE` pointer.
@@ -128,15 +145,14 @@ typedef struct IWFS_FILE {
     iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp);
 
     /**
-     * @fn int close(struct IWFS_FILE *f)
+     * @fn iwrc IWFS_FILE::close(struct IWFS_FILE *f)
      * @brief Closes this file.
-     *
      * @return `0` on success or error code.
      */
     iwrc(*close)(struct IWFS_FILE *f);
 
     /**
-     * @fn int sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
+     * @fn iwrc IWFS_FILE::sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
      * @brief Sync file data with fs.
      *
      * @param f `struct IWFS_FILE` pointer.
@@ -145,7 +161,7 @@ typedef struct IWFS_FILE {
     iwrc(*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
 
     /**
-     * @fn int state(struct IWFS_FILE *f, IWFS_FILE_STATE* state)
+     * @fn iwrc IWFS_FILE::state(struct IWFS_FILE *f, IWFS_FILE_STATE* state)
      * @brief Return current file state
      *
      * @param f `struct IWFS_FILE` pointer.
@@ -159,7 +175,7 @@ typedef struct IWFS_FILE {
 } IWFS_FILE;
 
 /**
- * @brief Open file and initialize the given @a f structure.
+ * @brief Open file and initialize a given @a f structure.
  *
  * @param f `struct IWFS_FILE` pointer.
  * @param opts [in] File open options

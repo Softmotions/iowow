@@ -19,6 +19,10 @@
 
 /** @file
  *  @brief Auto-expandable file with support of read/write address space locking.
+ *  @author Anton Adamansky (adamansky@gmail.com)
+ * 
+ *  @note  Before using API of this module you should call 
+ * `iw_init(void)` iowow module initialization routine.  
  *
  *  Features:
  *  - Read/write file address space locking.

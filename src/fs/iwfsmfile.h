@@ -20,6 +20,10 @@
 /** @file
  *  @brief Auto-expandable file with support of read/write address space locking
  *         and free space block management using bitmaps.
+ *  @author Anton Adamansky (adamansky@gmail.com)
+ *
+ *  @note  Before using API of this module you should call
+ * `iw_init(void)` iowow module initialization routine.
  *
  *  Features:
  *
@@ -32,16 +36,14 @@
  *    These regions used in read/write operation and automatically maintained during file resize
  *    operations.
  *
- * File structure:
+ * @b File format:
  *
  * @verbatim
- *
  *       [FSM_CTL_MAGICK u32][block pow u8]
  *       [bmoffset u64][bmlength u64]
  *       [u64 crzsum][u32 crznum][u64 crszvar][u256 reserved]
  *       [custom header size u32][custom header data...]
  *       [fsm data...]
- * 
  * @endverbatim
  *
  */

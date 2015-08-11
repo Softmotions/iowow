@@ -19,6 +19,7 @@
 
 /** @file
  *  @brief Implement `fcntl()` rw-locking style over abstract address space within a threads.   
+ *  @author Anton Adamansky (adamansky@gmail.com)
  */
  
 #include "basedefs.h"

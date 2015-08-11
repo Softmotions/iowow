@@ -17,6 +17,12 @@
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
 
+/**
+ * @file
+ * @brief Very basic definitions.
+ * @author Anton Adamansky (adamansky@gmail.com)
+ */
+
 #ifdef __cplusplus
 #define IW_EXTERN_C_START extern "C" {
 #define IW_EXTERN_C_END }
@@ -65,11 +71,21 @@ typedef int HANDLE;
 
 #include<stdint.h>
 
-typedef uint64_t iwrc; 
-
+/**
+ * @brief The operation result status code.
+ *
+ * Zero status code `0` indicates <em>operation success</em>
+ *
+ * Status code can embed an `errno` code as operation result.
+ * In this case `uint32_t iwrc_strip_errno(iwrc *rc)` used
+ * to fetch embedded errno.
+ *
+ * @sa iwlog.h
+ */
+typedef uint64_t iwrc;
 
 /**
- * @brief Rational number.
+ * @brief A rational number.
  */
 typedef struct IW_RNUM {
     int32_t n;  /**< Numerator */

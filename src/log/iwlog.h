@@ -18,11 +18,29 @@
  *************************************************************************************************/
 
 /**
- *  @file
- *  @brief Error logging/reporting rputines.
+ * @file
+ * @brief Error logging/reporting routines.
+ * @author Anton Adamansky (adamansky@gmail.com)
+ *
+ * Before using API of this module you should call
+ * `iw_init(void)` iowow module initialization routine.
+ *
+ * By default all logging output redirected to the `stderr`
+ * you can owerride it by passing  instance of `IWLOG_DEFAULT_OPTS`
+ * to the `iwlog_set_logfn_opts(void*)`
+ *
+ * A custom error logging function may be implemented with `IWLOG_FN` signature
+ * and registered by `void iwlog_set_logfn(IWLOG_FN fp)`
+ *
+ * The following methods normally used for logging:
+ * @verbatim
+ *      iwlog_{debug,info,warn,error}
+ *      iwlog_ecode_{debug,info,warn,error}
+ * @endverbatim
  */
 
-#include "basedefs.h"
+#include "iowow.h"
+
 #include <stdint.h>
 #include <locale.h>
 #include <stdarg.h>
@@ -35,7 +53,8 @@ IW_EXTERN_C_START
 #endif
 
 /**
- * @brief Common error codes.
+ * @enum iw_ecode
+ * @brief Common used error codes.
  */
 typedef enum {
     IW_OK           = 0,                /**< No error. */
@@ -56,12 +75,12 @@ typedef enum {
     IW_ERROR_NOT_ALIGNED,               /**< Argument is not aligned properly. */
     IW_ERROR_FALSE,                     /**< Request rejection/false response. */
     IW_ERROR_INVALID_ARGS,              /**< Invalid function arguments. */
-    IW_ERROR_OVERFLOW                   /**< Overflow. */        
+    IW_ERROR_OVERFLOW                   /**< Overflow. */
 } iw_ecode;
 
 /**
- * @enum
- * Logging vebosity levels.
+ * @enum iwlog_lvl
+ * @brief Available logging vebosity levels.
  */
 typedef enum {
     IWLOG_ERROR = 0,
@@ -124,7 +143,7 @@ IW_EXPORT iwrc iwrc_set_errno(iwrc rc, uint32_t errno_code);
 
 /**
  * @brief Strip the attached `errno` code from the specified @a rc and
- * return this errno code.
+ * return errno code.
  *
  * @param rc `errno` code or `0`
  */
@@ -150,11 +169,14 @@ IW_EXPORT uint32_t iwrc_strip_werror(iwrc *rc);
 
 #endif
 
-
+/**
+ * @brief Remove embedded @a errno code from the passed @a rc
+ * @param rc [in,out]
+ */
 IW_EXPORT void iwrc_strip_code(iwrc *rc);
 
 /**
- * @brief Sets default logging function.
+ * @brief Sets current logging function.
  * @warning Not thread safe.
  *
  * @param fp Logging function pointer.
@@ -169,12 +191,15 @@ IW_EXPORT IWLOG_FN iwlog_get_logfn(void);
 
 /**
  * @brief Set opaque options structure for the
+ *        current logging function implementation.
  * @param opts
+ * @sa `IWLOG_DEFAULT_OPTS`
+ * @sa `IWLOG_FN`
  */
 IW_EXPORT void iwlog_set_logfn_opts(void *opts);
 
 /**
- * @brief Returns string representation of given error code.
+ * @brief Returns string representation of a given error code.
  * @param ecode Error code
  * @return
  */
@@ -182,15 +207,22 @@ IW_EXPORT const char* iwlog_ecode_explained(iwrc ecode);
 
 /**
  * @brief Register error code explanation function.
- *
- * Up to `128` @a fp function can be registered.
- *
+ * @note Up to `128` @a fp functions can be registered.
  * @param fp
  * @return `0` on success or error code.
  */
 IW_EXPORT iwrc iwlog_register_ecodefn(IWLOG_ECODE_FN fp);
 
 
+/**
+ * @brief Logs a message.
+ * @param lvl       Logging level.
+ * @param ecode     Error code or zero.
+ * @param file      Module file, can be `NULL`
+ * @param line      Line in module.
+ * @param fmt       Printf like message format.
+ * @return
+ */
 iwrc iwlog(iwlog_lvl lvl,
            iwrc ecode,
            const char *file,
@@ -211,6 +243,7 @@ iwrc iwlog_va(iwlog_lvl lvl,
               int line,
               const char *fmt,
               va_list argp);
+
 
 #ifdef _DEBUG
 #define iwlog_debug(IW_fmt,...) iwlog2(IWLOG_DEBUG, 0, __FILE__, __LINE__, (IW_fmt),##__VA_ARGS__)
@@ -275,7 +308,7 @@ iwrc iwlog_va(iwlog_lvl lvl,
             iwlog2(IWLOG_##IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
         } \
     }
-    
+
 #define IWRC3(IW_act, IW_rc, IW_lvl) \
     {   iwrc __iwrc = (IW_act); \
         if (__iwrc) { \
@@ -285,7 +318,7 @@ iwrc iwlog_va(iwlog_lvl lvl,
     }
 
 /**
- * @brief Init logging submodule.
+ * @brief Initiate this submodule.
  * @return `0` on success or error code.
  */
 IW_EXPORT iwrc iwlog_init(void);

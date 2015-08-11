@@ -352,7 +352,6 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE* state) {
     return rc;
 }
 
-
 static iwrc _exfile_remove_mmap_wl(struct IWFS_EXT* f, off_t off) {
     iwrc rc = 0;
     _EXF *impl = f->impl;

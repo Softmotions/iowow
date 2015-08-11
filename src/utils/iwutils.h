@@ -17,8 +17,11 @@
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
 
-/** @file */
-
+/**
+ * @file
+ * @author Anton Adamansky (adamansky@gmail.com)
+ */
+ 
 #include "basedefs.h"
 #include <math.h>
 
@@ -41,7 +44,5 @@ IW_EXPORT int iwu_rand(int range);
  */
 IW_EXPORT int iwu_rand_inorm(int range);
 
-
 IW_EXTERN_C_END
-
 #endif

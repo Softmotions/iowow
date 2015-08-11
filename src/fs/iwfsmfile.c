@@ -1666,7 +1666,6 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f,
 
     impl->omode = fstate.exfile.file.opts.omode;
 
-
     if (fstate.exfile.file.ostatus & IWFS_OPEN_NEW) {
         rc = _fsm_init_new_lw(impl, opts);
     } else {
