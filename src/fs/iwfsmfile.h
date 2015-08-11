@@ -96,7 +96,7 @@ typedef enum {
 
 typedef enum {
     IWFSM_NOLOCKS       = 0x01,     /**< Do not use threading locks */
-    IWFSM_STRICT        = 0x02      /**< Strict block checking for alloc/dealloc operations */
+    IWFSM_STRICT        = 0x02      /**< Strict block checking for alloc/dealloc operations. 10-15% performance degaradation. */
 } iwfs_fsm_openflags;
 
 typedef struct IWFS_FSM_OPTS {
@@ -105,6 +105,7 @@ typedef struct IWFS_FSM_OPTS {
     uint8_t             bpow;       /**< Block size power of 2 */
     size_t              bmlen;      /**< Initial size of free-space bitmap */
     size_t              hdrlen;     /**< Length of custom file header.*/
+    int                 sync_flags; /**< Default msync flags for mmap_sync operations (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
 } IWFS_FSM_OPTS;
 
 

@@ -102,13 +102,6 @@ typedef struct IWFS_FILE {
 
     struct IWFS_FILE_IMPL *impl; /**< Implementation specific data */
 
-#define IWFS_FILE_METHODS(IW_self) \
-    iwrc (*write)  (IW_self, off_t off, const void *buf, size_t siz, size_t *sp); \
-    iwrc (*read)   (IW_self, off_t off, void *buf, size_t siz, size_t *sp); \
-    iwrc (*close)  (IW_self); \
-    iwrc (*sync)   (IW_self, iwfs_sync_flags flags); \
-    iwrc (*state)  (IW_self, IWFS_FILE_STATE* state)
-
     /**
      * @fn int write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp)
      * @brief Write @a buf bytes into the file

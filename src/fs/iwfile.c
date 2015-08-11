@@ -154,7 +154,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
         opts->omode |= IWFS_OWRITE;
     }
     omode = opts->omode;
-    
+
     if (!(opts->omode & IWFS_OWRITE) && (opts->lock_mode & IWP_WLOCK)) {
         opts->lock_mode &= ~IWP_WLOCK;
     }

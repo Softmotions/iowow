@@ -95,6 +95,7 @@ struct IWFS_FSM_IMPL {
     iwfs_fsm_openflags      oflags;     /**< Operation mode flags. */
     iwfs_omode              omode;      /**< Open mode. */
     uint8_t                 bpow;       /**< Block size power of 2 */
+    int                     sync_flags; /**< Default msync flags for mmap_sync operations (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -557,8 +558,8 @@ static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
 
     assert(sp == _FSM_CUSTOM_HDR_DATA_OFFSET);
     iwrc rc = impl->pool.write(&impl->pool, 0, hdr, _FSM_CUSTOM_HDR_DATA_OFFSET, &wlen);
-    if (!rc) {
-        rc = impl->pool.sync_mmap(&impl->pool, 0, 0);
+    if (!rc && is_sync) {
+        rc = impl->pool.sync_mmap(&impl->pool, 0, impl->sync_flags);
     }
     return rc;
 }
@@ -695,6 +696,7 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
     if (impl->oflags & IWFSM_STRICT) {
         bopts |= _FSM_BM_STRICT;
     }
+
     rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, 0, bopts);
     if (rc) {
         return rc;
@@ -835,7 +837,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     _fsm_load_fsm_lw(impl, mmap, sp);
 
     /* Sync fsm */
-    rc = pool->sync_mmap(pool, bmoff, 0);
+    rc = pool->sync_mmap(pool, bmoff, impl->sync_flags);
     if (rc) {
         iwlog_ecode_error3(rc);
         goto rollback;
@@ -862,7 +864,7 @@ rollback: /* try to rollback bitmap state */
         impl->bmptr = (uint64_t*) mmap2;
         _fsm_load_fsm_lw(impl, mmap2, sp2);
     }
-    pool->sync_mmap(pool, 0, 0);
+    pool->sync_mmap(pool, 0, impl->sync_flags);
     return rc;
 }
 
@@ -1003,7 +1005,7 @@ start:
  * @brief Remove all free blocks from the and of file and trim its size.
  */
 static iwrc _fsm_trim_tail_lw(_FSM *impl) {
-    
+
     iwrc rc;
     uint64_t offset = 0, lastblk;
     int64_t length;
@@ -1055,6 +1057,7 @@ static iwrc _fsm_init_impl(_FSM *impl, const IWFS_FSM_OPTS *opts) {
     impl->oflags = opts->oflags;
     impl->psize = iwp_page_size();
     impl->bpow = opts->bpow;
+    impl->sync_flags = opts->sync_flags;
     if (!impl->bpow) {
         impl->bpow = 6; //64bit block
     } else if (impl->bpow > _FSM_MAX_BLOCK_POW) {
@@ -1459,9 +1462,7 @@ static iwrc _fsm_allocate(struct IWFS_FSM* f, off_t len, off_t *oaddr, off_t *ol
     uint64_t sbnum;
     _FSM *impl = f->impl;
 
-    *oaddr = 0;
     *olen = 0;
-
     if (!(impl->omode & IWFS_OWRITE)) {
         return IW_ERROR_READONLY;
     }
@@ -1482,8 +1483,10 @@ static iwrc _fsm_allocate(struct IWFS_FSM* f, off_t len, off_t *oaddr, off_t *ol
 
 static iwrc _fsm_deallocate(struct IWFS_FSM* f, off_t addr, off_t len) {
     _FSM_ENSURE_OPEN2(f);
-    _FSM *impl = f->impl;
     iwrc rc;
+    _FSM *impl = f->impl;
+    off_t offset_blk = addr >> impl->bpow;
+    off_t length_blk = len >> impl->bpow;
 
     if (!(impl->omode & IWFS_OWRITE)) {
         return IW_ERROR_READONLY;
@@ -1494,7 +1497,17 @@ static iwrc _fsm_deallocate(struct IWFS_FSM* f, off_t addr, off_t len) {
     len = IW_ROUNDUP(len, 1 << impl->bpow);
     rc = _fsm_ctrl_wlock(impl);
     if (rc) return rc;
-    rc = _fsm_blk_deallocate_lw(impl, (addr >> impl->bpow), (len >> impl->bpow));
+    if (
+        IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk,
+                          0, (impl->hdrlen >> impl->bpow))  ||
+        IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk,
+                          (impl->bmoff >> impl->bpow),
+                          (impl->bmoff >> impl->bpow) + (impl->bmlen >> impl->bpow))) {
+        //Deny deallocations in header or free-space bitmap itself
+        IWRC(_fsm_ctrl_unlock(impl), rc);
+        return IWFS_ERROR_FSM_SEGMENTATION;
+    }
+    rc = _fsm_blk_deallocate_lw(impl, offset_blk, length_blk);
     IWRC(_fsm_ctrl_unlock(impl), rc);
     return rc;
 }
