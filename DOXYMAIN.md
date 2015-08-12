@@ -14,7 +14,7 @@ IOWOW - The C99 file IO library and free space management engine
 Free space management within a single file (iwfsmfile.h)
 --------------------------------------------------------
 
-A file address space divided in blocks of fixed length where 
+A file address space divided into blocks of fixed length where 
 every block has its allocation status. The methods
 `IWFS_FSM::allocate` and `IWFS_FSM::deallocate` behave like `malloc` and `free` 
 memory management functions but within a file address space. 
