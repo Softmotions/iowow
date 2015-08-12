@@ -50,7 +50,7 @@ typedef struct IWFS_RWL_OPTS {
 } IWFS_RWL_OPTS;
 
 /** 
- * @brief `IWFS_RWL` file state placeholder.
+ * @brief `IWFS_RWL` file state container.
  */
 typedef struct IWFS_RWL_STATE {
     IWFS_EXT_STATE exfile;  /**< Underlying `IWFS_EXT` state. */
@@ -67,7 +67,7 @@ typedef struct IWFS_RWL {
     /**
      * @brief Acquire a lock over the address range specified by @a off and @a len.
      * 
-     * Lock type is specified by `iwrl_lockflags` flags.
+     * Lock type is specified by @ref iwrl_lockflags flags.
      * If the given address range intersects with some other write locked range owned by another thread   
      * the current thread be blocked until that lock is held.
      * 
@@ -82,7 +82,7 @@ typedef struct IWFS_RWL {
     /**
      * @brief Try to acquire a lock over the address range specified by @a off and @a len.  
      * 
-     * Lock type is specified by `iwrl_lockflags` flags.
+     * Lock type is specified by @ref `iwrl_lockflags` flags.
      * If the given address range intersects with some other write locked range owned by another thread   
      * the call will fail with `IW_ERROR_FALSE` error code.
      * 

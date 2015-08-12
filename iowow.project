@@ -30,8 +30,8 @@
     <File Name="CMakeLists.txt"/>
     <File Name="LICENSE"/>
     <File Name="INSTALL"/>
-    <File Name="README.md"/>
     <File Name="Doxyfile.in"/>
+    <File Name="DOXYMAIN.md"/>
   </VirtualDirectory>
   <VirtualDirectory Name="src">
     <File Name="src/iowow.h"/>

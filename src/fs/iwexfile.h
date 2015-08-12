@@ -97,7 +97,7 @@ IW_EXPORT off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EX
 IW_EXPORT off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f, void **ctx);
 
 /**
- * @brief Auto-expandable file options.
+ * @brief `IWFS_EXT` file options.
  * @see iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts)
  */
 typedef struct IWFS_EXT_OPTS {
@@ -110,7 +110,7 @@ typedef struct IWFS_EXT_OPTS {
 
 /**
  * @struct IWFS_EXT_STATE
- * @brief File state container.
+ * @brief `IWFS_EXT` file state info.
  * @see IWFS_EXT::state
  */
 typedef struct IWFS_EXT_STATE {

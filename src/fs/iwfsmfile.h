@@ -134,7 +134,7 @@ typedef struct IWFS_FSM_OPTS {
 
 
 /**
- * @brief `IWFS_FSM` file state container
+ * @brief `IWFS_FSM` file state container.
  * @see IWFS_FSM::state
  */
 typedef struct IWFS_FSM_STATE {
@@ -298,7 +298,7 @@ typedef struct IWFS_FSM {
  *        },
  *       .bpow = 6,              // 2^6 bytes block size
  *       .hdrlen = 255,          // Size of custom file header
- *       .oflags = IWFSM_STRICT  // Use verbose bitmap checking for allocations (10-15% overhead)
+ *       .oflags = IWFSM_STRICT  // Use verbose free-space bitmap checking for allocations (10-15% overhead)
  *  };
  *
  *  IWFS_FSM f;

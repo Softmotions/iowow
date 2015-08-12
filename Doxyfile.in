@@ -3,7 +3,7 @@ PROJECT_NUMBER         = @PROJECT_VERSION@
 
 STRIP_FROM_PATH        = @PROJECT_SOURCE_DIR@ \
                          @PROJECT_BINARY_DIR@
-INPUT                  = @PROJECT_SOURCE_DIR@/src/README.md \
+INPUT                  = @PROJECT_SOURCE_DIR@/src/DOXYMAIN.md \
                          @PROJECT_SOURCE_DIR@ \
                          @PROJECT_BINARY_DIR@/src/generated
 
@@ -15,7 +15,7 @@ EXCLUDE                 = @PROJECT_SOURCE_DIR@/src/utils/kbtree.h  \
 
 RECURSIVE              = YES
 
-USE_MDFILE_AS_MAINPAGE = README.md
+USE_MDFILE_AS_MAINPAGE = DOXYMAIN.md
 
 
 MARKDOWN_SUPPORT        = YES

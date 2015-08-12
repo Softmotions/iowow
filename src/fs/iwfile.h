@@ -79,7 +79,7 @@ typedef enum {
 #define IWFS_DEFAULT_FILEMODE 00644 /**< Default permission of created files */
 
 /**
- * @brief File options.
+ * @brief `IWFS_FILE` file options.
  * @see iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts)
  */
 typedef struct {
@@ -92,8 +92,7 @@ typedef struct {
 } IWFS_FILE_OPTS;
 
 /**
- * @struct IWFS_FILE_STATE
- * @brief File status.
+ * @brief `IWFS_FILE` file state info.
  * @see IWFS_FILE::state
  */
 typedef struct {

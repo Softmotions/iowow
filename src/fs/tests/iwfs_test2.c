@@ -370,6 +370,8 @@ typedef struct {
     int blkpow;
 } FSMRECTASK;
 
+//!!!! TODO this test is not good for multithreaded env, refactoring needed 
+
 static void* recordsthr(void *op) {
     FSMRECTASK *task = op;
     iwrc rc;

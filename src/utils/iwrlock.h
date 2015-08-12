@@ -30,9 +30,12 @@ IW_EXTERN_C_START
 
 typedef struct _IWRLOCK IWRLOCK;
 
+/**
+ * @brief RW locking modes.
+ */
 typedef enum {
-    IWRL_READ  = 0x00,     /**< Read lock */
-    IWRL_WRITE = 0x01      /**< Write lock */
+    IWRL_READ  = 0x00,     /**< Reader lock */
+    IWRL_WRITE = 0x01      /**< Writee lock */
 } iwrl_lockflags;
 
 /**
