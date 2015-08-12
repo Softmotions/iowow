@@ -32,6 +32,7 @@
     <File Name="INSTALL"/>
     <File Name="Doxyfile.in"/>
     <File Name="DOXYMAIN.md"/>
+    <File Name="README.md"/>
   </VirtualDirectory>
   <VirtualDirectory Name="src">
     <File Name="src/iowow.h"/>
