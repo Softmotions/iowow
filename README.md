@@ -8,4 +8,7 @@ IOWOW - The C99 file IO library and free space management engine
 * Allocation/deallocation of data blocks within a file like `malloc` do for memory (iwfsmfile.h)
 * Simple message logging facility (iwlog.h) 
 
+[Project documentation site](http://softmotions.github.io/iowow/)
+--------------------------------------------------
+
 
