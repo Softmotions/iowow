@@ -11,7 +11,8 @@ FILE_PATTERNS          = *.h \
                          *.md
 
 EXCLUDE                 = @PROJECT_SOURCE_DIR@/src/utils/kbtree.h  \
-                          @PROJECT_SOURCE_DIR@/src/utils/khash.h
+                          @PROJECT_SOURCE_DIR@/src/utils/khash.h \
+                          @PROJECT_SOURCE_DIR@/README.md
 
 RECURSIVE              = YES
 
