@@ -45,6 +45,7 @@ void iwlog_test1() {
 void iwlog_test2() {
     IWLOG_DEFAULT_OPTS opts = {0};
     int rv = 0;
+    size_t sz;
     char fname[] = "iwlog_test1_XXXXXX";
     int fd = mkstemp(fname);
     CU_ASSERT_TRUE(fd != 1);
@@ -73,7 +74,8 @@ void iwlog_test2() {
 
     char buf[1024];
     memset(buf, 0, 1024);
-    fread(buf, 1, 1024, out);
+    sz = fread(buf, 1, 1024, out);
+    CU_ASSERT_TRUE(sz);
     fprintf(stderr, "%s\n\n" IW_LINE_SEP, buf);
 
     CU_ASSERT_PTR_NOT_NULL(strstr(buf, "7fa79c75beac413d83f35ffb6bf571b9"));

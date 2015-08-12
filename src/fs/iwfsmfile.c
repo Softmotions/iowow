@@ -45,8 +45,8 @@ typedef enum {
 #define _FSM_CUSTOM_HDR_DATA_OFFSET \
     (4 /*magic*/ + 1 /*block pow*/ + \
      8 /*fsm bitmap block offset */ + 8 /*fsm bitmap block length*/ + \
-     8 /*cumulative record sizes sum */ + 4 /*cumulative record sizes num */ + \
-     8 /*record sizes standard variance (deviation^2 * N) */ + \
+     8 /*all allocated block length sum */ + 4 /*number of all allocated areas */ + \
+     8 /* allocated areas length standard variance (deviation^2 * N) */ + \
      32 /*reserved*/ + 4 /*custom hdr size*/)
 
 #define _FSM_ENSURE_OPEN(FSM_impl_) \
@@ -83,10 +83,10 @@ struct IWFS_FSM_IMPL {
     uint64_t                bmoff;      /**< Free-space bitmap block offset in bytes. */
     uint64_t                lfbkoff;    /**< Offset in blocks of free block chunk with the largest offset. */
     uint64_t                lfbklen;    /**< Length in blocks of free block chunk with the largest offset. */
-    uint64_t                crzsum;     /**< Cumulative sum of record sizes acquired by `allocate` */
+    uint64_t                crzsum;     /**< Cumulative sum all allocated blocks */
     uint64_t                crzvar;     /**< Record sizes standard variance (deviation^2 * N) */
     uint32_t                hdrlen;     /**< Length of custom file header */
-    uint32_t                crznum;     /**< Cumulative number of records acquired by `allocated` */
+    uint32_t                crznum;     /**< Number of all allocated continuous areas acquired by `allocated` */
     IWFS_FSM                *f;         /**< Self reference. */
     kbtree_t(fsm)           *fsm;       /**< Free-space tree */
     uint64_t                *bmptr;     /**< Pointer to the bitmap area */

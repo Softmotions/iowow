@@ -89,7 +89,6 @@ typedef enum {
 } iwlog_lvl;
 
 /**
- * @struct
  * @brief Options for the default logging function.
  * @see iwlog_set_logfn_opts(void*)
  */
@@ -123,7 +122,6 @@ typedef iwrc(*IWLOG_FN)(locale_t locale,
                         va_list argp);
 
 /**
- * @fn IWLOG_ECODE_FN 
  * @brief Return the locale aware error code explanation message.
  *
  * @param locale Locale used. Can be `NULL`
@@ -171,7 +169,7 @@ IW_EXPORT uint32_t iwrc_strip_werror(iwrc *rc);
 
 /**
  * @brief Remove embedded @a errno code from the passed @a rc
- * @param rc [in,out]
+ * @param [in,out] rc
  */
 IW_EXPORT void iwrc_strip_code(iwrc *rc);
 

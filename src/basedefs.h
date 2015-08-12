@@ -55,6 +55,14 @@
 #define IW_INLINE static inline
 #endif
 
+
+#if __GNUC__ >= 4
+#define WUR __attribute__ ((__warn_unused_result__))
+#else 
+#define WUR`
+#endif
+
+
 #define IW_ARR_STATIC static
 #define IW_ARR_CONST const
 

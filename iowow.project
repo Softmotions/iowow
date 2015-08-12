@@ -144,4 +144,7 @@
       </Completion>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="doc">
+    <VirtualDirectory Name="img"/>
+  </VirtualDirectory>
 </CodeLite_Project>

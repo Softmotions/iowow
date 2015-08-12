@@ -27,9 +27,9 @@
 
 /**
  * @brief Init iowow subsystem.
- * @return `0` on success of error code. 
+ * @return `0` on success or error code. 
  */
-IW_EXPORT iwrc iw_init(void);
+IW_EXPORT WUR iwrc iw_init(void);
 
 
 #endif

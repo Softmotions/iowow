@@ -25,8 +25,11 @@
  * @note  Before using API of this module you should call 
  * `iw_init(void)` iowow module initialization routine.  
  * 
- * Common use case:
- * @code{.c}
+ * File operations implemented as function pointers contained in `IWFS_FILE` `C` structure.
+ * The `iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts)` opens file and initializes a given `IWFS_FILE` structure. 
+ * 
+ * <strong>Common use case:</strong>.
+ * @code {.c}
  * 
  *      #include <iowow/iwfile.h>
  *      #include 
@@ -119,7 +122,6 @@ typedef struct IWFS_FILE {
     struct IWFS_FILE_IMPL *impl; /**< Implementation specific data */
 
     /**
-     * @fn iwrc IWFS_FILE::write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp)
      * @brief Write @a buf bytes into the file
      *
      * @param f `struct IWFS_FILE` pointer
@@ -132,38 +134,32 @@ typedef struct IWFS_FILE {
     iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
 
     /**    
-     * @fn iwrc IWFS_FILE::read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp)
      * @brief Read @a siz bytes into @a buf at the specified offset @a off
      *
      * @param f `struct IWFS_FILE` pointer.
      * @param off Offset from start of the file.
      * @param buf Buffer to read into.
-     * @param siz [out] sp Number of bytes actually read.
+     * @param siz Number of bytes to read. 
+     * @param [out] sp Number of bytes actually read.
      * @return `0` on success or error code.
      */
     iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp);
 
     /**
-     * @fn iwrc IWFS_FILE::close(struct IWFS_FILE *f)
      * @brief Closes this file.
-     * 
      * @return `0` on success or error code.
      */
     iwrc(*close)(struct IWFS_FILE *f);
 
     /**    
-     * @fn iwrc IWFS_FILE::sync(struct IWFS_FILE *f, iwfs_sync_flags flags)
      * @brief Sync file data with fs.
-     *
      * @param f `struct IWFS_FILE` pointer.
      * @param opts File sync options.
      */
     iwrc(*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
 
     /**
-     * @fn iwrc IWFS_FILE::state(struct IWFS_FILE *f, IWFS_FILE_STATE* state)
      * @brief Return current file state.
-     *
      * @param f `struct IWFS_FILE` pointer.
      * @param [out] state File state placeholder.
      * @return `0` on success or error code.
@@ -196,12 +192,12 @@ typedef struct IWFS_FILE {
  * @return `0` on success or error code.
  * @relatesalso IWFS_FILE
  */
-IW_EXPORT iwrc iwfs_file_open(IWFS_FILE *f,
+IW_EXPORT WUR iwrc iwfs_file_open(IWFS_FILE *f,
                               const IWFS_FILE_OPTS *opts);
 
 /**
  * @brief Init `iwfile` submodule.
  */
-IW_EXPORT iwrc iwfs_file_init(void);
+IW_EXPORT WUR iwrc iwfs_file_init(void);
 
 #endif

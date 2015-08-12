@@ -37,7 +37,7 @@ typedef enum {
 
 /**
  * @brief Allocate new `IWRLOCK` structure.
- * @param lk [out] Pointer to the allocated lock structure.
+ * @param [out] lk Pointer to the allocated lock structure.
  * @return `0` or error code.
  */
 IW_EXPORT iwrc iwrl_new(IWRLOCK **lk);
@@ -83,9 +83,9 @@ IW_EXPORT iwrc iwrl_trylock(IWRLOCK *lk, off_t start, off_t len, iwrl_lockflags 
 IW_EXPORT iwrc iwrl_unlock(IWRLOCK *lk, off_t start, off_t len);
 
 /**
- * @brief Returns number of read/write locked ranges.
+ * @brief Returns number of reader/writer locked ranges.
  * @param lk        `IWRLOCK` pointer.
- * @param ret [out] Number of read/write ranges placeholder.
+ * @param [out] ret Number of reader/writer ranges placeholder.
  * @return `0` on success or error coded
  */
 IW_EXPORT iwrc iwrl_num_ranges(IWRLOCK *lk,  int *ret);
@@ -93,7 +93,7 @@ IW_EXPORT iwrc iwrl_num_ranges(IWRLOCK *lk,  int *ret);
 /**
  * @brief Returns number of write-locked ranges.
  * @param lk        `IWRLOCK` pointer.
- * @param ret [out] Number of write ranges placeholder.
+ * @param [out] ret Number of write ranges placeholder.
  * @return `0` on success or error code
  */
 IW_EXPORT iwrc iwrl_write_ranges(IWRLOCK *lk, int *ret);

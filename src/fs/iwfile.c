@@ -118,8 +118,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     memset(f, 0, sizeof(*f));
     impl = f->impl = calloc(sizeof(*f->impl), 1);
     if (!impl) {
-        rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-        goto finish;
+        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
     }
 
     f->write = _iwfs_write;

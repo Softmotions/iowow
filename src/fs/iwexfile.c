@@ -440,7 +440,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
 
     iwrc rc;
     size_t tmp;
-    _MMAPSLOT *ns;
+    _MMAPSLOT *ns = 0;
 
     rc = _exfile_wlock(f);
     if (rc) {
@@ -468,6 +468,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
     ns = calloc(1, sizeof(*ns));
     if (!ns) {
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+        goto finish;
     }
     ns->off = off;
     ns->len = 0;

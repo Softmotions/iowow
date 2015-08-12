@@ -81,7 +81,7 @@ typedef struct IWP_FILE_STAT {
  * @brief Stat the file specified by @a path.
  *
  * @param path File path
- * @param stat [out] File stat info placeholder.
+ * @param [out] stat File stat info placeholder.
  * @return `0` on sucess or error code.
  */
 IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *stat);
@@ -116,9 +116,9 @@ IW_EXPORT iwrc iwp_closefh(HANDLE fh);
  *
  * @param fh        File handle.
  * @param off       Offset from start of the file.
- * @param buf [out] Buffer into which bytes will read.
+ * @param [out] buf       Buffer into which bytes will read.
  * @param siz       Number of bytes to read.
- * @param sp  [out] Number of bytes read actually
+ * @param [out] sp  Number of bytes read actually
  * @return `0` on sucess or error code.
  */
 IW_EXPORT iwrc iwp_read(HANDLE fh, off_t off, void *buf,
@@ -134,7 +134,7 @@ IW_EXPORT iwrc iwp_read(HANDLE fh, off_t off, void *buf,
  * @param off   Offset from start of the file.
  * @param buf   Data buffer to write.
  * @param siz   Number of bytes to write.
- * @param sp [out]  Number of bytes written.
+ * @param [out] sp   Number of bytes written.
  * @return `0` on sucess or error code.
  */
 IW_EXPORT iwrc iwp_write(HANDLE fh, off_t off, const void *buf,
@@ -167,7 +167,7 @@ IW_EXPORT iwrc iwp_sleep(uint64_t ms);
  * @brief Init iwp module.
  * @return `0` on success or error code.
  */
-IW_EXPORT iwrc iwp_init(void);
+IW_EXPORT WUR iwrc iwp_init(void);
 
 
 #endif
