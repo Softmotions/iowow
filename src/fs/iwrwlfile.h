@@ -27,7 +27,7 @@
  *  Features:
  *  - Read/write file address space locking.
  *  -
- *  - Tunable file expansion policies.
+ *  - Tuneable file expansion policies.
  *  - Read/write methods locking option in multithreaded environment.
  *  - File shrinking/truncation support.
  *  - A number mmaped regions can be registered in the file's address space.

@@ -32,7 +32,6 @@
  * @code {.c}
  * 
  *      #include <iowow/iwfile.h>
- *      #include 
  * 
  *      iw_init(); //Initialize iowoow library
  * 
@@ -76,7 +75,7 @@ typedef enum {
 
 #define IWFS_DEFAULT_OMODE (IWFS_OCREATE)
 #define IWFS_DEFAULT_LOCKMODE (IWP_NOLOCK)
-#define IWFS_DEFAULT_FILEMODE 00644 /**< Default permission of created files */
+#define IWFS_DEFAULT_FILEMODE 00666 /**< Default permission of created files */
 
 /**
  * @brief `IWFS_FILE` file options.
