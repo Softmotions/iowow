@@ -7,14 +7,14 @@ include(DebChangelog)
 
 set(PROJECT_NAME "iowow")
 set(PROJECT_VENDOR "Softmotions (http://softmotions.com)")
-set(PROJECT_WEBSITE "http://iowow.org")
+set(PROJECT_WEBSITE "https://github.com/Softmotions/iowow")
 set(PROJECT_MAINTAINER "Anton Adamansky <adamansky@gmail.com>")
 set(PROJECT_DESCRIPTION_SUMMARY "File system IO library")
 set(PROJECT_DESCRIPTION "File system IO library")
 set(CHANGELOG_MESSAGE ${CHANGELOG_LAST_MESSAGE})
-set(PROJECT_PPA "ppa:adamansky/iowow")
+set(PROJECT_PPA "ppa:adamansky/ejdb2")
 set(PROJECT_PPA_USER "adamansky")
-set(PROJECT_PPA_DISTRIB_TARGET vivid utopic trusty precise)
+set(PROJECT_PPA_DISTRIB_TARGET vivid utopic trusty)
 
 project(${PROJECT_NAME} C)
 
@@ -29,7 +29,7 @@ set(${PROJECT_NAME}_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_TESTS "Build test cases" OFF)
-option(BUILD_SAMPLES "Build iowow sample projects" OFF)
+#option(BUILD_SAMPLES "Build iowow sample projects" OFF)
 option(PACKAGE_DEB "Build .deb instalation packages" OFF)
 option(PACKAGE_TGZ "Build .tgz package archive" ON)
 option(PACKAGE_ZIP "Build .zip package archive" ON)
@@ -75,11 +75,12 @@ if(BUILD_DOCUMENTATION)
     set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
     set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
     configure_file(${doxyfile_in} ${doxyfile} @ONLY)
-    add_custom_target(doc
+    add_custom_target(docs
         COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM)
+    install(CODE "execute_process(COMMAND ${CMAKE_BUILD_TOOL} docs)")
     install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
 endif()
 

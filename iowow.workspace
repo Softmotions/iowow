@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Workspace Name="iowow" Database="iowow.tags" SWTLW="No">
+<CodeLite_Workspace Name="iowow" Database="iowow.tags" SWTLW="Yes">
+  <WorkspaceParserPaths/>
   <Project Name="iowow" Path="iowow.project" Active="Yes"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">

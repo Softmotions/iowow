@@ -33,6 +33,7 @@
     <File Name="Doxyfile.in"/>
     <File Name="DOXYMAIN.md"/>
     <File Name="README.md"/>
+    <File Name="Changelog"/>
   </VirtualDirectory>
   <VirtualDirectory Name="src">
     <File Name="src/iowow.h"/>
@@ -88,9 +89,11 @@
     </VirtualDirectory>
     <File Name="src/iowow.c"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="tools"/>
   <VirtualDirectory Name="installer">
     <File Name="installer/CMakeLists.txt"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="doc">
+    <VirtualDirectory Name="img"/>
   </VirtualDirectory>
   <Settings Type="Dynamic Library">
     <GlobalSettings>
@@ -106,6 +109,7 @@
       <Compiler Options="-g -Wall" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <Preprocessor Value="_DEBUG"/>
+        <Preprocessor Value="DEBUG"/>
       </Compiler>
       <Linker Options="-O0" Required="yes">
         <LibraryPath Value="."/>
@@ -145,7 +149,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <VirtualDirectory Name="doc">
-    <VirtualDirectory Name="img"/>
-  </VirtualDirectory>
 </CodeLite_Project>

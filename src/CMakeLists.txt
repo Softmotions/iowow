@@ -68,9 +68,21 @@ foreach(MODULE IN LISTS MODULES)
     file(GLOB MODULE_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/*.h)
     list(APPEND ALL_SRC ${MODULE_SRC})
     list(APPEND ALL_HDRS ${MODULE_HDRS})
-    list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/${MODULE}.h)
 endforeach(MODULE)
 
+list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/iowow.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/log/iwlog.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfile.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwexfile.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfsmfile.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwrwlfile.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/platform/iwp.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwutils.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrlock.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwbits.h
+                     )
+                     
 list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)
 list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
 include_directories(${PROJECT_INCLUDE_DIRS})
@@ -97,7 +109,7 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable")
-set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g")
 
 if (CMAKE_COMPILER_IS_GNUCXX)
@@ -118,10 +130,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/iwcfg.h ${PROJECT_GENERATED_DIR}
 file(GLOB PROJECT_GENERATED_HDRS ${PROJECT_GENERATED_DIR}/*.h)
 list(APPEND ALL_HDRS ${PROJECT_GENERATED_HDRS})
 
-if (NOT APPLE AND NOT BUILD_FRAMEWORK)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/libiowow.pc.in ${PROJECT_GENERATED_DIR}/libiowow.pc @ONLY)
-    install(FILES ${PROJECT_GENERATED_DIR}/libiowow.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-endif(NOT APPLE AND NOT BUILD_FRAMEWORK)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/libiowow.pc.in ${PROJECT_GENERATED_DIR}/libiowow.pc @ONLY)
+install(FILES ${PROJECT_GENERATED_DIR}/libiowow.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 foreach(MODULE IN LISTS MODULES)
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/CMakeLists.txt)
