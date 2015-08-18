@@ -15,8 +15,9 @@
  *************************************************************************************************/
 
 #include "iwlog.h"
+#include "iwutils.h"
 #include "iwcfg.h"
-#include "platform/iwp.h"
+#include "iwp.h"
 
 #include <time.h>
 #include <assert.h>

@@ -20,8 +20,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <CUnit/Basic.h>
-#include "log/iwlog.h"
-
+#include "iwlog.h"
+#include "iwutils.h"
 
 int init_suite(void) {
     int rc = iwlog_init();

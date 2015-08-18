@@ -15,7 +15,8 @@
  *************************************************************************************************/
 
 #include "iwexfile.h"
-#include "log/iwlog.h"
+#include "iwutils.h"
+#include "iwlog.h"
 #include "iwcfg.h"
 
 #include <pthread.h>
