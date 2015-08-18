@@ -49,8 +49,8 @@
  */
 
 #include "iowow.h"
-#include "log/iwlog.h"
-#include "platform/iwp.h"
+#include "iwlog.h"
+#include "iwp.h"
 
 /**
  * @enum iwfs_omode

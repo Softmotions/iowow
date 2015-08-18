@@ -39,7 +39,7 @@
  */
 
 #include "iwexfile.h"
-#include "utils/iwrlock.h"
+#include "iwrlock.h"
 
 
 /**
