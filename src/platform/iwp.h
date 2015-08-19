@@ -17,7 +17,7 @@
  *  Boston, MA 02111-1307 USA.
  *************************************************************************************************/
 
-/** @file 
+/** @file
  *  @author Anton Adamansky (adamansky@gmail.com)
  **/
 
@@ -41,10 +41,12 @@ typedef enum {
  * File locking mode acquired by process opened this file.
  */
 typedef enum {
-    IWP_NOLOCK = 0x00UL, /**< No lock on file. */
+    IWP_NOLOCK = 0x00UL, /**< Do not acquire lock on file. */
     IWP_RLOCK  = 0x01UL, /**< Acquire read lock on file. */
     IWP_WLOCK  = 0x02UL, /**< Acquire write lock on file. */
-    IWP_NBLOCK = 0x04UL  /**< Do not block current thread if file have been locked by another process. */
+    /** Do not block current thread if file have been locked by another process.
+     *  In this case error will be raised. */
+    IWP_NBLOCK = 0x04UL
 } iwp_lockmode;
 
 /**
@@ -87,7 +89,7 @@ typedef struct IWP_FILE_STAT {
 IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *stat);
 
 /**
- * @brief Lock the file. 
+ * @brief Lock the file.
  *
  * @param fh File handle.
  * @param lmode Lock mode specified.
@@ -126,10 +128,10 @@ IW_EXPORT iwrc iwp_read(HANDLE fh, off_t off, void *buf,
 
 
 /**
- * @brief Write @a siz bytes into file @a fh 
- *        at the specified offset @a off 
+ * @brief Write @a siz bytes into file @a fh
+ *        at the specified offset @a off
  *        from buffer @a buf.
- * 
+ *
  * @param fh    File handle.
  * @param off   Offset from start of the file.
  * @param buf   Data buffer to write.
@@ -156,7 +158,7 @@ IW_EXPORT iwrc iwp_ftruncate(HANDLE fh, off_t len);
 
 
 /**
- * @brief Pause execution of current thread 
+ * @brief Pause execution of current thread
  *        to the specified @a ms time in milliseconds.
  * @param ms Thread pause time
  */

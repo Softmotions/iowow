@@ -116,16 +116,17 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     int mode;
 
     memset(f, 0, sizeof(*f));
-    impl = f->impl = calloc(sizeof(*f->impl), 1);
-    if (!impl) {
-        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    }
-
+    
     f->write = _iwfs_write;
     f->read = _iwfs_read;
     f->close = _iwfs_close;
     f->sync = _iwfs_sync;
     f->state = _iwfs_state;
+
+    impl = f->impl = calloc(sizeof(*f->impl), 1);
+    if (!impl) {
+        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
 
     impl->opts = *_opts;
     opts = &impl->opts;

@@ -385,7 +385,7 @@ static iwrc _exfile_remove_mmap_wl(struct IWFS_EXT *f, off_t off) {
             goto finish;
         }
     }
-    
+
 finish:
     free(s);
     return rc;
@@ -516,7 +516,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
             s->prev = ns;
         }
     }
-    
+
 finish:
     if (rc) {
         if (ns) {
@@ -696,15 +696,9 @@ iwrc iwfs_exfile_open(IWFS_EXT *f,
     assert(opts);
     iwrc rc = 0;
     const char *path = opts->file.path;
-    if (!path) {
-        return IW_ERROR_INVALID_ARGS;
-    }
-    memset(f, 0, sizeof(*f));
-    _EXF *impl = f->impl = calloc(1, sizeof(*f->impl));
-    if (!impl) {
-        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    }
     
+    memset(f, 0, sizeof(*f));
+
     f->close = _exfile_close;
     f->read = _exfile_read;
     f->write = _exfile_write;
@@ -717,6 +711,15 @@ iwrc iwfs_exfile_open(IWFS_EXT *f,
     f->get_mmap = _exfile_get_mmap;
     f->remove_mmap = _exfile_remove_mmap;
     f->sync_mmap = _exfile_sync_mmap;
+
+    if (!path) {
+        return IW_ERROR_INVALID_ARGS;
+    }
+
+    _EXF *impl = f->impl = calloc(1, sizeof(*f->impl));
+    if (!impl) {
+        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
 
     impl->psize = iwp_page_size();
     impl->rspolicy = opts->rspolicy ? opts->rspolicy : _exfile_default_szpolicy;

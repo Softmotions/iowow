@@ -142,16 +142,9 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f,
     assert(opts);
     iwrc rc = 0;
     const char *path = opts->exfile.file.path;
-
-    if (!path) {
-        return IW_ERROR_INVALID_ARGS;
-    }
+    
     memset(f, 0, sizeof(*f));
-    _RWL *impl = f->impl = calloc(1, sizeof(*f->impl));
-    if (!impl) {
-        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    }
-
+    
     f->write = _rwl_write;
     f->read = _rwl_read;
     f->close = _rwl_close;
@@ -170,6 +163,15 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f,
     f->unlock = _rwl_unlock;
     f->lwrite = _rwl_lwrite;
     f->lread = _rwl_lread;
+
+    if (!path) {
+        return IW_ERROR_INVALID_ARGS;
+    }
+    
+    _RWL *impl = f->impl = calloc(1, sizeof(*f->impl));
+    if (!impl) {
+        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
 
     rc = iwfs_exfile_open(&impl->exfile, &opts->exfile);
     if (rc) {

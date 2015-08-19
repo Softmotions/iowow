@@ -1612,16 +1612,8 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f,
     iwrc rc = 0;
     IWFS_RWL_STATE fstate;
     const char *path = opts->rwlfile.exfile.file.path;
-
-    if (!path) {
-        return IW_ERROR_INVALID_ARGS;
-    }
+    
     memset(f, 0, sizeof(*f));
-    _FSM *impl = f->impl = calloc(1, sizeof(*f->impl));
-    if (!impl) {
-        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    }
-    impl->f = f;
 
     f->write = _fsm_write;
     f->read = _fsm_read;
@@ -1647,6 +1639,16 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f,
     f->writehdr = _fsm_writehdr;
     f->readhdr = _fsm_readhdr;
     f->clear = _fsm_clear;
+
+
+    if (!path) {
+        return IW_ERROR_INVALID_ARGS;
+    }
+    _FSM *impl = f->impl = calloc(1, sizeof(*f->impl));
+    if (!impl) {
+        return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
+    impl->f = f;
 
     IWFS_RWL_OPTS rwl_opts = opts->rwlfile;
     rwl_opts.exfile.use_locks = !(opts->oflags & IWFSM_NOLOCKS);
