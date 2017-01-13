@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="iowow" InternalType="">
+<CodeLite_Project Name="iowow" InternalType="" Version="10.0.0">
+  <Reconciliation>
+    <Regexes/>
+    <Excludepaths/>
+    <Ignorefiles/>
+    <Extensions>
+      <![CDATA[cpp;c;h;hpp;xrc;wxcp;fbp]]>
+    </Extensions>
+    <Topleveldir>../iowow</Topleveldir>
+  </Reconciliation>
   <Plugins>
     <Plugin Name="CMakePlugin">
       <![CDATA[[{
@@ -45,7 +54,6 @@
     <VirtualDirectory Name="utils">
       <File Name="src/utils/khash.h"/>
       <File Name="src/utils/kbtree.h"/>
-      <File Name="src/utils/iwutils.h"/>
       <File Name="src/utils/iwutils.c"/>
       <File Name="src/utils/iwrlock.h"/>
       <File Name="src/utils/iwrlock.c"/>
@@ -88,6 +96,7 @@
       <File Name="src/fs/iwfsmfile.c"/>
     </VirtualDirectory>
     <File Name="src/iowow.c"/>
+    <File Name="src/utils/iwutils.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="installer">
     <File Name="installer/CMakeLists.txt"/>
@@ -116,7 +125,8 @@
         <LibraryPath Value="Debug"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="" IntermediateDirectory="./Debug" Command="$(ProjectPath)/build/src/fs/tests/iwfs_test2" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(ProjectPath)/build/src/fs/tests" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="" IntermediateDirectory="./cmake-build-Debug" Command="$(ProjectPath)/cmake-build-Debug/src/fs/tests/iwfs_test2" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(ProjectPath)/cmake-build-Debug/src/fs/tests" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="CMake">-DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON</BuildSystem>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>

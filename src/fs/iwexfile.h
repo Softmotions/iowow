@@ -3,7 +3,7 @@
 
 /**************************************************************************************************
  *  IOWOW library
- *  Copyright (C) 2012-2015 Softmotions Ltd <info@softmotions.com>
+ *  Copyright (C) 2012-2017 Softmotions Ltd <info@softmotions.com>
  *
  *  This file is part of IOWOW.
  *  IOWOW is free software; you can redistribute it and/or modify it under the terms of
@@ -19,7 +19,7 @@
 
 /** @file
  *  @brief Auto-expandable file.
- *  @author Anton Adamansky (adamansky@gmail.com)
+ *  @author Anton Adamansky (adamansky@softmotions.com)
  *
  * @note  Before using API of this module you should call
  * `iw_init(void)` iowow module initialization routine.
@@ -28,8 +28,8 @@
  *  - Tuneable file expansion policies.
  *    Custom file resize policies supported by specifying `IWFS_EXT_OPTS::rspolicy` option value.
  *    The following policies are implemented:
- *      - Exact. File resizing fits exactly to the size required by `write` operation. T
- *        his is the default behaviour.
+ *      - Exact. File resizing fits exactly to the size required by `write` operation. 
+ *        This is the default behaviour.
  *      - Fibonacci policy. Next file size computed accourding to
  *          fibonacci sequence of previous file sizes: `file_size(n+1) = MAX(file_size(n) + file_size(n-1), nsize)`
  *      - Multiplication resize policy. Next file size: `file_size(n+1) = N * file_size(n)` where
@@ -155,7 +155,7 @@ typedef struct IWFS_EXT {
      * For example:
      * @code {.c}
      *     f.add_mmap(&f, 10, 20);
-     *     f.read(&f, 5, buf, 10, sp); //read [5-15) bytes
+     *     f.read(&f, 5, buf, 10, sp); // read [5-15) bytes
      *     // [5-10) bytes will be read using system `pread`
      *     // [10-15) bytes will be retrieved by direct `memcpy` from mmapped region
      * @endcode

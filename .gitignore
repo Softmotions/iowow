@@ -3,6 +3,7 @@
 #iowow.project
 #iowow.workspace
 build/
+cmake-build*
 .cmake_dirty
 Makefile
 Testing/

@@ -3,7 +3,7 @@
 
 /**************************************************************************************************
  *  IOWOW library
- *  Copyright (C) 2012-2015 Softmotions Ltd <info@softmotions.com>
+ *  Copyright (C) 2012-2017 Softmotions Ltd <info@softmotions.com>
  *
  *  This file is part of IOWOW.
  *  IOWOW is free software; you can redistribute it and/or modify it under the terms of
@@ -19,14 +19,13 @@
 
 /** @file
  *  @brief Auto-expandable file with support of reader/writer address space locking within a threads.
- *  @author Anton Adamansky (adamansky@gmail.com)
+ *  @author Anton Adamansky (adamansky@softmotions.com)
  *
  *  @note  Before using API of this module you should call
  * `iw_init(void)` iowow module initialization routine.
  *
  *  Features:
  *  - Read/write file address space locking.
- *  -
  *  - Tuneable file expansion policies.
  *  - Read/write methods locking option in multithreaded environment.
  *  - File shrinking/truncation support.
