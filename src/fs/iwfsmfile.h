@@ -68,7 +68,7 @@
  * @see IWFS_FSM::allocate
  */
 typedef enum {
-    
+
     /**< Use default allocation settings */
     IWFSM_ALLOC_DEFAULTS =  0x00U,
 
@@ -85,7 +85,7 @@ typedef enum {
 
     /** Do not update(collect) internal allocation stats for this allocation. */
     IWFSM_ALLOC_NO_STATS = 0x08U
-    
+
 } iwfs_fsm_aflags;
 
 /**
@@ -157,133 +157,150 @@ typedef struct IWFS_FSMDBG_STATE {
     uint64_t       lfbkoff;
 } IWFS_FSMDBG_STATE;
 
+
 /**
  * @brief Auto-expandable file with support of reader/writer address space locking
  *        and free space blocks management using bitmaps.
  */
 typedef struct IWFS_FSM {
     struct IWFS_FSM_IMPL *impl;
-    
+
     /**
-     * @brief Allocate a continuous address space within a file 
+     * @brief Allocate a continuous address space within a file
      *        with length greater or equal to the desired @a len bytes.
-     * 
-     * `Offset` and  `length` allocated area will be block size aligned. 
-     * 
+     *
+     * `Offset` and  `length` allocated area will be block size aligned.
+     *
      * @param f `IWFS_FSM` file.
      * @param len Desired length of an allocated area.
-     * @param [in,out] oaddr Placeholder for the address of an allocated area. 
-     *                       Value of @a oaddr passed to this function used as `hint` in order 
+     * @param [in,out] oaddr Placeholder for the address of an allocated area.
+     *                       Value of @a oaddr passed to this function used as `hint` in order
      *                       to allocate area located closely to the specified @a oaddr value.
-     * @param [out] len Actual length of an allocated area in bytes.
+     * @param [out] olen Actual length of an allocated area in bytes.
      * @param opts Allocation options bitmask flag @ref iwfs_fsm_aflags
      * @return `0` on success or error code.
      */
-    iwrc(*allocate)(struct IWFS_FSM* f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts);
-    
+    iwrc(*allocate)(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts);
+
+
     /**
-     * @brief Free a previously allocated area. 
+     * @brief Reallocate and adjust a size of an allocated block.
+     *
+     * If the given @a nlen value lesser than actual length of segment @a olen in that case
+     * segment will be truncated.
+     *
+     * @param f `IWFS_FSM` file.
+     * @param nlen Desired length of segment.
+     * @param oaddr [in,out] Address of an allocated segment. Placeholder for new address of reallocated segment.
+     * @param olen [in,out] Length of an allocated segment. Placeholder for length of reallocated segment.
+     * @param opts Allocation options bitmask flag @ref iwfs_fsm_aflags
+     * @return `0` on success or error code.
+     */
+    iwrc(*reallocate)(struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts);
+
+    /**
+     * @brief Free a previously allocated area.
      * @param addr Address space offset in bytes <em>it must be block size aligned</em>.
      * @param len Length of area to release.
      * @return `0` on success or error code.
      */
-    iwrc(*deallocate)(struct IWFS_FSM* f, off_t addr, off_t len);
-    
+    iwrc(*deallocate)(struct IWFS_FSM *f, off_t addr, off_t len);
+
     /**
      * @brief Write a data to the custom file header.
-     * 
+     *
      * A custom file header size specified in IWFS_FSM_OPTS::hdrlen options on file creation.
-     * 
+     *
      * @param off Offset position relative to custom header start offset.
      * @param buf Data buffer to write
      * @param siz Number of bytes of @a buf to write into header.
      * @return `0` on success or error code.
      */
-    iwrc(*writehdr)(struct IWFS_FSM* f, off_t off, const void *buf, off_t siz);
-    
+    iwrc(*writehdr)(struct IWFS_FSM *f, off_t off, const void *buf, off_t siz);
+
     /**
      * @brief Read a data from the custom file header.
-     * 
+     *
      * A custom file header size specified in IWFS_FSM_OPTS::hdrlen options on file creation.
-     * 
+     *
      * @param off Offset position relative to custom header start offset.
      * @param [out] buf Data buffer to read into
      * @param Number of bytes to read
      */
-    iwrc(*readhdr)(struct IWFS_FSM* f, off_t off, void *buf, off_t siz);
-    
+    iwrc(*readhdr)(struct IWFS_FSM *f, off_t off, void *buf, off_t siz);
+
     /**
      * @brief Cleanup all allocated data blocks and reset the file to the initial empty state.
-     * 
-     * @param clrflags 
+     *
+     * @param clrflags
      * @return `0` on success or error code.
      */
-    iwrc(*clear)(struct IWFS_FSM* f, iwfs_fsm_clrfalgs clrflags);
-    
+    iwrc(*clear)(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags);
+
     /* See iwrwlfile.h */
-    
+
     /** @see IWFS_RWL::lock */
-    iwrc(*lock)(struct IWFS_FSM* f, off_t off, off_t len, iwrl_lockflags lflags);
-    
+    iwrc(*lock)(struct IWFS_FSM *f, off_t off, off_t len, iwrl_lockflags lflags);
+
     /** @see IWFS_RWL::try_lock */
-    iwrc(*try_lock)(struct IWFS_FSM* f, off_t off, off_t len, iwrl_lockflags lflags);
-    
+    iwrc(*try_lock)(struct IWFS_FSM *f, off_t off, off_t len, iwrl_lockflags lflags);
+
     /** @see IWFS_RWL::unlock */
-    iwrc(*unlock)(struct IWFS_FSM* f, off_t off, off_t len);
-    
+    iwrc(*unlock)(struct IWFS_FSM *f, off_t off, off_t len);
+
     /** @see IWFS_RWL::lwrite */
-    iwrc(*lwrite)(struct IWFS_FSM* f, off_t off, const void *buf, size_t siz, size_t *sp);
-    
+    iwrc(*lwrite)(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp);
+
     /** @see IWFS_RWL::lread */
-    iwrc(*lread)(struct IWFS_FSM* f, off_t off, void *buf, size_t siz, size_t *sp);
-    
+    iwrc(*lread)(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp);
+
     /* See iwexfile.h */
-    
+
     /** @see IWFS_EXT::ensure_size */
-    iwrc(*ensure_size)(struct IWFS_FSM* f, off_t size);
-    
+    iwrc(*ensure_size)(struct IWFS_FSM *f, off_t size);
+
     /** @see IWFS_EXT::truncate */
-    iwrc(*truncate)(struct IWFS_FSM* f, off_t size);
-    
+    iwrc(*truncate)(struct IWFS_FSM *f, off_t size);
+
     /** @see IWFS_EXT::add_mmap */
-    iwrc(*add_mmap)(struct IWFS_FSM* f, off_t off, size_t maxlen);
-    
+    iwrc(*add_mmap)(struct IWFS_FSM *f, off_t off, size_t maxlen);
+
     /** @see IWFS_EXT::get_mmap */
-    iwrc(*get_mmap)(struct IWFS_FSM* f, off_t off, uint8_t **mm, size_t *sp);
-    
+    iwrc(*get_mmap)(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp);
+
     /** @see IWFS_EXT::remove_mmap */
-    iwrc(*remove_mmap)(struct IWFS_FSM* f, off_t off);
-    
+    iwrc(*remove_mmap)(struct IWFS_FSM *f, off_t off);
+
     /** @see IWFS_EXT::sync_mmap */
-    iwrc(*sync_mmap)(struct IWFS_FSM* f, off_t off, int flags);
+    iwrc(*sync_mmap)(struct IWFS_FSM *f, off_t off, int flags);
 
     /* See iwfile.h */
-    
+
     /** @see IWFS_FILE::write */
-    iwrc(*write)(struct IWFS_FSM* f, off_t off, const void *buf, size_t siz, size_t *sp);
-    
+    iwrc(*write)(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp);
+
     /** @see IWFS_FILE::read */
-    iwrc(*read)(struct IWFS_FSM* f, off_t off, void *buf, size_t siz, size_t *sp);
-    
+    iwrc(*read)(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp);
+
     /** @see IWFS_FILE::close */
-    iwrc(*close)(struct IWFS_FSM* f);
-    
+    iwrc(*close)(struct IWFS_FSM *f);
+
     /** @see IWFS_FILE::sync */
-    iwrc(*sync)(struct IWFS_FSM* f, iwfs_sync_flags flags);
-    
+    iwrc(*sync)(struct IWFS_FSM *f, iwfs_sync_flags flags);
+
     /** @see IWFS_FILE::state */
-    iwrc(*state)(struct IWFS_FSM* f, IWFS_FSM_STATE* state);
+    iwrc(*state)(struct IWFS_FSM *f, IWFS_FSM_STATE* state);
 
 } IWFS_FSM;
 
 /**
  * @brief Open `IWFS_FSM` file.
- * 
+ *
  * <strong>Example:</strong>
- * 
- * Open a buffer pool file for multithreaded env with fibonacci file resize policy with 
+ *
+ * Open a buffer pool file for multithreaded env with fibonacci file resize policy with
  * block size of 64 bytes and custom file header of 255 bytes length.
- * 
+ *
  * @code {.c}
  *  IWFS_FSM_OPTS opts = {
  *       .rwlfile = {
@@ -304,20 +321,20 @@ typedef struct IWFS_FSM {
  *  IWFS_FSM f;
  *  size_t sp;
  *  off_t space_len, space_addr = 0;
- * 
+ *
  *  iwrc rc = iwfs_fsmfile_open(&f, &opts);
- * 
+ *
  *  //Allocate 2 blocks of file space
  *  rc = f.allocate(&f, 128, &space_addr, &space_len, 0);
  *  if (!rc) {
  *      int data = 33;
  *      //Write some data to the allocated block with writer lock acquired on `[space_addr, sizeof(data))`
- *      rc = f.lwrite(&f, space_addr, &data, sizeof(data), &sp); 
+ *      rc = f.lwrite(&f, space_addr, &data, sizeof(data), &sp);
  *      ...
  *  }
  *  ...
  * @endcode
- * 
+ *
  * @param f File handle
  * @param opts File open options
  * @relatesalso IWFS_FSM

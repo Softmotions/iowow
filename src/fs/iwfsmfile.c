@@ -1481,6 +1481,44 @@ static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *ol
     return rc;
 }
 
+
+static iwrc _fsm_reallocate(struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
+    _FSM_ENSURE_OPEN2(f);
+    iwrc rc = 0;
+    _FSM *impl = f->impl;
+
+    if (!(impl->omode & IWFS_OWRITE)) {
+        return IW_ERROR_READONLY;
+    }
+
+    off_t nlen_blk = IW_ROUNDUP(nlen, 1 << impl->bpow) >> impl->bpow;
+    off_t olen_blk = *olen >> impl->bpow;
+    off_t oaddr_blk = *oaddr >> impl->bpow;
+
+    if (nlen_blk == olen_blk) {
+        return 0;
+    }
+    rc = _fsm_ctrl_wlock(impl);
+    if (rc) return rc;
+
+    if (nlen_blk < olen_blk) {
+        rc = _fsm_blk_deallocate_lw(impl, oaddr_blk + nlen_blk,  olen_blk - nlen_blk);
+        if (!rc) {
+            *oaddr = oaddr_blk << impl->bpow;
+            *olen = nlen_blk << impl->bpow;
+        }
+    } else {
+        //add extra size to the end of segment
+        iwfs_fsm_aflags aflags = opts;
+        off_t start = oaddr_blk + olen_blk;
+        //rc = 
+    
+    }
+
+    IWRC(_fsm_ctrl_unlock(impl), rc);
+    return rc;
+}
+
 static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
     _FSM_ENSURE_OPEN2(f);
     iwrc rc;
@@ -1612,7 +1650,7 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f,
     iwrc rc = 0;
     IWFS_RWL_STATE fstate;
     const char *path = opts->rwlfile.exfile.file.path;
-    
+
     memset(f, 0, sizeof(*f));
 
     f->write = _fsm_write;
@@ -1635,6 +1673,7 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f,
     f->lread = _fsm_lread;
 
     f->allocate = _fsm_allocate;
+    f->reallocate = _fsm_reallocate;
     f->deallocate = _fsm_deallocate;
     f->writehdr = _fsm_writehdr;
     f->readhdr = _fsm_readhdr;

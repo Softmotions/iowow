@@ -696,7 +696,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f,
     assert(opts);
     iwrc rc = 0;
     const char *path = opts->file.path;
-    
+
     memset(f, 0, sizeof(*f));
 
     f->close = _exfile_close;

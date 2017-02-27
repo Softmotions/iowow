@@ -1,17 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Workspace Name="iowow" Database="iowow.tags" SWTLW="Yes">
+<CodeLite_Workspace Name="iowow" Database="iowow.tags" Version="10.0.0" SWTLW="Yes">
   <WorkspaceParserMacros/>
   <WorkspaceParserPaths/>
   <Project Name="iowow" Path="iowow.project" Active="Yes"/>
-  <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
-      <Project Name="iowow" ConfigName="Debug"/>
-    </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
-      <Project Name="iowow" ConfigName="Debug"/>
-    </WorkspaceConfiguration>
-  </BuildMatrix>
   <Environment>
     <![CDATA[]]>
   </Environment>
+  <Project Name="testc" Path="../../tmp/testc/testc.project" Active="No"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
+      <Environment/>
+      <Project Name="iowow" ConfigName="Debug"/>
+      <Project Name="testc" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="yes">
+      <Environment/>
+      <Project Name="iowow" ConfigName="Debug"/>
+      <Project Name="testc" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
 </CodeLite_Workspace>
