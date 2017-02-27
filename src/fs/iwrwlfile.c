@@ -1,4 +1,3 @@
-// clang-format off
 /**************************************************************************************************
  * IOWOW library
  *
@@ -24,7 +23,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-// clang-format on
 
 #include "iwrwlfile.h"
 #include "utils/iwrlock.h"
@@ -151,37 +149,37 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f, const IWFS_RWL_OPTS *opts) {
   assert(opts);
   iwrc rc = 0;
   const char *path = opts->exfile.file.path;
-  
+
   memset(f, 0, sizeof(*f));
-  
+
   f->write = _rwl_write;
   f->read = _rwl_read;
   f->close = _rwl_close;
   f->sync = _rwl_sync;
   f->state = _rwl_state;
-  
+
   f->ensure_size = _rwl_ensure_size;
   f->truncate = _rwl_truncate;
   f->add_mmap = _rwl_add_mmap;
   f->get_mmap = _rwl_get_mmap;
   f->remove_mmap = _rwl_remove_mmap;
   f->sync_mmap = _rwl_sync_mmap;
-  
+
   f->lock = _rwl_lock;
   f->try_lock = _rwl_try_lock;
   f->unlock = _rwl_unlock;
   f->lwrite = _rwl_lwrite;
   f->lread = _rwl_lread;
-  
+
   if (!path) {
     return IW_ERROR_INVALID_ARGS;
   }
-  
+
   _RWL *impl = f->impl = calloc(1, sizeof(*f->impl));
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  
+
   rc = iwfs_exfile_open(&impl->exfile, &opts->exfile);
   if (rc) {
     goto finish;
@@ -190,7 +188,7 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f, const IWFS_RWL_OPTS *opts) {
   if (rc) {
     goto finish;
   }
-  
+
 finish:
   if (rc) {
     if (f->impl) {

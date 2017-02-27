@@ -1,4 +1,4 @@
-// clang-format off
+//
 /**************************************************************************************************
  * IOWOW library
  *
@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-// clang-format on
+
 
 #include "platform/iwp.h"
 #include "log/iwlog.h"
@@ -54,17 +54,17 @@ IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fstat) {
   assert(fstat);
   iwrc rc = 0;
   struct stat st = {0};
-  
+
   memset(fstat, 0, sizeof(*fstat));
   if (stat(path, &st)) {
     return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
   }
-  
+
   fstat->atime = _IW_TIMESPEC2MS(st.st_atim);
   fstat->mtime = _IW_TIMESPEC2MS(st.st_mtim);
   fstat->ctime = _IW_TIMESPEC2MS(st.st_ctim);
   fstat->size = st.st_size;
-  
+
   if (S_ISREG(st.st_mode)) {
     fstat->ftype = IWP_TYPE_FILE;
   } else if (S_ISDIR(st.st_mode)) {

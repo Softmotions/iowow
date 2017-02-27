@@ -1,7 +1,7 @@
 #ifndef IW_CFG_H
 #define IW_CFG_H
 
-// clang-format off
+//
 /**************************************************************************************************
  * IOWOW library
  *
@@ -27,7 +27,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-// clang-format on
+
 
 #include "basedefs.h"
 

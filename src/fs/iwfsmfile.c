@@ -1,4 +1,3 @@
-// clang-format off
 /**************************************************************************************************
  * IOWOW library
  *
@@ -24,7 +23,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-// clang-format on
 
 #include "iwfsmfile.h"
 #include "log/iwlog.h"
@@ -774,13 +772,11 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   IWFS_RWL *pool = &impl->pool;
   size_t psize = impl->psize;
 
-  // clang-format off
   if ((bmlen & ((1 << impl->bpow) - 1))
       || (bmoff & ((1 << impl->bpow) - 1))
       || (bmoff & (psize - 1))) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
   }
-  // clang-format on
 
   if (bmlen < impl->bmlen) {
     rc = IW_ERROR_INVALID_ARGS;

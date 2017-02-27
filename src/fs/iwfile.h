@@ -1,7 +1,6 @@
 #ifndef IW_FILE_H
 #define IW_FILE_H
 
-// clang-format off
 /**************************************************************************************************
  * IOWOW library
  *
@@ -27,7 +26,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-// clang-format on
 
 /**
  * @file
@@ -134,7 +132,7 @@ typedef enum {
  */
 typedef struct IWFS_FILE {
   void *impl; /**< Implementation specific data */
-  
+
   /**
    * @brief Write @a buf bytes into the file
    *
@@ -147,7 +145,7 @@ typedef struct IWFS_FILE {
    */
   iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz,
                size_t *sp);
-               
+
   /**
    * @brief Read @a siz bytes into @a buf at the specified offset @a off
    *
@@ -160,20 +158,20 @@ typedef struct IWFS_FILE {
    */
   iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz,
               size_t *sp);
-              
+
   /**
    * @brief Closes this file.
    * @return `0` on success or error code.
    */
   iwrc(*close)(struct IWFS_FILE *f);
-  
+
   /**
    * @brief Sync file data with fs.
    * @param f `struct IWFS_FILE` pointer.
    * @param opts File sync options.
    */
   iwrc(*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
-  
+
   /**
    * @brief Return current file state.
    * @param f `struct IWFS_FILE` pointer.
@@ -183,7 +181,7 @@ typedef struct IWFS_FILE {
    * @see struct IWFS_FILE_STATE
    */
   iwrc(*state)(struct IWFS_FILE *f, IWFS_FILE_STATE *state);
-  
+
 } IWFS_FILE;
 
 /**

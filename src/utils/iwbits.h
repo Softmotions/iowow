@@ -1,7 +1,7 @@
 #ifndef IWBITS_H
 #define IWBITS_H
 
-// clang-format off
+//
 /**************************************************************************************************
  * IOWOW library
  *
@@ -27,7 +27,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-// clang-format on
+
 
 /** @file
  *  @brief Various bit manipulation utility methods.

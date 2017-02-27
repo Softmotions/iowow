@@ -1,7 +1,7 @@
 #ifndef IWRWLFILE_H
 #define IWRWLFILE_H
 
-// clang-format off
+//
 /**************************************************************************************************
  * IOWOW library
  *
@@ -27,7 +27,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-// clang-format on
+
 
 /** @file
  *  @brief Auto-expandable file with support of reader/writer address space
@@ -77,7 +77,7 @@ typedef struct IWFS_RWL_STATE {
  */
 typedef struct IWFS_RWL {
   struct IWFS_RWL_IMPL *impl;
-  
+
   /**
    * @brief Acquire a lock over the address range specified by @a off and @a
    * len.
@@ -94,7 +94,7 @@ typedef struct IWFS_RWL {
    * @return `0` on success or error code
    */
   iwrc(*lock)(struct IWFS_RWL *f, off_t off, off_t len, iwrl_lockflags lflags);
-  
+
   /**
    * @brief Try to acquire a lock over the address range specified by @a off and
    * @a len.
@@ -112,7 +112,7 @@ typedef struct IWFS_RWL {
    */
   iwrc(*try_lock)(struct IWFS_RWL *f, off_t off, off_t len,
                   iwrl_lockflags lflags);
-                  
+
   /**
    * @brief Release the previously acquired address space lock.
    * If the specified space not been locked by this thread the method will
@@ -123,7 +123,7 @@ typedef struct IWFS_RWL {
    * @param len Length of locked spaces.
    */
   iwrc(*unlock)(struct IWFS_RWL *f, off_t off, off_t len);
-  
+
   /**
    * @brief Acquire a `IWRL_WRITE` lock then write bytes to the locked space.
    *
@@ -137,7 +137,7 @@ typedef struct IWFS_RWL {
    */
   iwrc(*lwrite)(struct IWFS_RWL *f, off_t off, const void *buf, size_t siz,
                 size_t *sp);
-                
+
   /**
   * @brief Acquire a `IWRL_READ` lock then read bytes from the locked space.
   *
@@ -151,46 +151,46 @@ typedef struct IWFS_RWL {
   */
   iwrc(*lread)(struct IWFS_RWL *f, off_t off, void *buf, size_t siz,
                size_t *sp);
-               
+
   /* See iwexfile.h */
-  
+
   /** @see IWFS_EXT::ensure_size */
   iwrc(*ensure_size)(struct IWFS_RWL *f, off_t size);
-  
+
   /** @see IWFS_EXT::truncate */
   iwrc(*truncate)(struct IWFS_RWL *f, off_t size);
-  
+
   /** @see IWFS_EXT::add_mmap */
   iwrc(*add_mmap)(struct IWFS_RWL *f, off_t off, size_t maxlen);
-  
+
   /** @see IWFS_EXT::get_mmap */
   iwrc(*get_mmap)(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp);
-  
+
   /** @see IWFS_EXT::remove_mmap */
   iwrc(*remove_mmap)(struct IWFS_RWL *f, off_t off);
-  
+
   /** @see IWFS_EXT::sync_mmap */
   iwrc(*sync_mmap)(struct IWFS_RWL *f, off_t off, int flags);
-  
+
   /* See iwfile.h */
-  
+
   /** @see IWFS_FILE::write  */
   iwrc(*write)(struct IWFS_RWL *f, off_t off, const void *buf, size_t siz,
                size_t *sp);
-               
+
   /** @see IWFS_FILE::read  */
   iwrc(*read)(struct IWFS_RWL *f, off_t off, void *buf, size_t siz,
               size_t *sp);
-              
+
   /** @see IWFS_FILE::close  */
   iwrc(*close)(struct IWFS_RWL *f);
-  
+
   /** @see IWFS_FILE::sync  */
   iwrc(*sync)(struct IWFS_RWL *f, iwfs_sync_flags flags);
-  
+
   /** @see IWFS_FILE::state  */
   iwrc(*state)(struct IWFS_RWL *f, IWFS_RWL_STATE *state);
-  
+
 } IWFS_RWL;
 
 /**

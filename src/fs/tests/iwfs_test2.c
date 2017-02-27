@@ -1,4 +1,4 @@
-// clang-format off
+//
 /**************************************************************************************************
  * IOWOW library
  *
@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-// clang-format on
+
 
 #include "iowow.h"
 #include "log/iwlog.h"
