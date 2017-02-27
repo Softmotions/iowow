@@ -59,10 +59,12 @@ int clean_suite(void) {
 uint64_t iwfs_fsmdbg_number_of_free_areas(IWFS_FSM *f);
 uint64_t iwfs_fsmdbg_find_next_set_bit(const uint64_t *addr,
                                        uint64_t offset_bit,
-                                       uint64_t max_offset_bit, int *found);
+                                       uint64_t max_offset_bit,
+                                       int *found);
 uint64_t iwfs_fsmdbg_find_prev_set_bit(const uint64_t *addr,
                                        uint64_t offset_bit,
-                                       uint64_t min_offset_bit, int *found);
+                                       uint64_t min_offset_bit,
+                                       int *found);
 void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
 iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d);
 
@@ -73,8 +75,7 @@ void test_fsm_bitmap(void) {
   int found = 0;
 
   uint64_t val = 0x3UL; /* 0000011 */
-  uint64_t res =
-      iwfs_fsmdbg_find_next_set_bit(&val, 0, sizeof(uint64_t) * 8, &found);
+  uint64_t res = iwfs_fsmdbg_find_next_set_bit(&val, 0, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 0);
 
@@ -157,32 +158,27 @@ void test_fsm_bitmap(void) {
   CU_ASSERT_EQUAL(res, 1);
 
   buf[0] = 0x1UL;
-  res =
-      iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
+  res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 0);
 
   buf[0] = 0x2UL;
-  res =
-      iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
+  res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 1);
 
   buf[0] = 0x4UL;
-  res =
-      iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
+  res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
 
   buf[0] = 0x8UL;
-  res =
-      iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
+  res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 3);
 
   buf[1] = 0x2UL;
-  res = iwfs_fsmdbg_find_prev_set_bit(buf, 2 * sizeof(uint64_t) * 8 + 17, 0,
-                                      &found);
+  res = iwfs_fsmdbg_find_prev_set_bit(buf, 2 * sizeof(uint64_t) * 8 + 17, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 64 + 1);
 
@@ -190,8 +186,7 @@ void test_fsm_bitmap(void) {
   buf[0] = 0x4UL;
   buf[1] = 0x0UL;
   buf[2] = 0x0UL;
-  res =
-      iwfs_fsmdbg_find_prev_set_bit(buf, (sizeof(uint64_t) * 8 + 2), 0, &found);
+  res = iwfs_fsmdbg_find_prev_set_bit(buf, (sizeof(uint64_t) * 8 + 2), 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
 
@@ -206,8 +201,7 @@ void test_fsm_bitmap(void) {
 void test_fsm_open_close(void) {
   iwrc rc;
   IWFS_FSM_OPTS opts = {
-      .rwlfile = {.exfile = {.file = {.path = "test_fsm_open_close.fsm",
-                                      .lock_mode = IWP_WLOCK},
+      .rwlfile = {.exfile = {.file = {.path = "test_fsm_open_close.fsm", .lock_mode = IWP_WLOCK},
                              .rspolicy = iw_exfile_szpolicy_fibo,
                              .initial_size = 0}},
       .bpow = 6,
@@ -221,8 +215,7 @@ void test_fsm_open_close(void) {
   CU_ASSERT_FALSE_FATAL(rc);
   rc = iwfs_fsmdbg_state(&fsm, &state1);
   CU_ASSERT_FALSE(rc);
-  CU_ASSERT_TRUE((psize * 8 - state1.lfbklen) * 64 ==
-                 2 * psize);  // allocated first 2 pages
+  CU_ASSERT_TRUE((psize * 8 - state1.lfbklen) * 64 == 2 * psize);  // allocated first 2 pages
   rc = fsm.close(&fsm);
   CU_ASSERT_FALSE_FATAL(rc);
 
@@ -239,8 +232,7 @@ void test_fsm_open_close(void) {
   CU_ASSERT_EQUAL(state1.state.blocks_num, state2.state.blocks_num);
   CU_ASSERT_EQUAL(state1.state.hdrlen, state2.state.hdrlen);
   CU_ASSERT_EQUAL(state1.state.oflags, state2.state.oflags);
-  CU_ASSERT_EQUAL(state1.state.rwlfile.exfile.fsize,
-                  state2.state.rwlfile.exfile.fsize);
+  CU_ASSERT_EQUAL(state1.state.rwlfile.exfile.fsize, state2.state.rwlfile.exfile.fsize);
   CU_ASSERT_EQUAL(state1.state.rwlfile.exfile.fsize, 2 * psize);
   rc = fsm.close(&fsm);
   CU_ASSERT_FALSE_FATAL(rc);
@@ -249,14 +241,13 @@ void test_fsm_open_close(void) {
 void test_fsm_uniform_alloc(void) {
   iwrc rc;
   IWFS_FSMDBG_STATE state1, state2;
-  IWFS_FSM_OPTS opts = {
-      .rwlfile = {.exfile = {.file = {.path = "test_fsm_uniform_alloc.fsm",
-                                      .lock_mode = IWP_WLOCK,
-                                      .omode = IWFS_OTRUNC},
-                             .rspolicy = iw_exfile_szpolicy_fibo}},
-      .bpow = 6,
-      .hdrlen = 64,
-      .oflags = IWFSM_STRICT};
+  IWFS_FSM_OPTS opts = {.rwlfile = {.exfile = {.file = {.path = "test_fsm_uniform_alloc.fsm",
+                                                        .lock_mode = IWP_WLOCK,
+                                                        .omode = IWFS_OTRUNC},
+                                               .rspolicy = iw_exfile_szpolicy_fibo}},
+                        .bpow = 6,
+                        .hdrlen = 64,
+                        .oflags = IWFSM_STRICT};
 
   typedef struct {
     off_t addr;
@@ -273,8 +264,7 @@ void test_fsm_uniform_alloc(void) {
 
   rc = iwfs_fsmdbg_state(&fsm, &state1);
   CU_ASSERT_FALSE_FATAL(rc);
-  CU_ASSERT_EQUAL_FATAL(state1.state.rwlfile.exfile.file.ostatus,
-                        IWFS_OPEN_NEW);
+  CU_ASSERT_EQUAL_FATAL(state1.state.rwlfile.exfile.file.ostatus, IWFS_OPEN_NEW);
 
   for (int i = 0; i < bcnt; ++i) {
     aslots[i].addr = 0;
@@ -304,8 +294,7 @@ void test_fsm_uniform_alloc(void) {
 
   rc = iwfs_fsmdbg_state(&fsm, &state2);
   CU_ASSERT_FALSE_FATAL(rc);
-  CU_ASSERT_EQUAL_FATAL(state2.state.rwlfile.exfile.file.ostatus,
-                        IWFS_OPEN_EXISTING);
+  CU_ASSERT_EQUAL_FATAL(state2.state.rwlfile.exfile.file.ostatus, IWFS_OPEN_EXISTING);
   CU_ASSERT_FALSE(state2.state.rwlfile.exfile.file.opts.omode & IWFS_OWRITE);
 
   CU_ASSERT_EQUAL(state1.bmlen, state2.bmlen);
@@ -313,14 +302,13 @@ void test_fsm_uniform_alloc(void) {
   CU_ASSERT_EQUAL(state1.lfbklen, state2.lfbklen);
   CU_ASSERT_EQUAL(state1.lfbkoff, state2.lfbkoff);
   CU_ASSERT_EQUAL(state1.state.blocks_num, state2.state.blocks_num);
-  CU_ASSERT_EQUAL(state1.state.free_segments_num,
-                  state2.state.free_segments_num);
+  CU_ASSERT_EQUAL(state1.state.free_segments_num, state2.state.free_segments_num);
   CU_ASSERT_EQUAL(state1.state.avg_alloc_size, state2.state.avg_alloc_size);
   CU_ASSERT_EQUAL(state1.state.alloc_dispersion, state2.state.alloc_dispersion);
 
   uint32_t ibuf;
   off_t ilen;
-  rc = fsm.allocate(&fsm, sizeof(ibuf), (void *)&ibuf, &ilen, 0);
+  rc = fsm.allocate(&fsm, sizeof(ibuf), (void *) &ibuf, &ilen, 0);
   CU_ASSERT_EQUAL(rc, IW_ERROR_READONLY);
 
   rc = fsm.close(&fsm);
@@ -406,8 +394,7 @@ static void *recordsthr(void *op) {
     memset(rec, 0, sizeof(*rec));
     rec->locked = 1;
     do {
-      rec->length =
-          iwu_rand_dnorm((double)task->avgrecsz, task->avgrecsz / 3.0);
+      rec->length = iwu_rand_dnorm((double) task->avgrecsz, task->avgrecsz / 3.0);
     } while (rec->length <= 0 || rec->length > maxrsize);
 
     /* Allocate record */
@@ -461,8 +448,7 @@ static void *recordsthr(void *op) {
 
       /* allocate */
       do {
-        rec->length =
-            iwu_rand_dnorm((double)task->avgrecsz, task->avgrecsz / 3.0);
+        rec->length = iwu_rand_dnorm((double) task->avgrecsz, task->avgrecsz / 3.0);
       } while (rec->length <= 0 || rec->length > maxrsize);
 
       rc = fsm->allocate(fsm, rec->length, &rec->offset, &rec->length, 0);
@@ -508,16 +494,14 @@ static void *recordsthr(void *op) {
   return 0;
 }
 
-void test_block_allocation_impl(int nthreads, int numrec, int avgrecsz,
-                                int blkpow, const char *path) {
+void test_block_allocation_impl(int nthreads, int numrec, int avgrecsz, int blkpow, const char *path) {
   iwrc rc;
   pthread_t *tlist = malloc(nthreads * sizeof(pthread_t));
 
-  IWFS_FSM_OPTS opts = {
-      .rwlfile = {.exfile = {.file = {.path = path, .omode = IWFS_OTRUNC},
-                             .rspolicy = iw_exfile_szpolicy_fibo}},
-      .bpow = blkpow,
-      .oflags = IWFSM_STRICT};
+  IWFS_FSM_OPTS opts = {.rwlfile = {.exfile = {.file = {.path = path, .omode = IWFS_OTRUNC},
+                                               .rspolicy = iw_exfile_szpolicy_fibo}},
+                        .bpow = blkpow,
+                        .oflags = IWFSM_STRICT};
 
   FSMRECTASK task;
   FSMREC *rec, *prev;
@@ -558,8 +542,7 @@ void test_block_allocation1(void) {
   iwrc rc;
   IWFS_FSM fsm;
   IWFS_FSM_OPTS opts = {
-      .rwlfile = {.exfile = {.file = {.path = "test_block_allocation1.fsm",
-                                      .omode = IWFS_OTRUNC}}},
+      .rwlfile = {.exfile = {.file = {.path = "test_block_allocation1.fsm", .omode = IWFS_OTRUNC}}},
       .hdrlen = 62 * 64,
       .bpow = 6,
       .oflags = IWFSM_STRICT};
@@ -649,7 +632,8 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry())
+    return CU_get_error();
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwfs_test2", init_suite, clean_suite);
@@ -661,14 +645,10 @@ int main() {
 
   /* Add the tests to the suite */
   if ((NULL == CU_add_test(pSuite, "test_fsm_bitmap", test_fsm_bitmap)) ||
-      (NULL ==
-       CU_add_test(pSuite, "test_fsm_open_close", test_fsm_open_close)) ||
-      (NULL ==
-       CU_add_test(pSuite, "test_fsm_uniform_alloc", test_fsm_uniform_alloc)) ||
-      (NULL ==
-       CU_add_test(pSuite, "test_block_allocation1", test_block_allocation1)) ||
-      (NULL ==
-       CU_add_test(pSuite, "test_block_allocation2", test_block_allocation2))) {
+      (NULL == CU_add_test(pSuite, "test_fsm_open_close", test_fsm_open_close)) ||
+      (NULL == CU_add_test(pSuite, "test_fsm_uniform_alloc", test_fsm_uniform_alloc)) ||
+      (NULL == CU_add_test(pSuite, "test_block_allocation1", test_block_allocation1)) ||
+      (NULL == CU_add_test(pSuite, "test_block_allocation2", test_block_allocation2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

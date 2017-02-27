@@ -40,7 +40,9 @@ int init_suite(void) {
   return rc;
 }
 
-int clean_suite(void) { return 0; }
+int clean_suite(void) {
+  return 0;
+}
 
 void iwlog_test1() {
   uint32_t ec = (0xfffffffdU & 0x3fffffffU);
@@ -93,8 +95,7 @@ void iwlog_test2() {
                                 "status set. (IW_ERROR_ERRNO)|"));
   CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERRNO Message"));
   CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERROR iwlog_test1.c:"));
-  CU_ASSERT_PTR_NOT_NULL(
-      strstr(buf, "70004|0|0|Resource is readonly. (IW_ERROR_READONLY)|"));
+  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "70004|0|0|Resource is readonly. (IW_ERROR_READONLY)|"));
   CU_ASSERT_PTR_NOT_NULL(strstr(buf, "c94645c3b107433497ef295b1c00dcff12"));
 
   fclose(out);
@@ -106,7 +107,8 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry())
+    return CU_get_error();
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwlog_test1", init_suite, clean_suite);

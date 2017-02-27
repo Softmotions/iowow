@@ -46,13 +46,12 @@
  *  - File shrinking/truncation support.
  *  - A number mmaped regions can be registered in the file's address space.
  *    These regions used in read/write operation and automatically maintained
- during file resize
- *    operations.
+ *    during file resize operations.
  *
- * File operations implemented as function pointers contained in `IWFS_FSM` `C`
- structure.
+ * File operations implemented as function pointers contained
+ * in `IWFS_FSM` `C` structure.
  * The `iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts)` opens file
- and initializes a given `IWFS_FSM` structure.
+ * and initializes a given `IWFS_FSM` structure.
  *
  * <strong>File format:</strong>
  * @verbatim
@@ -337,8 +336,8 @@ typedef struct IWFS_FSM {
  * <strong>Example:</strong>
  *
  * Open a buffer pool file for multithreaded env with fibonacci file resize
- * policy with
- * block size of 64 bytes and custom file header of 255 bytes length.
+ * policy with block size of 64 bytes and custom file header of 255 bytes
+ * length.
  *
  * @code {.c}
  *  IWFS_FSM_OPTS opts = {
@@ -355,7 +354,7 @@ typedef struct IWFS_FSM {
  *       .bpow = 6,              // 2^6 bytes block size
  *       .hdrlen = 255,          // Size of custom file header
  *       .oflags = IWFSM_STRICT  // Use verbose free-space bitmap checking for
- * allocations (10-15% overhead)
+ *                               // allocations (10-15% overhead)
  *  };
  *
  *  IWFS_FSM f;
@@ -368,8 +367,8 @@ typedef struct IWFS_FSM {
  *  rc = f.allocate(&f, 128, &space_addr, &space_len, 0);
  *  if (!rc) {
  *      int data = 33;
- *      //Write some data to the allocated block with writer lock acquired on
- * `[space_addr, sizeof(data))`
+ *      // Write some data to the allocated block with writer lock acquired on
+ *      // `[space_addr, sizeof(data))`
  *      rc = f.lwrite(&f, space_addr, &data, sizeof(data), &sp);
  *      ...
  *  }

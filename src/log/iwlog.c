@@ -40,9 +40,8 @@
 #include <string.h>
 #include <time.h>
 
-static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode,
-                           int errno_code, int werror_code, const char *file,
-                           int line, uint64_t ts, void *opts, const char *fmt,
+static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode, int errno_code, int werror_code,
+                           const char *file, int line, uint64_t ts, void *opts, const char *fmt,
                            va_list argp);
 
 static const char *_ecode_explained(locale_t locale, uint32_t ecode);
@@ -55,8 +54,7 @@ static void *_current_logfn_options = 0;
 #define _IWLOG_MAX_ECODE_FUN 256
 static IWLOG_ECODE_FN _ecode_functions[_IWLOG_MAX_ECODE_FUN] = {0};
 
-iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-           const char *fmt, ...) {
+iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, ...) {
   va_list argp;
   int rv;
   va_start(argp, fmt);
@@ -65,16 +63,14 @@ iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
   return rv;
 }
 
-void iwlog2(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-            const char *fmt, ...) {
+void iwlog2(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, ...) {
   va_list argp;
   va_start(argp, fmt);
   iwlog_va(lvl, ecode, file, line, fmt, argp);
   va_end(argp);
 }
 
-iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-              const char *fmt, va_list argp) {
+iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, va_list argp) {
   assert(_current_logfn);
 
 #ifdef _WIN32
@@ -96,12 +92,10 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
   void *opts = _current_logfn_options;
   pthread_mutex_unlock(&_mtx);
 
-  rc = logfn(locale, lvl, ecode, errno_code, werror_code, file, line, ts, opts,
-             fmt, argp);
+  rc = logfn(locale, lvl, ecode, errno_code, werror_code, file, line, ts, opts, fmt, argp);
 
   if (rc) {
-    fprintf(stderr,
-            "Logging function returned with error: %" PRIu64 IW_LINE_SEP, rc);
+    fprintf(stderr, "Logging function returned with error: %" PRIu64 IW_LINE_SEP, rc);
   }
   return rc;
 }
@@ -115,9 +109,9 @@ iwrc iwrc_set_errno(iwrc rc, uint32_t errno_code) {
   }
   uint64_t ret = _IWLOG_ERRNO_RC_MASK;
   ret <<= 30;
-  ret |= (uint32_t)errno_code & 0x3fffffffU;
+  ret |= (uint32_t) errno_code & 0x3fffffffU;
   ret <<= 32;
-  ret |= (uint32_t)rc;
+  ret |= (uint32_t) rc;
   return ret;
 }
 
@@ -138,9 +132,9 @@ iwrc iwrc_set_werror(iwrc rc, uint32_t werror) {
   }
   uint64_t ret = _IWLOG_WERR_EC_MASK;
   ret <<= 30;
-  ret |= (uint32_t)werror & 0x3fffffffU;
+  ret |= (uint32_t) werror & 0x3fffffffU;
   ret <<= 32;
-  ret |= (uint32_t)rc;
+  ret |= (uint32_t) rc;
   return ret;
 }
 
@@ -154,7 +148,9 @@ uint32_t iwrc_strip_werror(iwrc *rc) {
 }
 #endif
 
-void iwrc_strip_code(iwrc *rc) { *rc = *rc & 0x00000000ffffffffULL; }
+void iwrc_strip_code(iwrc *rc) {
+  *rc = *rc & 0x00000000ffffffffULL;
+}
 
 void iwlog_set_logfn(IWLOG_FN fp) {
   pthread_mutex_lock(&_mtx);
@@ -281,9 +277,16 @@ static const char *_default_ecodefn(locale_t locale, uint32_t ecode) {
   return 0;
 }
 
-static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode,
-                           int errno_code, int werror_code, const char *file,
-                           int line, uint64_t ts, void *opts, const char *fmt,
+static iwrc _default_logfn(locale_t locale,
+                           iwlog_lvl lvl,
+                           iwrc ecode,
+                           int errno_code,
+                           int werror_code,
+                           const char *file,
+                           int line,
+                           uint64_t ts,
+                           void *opts,
+                           const char *fmt,
                            va_list argp) {
 #define TBUF_SZ 96
 #define EBUF_SZ 128
@@ -291,7 +294,7 @@ static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode,
   iwrc rc = 0;
   IWLOG_DEFAULT_OPTS myopts = {0};
   FILE *out = stderr;
-  time_t ts_sec = ((long double)ts / 1000);
+  time_t ts_sec = ((long double) ts / 1000);
   struct tm timeinfo;
   size_t sz, sz2;
   char tbuf[TBUF_SZ], ebuf[EBUF_SZ];
@@ -306,10 +309,8 @@ static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode,
 
   if (werror_code) {
     LPTSTR out = NULL;
-    DWORD ret = FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL,
-        werror_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&out, 0,
-        NULL);
+    DWORD ret = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, werror_code,
+                              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &out, 0, NULL);
 
     if (ret == 0) {
       if (out) {
@@ -327,7 +328,7 @@ static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode,
   localtime_r(&ts_sec, &timeinfo);
 
   if (opts) {
-    myopts = *(IWLOG_DEFAULT_OPTS *)opts;
+    myopts = *(IWLOG_DEFAULT_OPTS *) opts;
 
     if (myopts.out) {
       out = myopts.out;
@@ -338,7 +339,7 @@ static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode,
     tbuf[0] = '\0';
   } else if (TBUF_SZ - sz > 4) {  // .000 suffix
     tbuf[sz] = '.';
-    sz2 = snprintf((char *)tbuf + sz + 1, 4, "%03d", (int)(ts % 1000));
+    sz2 = snprintf((char *) tbuf + sz + 1, 4, "%03d", (int) (ts % 1000));
 
     if (sz2 > 3) {
       tbuf[sz] = '\0';
@@ -374,14 +375,12 @@ static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode,
   if (ecode || errno_code || werror_code) {
     if (file && line > 0) {
       file = basename(file);
-      fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, file,
-              line, ecode, errno_code, werror_code,
-              (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
+      fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, file, line, ecode, errno_code,
+              werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
               (werror_msg ? werror_msg : ""));
     } else {
-      fprintf(out, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, ecode,
-              errno_code, werror_code, (ecode_msg ? ecode_msg : ""),
-              (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
+      fprintf(out, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, ecode, errno_code, werror_code,
+              (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
     }
   } else {
     if (file && line > 0) {

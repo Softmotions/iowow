@@ -34,6 +34,7 @@
  *  @author Anton Adamansky (adamansky@softmotions.com)
  *
  * @note  Before using API of this module you should call
+ *
  * `iw_init(void)` iowow module initialization routine.
  *
  * <strong>Features:</strong>
@@ -42,21 +43,19 @@
  * `IWFS_EXT_OPTS::rspolicy` option value.
  *    The following policies are implemented:
  *      - Exact. File resizing fits exactly to the size required by `write`
- * operation.
- *        This is the default behaviour.
+ *        operation. This is the default behaviour.
  *      - Fibonacci policy. Next file size computed accourding to
- *          fibonacci sequence of previous file sizes: `file_size(n+1) =
- * MAX(file_size(n) + file_size(n-1), nsize)`
- *      - Multiplication resize policy. Next file size: `file_size(n+1) = N *
- * file_size(n)` where
- *         `N` is a rational number `IW_RNUM` greater than `1`
+ *        fibonacci sequence of previous file sizes:
+          `file_size(n+1) = MAX(file_size(n) + file_size(n-1), nsize)`
+ *      - Multiplication resize policy. Next file size:
+          `file_size(n+1) = N * file_size(n)` where
+ *        `N` is a rational number `IW_RNUM` greater than `1`
  *  - Read/write locking over a file's address space in multithreaded
- * environment.
+ *    environment.
  *  - File shrinking/truncation support.
  *  - A number mmaped regions can be registered in the file's address space.
  *    These regions used in read/write operation and automatically maintained
- * during file resize
- *    operations.
+ *    during file resize operations.
  *
  * File operations implemented as function pointers contained in `IWFS_EXT` `C`
  * structure.
@@ -77,8 +76,8 @@ typedef enum {
   _IWFS_EXT_ERROR_START = (IW_ERROR_START + 3000UL),
   IWFS_ERROR_MMAP_OVERLAP, /**< Region is mmaped already, mmaping overlaps */
   IWFS_ERROR_NOT_MMAPED,   /**< Region is not mmaped */
-  IWFS_ERROR_RESIZE_POLICY_FAIL, /**< Invalid result of resize policy function.
-                                    */
+  IWFS_ERROR_RESIZE_POLICY_FAIL, /**< Invalid result of resize policy
+                                      function.*/
   _IWFS_EXT_ERROR_END
 } iwfs_ext_ecode;
 
@@ -87,11 +86,11 @@ typedef enum {
  *
  * This function called in the following cases:
  *  - When a file needs to be resized. Returned new file size cannot
- *      be lesser than requested @a nsize and must be `page aligned`.
+ *    be lesser than requested @a nsize and must be `page aligned`.
  *  - When a file is closed. In this case the first argument @a nsize
- *      will be set to `-1` and function should return `0`.
- *      This call can be used in order to release resources allocated for @a ctx
- *      private data used in function.
+ *    will be set to `-1` and function should return `0`.
+ *    This call can be used in order to release resources allocated for @a ctx
+ *    private data used in function.
  *
  * @param nsize Desired file size.
  * @param csize Current file size.
@@ -128,11 +127,11 @@ typedef struct IWFS_EXT_OPTS {
   IWFS_FILE_OPTS file; /**< Underlying file options */
   off_t initial_size;  /**< Initial file size */
   int use_locks;       /**< If `1` file operations will be guarded by rw lock.
-                          Dafault: `0` */
+                            Default: `0` */
   IW_EXT_RSPOLICY rspolicy; /**< File resize policy function ptr. Default:
                                `exact size policy`  */
-  void *rspolicy_ctx; /**< Custom opaque data for policy functions. Default: `0`
-                         */
+  void *rspolicy_ctx;       /**< Custom opaque data for policy functions.
+                                 Default: `0` */
 } IWFS_EXT_OPTS;
 
 /**
@@ -149,7 +148,7 @@ typedef struct IWFS_EXT_STATE {
  * @brief Auto-expandable file.
  */
 typedef struct IWFS_EXT {
-  struct IWFS_EXT_IMPL *impl;
+  void *impl;
 
   /**
    * @brief Ensures that a file's physical address space contains a given offset
@@ -160,7 +159,7 @@ typedef struct IWFS_EXT {
    *
    * @param f `IWFS_EXT`
    * @param off File offset what have to be within physically allocated file
-   * address space.
+   *            address space.
    * @return `0` on success or error code.
    *
    * @see off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct
@@ -183,8 +182,7 @@ typedef struct IWFS_EXT {
    * It is not required for this region be physically represented in the file's
    * address space.
    * As soon as this region will be used for reading/writing it will be mmaped
-   * and
-   * direct mmaped memory access will be used for IO in this area.
+   * and direct mmaped memory access will be used for IO in this area.
    *
    * For example:
    * @code {.c}
@@ -213,7 +211,7 @@ typedef struct IWFS_EXT {
    * @param f `IWFS_EXT`
    * @param off Region start offset
    * @param [out] mm Pointer assigned to start of mmaped region of `NULL` if
-   * error occurred .
+   *                 error occurred.
    * @param [out] sp Length of region
    * @return `0` on success or error code.
    */

@@ -1,4 +1,12 @@
 {
-
-    "cmake.configureArgs": ["-DBUILD_TESTS=ON", "-DCMAKE_C_COMPILER=clang", "-DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF"]
+    "cmake.configureArgs": [
+        "-DBUILD_TESTS=ON",
+        "-DCMAKE_C_COMPILER=clang",
+        "-DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF"
+    ],
+    "cmake.ctestArgs": [
+        "-R",
+        "iwfs_test2"
+    ],
+    "clang-format.language.c.style": "file"
 }

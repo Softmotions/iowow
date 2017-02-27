@@ -40,11 +40,11 @@ typedef struct IWFS_EXT_IMPL {
   off_t fsize;               /**< Current file size */
   off_t psize;               /**< System page size */
   pthread_rwlock_t *rwlock;  /**< Thread RW lock */
-  IW_EXT_RSPOLICY rspolicy;  /**< File resize policy function ptr. */
-  void *rspolicy_ctx;        /**< Custom opaque data for policy functions. */
-  struct _MMAPSLOT *mmslots; /**< Memory mapping slots. */
+  IW_EXT_RSPOLICY rspolicy;  /**< File resize policy function ptr */
+  void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
+  struct _MMAPSLOT *mmslots; /**< Memory mapping slots */
   int use_locks;             /**< Use rwlocks to guard method access */
-  iwfs_omode omode;          /**< File open mode. */
+  iwfs_omode omode;          /**< File open mode */
   HANDLE fh;                 /**< File handle */
 } _EXF;
 
@@ -57,49 +57,62 @@ typedef struct _MMAPSLOT {
 #endif
   struct _MMAPSLOT *prev; /**< Previous mmap slot. */
   struct _MMAPSLOT *next; /**< Next mmap slot. */
-  uint8_t
-      *mmap; /**< Pointer to a mmaped address space in the case if file data is
-                memory mapped. */
+  uint8_t *mmap;          /**< Pointer to a mmaped address space
+                               in the case if file data is memory mapped. */
 } _MMAPSLOT;
 
 IW_INLINE iwrc _exfile_wlock(IWFS_EXT *f) {
   assert(f);
-  if (!f->impl) return IW_ERROR_INVALID_STATE;
-  if (!f->impl->use_locks) return 0;
-  if (!f->impl->rwlock) return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_wrlock(f->impl->rwlock);
+  if (!f->impl)
+    return IW_ERROR_INVALID_STATE;
+  if (!((_EXF *) (f->impl))->use_locks)
+    return 0;
+  if (!((_EXF *) (f->impl))->rwlock)
+    return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_wrlock(((_EXF *) (f->impl))->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 IW_INLINE iwrc _exfile_rlock(IWFS_EXT *f) {
   assert(f);
-  if (!f->impl) return IW_ERROR_INVALID_STATE;
-  if (!f->impl->use_locks) return 0;
-  if (!f->impl->rwlock) return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_rdlock(f->impl->rwlock);
+  if (!f->impl)
+    return IW_ERROR_INVALID_STATE;
+  if (!((_EXF *) (f->impl))->use_locks)
+    return 0;
+  if (!((_EXF *) (f->impl))->rwlock)
+    return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_rdlock(((_EXF *) (f->impl))->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 IW_INLINE iwrc _exfile_unlock(IWFS_EXT *f) {
   assert(f);
-  if (!f->impl) return IW_ERROR_INVALID_STATE;
-  if (!f->impl->use_locks) return 0;
-  if (!f->impl->rwlock) return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_unlock(f->impl->rwlock);
+  if (!f->impl)
+    return IW_ERROR_INVALID_STATE;
+  if (!((_EXF *) (f->impl))->use_locks)
+    return 0;
+  if (!((_EXF *) (f->impl))->rwlock)
+    return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_unlock(((_EXF *) (f->impl))->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 IW_INLINE iwrc _exfile_unlock2(_EXF *impl) {
-  if (!impl) return IW_ERROR_INVALID_STATE;
-  if (!impl->use_locks) return 0;
-  if (!impl->rwlock) return IW_ERROR_INVALID_STATE;
+  if (!impl)
+    return IW_ERROR_INVALID_STATE;
+  if (!impl->use_locks)
+    return 0;
+  if (!impl->rwlock)
+    return IW_ERROR_INVALID_STATE;
   int rv = pthread_rwlock_unlock(impl->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 static iwrc _exfile_destroylocks(_EXF *impl) {
-  if (!impl) return IW_ERROR_INVALID_STATE;
-  if (!impl->rwlock) return 0;
+  if (!impl)
+    return IW_ERROR_INVALID_STATE;
+  if (!impl->rwlock)
+    return 0;
   int rv = pthread_rwlock_destroy(impl->rwlock);
   free(impl->rwlock);
   impl->rwlock = 0;
@@ -128,8 +141,7 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, _MMAPSLOT *s) {
   }
   if (nlen > 0) {
     int flags = MAP_SHARED;
-    int prot =
-        (impl->omode & IWFS_OWRITE) ? (PROT_WRITE | PROT_READ) : (PROT_READ);
+    int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE | PROT_READ) : (PROT_READ);
     s->len = nlen;
     s->mmap = mmap(0, s->len, prot, flags, impl->fh, s->off);
     if (s->mmap == MAP_FAILED) {
@@ -237,8 +249,7 @@ static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   return rc;
 }
 
-static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf,
-                          size_t siz, size_t *sp) {
+static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   _MMAPSLOT *s;
   _EXF *impl;
   off_t end = off + siz;
@@ -259,7 +270,8 @@ static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf,
     }
     if (end > impl->fsize) {
       rc = _exfile_ensure_size_lw(f, end);
-      if (rc) goto finish;
+      if (rc)
+        goto finish;
     }
   }
   s = impl->mmslots;
@@ -269,23 +281,22 @@ static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf,
     }
     if (s->off > off) {
       len = MIN(wp, s->off - off);
-      rc = impl->file.write(&impl->file, off, (const char *)buf + (siz - wp),
-                            len, sp);
-      if (rc) goto finish;
+      rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), len, sp);
+      if (rc)
+        goto finish;
       wp = wp - *sp;
       off = off + *sp;
     }
     if (wp > 0 && s->off <= off && s->off + s->len > off) {
       len = MIN(wp, s->off + s->len - off);
-      memcpy(s->mmap + (off - s->off), (const char *)buf + (siz - wp), len);
+      memcpy(s->mmap + (off - s->off), (const char *) buf + (siz - wp), len);
       wp -= len;
       off += len;
     }
     s = s->next;
   }
   if (wp > 0) {
-    rc = impl->file.write(&impl->file, off, (const char *)buf + (siz - wp), wp,
-                          sp);
+    rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), wp, sp);
     if (rc) {
       goto finish;
     }
@@ -302,8 +313,7 @@ end:
   return rc;
 }
 
-static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz,
-                         size_t *sp) {
+static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, size_t *sp) {
   _MMAPSLOT *s;
   _EXF *impl;
   off_t end = off + siz;
@@ -327,7 +337,7 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz,
     }
     if (s->off > off) {
       len = MIN(rp, s->off - off);
-      rc = impl->file.read(&impl->file, off, (char *)buf + (siz - rp), len, sp);
+      rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), len, sp);
       if (rc) {
         goto finish;
       }
@@ -336,14 +346,14 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz,
     }
     if (rp > 0 && s->off <= off && s->off + s->len > off) {
       len = MIN(rp, s->off + s->len - off);
-      memcpy((char *)buf + (siz - rp), s->mmap + (off - s->off), len);
+      memcpy((char *) buf + (siz - rp), s->mmap + (off - s->off), len);
       rp -= len;
       off += len;
     }
     s = s->next;
   }
   if (rp > 0) {
-    rc = impl->file.read(&impl->file, off, (char *)buf + (siz - rp), rp, sp);
+    rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), rp, sp);
     if (rc) {
       goto finish;
     }
@@ -364,8 +374,9 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
   if (rc) {
     return rc;
   }
-  IWRC(f->impl->file.state(&f->impl->file, &state->file), rc);
-  state->fsize = f->impl->fsize;
+  _EXF *xf = (_EXF *) (f->impl);
+  IWRC(xf->file.state(&xf->file, &state->file), rc);
+  state->fsize = ((_EXF *) (f->impl))->fsize;
   IWRC(_exfile_unlock(f), rc);
   return rc;
 }
@@ -552,7 +563,9 @@ iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
   assert(off >= 0);
   assert(mm);
 
-  if (sp) *sp = 0;
+  if (sp) {
+    *sp = 0;
+  }
   *mm = 0;
 
   iwrc rc = _exfile_rlock(f);
@@ -610,7 +623,9 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, int _flags) {
       }
       if (s->mmap && s->mmap != MAP_FAILED) {
         int flags = _flags;
-        if (!flags) flags = MS_ASYNC;
+        if (!flags) {
+          flags = MS_ASYNC;
+        }
         if (msync(s->mmap, s->len, flags)) {
           rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
         }
@@ -627,16 +642,14 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, int _flags) {
   return rc;
 }
 
-static off_t _exfile_default_szpolicy(off_t nsize, off_t csize,
-                                      struct IWFS_EXT *f, void **ctx) {
+static off_t _exfile_default_szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **ctx) {
   if (nsize == -1) {
     return 0;
   }
   return IW_ROUNDUP(nsize, iwp_page_size());
 }
 
-off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXT *f,
-                              void **_ctx) {
+off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx) {
   struct _FIBO_CTX {
     off_t prev_sz;
   } *ctx = *_ctx;
@@ -663,8 +676,7 @@ off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXT *f,
   return res;
 }
 
-off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f,
-                             void **_ctx) {
+off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx) {
   IW_RNUM *mul = *_ctx;
   if (nsize == -1) {
     return 0;
@@ -687,7 +699,7 @@ off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f,
 
 static iwrc _exfile_initlocks(IWFS_EXT *f) {
   assert(f && f->impl);
-  assert(!f->impl->rwlock);
+  assert(!((_EXF *) (f->impl))->rwlock);
   _EXF *impl = f->impl;
   if (!impl->use_locks) {
     return 0;
@@ -696,7 +708,7 @@ static iwrc _exfile_initlocks(IWFS_EXT *f) {
   if (!impl->rwlock) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  int rv = pthread_rwlock_init(impl->rwlock, (void *)0);
+  int rv = pthread_rwlock_init(impl->rwlock, (void *) 0);
   if (rv) {
     free(impl->rwlock);
     impl->rwlock = 0;
@@ -730,7 +742,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
     return IW_ERROR_INVALID_ARGS;
   }
 
-  _EXF *impl = f->impl = calloc(1, sizeof(*f->impl));
+  _EXF *impl = f->impl = calloc(1, sizeof(_EXF));
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }

@@ -133,7 +133,7 @@ typedef enum {
  * @brief Simple file implementation.
  */
 typedef struct IWFS_FILE {
-  struct IWFS_FILE_IMPL *impl; /**< Implementation specific data */
+  void *impl; /**< Implementation specific data */
 
   /**
    * @brief Write @a buf bytes into the file

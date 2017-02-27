@@ -35,7 +35,7 @@
  *  @author Anton Adamansky (adamansky@softmotions.com)
  *
  *  @note  Before using API of this module you should call
- * `iw_init(void)` iowow module initialization routine.
+ *         `iw_init(void)` iowow module initialization routine.
  *
  *  Features:
  *  - Read/write file address space locking.

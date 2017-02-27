@@ -41,8 +41,7 @@ typedef struct IWFS_FILE_IMPL {
   IWFS_FILE_OPTS opts;     /**< File open options. */
 } _IWF;
 
-static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf,
-                        size_t siz, size_t *sp) {
+static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   assert(f);
   _IWF *impl = f->impl;
   if (!impl) {
@@ -54,8 +53,7 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf,
   return iwp_write(impl->fh, off, buf, siz, sp);
 }
 
-static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz,
-                       size_t *sp) {
+static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp) {
   assert(f);
   _IWF *impl = f->impl;
   if (!impl) {
@@ -77,7 +75,7 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
   }
   IWRC(iwp_closefh(impl->fh), rc);
   if (opts->path) {
-    free((char *)opts->path);
+    free((char *) opts->path);
     opts->path = 0;
   }
   free(f->impl);
@@ -90,11 +88,12 @@ static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
   if (!f->impl) {
     return IW_ERROR_INVALID_STATE;
   }
+  _IWF *wf = (_IWF *) f->impl;
   if (flags & IWFS_FDATASYNC) {
-    if (fdatasync(f->impl->fh) == -1) {
+    if (fdatasync(wf->fh) == -1) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
-  } else if (fsync(f->impl->fh) == -1) {
+  } else if (fsync(wf->fh) == -1) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
   return 0;
@@ -134,7 +133,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   f->sync = _iwfs_sync;
   f->state = _iwfs_state;
 
-  impl = f->impl = calloc(sizeof(*f->impl), 1);
+  impl = f->impl = calloc(sizeof(_IWF), 1);
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -180,8 +179,10 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   mode = O_RDONLY;
   if (omode & IWFS_OWRITE) {
     mode = O_RDWR;
-    if (omode & IWFS_OCREATE) mode |= O_CREAT;
-    if (omode & IWFS_OTRUNC) mode |= O_TRUNC;
+    if (omode & IWFS_OCREATE)
+      mode |= O_CREAT;
+    if (omode & IWFS_OTRUNC)
+      mode |= O_TRUNC;
   }
   impl->fh = open(opts->path, mode, opts->filemode);
   if (INVALIDHANDLE(impl->fh)) {
@@ -199,10 +200,12 @@ finish:
   if (rc) {
     impl->ostatus = IWFS_OPEN_FAIL;
     if (opts->path) {
-      free((char *)opts->path);
+      free((char *) opts->path);
     }
   }
   return rc;
 }
 
-iwrc iwfs_file_init(void) { return 0; }
+iwrc iwfs_file_init(void) {
+  return 0;
+}

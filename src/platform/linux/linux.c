@@ -37,8 +37,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#define _IW_TIMESPEC2MS(IW_ts) \
-  ((IW_ts).tv_sec * 1000) + (uint64_t)round((IW_ts).tv_nsec / 1.0e6)
+#define _IW_TIMESPEC2MS(IW_ts) ((IW_ts).tv_sec * 1000) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6)
 
 iwrc iwp_current_time_ms(int64_t *time) {
   struct timespec spec;
@@ -83,8 +82,7 @@ iwrc iwp_flock(HANDLE fd, iwp_lockmode lmode) {
   if (lmode == IWP_NOLOCK) {
     return 0;
   }
-  struct flock lock = {.l_type = (lmode & IWP_WLOCK) ? F_WRLCK : F_RDLCK,
-                       .l_whence = SEEK_SET};
+  struct flock lock = {.l_type = (lmode & IWP_WLOCK) ? F_WRLCK : F_RDLCK, .l_whence = SEEK_SET};
   while (fcntl(fd, (lmode & IWP_NBLOCK) ? F_SETLK : F_SETLKW, &lock) == -1) {
     if (errno != EINTR) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);

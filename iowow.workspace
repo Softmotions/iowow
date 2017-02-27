@@ -6,7 +6,6 @@
   <Environment>
     <![CDATA[]]>
   </Environment>
-  <Project Name="testc" Path="../../tmp/testc/testc.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>

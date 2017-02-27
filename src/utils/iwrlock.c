@@ -70,12 +70,11 @@ struct _IWRLOCK {
   pthread_mutex_t lock;
 };
 
-#define _IWRL_IS_RANGES_OVERLAP(IW_s1_, IW_e1_, IW_s2_, IW_e2_) \
-  (((IW_e1_) >= (IW_s2_) && (IW_e1_) <= (IW_e2_)) ||            \
-   ((IW_s1_) >= (IW_s2_) && (IW_s1_) <= (IW_e2_)) ||            \
+#define _IWRL_IS_RANGES_OVERLAP(IW_s1_, IW_e1_, IW_s2_, IW_e2_)                                              \
+  (((IW_e1_) >= (IW_s2_) && (IW_e1_) <= (IW_e2_)) || ((IW_s1_) >= (IW_s2_) && (IW_s1_) <= (IW_e2_)) ||       \
    ((IW_s1_) <= (IW_s2_) && (IW_e1_) >= (IW_e2_)))
 
-#define _IWRL_IS_RANGES_OVERLAP2(IW_l, IW_s, IW_e) \
+#define _IWRL_IS_RANGES_OVERLAP2(IW_l, IW_s, IW_e)                                                           \
   _IWRL_IS_RANGES_OVERLAP((IW_l)->start, (IW_l)->end, (IW_s), (IW_e))
 
 #define _IWRL_IS_OWNER(IW_l_) (pthread_equal((IW_l_)->owner, pthread_self()))
@@ -101,16 +100,14 @@ static int _iwrl_is_free(IWRLOCK *lk, off_t start, off_t end) {
   return 1;
 }
 
-static int _iwrl_is_canlock(IWRLOCK *lk, off_t start, off_t end, int lflags,
-                            pthread_t owner, int *_is_free) {
+static int _iwrl_is_canlock(IWRLOCK *lk, off_t start, off_t end, int lflags, pthread_t owner, int *_is_free) {
   int is_free = 1;
   for (_IWRL_LOCKER_RANGE *lr = lk->lockers; lr; lr = lr->next) {
     int overlap = _IWRL_IS_RANGES_OVERLAP2(lr, start, end);
     if (is_free && overlap) {
       is_free = 0;
     }
-    if (overlap && ((lflags | lr->flags) & IWRL_WRITE) &&
-        !_IWRL_IS_OWNER2(lr, owner)) {
+    if (overlap && ((lflags | lr->flags) & IWRL_WRITE) && !_IWRL_IS_OWNER2(lr, owner)) {
       *_is_free = 0;
       return 0;
     }
@@ -119,8 +116,7 @@ static int _iwrl_is_canlock(IWRLOCK *lk, off_t start, off_t end, int lflags,
   return 1;
 }
 
-static iwrc _iwrl_lock_append(IWRLOCK *lk, off_t start, off_t end, int lflags,
-                              pthread_t owner) {
+static iwrc _iwrl_lock_append(IWRLOCK *lk, off_t start, off_t end, int lflags, pthread_t owner) {
   _IWRL_LOCKER_RANGE *lr = malloc(sizeof(*lr));
   if (!lr) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -141,8 +137,7 @@ static iwrc _iwrl_lock_append(IWRLOCK *lk, off_t start, off_t end, int lflags,
   return 0;
 }
 
-static iwrc _iwrl_exclude_range(IWRLOCK *lk, _IWRL_LOCKER_RANGE *lr,
-                                off_t start, off_t end, pthread_t owner,
+static iwrc _iwrl_exclude_range(IWRLOCK *lk, _IWRL_LOCKER_RANGE *lr, off_t start, off_t end, pthread_t owner,
                                 int *remove_lr) {
   assert(_IWRL_IS_OWNER2(lr, owner));
   *remove_lr = 0;
@@ -165,14 +160,12 @@ static iwrc _iwrl_exclude_range(IWRLOCK *lk, _IWRL_LOCKER_RANGE *lr,
   return IW_ERROR_OUT_OF_BOUNDS;
 }
 
-static iwrc _iwrl_range_lock(IWRLOCK *lk, off_t start, off_t end, int lflags,
-                             pthread_t owner) {
+static iwrc _iwrl_range_lock(IWRLOCK *lk, off_t start, off_t end, int lflags, pthread_t owner) {
   iwrc rc = 0;
   int remove_lr;
   for (_IWRL_LOCKER_RANGE *nr, *lr = lk->lockers; lr; lr = nr) {
     nr = lr->next;
-    if (!_IWRL_IS_RANGES_OVERLAP2(lr, start, end) ||
-        !_IWRL_IS_OWNER2(lr, owner)) {
+    if (!_IWRL_IS_RANGES_OVERLAP2(lr, start, end) || !_IWRL_IS_OWNER2(lr, owner)) {
       continue;
     }
     rc = _iwrl_exclude_range(lk, lr, start, end, owner, &remove_lr);
@@ -197,8 +190,7 @@ static iwrc _iwrl_range_lock(IWRLOCK *lk, off_t start, off_t end, int lflags,
 
 // Assumed:
 //  _iwrl_lock is active
-static iwrc _iwrl_range_wait(IWRLOCK *lk, off_t start, off_t end, int lflags,
-                             pthread_t owner) {
+static iwrc _iwrl_range_wait(IWRLOCK *lk, off_t start, off_t end, int lflags, pthread_t owner) {
   iwrc rc = 0;
   _IWRL_WAITER_RANGE *wr = malloc(sizeof(*wr));
   if (!wr) {
@@ -245,8 +237,7 @@ static iwrc _iwrl_range_nofify(IWRLOCK *lk, off_t start, off_t end) {
   int is_free;
   for (_IWRL_WAITER_RANGE *wr = lk->waiters; wr; wr = wr->next) {
     if (_IWRL_IS_RANGES_OVERLAP2(wr, start, end) &&
-        _iwrl_is_canlock(lk, wr->start, wr->end, wr->flags, wr->owner,
-                         &is_free)) {
+        _iwrl_is_canlock(lk, wr->start, wr->end, wr->flags, wr->owner, &is_free)) {
       IWRC(_iwrl_range_lock(lk, wr->start, wr->end, wr->flags, wr->owner), rc);
       if (lk->waiters == wr) {
         if (wr->next) {
@@ -389,8 +380,7 @@ iwrc iwrl_unlock(IWRLOCK *lk, off_t start, off_t len) {
   }
   for (_IWRL_LOCKER_RANGE *next, *lr = lk->lockers; lr; lr = next) {
     next = lr->next;
-    if (!_IWRL_IS_OWNER2(lr, owner) ||
-        !_IWRL_IS_RANGES_OVERLAP2(lr, start, end)) {
+    if (!_IWRL_IS_OWNER2(lr, owner) || !_IWRL_IS_RANGES_OVERLAP2(lr, start, end)) {
       continue;
     }
     rc = _iwrl_exclude_range(lk, lr, start, end, owner, &remove_lr);

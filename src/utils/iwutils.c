@@ -33,21 +33,22 @@
 
 double_t iwu_rand_dnorm(double_t avg, double_t sd) {
   assert(sd >= 0.0);
-  return sqrt(-2.0 * log((rand() / (double_t)RAND_MAX))) *
-             cos(2 * 3.141592653589793 * (rand() / (double_t)RAND_MAX)) * sd +
+  return sqrt(-2.0 * log((rand() / (double_t) RAND_MAX))) *
+             cos(2 * 3.141592653589793 * (rand() / (double_t) RAND_MAX)) * sd +
          avg;
 }
 
 int iwu_rand(int range) {
   int high, low;
-  if (range < 2) return 0;
-  high = (unsigned int)rand() >> 4;
+  if (range < 2)
+    return 0;
+  high = (unsigned int) rand() >> 4;
   low = range * (rand() / (RAND_MAX + 1.0));
-  low &= (unsigned int)INT_MAX >> 4;
+  low &= (unsigned int) INT_MAX >> 4;
   return (high + low) % range;
 }
 
 int iwu_rand_inorm(int range) {
-  int num = (int)iwu_rand_dnorm(range >> 1, range / 10);
+  int num = (int) iwu_rand_dnorm(range >> 1, range / 10);
   return (num < 0 || num >= range) ? 0 : num;
 }
