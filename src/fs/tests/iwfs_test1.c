@@ -48,7 +48,7 @@ void iwfs_exfile_test1(void) {
   iwrc rc = 0;
   IWFS_EXT ef;
 
-  const char *path = "iwfs_exfile_test1.dat";
+  const char* path = "iwfs_exfile_test1.dat";
   IWFS_EXT_OPTS opts = {
       .file = {.path = path, .lock_mode = IWP_WLOCK, .omode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC},
       .use_locks = 1};
@@ -108,7 +108,7 @@ void iwfs_exfile_test1(void) {
 }
 
 void test_fibo_inc(void) {
-  const char *path = "test_fibo_inc.dat";
+  const char* path = "test_fibo_inc.dat";
   IWFS_EXT ef;
   IWFS_EXT_OPTS opts = {
       .file = {.path = path, .lock_mode = IWP_WLOCK, .omode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC},
@@ -162,10 +162,10 @@ void test_mmap1(void) {
   size_t psize = iwp_page_size();
   size_t sp;
   const int dsize = psize * 4;
-  uint8_t *data = malloc(dsize);
-  uint8_t *cdata = malloc(dsize);
+  uint8_t* data = malloc(dsize);
+  uint8_t* cdata = malloc(dsize);
 
-  const char *path = "test_mmap1.dat";
+  const char* path = "test_mmap1.dat";
   IWFS_EXT ef;
   IWFS_EXT_OPTS opts = {.file = {.path = path, .omode = IWFS_OTRUNC}, .use_locks = 0};
 
@@ -290,8 +290,7 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry())
-    return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwfs_test1", init_suite, clean_suite);

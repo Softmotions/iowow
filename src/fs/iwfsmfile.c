@@ -78,12 +78,10 @@ typedef enum {
    4 /*custom hdr size*/)
 
 #define _FSM_ENSURE_OPEN(FSM_impl_)                                                                          \
-  if (!(FSM_impl_) || !(FSM_impl_)->f)                                                                       \
-    return IW_ERROR_INVALID_STATE;
+  if (!(FSM_impl_) || !(FSM_impl_)->f) return IW_ERROR_INVALID_STATE;
 
 #define _FSM_ENSURE_OPEN2(FSM_f_)                                                                            \
-  if (!(FSM_f_) || !(FSM_f_)->impl)                                                                          \
-    return IW_ERROR_INVALID_STATE;
+  if (!(FSM_f_) || !(FSM_f_)->impl) return IW_ERROR_INVALID_STATE;
 
 #define _FSMBK_RESET(Bk_) memset((Bk_), 0, sizeof(*(Bk_)))
 
@@ -158,7 +156,9 @@ IW_INLINE iwrc _fsm_ctrl_unlock(_FSM *impl) {
 }
 
 /**
- * @brief Init the given @a bk key with given @a offset and @a length values.
+ * @brief Init the given @a bk key
+ *        with given @a offset
+ *        and @a length values.
  */
 IW_INLINE iwrc _fsm_init_fbk(_FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
   uint64_t apply = 0;
@@ -480,7 +480,7 @@ static void _fsm_load_fsm_lw(_FSM *impl, uint8_t *bm, uint64_t len) {
       cbnum += 8;
       continue;
     }
-    for (i = 0; i < 8; ++i, ++cbnum) {
+    for (i = 0; i < 8; ++i, ++cbnum) {  // TODO: optimize?
       if (bb & (1 << i)) {
         if (fbklength > 0) {
           fbkoffset = cbnum - fbklength;
@@ -506,9 +506,9 @@ static void _fsm_load_fsm_lw(_FSM *impl, uint8_t *bm, uint64_t len) {
  */
 static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
   uint8_t hdr[_FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
-  uint32_t sp = 0, lvalue;
   uint64_t llvalue;
   size_t wlen;
+  uint32_t sp = 0, lvalue;
 
   /*
       [FSM_CTL_MAGICK u32][block pow u8]
@@ -589,9 +589,10 @@ static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
  */
 static uint64_t _fsm_find_next_set_bit(const uint64_t *addr, uint64_t offset_bit, uint64_t max_offset_bit,
                                        int *found) {
-  uint64_t size, bit, tmp;
-  const uint64_t *p = addr + offset_bit / 64;
   *found = 0;
+  const uint64_t *p = addr + offset_bit / 64;
+  uint64_t size, bit, tmp;
+
   if (offset_bit >= max_offset_bit) {
     return 0;
   }
@@ -1220,18 +1221,15 @@ static iwrc _fsm_init_new_lw(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   bmoff = IW_ROUNDUP(impl->hdrlen, impl->psize);
 
   rc = pool->ensure_size(pool, bmoff + bmlen);
-  if (rc)
-    return rc;
+  if (rc) return rc;
 
   /* mmap header */
   rc = pool->add_mmap(pool, 0, impl->hdrlen);
-  if (rc)
-    return rc;
+  if (rc) return rc;
 
   /* mmap the fsm bitmap index */
   rc = pool->add_mmap(pool, bmoff, bmlen);
-  if (rc)
-    return rc;
+  if (rc) return rc;
 
   return _fsm_init_lw(impl, bmoff, bmlen);
 }
@@ -1244,22 +1242,18 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
   IWFS_RWL *pool = &impl->pool;
 
   rc = _fsm_read_meta_lr(impl);
-  if (rc)
-    return rc;
+  if (rc) return rc;
 
   /* mmap the header part of file */
   rc = pool->add_mmap(pool, 0, impl->hdrlen);
-  if (rc)
-    return rc;
+  if (rc) return rc;
 
   /* mmap the fsm bitmap index */
   rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
-  if (rc)
-    return rc;
+  if (rc) return rc;
 
   rc = pool->get_mmap(pool, impl->bmoff, &mmap, &sp);
-  if (rc)
-    return rc;
+  if (rc) return rc;
 
   if (sp < impl->bmlen) {
     rc = IWFS_ERROR_NOT_MMAPED;
@@ -1304,8 +1298,7 @@ static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t si
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
-    if (rc)
-      return rc;
+    if (rc) return rc;
     IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
@@ -1329,8 +1322,7 @@ static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
-    if (rc)
-      return rc;
+    if (rc) return rc;
     IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
@@ -1372,8 +1364,7 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
 static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
   _FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
-  if (rc)
-    return rc;
+  if (rc) return rc;
   IWRC(_fsm_write_meta_lw(f->impl, 1), rc);
   IWRC(_fsm_ctrl_unlock(f->impl), rc);
   return rc;
@@ -1382,8 +1373,7 @@ static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
 static iwrc _fsm_ensure_size(struct IWFS_FSM *f, off_t size) {
   _FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
-  if (rc)
-    return rc;
+  if (rc) return rc;
   IWRC(f->impl->pool.ensure_size(&f->impl->pool, size), rc);
   IWRC(_fsm_ctrl_unlock(f->impl), rc);
   return rc;
@@ -1437,8 +1427,7 @@ static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t s
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
-    if (rc)
-      return rc;
+    if (rc) return rc;
     IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
@@ -1462,8 +1451,7 @@ static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, siz
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
-    if (rc)
-      return rc;
+    if (rc) return rc;
     IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
@@ -1497,8 +1485,7 @@ static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *ol
   len = IW_ROUNDUP(len, 1 << impl->bpow);
 
   rc = _fsm_ctrl_wlock(impl);
-  if (rc)
-    return rc;
+  if (rc) return rc;
   rc = _fsm_blk_allocate_lw(f->impl, (len >> impl->bpow), &sbnum, &nlen, opts);
   if (!rc) {
     *olen = (nlen << impl->bpow);
@@ -1525,8 +1512,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t 
     return 0;
   }
   rc = _fsm_ctrl_wlock(impl);
-  if (rc)
-    return rc;
+  if (rc) return rc;
 
   if (nlen_blk < olen_blk) {
     rc = _fsm_blk_deallocate_lw(impl, oaddr_blk + nlen_blk, olen_blk - nlen_blk);
@@ -1560,8 +1546,7 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
   }
   len = IW_ROUNDUP(len, 1 << impl->bpow);
   rc = _fsm_ctrl_wlock(impl);
-  if (rc)
-    return rc;
+  if (rc) return rc;
   if (IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow)) ||
       IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, (impl->bmoff >> impl->bpow),
                         (impl->bmoff >> impl->bpow) + (impl->bmlen >> impl->bpow))) {
@@ -1587,8 +1572,7 @@ static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t 
     return IW_ERROR_OUT_OF_BOUNDS;
   }
   rc = _fsm_ctrl_rlock(impl);
-  if (rc)
-    return rc;
+  if (rc) return rc;
   rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, 0);
   if (!rc) {
     assert(mmap);
@@ -1611,8 +1595,7 @@ static iwrc _fsm_readhdr(struct IWFS_FSM *f, off_t off, void *buf, off_t siz) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
   rc = _fsm_ctrl_rlock(impl);
-  if (rc)
-    return rc;
+  if (rc) return rc;
   rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, 0);
   if (!rc) {
     assert(mmap);
@@ -1717,21 +1700,17 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   rwl_opts.exfile.use_locks = !(opts->oflags & IWFSM_NOLOCKS);
 
   rc = _fsm_init_impl(impl, opts);
-  if (rc)
-    goto finish;
+  if (rc) goto finish;
 
   rc = _fsm_init_locks(impl, opts);
-  if (rc)
-    goto finish;
+  if (rc) goto finish;
 
   rc = iwfs_rwlfile_open(&impl->pool, &rwl_opts);
-  if (rc)
-    goto finish;
+  if (rc) goto finish;
 
   memset(&fstate, 0, sizeof(fstate));
   rc = impl->pool.state(&impl->pool, &fstate);
-  if (rc)
-    goto finish;
+  if (rc) goto finish;
 
   impl->omode = fstate.exfile.file.opts.omode;
 
