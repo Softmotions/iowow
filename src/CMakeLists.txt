@@ -11,8 +11,8 @@ set(ALL_HDRS)
 set(PUB_HDRS)
 set(PROJECT_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 list(APPEND PROJECT_INCLUDE_DIRS "${PROJECT_GENERATED_DIR}"
-                                  "${CMAKE_CURRENT_SOURCE_DIR}")    
-                                  
+                                  "${CMAKE_CURRENT_SOURCE_DIR}")
+
 if(APPLE)
     option(BUILD_FRAMEWORK "Build an OS X framework" OFF)
     set(FRAMEWORK_INSTALL_DIR "/Library/Frameworks" CACHE STRING "Directory to install frameworks to.")
@@ -83,7 +83,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrlock.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwbits.h
                      )
-                     
+
 list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)
 list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
 include_directories(${PROJECT_INCLUDE_DIRS})
@@ -92,8 +92,8 @@ if (NOT BUILD_SHARED_LIBS)
     add_definitions(-DIW_NODLL)
     add_library(iowow STATIC ${ALL_SRC})
     add_library(iowow_s ALIAS iowow)
-else() 
-    add_library(iowow SHARED ${ALL_SRC})    
+else()
+    add_library(iowow SHARED ${ALL_SRC})
     add_library(iowow_s STATIC ${ALL_SRC})
 endif()
 
@@ -143,7 +143,7 @@ foreach(MODULE IN LISTS MODULES)
     endif()
     if (BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/tests/CMakeLists.txt)
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/tests)
-    endif() 
+    endif()
 endforeach(MODULE)
 
 
@@ -154,7 +154,7 @@ if (BUILD_SHARED_LIBS)
                           SOVERSION ${PROJECT_VERSION_MAJOR}
                           PUBLIC_HEADER "${PUB_HDRS}"
                           DEFINE_SYMBOL IW_API_EXPORTS)
-                      
+
     set_target_properties(iowow_s PROPERTIES
                           VERSION ${PROJECT_VERSION}
                           COMPILE_FLAGS "-DIW_NODLL"
@@ -165,7 +165,7 @@ else()
                           VERSION ${PROJECT_VERSION}
                           PUBLIC_HEADER "${PUB_HDRS}"
                           COMPILE_FLAGS "-DIW_NODLL"
-                          OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})                          
+                          OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})
 endif(BUILD_SHARED_LIBS)
 
 install(TARGETS iowow
@@ -191,26 +191,26 @@ endif()
 
 
 if(BUILD_DOCUMENTATION)
-    install(FILES 
+    install(FILES
             ${CMAKE_SOURCE_DIR}/LICENSE
             ${CMAKE_SOURCE_DIR}/INSTALL
             ${CMAKE_SOURCE_DIR}/Changelog
             DESTINATION ${CMAKE_INSTALL_DOCDIR})
-    install(FILES 
+    install(FILES
             ${CMAKE_SOURCE_DIR}/README.md
             RENAME README
             DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()
 
 if (CMAKE_VERSION VERSION_GREATER 3.0)
-    export(EXPORT iowow-exports)    
+    export(EXPORT iowow-exports)
     if (BUILD_SHARED_LIBS)
         export(EXPORT iowow-static-exports)
         endif()
     else()
         export(TARGETS iowow FILE iowow-exports.cmake)
         if (BUILD_SHARED_LIBS)
-        export(TARGETS iowow_s FILE iowow-static-exports.cmake) 
+        export(TARGETS iowow_s FILE iowow-static-exports.cmake)
     endif()
 endif()
 

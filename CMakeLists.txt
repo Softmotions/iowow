@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 2.6)
 #cmake_policy(VERSION 2.6)
 
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 set(DEB_CHANGELOG_REQUIRED ON)
+
+include(CMakeToolsHelpers OPTIONAL)
 include(DebChangelog)
 
 set(PROJECT_NAME "iowow")
@@ -55,7 +58,7 @@ macro_ensure_out_of_source_build(
     "${CMAKE_PROJECT_NAME} requires an out of source build."
 )
 
-if(BUILD_TESTS) 
+if(BUILD_TESTS)
     include(CTest)
     find_package(CUnit REQUIRED)
 endif(BUILD_TESTS)
@@ -104,7 +107,7 @@ endif()
 
 if(CPACK_GENERATORS)
     set(CPACK_GENERATOR "${CPACK_GENERATORS}")
-    set(CPACK_SOURCE_IGNORE_FILES 
+    set(CPACK_SOURCE_IGNORE_FILES
             "iowow\\\\.mk$"
             "\\\\.project$"
             "\\\\.workspace$"
