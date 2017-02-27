@@ -34,7 +34,7 @@
 double_t iwu_rand_dnorm(double_t avg, double_t sd) {
   assert(sd >= 0.0);
   return sqrt(-2.0 * log((rand() / (double_t) RAND_MAX))) *
-             cos(2 * 3.141592653589793 * (rand() / (double_t) RAND_MAX)) * sd +
+         cos(2 * 3.141592653589793 * (rand() / (double_t) RAND_MAX)) * sd +
          avg;
 }
 

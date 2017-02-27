@@ -63,56 +63,42 @@ typedef struct _MMAPSLOT {
 
 IW_INLINE iwrc _exfile_wlock(IWFS_EXT *f) {
   assert(f);
-  if (!f->impl)
-    return IW_ERROR_INVALID_STATE;
-  if (!((_EXF *) (f->impl))->use_locks)
-    return 0;
-  if (!((_EXF *) (f->impl))->rwlock)
-    return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_wrlock(((_EXF *) (f->impl))->rwlock);
+  if (!f->impl) return IW_ERROR_INVALID_STATE;
+  if (!((_EXF *)(f->impl))->use_locks) return 0;
+  if (!((_EXF *)(f->impl))->rwlock) return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_wrlock(((_EXF *)(f->impl))->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 IW_INLINE iwrc _exfile_rlock(IWFS_EXT *f) {
   assert(f);
-  if (!f->impl)
-    return IW_ERROR_INVALID_STATE;
-  if (!((_EXF *) (f->impl))->use_locks)
-    return 0;
-  if (!((_EXF *) (f->impl))->rwlock)
-    return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_rdlock(((_EXF *) (f->impl))->rwlock);
+  if (!f->impl) return IW_ERROR_INVALID_STATE;
+  if (!((_EXF *)(f->impl))->use_locks) return 0;
+  if (!((_EXF *)(f->impl))->rwlock) return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_rdlock(((_EXF *)(f->impl))->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 IW_INLINE iwrc _exfile_unlock(IWFS_EXT *f) {
   assert(f);
-  if (!f->impl)
-    return IW_ERROR_INVALID_STATE;
-  if (!((_EXF *) (f->impl))->use_locks)
-    return 0;
-  if (!((_EXF *) (f->impl))->rwlock)
-    return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_unlock(((_EXF *) (f->impl))->rwlock);
+  if (!f->impl) return IW_ERROR_INVALID_STATE;
+  if (!((_EXF *)(f->impl))->use_locks) return 0;
+  if (!((_EXF *)(f->impl))->rwlock) return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_unlock(((_EXF *)(f->impl))->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 IW_INLINE iwrc _exfile_unlock2(_EXF *impl) {
-  if (!impl)
-    return IW_ERROR_INVALID_STATE;
-  if (!impl->use_locks)
-    return 0;
-  if (!impl->rwlock)
-    return IW_ERROR_INVALID_STATE;
+  if (!impl) return IW_ERROR_INVALID_STATE;
+  if (!impl->use_locks) return 0;
+  if (!impl->rwlock) return IW_ERROR_INVALID_STATE;
   int rv = pthread_rwlock_unlock(impl->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 static iwrc _exfile_destroylocks(_EXF *impl) {
-  if (!impl)
-    return IW_ERROR_INVALID_STATE;
-  if (!impl->rwlock)
-    return 0;
+  if (!impl) return IW_ERROR_INVALID_STATE;
+  if (!impl->rwlock) return 0;
   int rv = pthread_rwlock_destroy(impl->rwlock);
   free(impl->rwlock);
   impl->rwlock = 0;
@@ -249,7 +235,8 @@ static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   return rc;
 }
 
-static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t siz, size_t *sp) {
+static iwrc _exfile_write(struct IWFS_EXT *f,
+                          off_t off, const void *buf, size_t siz, size_t *sp) {
   _MMAPSLOT *s;
   _EXF *impl;
   off_t end = off + siz;
@@ -374,9 +361,9 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
   if (rc) {
     return rc;
   }
-  _EXF *xf = (_EXF *) (f->impl);
+  _EXF *xf = (_EXF *)(f->impl);
   IWRC(xf->file.state(&xf->file, &state->file), rc);
-  state->fsize = ((_EXF *) (f->impl))->fsize;
+  state->fsize = ((_EXF *)(f->impl))->fsize;
   IWRC(_exfile_unlock(f), rc);
   return rc;
 }
@@ -683,8 +670,8 @@ off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f, void 
   }
   if (!mul || !mul->dn || mul->n < mul->dn) {
     iwlog_error2(
-        "Invalid iw_exfile_szpolicy_mul context arguments, fallback to the "
-        "default resize policy");
+      "Invalid iw_exfile_szpolicy_mul context arguments, fallback to the "
+      "default resize policy");
     return _exfile_default_szpolicy(nsize, csize, f, _ctx);
   }
   uint64_t ret = nsize;
@@ -699,7 +686,7 @@ off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f, void 
 
 static iwrc _exfile_initlocks(IWFS_EXT *f) {
   assert(f && f->impl);
-  assert(!((_EXF *) (f->impl))->rwlock);
+  assert(!((_EXF *)(f->impl))->rwlock);
   _EXF *impl = f->impl;
   if (!impl->use_locks) {
     return 0;
@@ -794,14 +781,14 @@ static const char *_exfile_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-    case IWFS_ERROR_MMAP_OVERLAP:
-      return "Region is mmaped already, mmaping overlaps. "
-             "(IWFS_ERROR_MMAP_OVERLAP)";
-    case IWFS_ERROR_NOT_MMAPED:
-      return "Region is not mmaped. (IWFS_ERROR_NOT_MMAPED)";
-    case IWFS_ERROR_RESIZE_POLICY_FAIL:
-      return "Invalid result of resize policy function. "
-             "(IWFS_ERROR_RESIZE_POLICY_FAIL)";
+  case IWFS_ERROR_MMAP_OVERLAP:
+    return "Region is mmaped already, mmaping overlaps. "
+           "(IWFS_ERROR_MMAP_OVERLAP)";
+  case IWFS_ERROR_NOT_MMAPED:
+    return "Region is not mmaped. (IWFS_ERROR_NOT_MMAPED)";
+  case IWFS_ERROR_RESIZE_POLICY_FAIL:
+    return "Invalid result of resize policy function. "
+           "(IWFS_ERROR_RESIZE_POLICY_FAIL)";
   }
   return 0;
 }

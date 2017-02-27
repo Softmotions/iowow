@@ -85,14 +85,14 @@ typedef enum {
   IWFS_OPEN_FAIL = 0x00UL, /**< Open failed. */
   IWFS_OPEN_NEW = 0x01UL,  /**< Open success, new file've been created. */
   IWFS_OPEN_EXISTING =
-      0x02UL /**< Open success, existing file've been opened. */
+    0x02UL /**< Open success, existing file've been opened. */
 } iwfs_openstatus;
 
 #define IWFS_DEFAULT_OMODE (IWFS_OCREATE)
 #define IWFS_DEFAULT_LOCKMODE (IWP_NOLOCK)
 #define IWFS_DEFAULT_FILEMODE                    \
   00666 /**< Default permission of created files \
-           */
+*/
 
 /**
  * @brief `IWFS_FILE` file options.
@@ -134,7 +134,7 @@ typedef enum {
  */
 typedef struct IWFS_FILE {
   void *impl; /**< Implementation specific data */
-
+  
   /**
    * @brief Write @a buf bytes into the file
    *
@@ -145,9 +145,9 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually written
    * @return `0` on success or error code.
    */
-  iwrc (*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz,
-                size_t *sp);
-
+  iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz,
+               size_t *sp);
+               
   /**
    * @brief Read @a siz bytes into @a buf at the specified offset @a off
    *
@@ -158,22 +158,22 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually read.
    * @return `0` on success or error code.
    */
-  iwrc (*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz,
-               size_t *sp);
-
+  iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz,
+              size_t *sp);
+              
   /**
    * @brief Closes this file.
    * @return `0` on success or error code.
    */
-  iwrc (*close)(struct IWFS_FILE *f);
-
+  iwrc(*close)(struct IWFS_FILE *f);
+  
   /**
    * @brief Sync file data with fs.
    * @param f `struct IWFS_FILE` pointer.
    * @param opts File sync options.
    */
-  iwrc (*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
-
+  iwrc(*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
+  
   /**
    * @brief Return current file state.
    * @param f `struct IWFS_FILE` pointer.
@@ -182,8 +182,8 @@ typedef struct IWFS_FILE {
    *
    * @see struct IWFS_FILE_STATE
    */
-  iwrc (*state)(struct IWFS_FILE *f, IWFS_FILE_STATE *state);
-
+  iwrc(*state)(struct IWFS_FILE *f, IWFS_FILE_STATE *state);
+  
 } IWFS_FILE;
 
 /**

@@ -232,47 +232,47 @@ static const char *_ecode_explained(locale_t locale, uint32_t ecode) {
 
 static const char *_default_ecodefn(locale_t locale, uint32_t ecode) {
   switch (ecode) {
-    case IW_ERROR_FAIL:
-      return "Unspecified error. (IW_ERROR_FAIL)";
-    case IW_ERROR_ERRNO:
-      return "Error with expected errno status set. (IW_ERROR_ERRNO)";
-    case IW_ERROR_IO_ERRNO:
-      return "IO error with expected errno status set. (IW_ERROR_IO_ERRNO)";
-    case IW_ERROR_NOT_EXISTS:
-      return "Resource is not exists. (IW_ERROR_NOT_EXISTS)";
-    case IW_ERROR_READONLY:
-      return "Resource is readonly. (IW_ERROR_READONLY)";
-    case IW_ERROR_ALREADY_OPENED:
-      return "Resource is already opened. (IW_ERROR_ALREADY_OPENED)";
-    case IW_ERROR_THREADING:
-      return "Threading error. (IW_ERROR_THREADING)";
-    case IW_ERROR_THREADING_ERRNO:
-      return "Threading error with errno status set. "
-             "(IW_ERROR_THREADING_ERRNO)";
-    case IW_ERROR_ASSERTION:
-      return "Generic assertion error. (IW_ERROR_ASSERTION)";
-    case IW_ERROR_INVALID_HANDLE:
-      return "Invalid HANDLE value. (IW_ERROR_INVALID_HANDLE)";
-    case IW_ERROR_OUT_OF_BOUNDS:
-      return "Argument/parameter/value is out of bounds. "
-             "(IW_ERROR_OUT_OF_BOUNDS)";
-    case IW_ERROR_NOT_IMPLEMENTED:
-      return "Method is not implemented. (IW_ERROR_NOT_IMPLEMENTED)";
-    case IW_ERROR_ALLOC:
-      return "Memory allocation failed. (IW_ERROR_ALLOC)";
-    case IW_ERROR_INVALID_STATE:
-      return "Illegal state error. (IW_ERROR_INVALID_STATE)";
-    case IW_ERROR_NOT_ALIGNED:
-      return "Argument is not aligned properly. (IW_ERROR_NOT_ALIGNED)";
-    case IW_ERROR_FALSE:
-      return "False response/rejection. (IW_ERROR_FALSE)";
-    case IW_ERROR_INVALID_ARGS:
-      return "Invalid function arguments. (IW_ERROR_INVALID_ARGS)";
-    case IW_ERROR_OVERFLOW:
-      return "Overflow. (IW_ERROR_OVERFLOW)";
-    case IW_OK:
-    default:
-      return 0;
+  case IW_ERROR_FAIL:
+    return "Unspecified error. (IW_ERROR_FAIL)";
+  case IW_ERROR_ERRNO:
+    return "Error with expected errno status set. (IW_ERROR_ERRNO)";
+  case IW_ERROR_IO_ERRNO:
+    return "IO error with expected errno status set. (IW_ERROR_IO_ERRNO)";
+  case IW_ERROR_NOT_EXISTS:
+    return "Resource is not exists. (IW_ERROR_NOT_EXISTS)";
+  case IW_ERROR_READONLY:
+    return "Resource is readonly. (IW_ERROR_READONLY)";
+  case IW_ERROR_ALREADY_OPENED:
+    return "Resource is already opened. (IW_ERROR_ALREADY_OPENED)";
+  case IW_ERROR_THREADING:
+    return "Threading error. (IW_ERROR_THREADING)";
+  case IW_ERROR_THREADING_ERRNO:
+    return "Threading error with errno status set. "
+           "(IW_ERROR_THREADING_ERRNO)";
+  case IW_ERROR_ASSERTION:
+    return "Generic assertion error. (IW_ERROR_ASSERTION)";
+  case IW_ERROR_INVALID_HANDLE:
+    return "Invalid HANDLE value. (IW_ERROR_INVALID_HANDLE)";
+  case IW_ERROR_OUT_OF_BOUNDS:
+    return "Argument/parameter/value is out of bounds. "
+           "(IW_ERROR_OUT_OF_BOUNDS)";
+  case IW_ERROR_NOT_IMPLEMENTED:
+    return "Method is not implemented. (IW_ERROR_NOT_IMPLEMENTED)";
+  case IW_ERROR_ALLOC:
+    return "Memory allocation failed. (IW_ERROR_ALLOC)";
+  case IW_ERROR_INVALID_STATE:
+    return "Illegal state error. (IW_ERROR_INVALID_STATE)";
+  case IW_ERROR_NOT_ALIGNED:
+    return "Argument is not aligned properly. (IW_ERROR_NOT_ALIGNED)";
+  case IW_ERROR_FALSE:
+    return "False response/rejection. (IW_ERROR_FALSE)";
+  case IW_ERROR_INVALID_ARGS:
+    return "Invalid function arguments. (IW_ERROR_INVALID_ARGS)";
+  case IW_ERROR_OVERFLOW:
+    return "Overflow. (IW_ERROR_OVERFLOW)";
+  case IW_OK:
+  default:
+    return 0;
   }
   return 0;
 }
@@ -339,30 +339,29 @@ static iwrc _default_logfn(locale_t locale,
     tbuf[0] = '\0';
   } else if (TBUF_SZ - sz > 4) {  // .000 suffix
     tbuf[sz] = '.';
-    sz2 = snprintf((char *) tbuf + sz + 1, 4, "%03d", (int) (ts % 1000));
-
+    sz2 = snprintf((char *) tbuf + sz + 1, 4, "%03d", (int)(ts % 1000));
     if (sz2 > 3) {
       tbuf[sz] = '\0';
     }
   }
 
   switch (lvl) {
-    case IWLOG_DEBUG:
-      cat = "DEBUG";
-      break;
-    case IWLOG_INFO:
-      cat = "INFO";
-      break;
-    case IWLOG_WARN:
-      cat = "WARN";
-      break;
-    case IWLOG_ERROR:
-      cat = "ERROR";
-      break;
-    default:
-      cat = "UNKNOW";
-      assert(0);
-      break;
+  case IWLOG_DEBUG:
+    cat = "DEBUG";
+    break;
+  case IWLOG_INFO:
+    cat = "INFO";
+    break;
+  case IWLOG_WARN:
+    cat = "WARN";
+    break;
+  case IWLOG_ERROR:
+    cat = "ERROR";
+    break;
+  default:
+    cat = "UNKNOW";
+    assert(0);
+    break;
   }
 
   if (pthread_mutex_lock(&_mtx)) {

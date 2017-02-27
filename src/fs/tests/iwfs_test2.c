@@ -201,12 +201,17 @@ void test_fsm_bitmap(void) {
 void test_fsm_open_close(void) {
   iwrc rc;
   IWFS_FSM_OPTS opts = {
-      .rwlfile = {.exfile = {.file = {.path = "test_fsm_open_close.fsm", .lock_mode = IWP_WLOCK},
-                             .rspolicy = iw_exfile_szpolicy_fibo,
-                             .initial_size = 0}},
-      .bpow = 6,
-      .hdrlen = 64,
-      .oflags = IWFSM_STRICT};
+    .rwlfile = {
+      .exfile = {
+        .file = {.path = "test_fsm_open_close.fsm", .lock_mode = IWP_WLOCK},
+        .rspolicy = iw_exfile_szpolicy_fibo,
+        .initial_size = 0
+      }
+    },
+    .bpow = 6,
+    .hdrlen = 64,
+    .oflags = IWFSM_STRICT
+  };
 
   size_t psize = iwp_page_size();
   IWFS_FSMDBG_STATE state1, state2;
@@ -243,11 +248,15 @@ void test_fsm_uniform_alloc(void) {
   IWFS_FSMDBG_STATE state1, state2;
   IWFS_FSM_OPTS opts = {.rwlfile = {.exfile = {.file = {.path = "test_fsm_uniform_alloc.fsm",
                                                         .lock_mode = IWP_WLOCK,
-                                                        .omode = IWFS_OTRUNC},
-                                               .rspolicy = iw_exfile_szpolicy_fibo}},
+                                                        .omode = IWFS_OTRUNC
+                                                       },
+                                               .rspolicy = iw_exfile_szpolicy_fibo
+                                              }
+                                   },
                         .bpow = 6,
                         .hdrlen = 64,
-                        .oflags = IWFSM_STRICT};
+                        .oflags = IWFSM_STRICT
+                       };
 
   typedef struct {
     off_t addr;
@@ -498,10 +507,16 @@ void test_block_allocation_impl(int nthreads, int numrec, int avgrecsz, int blkp
   iwrc rc;
   pthread_t *tlist = malloc(nthreads * sizeof(pthread_t));
 
-  IWFS_FSM_OPTS opts = {.rwlfile = {.exfile = {.file = {.path = path, .omode = IWFS_OTRUNC},
-                                               .rspolicy = iw_exfile_szpolicy_fibo}},
-                        .bpow = blkpow,
-                        .oflags = IWFSM_STRICT};
+  IWFS_FSM_OPTS opts = {
+    .rwlfile = {
+      .exfile = {
+        .file = {.path = path, .omode = IWFS_OTRUNC},
+        .rspolicy = iw_exfile_szpolicy_fibo
+      }
+    },
+    .bpow = blkpow,
+    .oflags = IWFSM_STRICT
+  };
 
   FSMRECTASK task;
   FSMREC *rec, *prev;
@@ -542,10 +557,18 @@ void test_block_allocation1(void) {
   iwrc rc;
   IWFS_FSM fsm;
   IWFS_FSM_OPTS opts = {
-      .rwlfile = {.exfile = {.file = {.path = "test_block_allocation1.fsm", .omode = IWFS_OTRUNC}}},
-      .hdrlen = 62 * 64,
-      .bpow = 6,
-      .oflags = IWFSM_STRICT};
+    .rwlfile = {
+      .exfile = {
+        .file = {
+          .path = "test_block_allocation1.fsm",
+          .omode = IWFS_OTRUNC
+        }
+      }
+    },
+    .hdrlen = 62 * 64,
+    .bpow = 6,
+    .oflags = IWFSM_STRICT
+  };
 
   off_t oaddr = 0;
   off_t olen;

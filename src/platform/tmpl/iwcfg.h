@@ -1,3 +1,6 @@
+#ifndef IW_CFG_H
+#define IW_CFG_H
+
 // clang-format off
 /**************************************************************************************************
  * IOWOW library
@@ -26,15 +29,17 @@
  *************************************************************************************************/
 // clang-format on
 
-#include "platform/iwp.h"
-#include "log/iwlog.h"
+#include "basedefs.h"
 
-#if defined(__linux) || defined(__unix)
-#include "linux/linux.c"
-#else
-#error Unsupported platform
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#include <stddef.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
 #endif
-
-iwrc iwp_init(void) {
-  return 0;
-}

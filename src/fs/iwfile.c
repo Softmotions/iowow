@@ -117,27 +117,27 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE *state) {
 iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   assert(f);
   assert(_opts && _opts->path);
-
+  
   IWFS_FILE_OPTS *opts;
   _IWF *impl;
   IWP_FILE_STAT fstat;
   iwfs_omode omode;
   iwrc rc;
   int mode;
-
+  
   memset(f, 0, sizeof(*f));
-
+  
   f->write = _iwfs_write;
   f->read = _iwfs_read;
   f->close = _iwfs_close;
   f->sync = _iwfs_sync;
   f->state = _iwfs_state;
-
+  
   impl = f->impl = calloc(sizeof(_IWF), 1);
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-
+  
   impl->opts = *_opts;
   opts = &impl->opts;
   opts->path = strndup(_opts->path, PATH_MAX);
@@ -145,7 +145,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     goto finish;
   }
-
+  
   if (!opts->lock_mode) {
     opts->lock_mode = IWFS_DEFAULT_LOCKMODE;
   }
@@ -164,11 +164,11 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     opts->omode |= IWFS_OWRITE;
   }
   omode = opts->omode;
-
+  
   if (!(opts->omode & IWFS_OWRITE) && (opts->lock_mode & IWP_WLOCK)) {
     opts->lock_mode &= ~IWP_WLOCK;
   }
-
+  
   rc = iwp_fstat(opts->path, &fstat);
   if (!rc && !(opts->omode & IWFS_OTRUNC)) {
     impl->ostatus = IWFS_OPEN_EXISTING;
@@ -195,7 +195,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
       goto finish;
     }
   }
-
+  
 finish:
   if (rc) {
     impl->ostatus = IWFS_OPEN_FAIL;

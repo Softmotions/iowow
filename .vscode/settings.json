@@ -8,5 +8,8 @@
         "-R",
         "iwfs_test2"
     ],
-    "clang-format.language.c.style": "file"
+    "clang-format.language.c.style": "file",
+    "C_Cpp.formatting" : "disabled",
+    "clang-format.language.c.enable": false,
+    "astyle.astylerc": "${workspaceRoot}/.astylerc"
 }

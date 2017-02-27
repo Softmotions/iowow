@@ -128,10 +128,10 @@ typedef struct {
  *
  * @see iwlog_set_logfn(IWLOG_FN)
  */
-typedef iwrc (*IWLOG_FN)(locale_t locale, iwlog_lvl lvl, iwrc ecode,
-                         int errno_code, int werror_code, const char *file,
-                         int line, uint64_t ts, void *opts, const char *fmt,
-                         va_list argp);
+typedef iwrc(*IWLOG_FN)(locale_t locale, iwlog_lvl lvl, iwrc ecode,
+                        int errno_code, int werror_code, const char *file,
+                        int line, uint64_t ts, void *opts, const char *fmt,
+                        va_list argp);
 
 /**
  * @brief Return the locale aware error code explanation message.

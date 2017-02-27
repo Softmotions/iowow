@@ -91,7 +91,7 @@ typedef enum {
 
 #define _FSMBK_LENGTH(Bk_)                                                                                   \
   ((Bk_)->div ? ((_FSMBK_I64(Bk_) >> (Bk_)->div) & ((((uint64_t) 1) << (64 - (Bk_)->div)) - 1))              \
-              : _FSMBK_I64(Bk_))
+   : _FSMBK_I64(Bk_))
 
 #define _FSMBK_END(Bk_) (_FSMBK_OFFSET(Bk_) + _FSMBK_LENGTH(Bk_))
 
@@ -114,7 +114,7 @@ struct IWFS_FSM_IMPL {
   uint32_t crznum;           /**< Number of all allocated continuous areas acquired by
                                   `allocated` */
   IWFS_FSM *f;               /**< Self reference. */
-  kbtree_t(fsm) * fsm;       /**< Free-space tree */
+  kbtree_t(fsm) *fsm;        /**< Free-space tree */
   uint64_t *bmptr;           /**< Pointer to the bitmap area */
   pthread_rwlock_t *ctlrwlk; /**< Methods RW lock */
   size_t psize;              /**< System page size */
@@ -427,7 +427,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl, int64_t length_blk, uint64_
 
   aklen = 0;
   akoff = UINT64_MAX;
-/* full scan */
+  /* full scan */
 #define _fsm_traverse(k)                                                                                     \
   {                                                                                                          \
     uint64_t koff = _FSMBK_OFFSET(k);                                                                        \
@@ -467,7 +467,11 @@ static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl, int64_t length_blk, uint64_
  * @param len   Bitmap area length in bytes.
  */
 static void _fsm_load_fsm_lw(_FSM *impl, uint8_t *bm, uint64_t len) {
-  uint64_t b, bnum = len << 3, cbnum = 0, fbklength = 0, fbkoffset = 0;
+  uint64_t b,
+           bnum = len << 3,
+           cbnum = 0,
+           fbklength = 0,
+           fbkoffset = 0;
   int i;
   if (impl->fsm) {
     kb_destroy(fsm, impl->fsm);
@@ -781,7 +785,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   if (bmlen < impl->bmlen) {
     rc = IW_ERROR_INVALID_ARGS;
     iwlog_ecode_error(rc, "Length of the newly initiated bitmap area (bmlen): %" PRIu64
-                          " must not be lesser than current bitmap area length %" PRIu64 "",
+                      " must not be lesser than current bitmap area length %" PRIu64 "",
                       bmlen, impl->bmlen);
     return rc;
   }
@@ -789,7 +793,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   if (bmlen * 8 < ((bmoff + bmlen) >> impl->bpow) + 1) {
     rc = IW_ERROR_INVALID_ARGS;
     iwlog_ecode_error(rc, "Length of the newly initiated bitmap area (bmlen): %" PRIu64
-                          " is not enough to handle bitmap itself and the file header area.",
+                      " is not enough to handle bitmap itself and the file header area.",
                       bmlen);
     return rc;
   }
@@ -901,8 +905,8 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
   }
   bmlen = IW_ROUNDUP(size, impl->psize); /* align to the system page size. */
   rc = _fsm_blk_allocate_aligned_lw(
-      impl, (bmlen >> impl->bpow), &bmoffset, &sp, UINT64_MAX,
-      IWFSM_ALLOC_NO_STATS | IWFSM_ALLOC_NO_EXTEND | IWFSM_ALLOC_NO_OVERALLOCATE);
+         impl, (bmlen >> impl->bpow), &bmoffset, &sp, UINT64_MAX,
+         IWFSM_ALLOC_NO_STATS | IWFSM_ALLOC_NO_EXTEND | IWFSM_ALLOC_NO_OVERALLOCATE);
   if (!rc) {
     bmoffset = bmoffset << impl->bpow;
     bmlen = sp << impl->bpow;
@@ -939,7 +943,8 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
  * @param [out] olength_blk Assigned segment length in blocks.
  * @param opts
  */
-static iwrc _fsm_blk_allocate_lw(_FSM *impl, int64_t length_blk, uint64_t *offset_blk, int64_t *olength_blk,
+static iwrc _fsm_blk_allocate_lw(_FSM *impl,
+                                 int64_t length_blk, uint64_t *offset_blk, int64_t *olength_blk,
                                  iwfs_fsm_aflags opts) {
   iwrc rc;
   _FSMBK *nk;
@@ -1010,7 +1015,7 @@ start:
     impl->crzsum += length_blk;
     avg = (double_t) impl->crzsum / (double_t) impl->crznum; /* average */
     impl->crzvar +=
-        (uint64_t)(((double_t) length_blk - avg) * ((double_t) length_blk - avg) + 0.5L); /* variance */
+      (uint64_t)(((double_t) length_blk - avg) * ((double_t) length_blk - avg) + 0.5L); /* variance */
   }
   return rc;
 }
@@ -1029,8 +1034,8 @@ static iwrc _fsm_trim_tail_lw(_FSM *impl) {
   }
   /* find free space for fsm with lesser offset than actual */
   rc = _fsm_blk_allocate_aligned_lw(
-      impl, (impl->bmlen >> impl->bpow), &offset, &length, (impl->bmoff >> impl->bpow),
-      IWFSM_ALLOC_NO_EXTEND | IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_ALLOC_NO_STATS);
+         impl, (impl->bmlen >> impl->bpow), &offset, &length, (impl->bmoff >> impl->bpow),
+         IWFSM_ALLOC_NO_EXTEND | IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_ALLOC_NO_STATS);
 
   if (rc && rc != IWFS_ERROR_NO_FREE_SPACE) {
     return rc;
@@ -1156,7 +1161,7 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
   if ((1 << impl->bpow) > impl->psize) {
     rc = IWFS_ERROR_PLATFORM_PAGE;
     iwlog_ecode_error(rc, "Block size: %d must not be greater than the system page size: %d",
-                      (int) (1 << impl->bpow), (int) impl->psize);
+                      (int)(1 << impl->bpow), (int) impl->psize);
   }
 
   /* Free-space bitmap offset */
@@ -1299,6 +1304,7 @@ static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t si
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
     if (rc) return rc;
+
     IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
@@ -1323,6 +1329,7 @@ static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
     if (rc) return rc;
+
     IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
@@ -1428,7 +1435,10 @@ static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t s
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
     if (rc) return rc;
-    IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
+
+    IWRC(_fsm_is_fully_allocated_lr(impl,
+                                    off >> impl->bpow,
+                                    IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
     _fsm_ctrl_unlock(impl);
@@ -1452,7 +1462,9 @@ static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, siz
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
     if (rc) return rc;
-    IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
+    IWRC(_fsm_is_fully_allocated_lr(impl,
+                                    off >> impl->bpow,
+                                    IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
     _fsm_ctrl_unlock(impl);
@@ -1513,7 +1525,6 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t 
   }
   rc = _fsm_ctrl_wlock(impl);
   if (rc) return rc;
-
   if (nlen_blk < olen_blk) {
     rc = _fsm_blk_deallocate_lw(impl, oaddr_blk + nlen_blk, olen_blk - nlen_blk);
     if (!rc) {
@@ -1735,20 +1746,20 @@ static const char *_fsmfile_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-    case IWFS_ERROR_NO_FREE_SPACE:
-      return "No free space. (IWFS_ERROR_NO_FREE_SPACE)";
-    case IWFS_ERROR_INVALID_BLOCK_SIZE:
-      return "Invalid block size specified. (IWFS_ERROR_INVALID_BLOCK_SIZE)";
-    case IWFS_ERROR_RANGE_NOT_ALIGNED:
-      return "Specified range/offset is not aligned with page/block. "
-             "(IWFS_ERROR_RANGE_NOT_ALIGNED)";
-    case IWFS_ERROR_FSM_SEGMENTATION:
-      return "Free-space map segmentation error. (IWFS_ERROR_FSM_SEGMENTATION)";
-    case IWFS_ERROR_INVALID_FILEMETA:
-      return "Invalid file metadata. (IWFS_ERROR_INVALID_FILEMETA)";
-    case IWFS_ERROR_PLATFORM_PAGE:
-      return "The block size incompatible with platform page size, data "
-             "migration required. (IWFS_ERROR_PLATFORM_PAGE)";
+  case IWFS_ERROR_NO_FREE_SPACE:
+    return "No free space. (IWFS_ERROR_NO_FREE_SPACE)";
+  case IWFS_ERROR_INVALID_BLOCK_SIZE:
+    return "Invalid block size specified. (IWFS_ERROR_INVALID_BLOCK_SIZE)";
+  case IWFS_ERROR_RANGE_NOT_ALIGNED:
+    return "Specified range/offset is not aligned with page/block. "
+           "(IWFS_ERROR_RANGE_NOT_ALIGNED)";
+  case IWFS_ERROR_FSM_SEGMENTATION:
+    return "Free-space map segmentation error. (IWFS_ERROR_FSM_SEGMENTATION)";
+  case IWFS_ERROR_INVALID_FILEMETA:
+    return "Invalid file metadata. (IWFS_ERROR_INVALID_FILEMETA)";
+  case IWFS_ERROR_PLATFORM_PAGE:
+    return "The block size incompatible with platform page size, data "
+           "migration required. (IWFS_ERROR_PLATFORM_PAGE)";
   }
   return 0;
 }
