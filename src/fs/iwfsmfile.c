@@ -270,14 +270,14 @@ IW_INLINE _FSMBK *_fsm_get_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_
  * @param opts Allocation opts
  * @return `0` if matching block is not found.
  */
-static _FSMBK *_fsm_find_matching_fblock_lw(_FSM *impl, uint64_t offset_blk, uint64_t length_blk,
+static _FSMBK *_fsm_find_matching_fblock_lw(_FSM *impl,
+                                            uint64_t offset_blk, uint64_t length_blk,
                                             iwfs_fsm_aflags opts) {
   _FSMBK k;
   _FSMBK *uk, *lk;
   iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
-  if (rc) {
-    return 0;
-  }
+  if (rc) return 0;
+
   kb_intervalp(fsm, impl->fsm, &k, &lk, &uk); /* Find best-fitted free-space block */
   if (!lk && !uk) {
     return 0;
