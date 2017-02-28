@@ -24,10 +24,10 @@
  * SOFTWARE.
  *************************************************************************************************/
 
-#include "iwexfile.h"
+#include "iwcfg.h"
 #include "iwutils.h"
 #include "iwlog.h"
-#include "iwcfg.h"
+#include "iwexfile.h"
 
 #include <pthread.h>
 #include <sys/mman.h>
@@ -211,9 +211,8 @@ static iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
 
 static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   iwrc rc = _exfile_rlock(f);
-  if (rc) {
-    return rc;
-  }
+  if (rc) return rc;
+
   _EXF *impl = f->impl;
   _MMAPSLOT *s = impl->mmslots;
   while (s) {
@@ -245,9 +244,8 @@ static iwrc _exfile_write(struct IWFS_EXT *f,
     return IW_ERROR_OUT_OF_BOUNDS;
   }
   iwrc rc = _exfile_rlock(f);
-  if (rc) {
-    return rc;
-  }
+  if (rc) return rc;
+
   impl = f->impl;
   if (end > impl->fsize) {
     if ((rc = _exfile_unlock2(impl)) || (rc = _exfile_wlock(f))) {
@@ -356,12 +354,19 @@ finish:
 
 static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
   int rc = _exfile_rlock(f);
-  if (rc) {
-    return rc;
-  }
+  if (rc) return rc;
   _EXF *xf = (_EXF *)(f->impl);
   IWRC(xf->file.state(&xf->file, &state->file), rc);
   state->fsize = ((_EXF *)(f->impl))->fsize;
+  IWRC(_exfile_unlock(f), rc);
+  return rc;
+}
+
+static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) {
+  int rc = _exfile_rlock(f);
+  if (rc) return rc;
+  _EXF *xf = (_EXF *)(f->impl);
+  IWRC(xf->file.copy(&xf->file, off, siz, noff), rc);
   IWRC(_exfile_unlock(f), rc);
   return rc;
 }
@@ -715,6 +720,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   f->write = _exfile_write;
   f->sync = _exfile_sync;
   f->state = _exfile_state;
+  f->copy =  _exfile_copy;
 
   f->ensure_size = _exfile_ensure_size;
   f->truncate = _exfile_truncate;

@@ -67,6 +67,7 @@ uint64_t iwfs_fsmdbg_find_prev_set_bit(const uint64_t *addr,
                                        int *found);
 void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
 iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d);
+iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit);
 
 void test_fsm_bitmap(void) {
 #define BMSZ1 16
@@ -246,17 +247,21 @@ void test_fsm_open_close(void) {
 void test_fsm_uniform_alloc(void) {
   iwrc rc;
   IWFS_FSMDBG_STATE state1, state2;
-  IWFS_FSM_OPTS opts = {.rwlfile = {.exfile = {.file = {.path = "test_fsm_uniform_alloc.fsm",
-                                                        .lock_mode = IWP_WLOCK,
-                                                        .omode = IWFS_OTRUNC
-                                                       },
-                                               .rspolicy = iw_exfile_szpolicy_fibo
-                                              }
-                                   },
-                        .bpow = 6,
-                        .hdrlen = 64,
-                        .oflags = IWFSM_STRICT
-                       };
+  IWFS_FSM_OPTS opts = {
+    .rwlfile = {
+      .exfile = {
+        .file = {
+          .path = "test_fsm_uniform_alloc.fsm",
+          .lock_mode = IWP_WLOCK,
+          .omode = IWFS_OTRUNC
+        },
+        .rspolicy = iw_exfile_szpolicy_fibo
+      }
+    },
+    .bpow = 6,
+    .hdrlen = 64,
+    .oflags = IWFSM_STRICT
+  };
 
   typedef struct {
     off_t addr;
@@ -572,6 +577,7 @@ void test_block_allocation1(void) {
 
   off_t oaddr = 0;
   off_t olen;
+  off_t sp, sp2;
   int bsize = (1 << opts.bpow); /* byte block */
   int psize = iwp_page_size();
   const int hoff = (2 * psize);
@@ -593,6 +599,7 @@ void test_block_allocation1(void) {
 
   rc = fsm.deallocate(&fsm, 1 * bsize, 1 * bsize);
   CU_ASSERT_EQUAL(rc, IWFS_ERROR_FSM_SEGMENTATION);
+
 
   /* Next alloc status:
      x*xxxxx */
@@ -640,6 +647,42 @@ void test_block_allocation1(void) {
   rc = fsm.allocate(&fsm, 5 * bsize, &oaddr, &olen, 0);
   CU_ASSERT_FALSE_FATAL(rc);
   CU_ASSERT_EQUAL(iwfs_fsmdbg_number_of_free_areas(&fsm), 1);
+
+  // Test reallocate
+  /* Next alloc status:
+     *xxx*** */
+  rc = fsm.deallocate(&fsm, hoff + 4 * bsize, 3 * bsize);
+  CU_ASSERT_FALSE_FATAL(rc);
+  rc = fsm.deallocate(&fsm, hoff, 1 * bsize);
+  CU_ASSERT_FALSE_FATAL(rc);
+  CU_ASSERT_EQUAL(iwfs_fsmdbg_number_of_free_areas(&fsm), 2);
+
+  /* Next alloc status:
+     *xx**** */
+  oaddr = hoff + 1 * bsize;
+  olen = 3 * bsize;
+  rc = fsm.reallocate(&fsm, 2 * bsize, &oaddr, &olen, 0);
+  CU_ASSERT_FALSE_FATAL(rc);
+  CU_ASSERT_EQUAL(oaddr, hoff + 1 * bsize);
+  CU_ASSERT_EQUAL(olen, 2 * bsize);
+
+  /* Next alloc status:
+     *xxxxxx */
+  rc = fsm.reallocate(&fsm, 6 * bsize, &oaddr, &olen, 0);
+  CU_ASSERT_FALSE_FATAL(rc);
+  CU_ASSERT_EQUAL(oaddr, hoff + 1 * bsize);
+  CU_ASSERT_EQUAL(olen, 6 * bsize);
+
+  /* Next alloc status:
+     *xx***x */
+  rc = fsm.deallocate(&fsm, hoff + 3 * bsize, 3 * bsize);
+  CU_ASSERT_FALSE_FATAL(rc);
+
+  oaddr = hoff + 1 * bsize;
+  olen = 1 * bsize;
+  rc = fsm.reallocate(&fsm, 2 * bsize, &oaddr, &olen, 0);
+  CU_ASSERT_EQUAL(oaddr, hoff);
+  CU_ASSERT_EQUAL(olen, 2 * bsize);
 
   rc = fsm.close(&fsm);
   CU_ASSERT_FALSE_FATAL(rc);

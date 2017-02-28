@@ -143,8 +143,8 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually written
    * @return `0` on success or error code.
    */
-  iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz,
-               size_t *sp);
+  iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf,
+               size_t siz, size_t *sp);
 
   /**
    * @brief Read @a siz bytes into @a buf at the specified offset @a off
@@ -156,8 +156,8 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually read.
    * @return `0` on success or error code.
    */
-  iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz,
-              size_t *sp);
+  iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf,
+              size_t siz, size_t *sp);
 
   /**
    * @brief Closes this file.
@@ -181,6 +181,15 @@ typedef struct IWFS_FILE {
    * @see struct IWFS_FILE_STATE
    */
   iwrc(*state)(struct IWFS_FILE *f, IWFS_FILE_STATE *state);
+
+  /**
+   * @brief Copy data within a file
+   * @param f `struct IWFS_FILE` pointer.
+   * @param off Data offset
+   * @param siz Data size
+   * @param noff New data offset
+   */
+  iwrc(*copy)(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff);
 
 } IWFS_FILE;
 

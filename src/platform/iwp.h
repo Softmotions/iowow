@@ -148,8 +148,19 @@ IW_EXPORT iwrc iwp_read(HANDLE fh, off_t off, void *buf, size_t siz,
  * @param [out] sp   Number of bytes written.
  * @return `0` on sucess or error code.
  */
-IW_EXPORT iwrc iwp_write(HANDLE fh, off_t off, const void *buf, size_t siz,
+IW_EXPORT iwrc iwp_write(HANDLE fh, off_t off,
+                         const void *buf, size_t siz,
                          size_t *sp);
+
+/**
+  * @brief Copy data within a file
+  * @param off Data offset
+  * @param siz Data size
+  * @param noff New data offset
+  */
+IW_EXPORT iwrc iwp_copy_bytes(HANDLE fh,
+                              off_t off, size_t siz,
+                              off_t noff);
 
 /**
  * @brief Get system page size.

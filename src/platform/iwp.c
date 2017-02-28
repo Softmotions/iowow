@@ -26,8 +26,8 @@
  *************************************************************************************************/
 
 
-#include "platform/iwp.h"
 #include "log/iwlog.h"
+#include "platform/iwp.h"
 
 #if defined(__linux) || defined(__unix)
 #include "linux/linux.c"

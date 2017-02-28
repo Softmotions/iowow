@@ -191,6 +191,9 @@ typedef struct IWFS_RWL {
   /** @see IWFS_FILE::state  */
   iwrc(*state)(struct IWFS_RWL *f, IWFS_RWL_STATE *state);
 
+  /**  @see IWFS_FILE::copy */
+  iwrc(*copy)(struct IWFS_RWL *f, off_t off, size_t siz, off_t noff);
+
 } IWFS_RWL;
 
 /**

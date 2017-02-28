@@ -24,10 +24,10 @@
  * SOFTWARE.
  *************************************************************************************************/
 
-#include "iwfile.h"
 #include "iwcfg.h"
 #include "log/iwlog.h"
 #include "platform/iwp.h"
+#include "iwfile.h"
 
 #include <fcntl.h>
 #include <limits.h>
@@ -112,6 +112,18 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE *state) {
   return 0;
 }
 
+static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
+  assert(f);
+  _IWF *impl = f->impl;
+  if (!impl) {
+    return IW_ERROR_INVALID_STATE;
+  }
+  if (!(impl->opts.omode & IWFS_OWRITE)) {
+    return IW_ERROR_READONLY;
+  }
+  return iwp_copy_bytes(impl->fh, off, siz, noff);
+}
+
 iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   assert(f);
   assert(_opts && _opts->path);
@@ -130,6 +142,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   f->close = _iwfs_close;
   f->sync = _iwfs_sync;
   f->state = _iwfs_state;
+  f->copy = _iwfs_copy;
 
   impl = f->impl = calloc(sizeof(_IWF), 1);
   if (!impl) {

@@ -26,8 +26,8 @@
  *************************************************************************************************/
 
 
-#include "log/iwlog.h"
 #include "iwcfg.h"
+#include "log/iwlog.h"
 
 iwrc iwfs_init(void);
 iwrc iwp_init(void);

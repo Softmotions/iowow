@@ -24,9 +24,9 @@
  * SOFTWARE.
  *************************************************************************************************/
 
+#include "iwcfg.h"
 #include "iwrwlfile.h"
 #include "utils/iwrlock.h"
-#include "iwcfg.h"
 
 typedef struct IWFS_RWL_IMPL {
   IWFS_EXT exfile; /**< Underlying exfile */
@@ -63,6 +63,12 @@ static iwrc _rwl_state(struct IWFS_RWL *f, IWFS_RWL_STATE *state) {
   IWRC(iwrl_num_ranges(f->impl->lk, &state->num_ranges), rc);
   IWRC(iwrl_write_ranges(f->impl->lk, &state->num_write_ranges), rc);
   return rc;
+}
+
+static iwrc _rwl_copy(struct IWFS_RWL *f, off_t off, size_t siz, off_t noff) {
+  assert(f);
+  _RWL_ENSURE_OPEN(f);
+  return f->impl->exfile.copy(&f->impl->exfile, off, siz, noff);
 }
 
 static iwrc _rwl_ensure_size(struct IWFS_RWL *f, off_t size) {
@@ -157,6 +163,7 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f, const IWFS_RWL_OPTS *opts) {
   f->close = _rwl_close;
   f->sync = _rwl_sync;
   f->state = _rwl_state;
+  f->copy = _rwl_copy;
 
   f->ensure_size = _rwl_ensure_size;
   f->truncate = _rwl_truncate;

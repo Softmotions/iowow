@@ -260,6 +260,9 @@ typedef struct IWFS_EXT {
   /**  @see IWFS_FILE::state */
   iwrc(*state)(struct IWFS_EXT *f, IWFS_EXT_STATE *state);
 
+  /**  @see IWFS_FILE::copy */
+  iwrc(*copy)(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff);
+
 } IWFS_EXT;
 
 /**

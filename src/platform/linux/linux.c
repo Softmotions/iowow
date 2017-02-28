@@ -26,9 +26,11 @@
  *************************************************************************************************/
 
 
-#include "platform/iwp.h"
-#include "log/iwlog.h"
 #include "iwcfg.h"
+#include "log/iwlog.h"
+#include "platform/iwp.h"
+#include "utils/iwutils.h"
+
 
 #include <time.h>
 #include <math.h>
@@ -134,6 +136,33 @@ iwrc iwp_write(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
     *sp = ws;
     return 0;
   }
+}
+
+iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
+  if (IW_RANGES_OVERLAP(off, off + siz, noff, noff + siz)) {
+    return IW_ERROR_OVERFLOW;
+  }
+  iwrc rc = 0;
+  uint8_t buf[4096];
+  off_t pos = off;
+  size_t sp, sp2;
+  posix_fadvise(fh, off, siz, POSIX_FADV_SEQUENTIAL);
+  while (pos < off + siz
+         && !(rc = iwp_read(fh, pos, buf, MIN(sizeof(buf), (siz + off - pos)), &sp))) {
+    pos += sp;
+    rc = iwp_write(fh, noff, buf, sp, &sp2);
+    if (rc) {
+      break;
+    }
+    if (sp != sp2) {
+      rc = IW_ERROR_INVALID_STATE;
+      break;
+    }
+    if (sp == 0) {
+      break;
+    }
+  }
+  return rc;
 }
 
 size_t iwp_page_size(void) {

@@ -29,9 +29,9 @@
 /** Inspired by http://blitiri.com.ar/p/libfilo/ Alberto Bertogli
  * (albertogli@telpin.com.ar) code */
 
-#include "iwrlock.h"
-#include "log/iwlog.h"
 #include "iwcfg.h"
+#include "log/iwlog.h"
+#include "iwrlock.h"
 
 #include <pthread.h>
 #include <semaphore.h>

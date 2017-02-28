@@ -120,11 +120,11 @@ typedef enum {
   IWFS_ERROR_NO_FREE_SPACE,      /**< No free space. */
   IWFS_ERROR_INVALID_BLOCK_SIZE, /**< Invalid block size specified */
   IWFS_ERROR_RANGE_NOT_ALIGNED,  /**< Specified range/offset is not aligned with
-                                    page/block */
+                                      page/block */
   IWFS_ERROR_FSM_SEGMENTATION,   /**< Free-space map segmentation error */
   IWFS_ERROR_INVALID_FILEMETA,   /**< Invalid file-metadata */
   IWFS_ERROR_PLATFORM_PAGE,      /**< Platform page size incopatibility, data
-                                    migration required. */
+                                      migration required. */
   _IWFS_FSM_ERROR_END
 } iwfs_fsm_ecode;
 
@@ -291,9 +291,6 @@ typedef struct IWFS_FSM {
 
   /** @see IWFS_EXT::ensure_size */
   iwrc(*ensure_size)(struct IWFS_FSM *f, off_t size);
-
-  /** @see IWFS_EXT::truncate */
-  iwrc(*truncate)(struct IWFS_FSM *f, off_t size);
 
   /** @see IWFS_EXT::add_mmap */
   iwrc(*add_mmap)(struct IWFS_FSM *f, off_t off, size_t maxlen);
