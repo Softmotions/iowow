@@ -271,7 +271,8 @@ IW_INLINE _FSMBK *_fsm_get_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_
  * @return `0` if matching block is not found.
  */
 static _FSMBK *_fsm_find_matching_fblock_lw(_FSM *impl,
-                                            uint64_t offset_blk, uint64_t length_blk,
+                                            uint64_t offset_blk,
+                                            uint64_t length_blk,
                                             iwfs_fsm_aflags opts) {
   _FSMBK k;
   _FSMBK *uk, *lk;
@@ -1529,7 +1530,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
       *olen = nlen_blk << impl->bpow;
     }
   } else {
-    // Try to find free-space at end of reallocated block
+    // Try to find free-space at the end of reallocated block
     naddr_blk = oaddr_blk + olen_blk;
     _FSMBK *nk = _fsm_find_matching_fblock_lw(impl, naddr_blk, nlen_blk - olen_blk, opts);
     if (nk) {
