@@ -52,12 +52,9 @@ typedef struct {
 
 /** Additional options for `_fsm_set_bit_status_lw` routine */
 typedef enum {
-  /**< No options. */
-  _FSM_BM_NONE = 0,
-  /**< Do not modify bitmap. */
-  _FSM_BM_DRY_RUN = 1,
-  /**< Perform strict checking of bitmap consistency */
-  _FSM_BM_STRICT = 1 << 1
+  _FSM_BM_NONE = 0,       /**< No options. */
+  _FSM_BM_DRY_RUN = 1,    /**< Do not modify bitmap. */
+  _FSM_BM_STRICT = 1 << 1 /**< Perform strict checking of bitmap consistency */
 } _fsm_bmopts;
 
 #define _FSM_SEQ_IO_BUF_SIZE 8192
@@ -1530,7 +1527,9 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
       *olen = nlen_blk << impl->bpow;
     }
   } else {
-    // Try to find free-space at the end of reallocated block
+    // TODO: review usage of _fsm_find_matching_fblock_lw
+    // TODO: _fsm_find_next_set_bit?
+    // Try to find free-space at end of reallocated block
     naddr_blk = oaddr_blk + olen_blk;
     _FSMBK *nk = _fsm_find_matching_fblock_lw(impl, naddr_blk, nlen_blk - olen_blk, opts);
     if (nk) {
@@ -1569,17 +1568,15 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
     *oaddr = naddr_blk << impl->bpow;
     *olen = sp << impl->bpow;
   }
-
 finish:
   IWRC(_fsm_ctrl_unlock(impl), rc);
   return rc;
-error: {
-    if (deallocated) {
-      // trying to fix things back
-      IWRC(_fsm_blk_allocate_lw(impl, olen_blk, &oaddr_blk, &sp, opts), rc);
-    }
-    IWRC(_fsm_ctrl_unlock(impl), rc);
+error:
+  if (deallocated) {
+    // trying to fix things back
+    IWRC(_fsm_blk_allocate_lw(impl, olen_blk, &oaddr_blk, &sp, opts), rc);
   }
+  IWRC(_fsm_ctrl_unlock(impl), rc);
   return rc;
 }
 
