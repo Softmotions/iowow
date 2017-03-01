@@ -6,9 +6,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 include(CMakeToolsHelpers OPTIONAL)
 set(DEB_CHANGELOG_REQUIRED ON)
 set(DEB_CHANGELOG "${CMAKE_CURRENT_SOURCE_DIR}/Changelog")
+unset(CHANGELOG_LAST_VERSION)
+unset(CHANGELOG_LAST_MESSAGE)
 include(DebChangelog)
 
-set(PROJECT_NAME "ejdb2")
+set(PROJECT_NAME "iowow")
 set(PROJECT_VENDOR "Softmotions (http://softmotions.com)")
 set(PROJECT_WEBSITE "https://github.com/Softmotions/iowow")
 set(PROJECT_MAINTAINER "Anton Adamansky <adamansky@softmotions.com>")
@@ -69,7 +71,7 @@ endif(UPLOAD_PPA)
 
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)
-option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
+option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" OFF)
 
 if(BUILD_DOCUMENTATION)
     if(NOT DOXYGEN_FOUND)
