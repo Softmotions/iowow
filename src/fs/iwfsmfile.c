@@ -1954,10 +1954,9 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
     return rc;
   }
   int i = ((impl->hdrlen >> impl->bpow) >> 3);
-  if (impl->bmoff == impl->psize) {
-    i += ((impl->bmlen >> impl->bpow) >> 3);
-  }
-
+  // if (impl->bmoff == impl->psize) {
+  //   i += ((impl->bmlen >> impl->bpow) >> 3);
+  // }
   blimit += i;
   for (; i < sp && i < blimit; ++i) {
     uint8_t b = *(mmap + i);

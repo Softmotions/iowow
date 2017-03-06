@@ -62,27 +62,27 @@ typedef struct _MMAPSLOT {
 IW_INLINE iwrc _exfile_wlock(IWFS_EXT *f) {
   assert(f);
   if (!f->impl) return IW_ERROR_INVALID_STATE;
-  if (!((_EXF *)(f->impl))->use_locks) return 0;
-  if (!((_EXF *)(f->impl))->rwlock) return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_wrlock(((_EXF *)(f->impl))->rwlock);
+  if (!f->impl->use_locks) return 0;
+  if (!f->impl->rwlock) return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_wrlock(f->impl->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 IW_INLINE iwrc _exfile_rlock(IWFS_EXT *f) {
   assert(f);
   if (!f->impl) return IW_ERROR_INVALID_STATE;
-  if (!((_EXF *)(f->impl))->use_locks) return 0;
-  if (!((_EXF *)(f->impl))->rwlock) return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_rdlock(((_EXF *)(f->impl))->rwlock);
+  if (!f->impl->use_locks) return 0;
+  if (!f->impl->rwlock) return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_rdlock(f->impl->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
 IW_INLINE iwrc _exfile_unlock(IWFS_EXT *f) {
   assert(f);
   if (!f->impl) return IW_ERROR_INVALID_STATE;
-  if (!((_EXF *)(f->impl))->use_locks) return 0;
-  if (!((_EXF *)(f->impl))->rwlock) return IW_ERROR_INVALID_STATE;
-  int rv = pthread_rwlock_unlock(((_EXF *)(f->impl))->rwlock);
+  if (!f->impl->use_locks) return 0;
+  if (!f->impl->rwlock) return IW_ERROR_INVALID_STATE;
+  int rv = pthread_rwlock_unlock(f->impl->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
 
@@ -355,9 +355,9 @@ finish:
 static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
   int rc = _exfile_rlock(f);
   if (rc) return rc;
-  _EXF *xf = (_EXF *)(f->impl);
+  _EXF *xf = f->impl;
   IWRC(xf->file.state(&xf->file, &state->file), rc);
-  state->fsize = ((_EXF *)(f->impl))->fsize;
+  state->fsize = f->impl->fsize;
   IWRC(_exfile_unlock(f), rc);
   return rc;
 }
@@ -365,7 +365,7 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
 static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) {
   int rc = _exfile_rlock(f);
   if (rc) return rc;
-  _EXF *xf = (_EXF *)(f->impl);
+  _EXF *xf = f->impl;
   IWRC(xf->file.copy(&xf->file, off, siz, noff), rc);
   IWRC(_exfile_unlock(f), rc);
   return rc;
@@ -690,7 +690,7 @@ off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f, void 
 
 static iwrc _exfile_initlocks(IWFS_EXT *f) {
   assert(f && f->impl);
-  assert(!((_EXF *)(f->impl))->rwlock);
+  assert(!f->impl->rwlock);
   _EXF *impl = f->impl;
   if (!impl->use_locks) {
     return 0;

@@ -142,11 +142,13 @@ typedef struct IWFS_EXT_STATE {
   off_t fsize;          /**< Current file size */
 } IWFS_EXT_STATE;
 
+
+
 /**
  * @brief Auto-expandable file.
  */
 typedef struct IWFS_EXT {
-  void *impl;
+  struct IWFS_EXT_IMPL *impl;
 
   /**
    * @brief Ensures that a file's physical address space contains a given offset

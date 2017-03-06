@@ -193,7 +193,7 @@ typedef struct IWFS_FSM {
    * `Offset` and  `length` allocated area will be block size aligned.
    *
    * @param f `IWFS_FSM` file.
-   * @param len Desired length of an allocated area.
+   * @param len Desired length of an allocated area in bytes.
    * @param [in,out] oaddr Placeholder for the address of an allocated area.
    *                       Value of @a oaddr passed to this function used as
    * `hint` in order
@@ -214,7 +214,7 @@ typedef struct IWFS_FSM {
    * segment will be truncated.
    *
    * @param f `IWFS_FSM` file.
-   * @param nlen Desired length of segment.
+   * @param nlen Desired length of segment in bytes.
    * @param oaddr [in,out] Address of an allocated segment. Placeholder for new
    * address of reallocated segment.
    * @param olen [in,out] Length of an allocated segment. Placeholder for length
