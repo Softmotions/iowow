@@ -151,6 +151,7 @@ typedef struct IWFS_FSM_OPTS {
   size_t hdrlen;             /**< Length of custom file header.*/
   int sync_flags;            /**< Default msync flags for mmap_sync operations
                                 (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
+  int mmap_all;              /**< Mmap all file data */
 } IWFS_FSM_OPTS;
 
 /**

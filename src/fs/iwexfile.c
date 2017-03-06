@@ -470,11 +470,11 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
     rc = IW_ERROR_NOT_ALIGNED;
     goto finish;
   }
-  if (OFF_T_MAX - off < maxlen) {
+  if (SIZE_T_MAX - off < maxlen) {
     maxlen = OFF_T_MAX - off;
   }
   tmp = IW_ROUNDUP(maxlen, impl->psize);
-  if (tmp < maxlen || OFF_T_MAX - off < tmp) {
+  if (tmp < maxlen || SIZE_T_MAX - off < tmp) {
     maxlen = IW_ROUNDOWN(maxlen, impl->psize);
   } else {
     maxlen = tmp;
@@ -552,12 +552,10 @@ iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
   assert(f);
   assert(off >= 0);
   assert(mm);
-
   if (sp) {
     *sp = 0;
   }
   *mm = 0;
-
   iwrc rc = _exfile_rlock(f);
   if (rc) {
     return rc;
@@ -579,6 +577,9 @@ iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
     s = s->next;
   }
   IWRC(_exfile_unlock(f), rc);
+  if (!rc && !*mm) {
+    rc = IWFS_ERROR_NOT_MMAPED;
+  }
   return rc;
 }
 

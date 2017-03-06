@@ -118,6 +118,7 @@ struct IWFS_FSM_IMPL {
   uint8_t bpow;              /**< Block size power of 2 */
   int sync_flags;            /**< Default msync flags for mmap_sync operations
                                   (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
+  int mmap_all;              /**< Mmap all file data */
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -319,7 +320,14 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl, uint64_t offset_bits, int64_t len
   if (bend < offset_bits) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
-  rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
+  if (impl->mmap_all) {
+    rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
+    if (!rc) {
+      mmap += impl->bmoff;
+    }
+  } else {
+    rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
+  }
   if (rc) {
     iwlog_ecode_error3(rc);
     return rc;
@@ -791,8 +799,14 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
                       bmlen);
     return rc;
   }
-
-  rc = pool->get_mmap(pool, bmoff, &mmap, &sp);
+  if (impl->mmap_all) {
+    rc = pool->get_mmap(pool, 0, &mmap, &sp);
+    if (!rc) {
+      mmap += bmoff;
+    }
+  } else {
+    rc = pool->get_mmap(pool, bmoff, &mmap, &sp);
+  }
   if (rc) {
     iwlog_ecode_error2(rc, "Fail to mmap fsm bitmap area");
     return rc;
@@ -811,17 +825,29 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
       iwlog_ecode_error2(rc, "New and old bitmap areas are overlapping");
       return rc;
     }
-    rc = pool->get_mmap(pool, impl->bmoff, &mmap2, &sp2);
+    if (impl->mmap_all) {
+      rc = pool->get_mmap(pool, 0, &mmap2, &sp2);
+      if (!rc) {
+        mmap2 += impl->bmoff;
+      }
+    } else {
+      rc = pool->get_mmap(pool, impl->bmoff, &mmap2, &sp2);
+    }
     if (rc) {
       iwlog_ecode_error2(rc, "Old bitmap area is not mmaped");
       return rc;
     }
-    assert(sp >= sp2);
-    assert(!(sp2 & ((1 << impl->bpow) - 1)));
-    assert(!((sp2 - sp) & ((1 << impl->bpow) - 1)));
-    memcpy(mmap, mmap2, sp2);
-    if (sp > sp2) {
-      memset(mmap + sp2, 0, sp - sp2);
+    if (impl->mmap_all) {
+
+
+    } else {
+      assert(sp >= sp2);
+      assert(!(sp2 & ((1 << impl->bpow) - 1)));
+      assert(!((sp2 - sp) & ((1 << impl->bpow) - 1)));
+      memcpy(mmap, mmap2, sp2);
+      if (sp > sp2) {
+        memset(mmap + sp2, 0, sp - sp2);
+      }
     }
   } else {
     memset(mmap, 0, sp);
@@ -912,6 +938,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
       return rc;
     }
   }
+
   rc = pool->add_mmap(pool, bmoffset, bmlen);
   if (rc) {
     return rc;
@@ -1063,6 +1090,7 @@ static iwrc _fsm_init_impl(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   impl->psize = iwp_page_size();
   impl->bpow = opts->bpow;
   impl->sync_flags = opts->sync_flags;
+  impl->mmap_all = opts->mmap_all;
   if (!impl->bpow) {
     impl->bpow = 6;  // 64bit block
   } else if (impl->bpow > _FSM_MAX_BLOCK_POW) {
@@ -1868,7 +1896,15 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
   uint64_t sp;
   uint8_t *mmap;
   _FSM *impl = f->impl;
-  iwrc rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
+  iwrc rc;
+  if (impl->mmap_all) {
+    rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
+    if (!rc) {
+      mmap += impl->bmoff;
+    }
+  } else {
+    rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
+  }
   if (rc) {
     iwlog_ecode_error3(rc);
     return rc;
