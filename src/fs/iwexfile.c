@@ -470,11 +470,11 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
     rc = IW_ERROR_NOT_ALIGNED;
     goto finish;
   }
-  if (SIZE_T_MAX - off < maxlen) {
+  if (OFF_T_MAX - off < maxlen) {
     maxlen = OFF_T_MAX - off;
   }
   tmp = IW_ROUNDUP(maxlen, impl->psize);
-  if (tmp < maxlen || SIZE_T_MAX - off < tmp) {
+  if (tmp < maxlen || OFF_T_MAX - off < tmp) {
     maxlen = IW_ROUNDOWN(maxlen, impl->psize);
   } else {
     maxlen = tmp;

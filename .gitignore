@@ -12,3 +12,5 @@ iowow.mk
 .tern*
 .idea/
 *.iml
+*.dat
+*.fsm
