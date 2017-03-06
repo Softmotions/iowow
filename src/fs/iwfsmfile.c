@@ -9,7 +9,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -327,6 +327,7 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl, uint64_t offset_bits, int64_t len
         rc = IWFS_ERROR_NOT_MMAPED;
       } else {
         mmap += impl->bmoff;
+        sp -= impl->bmoff;
       }
     }
   } else {
@@ -810,6 +811,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
       } else {
         mmap += bmoff;
+        sp -= bmoff;
       }
     }
   } else {
@@ -840,6 +842,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
           rc = IWFS_ERROR_NOT_MMAPED;
         } else {
           mmap2 += impl->bmoff;
+          sp2 -= impl->bmoff;
         }
       }
     } else {
