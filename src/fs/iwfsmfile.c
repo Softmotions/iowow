@@ -1368,7 +1368,9 @@ static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size
 }
 
 static iwrc _fsm_close(struct IWFS_FSM *f) {
-  _FSM_ENSURE_OPEN2(f);
+  if (!f || !f->impl) {
+    return 0;
+  }
   _FSM *impl = f->impl;
   iwrc rc = 0;
   IWRC(_fsm_ctrl_wlock(impl), rc);

@@ -410,7 +410,9 @@ finish:
 }
 
 static iwrc _exfile_close(struct IWFS_EXT *f) {
-  assert(f);
+  if (!f || !f->impl) {
+    return 0;
+  }
   iwrc rc = _exfile_wlock(f);
   if (rc) {
     return rc;

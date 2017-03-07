@@ -139,6 +139,9 @@ static iwrc _rwl_lread(struct IWFS_RWL *f, off_t off, void *buf, size_t siz, siz
 }
 
 static iwrc _rwl_close(struct IWFS_RWL *f) {
+  if (!f || !f->impl) {
+    return 0;
+  }
   iwrc rc = 0;
   _RWL_ENSURE_OPEN(f);
   _RWL *impl = f->impl;

@@ -9,7 +9,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -61,12 +61,11 @@ static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, si
 }
 
 static iwrc _iwfs_close(struct IWFS_FILE *f) {
-  assert(f);
-  iwrc rc = 0;
-  _IWF *impl = f->impl;
-  if (!impl) {
+  if (!f || !f->impl) {
     return 0;
   }
+  iwrc rc = 0;
+  _IWF *impl = f->impl;
   IWFS_FILE_OPTS *opts = &impl->opts;
   if (opts->lock_mode != IWP_NOLOCK) {
     IWRC(iwp_unlock(impl->fh), rc);
