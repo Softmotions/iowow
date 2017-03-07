@@ -51,7 +51,7 @@ int main() {
 /*
   2013-05-02 (0.2.8):
 
-	* Use quadratic probing. When the capacity is power for 2, stepping function
+	* Use quadratic probing. When the capacity is power of 2, stepping function
 	  i*(i+1)/2 guarantees to traverse each bucket. It is better than double
 	  hashing on cache performance and is more robust than linear probing.
 
@@ -68,7 +68,7 @@ int main() {
 
   2011-09-16 (0.2.6):
 
-	* The capacity is a power for 2. This seems to dramatically improve the
+	* The capacity is a power of 2. This seems to dramatically improve the
 	  speed for simple keys. Thank Zilong Tan for the suggestion. Reference:
 
 	   - http://code.google.com/p/ulib/
