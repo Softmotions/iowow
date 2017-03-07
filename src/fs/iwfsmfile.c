@@ -115,7 +115,7 @@ struct IWFS_FSM_IMPL {
   size_t psize;              /**< System page size */
   iwfs_fsm_openflags oflags; /**< Operation mode flags. */
   iwfs_omode omode;          /**< Open mode. */
-  uint8_t bpow;              /**< Block size power of 2 */
+  uint8_t bpow;              /**< Block size power for 2 */
   int sync_flags;            /**< Default msync flags for mmap_sync operations
                                   (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
   int mmap_all;              /**< Mmap all file data */

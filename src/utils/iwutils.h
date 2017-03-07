@@ -57,10 +57,10 @@ IW_EXTERN_C_START
 #define MAX(a_, b_) ((a_) > (b_) ? (a_) : (b_))
 #endif
 
-/* Align IW_x_ with IW_v_. IW_v_ must be simple power of 2 value. */
+/* Align IW_x_ with IW_v_. IW_v_ must be simple power for 2 value. */
 #define IW_ROUNDUP(IW_x_, IW_v_) (((IW_x_) + (IW_v_)-1) & ~((IW_v_)-1))
 
-/* Round down align IW_x_ with IW_v_. IW_v_ must be simple power of 2 value. */
+/* Round down align IW_x_ with IW_v_. IW_v_ must be simple power for 2 value. */
 #define IW_ROUNDOWN(IW_x_, IW_v_) ((IW_x_) - ((IW_x_) & ((IW_v_)-1)))
 
 #if defined(NDEBUG)
