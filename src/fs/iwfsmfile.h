@@ -68,8 +68,7 @@
  *  - <b>bmlength:</b> Free space bitmap area length. (64 bit)
  *  - <b>crzsum:</b> Number of allocated blocks. (64 bit)
  *  - <b>crznum:</b> Number of all allocated continuous areas. (32 bit)
- *  - <b>crszvar</b> Allocated areas length standard variance (deviation^2 * N)
- (64 bit)
+ *  - <b>crszvar</b> Allocated areas length standard variance (deviation^2 * N) (64 bit)
  *  - <b>reserved:</b> Reserved space.
  *  - <b>custom header size:</b> Length of custom header area. See
  `IWFS_FSM::writehdr` and `IWFS_FSM::readhdr`
@@ -146,7 +145,7 @@ typedef enum {
 typedef struct IWFS_FSM_OPTS {
   IWFS_RWL_OPTS rwlfile;
   iwfs_fsm_openflags oflags; /**< Operation mode flags */
-  uint8_t bpow;              /**< Block size power of 2 */
+  uint8_t bpow;              /**< Block size power for 2 */
   size_t bmlen;              /**< Initial size of free-space bitmap */
   size_t hdrlen;             /**< Length of custom file header.*/
   int sync_flags;            /**< Default msync flags for mmap_sync operations
@@ -193,7 +192,7 @@ typedef struct IWFS_FSM {
    * `Offset` and  `length` allocated area will be block size aligned.
    *
    * @param f `IWFS_FSM` file.
-   * @param len Desired length of an allocated area.
+   * @param len Desired length of an allocated area in bytes.
    * @param [in,out] oaddr Placeholder for the address of an allocated area.
    *                       Value of @a oaddr passed to this function used as
    * `hint` in order
@@ -214,7 +213,7 @@ typedef struct IWFS_FSM {
    * segment will be truncated.
    *
    * @param f `IWFS_FSM` file.
-   * @param nlen Desired length of segment.
+   * @param nlen Desired length of segment in bytes.
    * @param oaddr [in,out] Address of an allocated segment. Placeholder for new
    * address of reallocated segment.
    * @param olen [in,out] Length of an allocated segment. Placeholder for length

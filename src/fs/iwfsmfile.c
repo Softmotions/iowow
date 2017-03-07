@@ -9,7 +9,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -115,7 +115,7 @@ struct IWFS_FSM_IMPL {
   size_t psize;              /**< System page size */
   iwfs_fsm_openflags oflags; /**< Operation mode flags. */
   iwfs_omode omode;          /**< Open mode. */
-  uint8_t bpow;              /**< Block size power of 2 */
+  uint8_t bpow;              /**< Block size power for 2 */
   int sync_flags;            /**< Default msync flags for mmap_sync operations
                                   (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
   int mmap_all;              /**< Mmap all file data */
@@ -323,7 +323,12 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl, uint64_t offset_bits, int64_t len
   if (impl->mmap_all) {
     rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
     if (!rc) {
-      mmap += impl->bmoff;
+      if (sp <= impl->bmoff) {
+        rc = IWFS_ERROR_NOT_MMAPED;
+      } else {
+        mmap += impl->bmoff;
+        sp -= impl->bmoff;
+      }
     }
   } else {
     rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
@@ -802,7 +807,12 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   if (impl->mmap_all) {
     rc = pool->get_mmap(pool, 0, &mmap, &sp);
     if (!rc) {
-      mmap += bmoff;
+      if (sp <= bmoff) {
+        rc = IWFS_ERROR_NOT_MMAPED;
+      } else {
+        mmap += bmoff;
+        sp -= bmoff;
+      }
     }
   } else {
     rc = pool->get_mmap(pool, bmoff, &mmap, &sp);
@@ -828,7 +838,12 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     if (impl->mmap_all) {
       rc = pool->get_mmap(pool, 0, &mmap2, &sp2);
       if (!rc) {
-        mmap2 += impl->bmoff;
+        if (sp2 <= impl->bmoff) {
+          rc = IWFS_ERROR_NOT_MMAPED;
+        } else {
+          mmap2 += impl->bmoff;
+          sp2 -= impl->bmoff;
+        }
       }
     } else {
       rc = pool->get_mmap(pool, impl->bmoff, &mmap2, &sp2);
@@ -838,8 +853,11 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
       return rc;
     }
     if (impl->mmap_all) {
-
-
+      assert(bmlen >= impl->bmlen);
+      memcpy(mmap, mmap2, impl->bmlen);
+      if (bmlen > impl->bmlen) {
+        memset(mmap + impl->bmlen, 0, bmlen - impl->bmlen);
+      }
     } else {
       assert(sp >= sp2);
       assert(!(sp2 & ((1 << impl->bpow) - 1)));
@@ -878,7 +896,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   _fsm_load_fsm_lw(impl, mmap, sp);
 
   /* Sync fsm */
-  rc = pool->sync_mmap(pool, bmoff, impl->sync_flags);
+  rc = pool->sync_mmap(pool, impl->mmap_all ? 0 : bmoff, impl->sync_flags);
   if (rc) {
     iwlog_ecode_error3(rc);
     goto rollback;
@@ -894,7 +912,9 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   if (old_bmlen) {
     /* Now we are save to deallocate the old bitmap */
     rc = _fsm_blk_deallocate_lw(impl, (old_bmoff >> impl->bpow), (old_bmlen >> impl->bpow));
-    pool->remove_mmap(pool, old_bmoff);
+    if (!impl->mmap_all) {
+      pool->remove_mmap(pool, old_bmoff);
+    }
   }
   return rc;
 
@@ -938,13 +958,14 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
       return rc;
     }
   }
-
-  rc = pool->add_mmap(pool, bmoffset, bmlen);
-  if (rc) {
-    return rc;
+  if (!impl->mmap_all) {
+    rc = pool->add_mmap(pool, bmoffset, bmlen);
+    if (rc) {
+      return rc;
+    }
   }
   rc = _fsm_init_lw(impl, bmoffset, bmlen);
-  if (rc) {
+  if (rc && !impl->mmap_all) {
     pool->remove_mmap(pool, bmoffset);
   }
   return rc;
@@ -1246,14 +1267,18 @@ static iwrc _fsm_init_new_lw(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   rc = pool->ensure_size(pool, bmoff + bmlen);
   if (rc) return rc;
 
-  /* mmap header */
-  rc = pool->add_mmap(pool, 0, impl->hdrlen);
-  if (rc) return rc;
-
-  /* mmap the fsm bitmap index */
-  rc = pool->add_mmap(pool, bmoff, bmlen);
-  if (rc) return rc;
-
+  if (impl->mmap_all) {
+    /* mmap whole file */
+    rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
+    if (rc) return rc;
+  } else {
+    /* mmap header */
+    rc = pool->add_mmap(pool, 0, impl->hdrlen);
+    if (rc) return rc;
+    /* mmap the fsm bitmap index */
+    rc = pool->add_mmap(pool, bmoff, bmlen);
+    if (rc) return rc;
+  }
   return _fsm_init_lw(impl, bmoff, bmlen);
 }
 
@@ -1267,17 +1292,30 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
   rc = _fsm_read_meta_lr(impl);
   if (rc) return rc;
 
-  /* mmap the header part of file */
-  rc = pool->add_mmap(pool, 0, impl->hdrlen);
-  if (rc) return rc;
-
-  /* mmap the fsm bitmap index */
-  rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
-  if (rc) return rc;
-
-  rc = pool->get_mmap(pool, impl->bmoff, &mmap, &sp);
-  if (rc) return rc;
-
+  if (impl->mmap_all) {
+    /* mmap whole file */
+    rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
+    if (rc) return rc;
+    rc = pool->get_mmap(pool, 0, &mmap, &sp);
+    if (!rc) {
+      if (sp <= impl->bmoff) {
+        rc = IWFS_ERROR_NOT_MMAPED;
+      } else {
+        mmap += impl->bmoff;
+      }
+    }
+  } else {
+    /* mmap the header part of file */
+    rc = pool->add_mmap(pool, 0, impl->hdrlen);
+    if (rc) return rc;
+    /* mmap the fsm bitmap index */
+    rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
+    if (rc) return rc;
+    rc = pool->get_mmap(pool, impl->bmoff, &mmap, &sp);
+  }
+  if (rc) {
+    return rc;
+  }
   if (sp < impl->bmlen) {
     rc = IWFS_ERROR_NOT_MMAPED;
     iwlog_ecode_error2(rc, "Fail to mmap fsm bitmap area");
@@ -1326,8 +1364,7 @@ static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t si
     IWRC(_fsm_is_fully_allocated_lr(impl,
                                     off >> impl->bpow,
                                     IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
-                                    &allocated),
-         rc);
+                                    &allocated), rc);
     _fsm_ctrl_unlock(impl);
     if (!rc) {
       if (!allocated) {
@@ -1694,11 +1731,13 @@ static iwrc _fsm_clear(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags) {
   if (!bmlen) {
     goto finish;
   }
-  if (impl->bmoff) {
+  if (!impl->mmap_all && impl->bmoff) {
     IWRC(impl->pool.remove_mmap(&impl->pool, impl->bmoff), rc);
   }
   bmoff = IW_ROUNDUP(impl->hdrlen, impl->psize);
-  IWRC(impl->pool.add_mmap(&impl->pool, bmoff, bmlen), rc);
+  if (!impl->mmap_all) {
+    IWRC(impl->pool.add_mmap(&impl->pool, bmoff, bmlen), rc);
+  }
   if (rc) {
     goto finish;
   }
@@ -1902,7 +1941,12 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
   if (impl->mmap_all) {
     rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
     if (!rc) {
-      mmap += impl->bmoff;
+      if (sp <= impl->bmoff) {
+        rc = IWFS_ERROR_NOT_MMAPED;
+      } else {
+        mmap += impl->bmoff;
+        sp = sp - impl->bmoff;
+      }
     }
   } else {
     rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
@@ -1912,10 +1956,9 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
     return rc;
   }
   int i = ((impl->hdrlen >> impl->bpow) >> 3);
-  if (impl->bmoff == impl->psize) {
-    i += ((impl->bmlen >> impl->bpow) >> 3);
-  }
-
+  // if (impl->bmoff == impl->psize) {
+  //   i += ((impl->bmlen >> impl->bpow) >> 3);
+  // }
   blimit += i;
   for (; i < sp && i < blimit; ++i) {
     uint8_t b = *(mmap + i);
