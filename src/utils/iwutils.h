@@ -1,7 +1,6 @@
 #ifndef IWUTILS_H
 #define IWUTILS_H
 
-//
 /**************************************************************************************************
  * IOWOW library
  *
@@ -27,8 +26,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *************************************************************************************************/
-
-
 /**
  * @file
  * @author Anton Adamansky (adamansky@softmotions.com)
@@ -73,21 +70,21 @@ IW_EXTERN_C_START
 #endif
 
 #define IW_SWAB16(IW_num_) \
-  (((IW_num_ & 0x00ffU) << 8) | ((IW_num_ & 0xff00U) >> 8))
+  ((((IW_num_) & 0x00ffU) << 8) | (((IW_num_) & 0xff00U) >> 8))
 
 #define IW_SWAB32(IW_num_)                                              \
-  (((IW_num_ & 0x000000ffUL) << 24) | ((IW_num_ & 0x0000ff00UL) << 8) | \
-   ((IW_num_ & 0x00ff0000UL) >> 8) | ((IW_num_ & 0xff000000UL) >> 24))
+  ((((IW_num_) & 0x000000ffUL) << 24) | (((IW_num_) & 0x0000ff00UL) << 8) | \
+   (((IW_num_) & 0x00ff0000UL) >> 8) | (((IW_num_) & 0xff000000UL) >> 24))
 
 #define IW_SWAB64(IW_num_)                     \
-  (((IW_num_ & 0x00000000000000ffULL) << 56) | \
-   ((IW_num_ & 0x000000000000ff00ULL) << 40) | \
-   ((IW_num_ & 0x0000000000ff0000ULL) << 24) | \
-   ((IW_num_ & 0x00000000ff000000ULL) << 8) |  \
-   ((IW_num_ & 0x000000ff00000000ULL) >> 8) |  \
-   ((IW_num_ & 0x0000ff0000000000ULL) >> 24) | \
-   ((IW_num_ & 0x00ff000000000000ULL) >> 40) | \
-   ((IW_num_ & 0xff00000000000000ULL) >> 56))
+  ((((IW_num_) & 0x00000000000000ffULL) << 56) | \
+   (((IW_num_) & 0x000000000000ff00ULL) << 40) | \
+   (((IW_num_) & 0x0000000000ff0000ULL) << 24) | \
+   (((IW_num_) & 0x00000000ff000000ULL) << 8) |  \
+   (((IW_num_) & 0x000000ff00000000ULL) >> 8) |  \
+   (((IW_num_) & 0x0000ff0000000000ULL) >> 24) | \
+   (((IW_num_) & 0x00ff000000000000ULL) >> 40) | \
+   (((IW_num_) & 0xff00000000000000ULL) >> 56))
 
 #if (IW_BIGENDIAN == 1) || defined(IW_FORCE_BIGENDIAN)
 #define IW_HTOIS(IW_num_) IW_SWAB16(IW_num_)
@@ -106,6 +103,42 @@ IW_EXTERN_C_START
 #define IW_ITOHL(IW_num_) (IW_num_)
 #define IW_ITOHLL(IW_num_) (IW_num_)
 #endif
+
+#define IW_WRITESV(IW_ptr_, IW_v_, IW_m_)  \
+  IW_v_ = IW_m_;                          \
+  IW_v_ = IW_HTOIS(IW_v_);                \
+  memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
+  IW_ptr_ += sizeof(IW_v_)
+
+#define IW_WRITELV(IW_ptr_, IW_v_, IW_m_)  \
+  IW_v_ = IW_m_;                          \
+  IW_v_ = IW_HTOIL(IW_v_);                \
+  memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
+  IW_ptr_ += sizeof(IW_v_)
+
+#define IW_WRITELLV(IW_ptr_, IW_v_, IW_m_) \
+  IW_v_ = IW_m_;                          \
+  IW_v_ = IW_HTOILL(IW_v_);               \
+  memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
+  IW_ptr_ += sizeof(IW_v_)
+
+#define IW_READSV(IW_ptr_, IW_t_, IW_m_)   \
+  memcpy(&IW_t_, IW_ptr_, sizeof(IW_t_));  \
+  IW_t_ = IW_ITOHS(IW_t_);                \
+  IW_m_ = IW_t_;                          \
+  IW_ptr_ += sizeof(IW_t_)
+
+#define IW_READLV(IW_ptr_, IW_t_, IW_m_)   \
+  memcpy(&IW_t_, IW_ptr_, sizeof(IW_t_));  \
+  IW_t_ = IW_ITOHL(IW_t_);                \
+  IW_m_ = IW_t_;                          \
+  IW_ptr_ += sizeof(IW_t_)
+
+#define IW_READLLV(IW_ptr_, IW_t_, IW_m_)  \
+  memcpy(&IW_t_, IW_ptr_, sizeof(IW_t_));  \
+  IW_t_ = IW_ITOHLL(IW_t_);               \
+  IW_m_ = IW_t_;                          \
+  IW_ptr_ += sizeof(IW_t_)
 
 #ifndef SIZE_T_MAX
 #define SIZE_T_MAX ((size_t)-1)
