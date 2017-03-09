@@ -128,6 +128,7 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, _MMAPSLOT *s) {
     int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE | PROT_READ) : (PROT_READ);
     s->len = nlen;
     s->mmap = mmap(0, s->len, prot, flags, impl->fh, s->off);
+    //fprintf(stderr, "mmap %p off %ld len %ld\n", s->mmap, s->off, s->len);
     if (s->mmap == MAP_FAILED) {
       return iwrc_set_errno(IW_ERROR_ERRNO, errno);
     }
@@ -398,6 +399,7 @@ static iwrc _exfile_remove_mmap_wl(struct IWFS_EXT *f, off_t off) {
     s->next->prev = s->prev;
   }
   if (s->len) {
+    //fprintf(stderr, "munmap %p off %ld len %ld\n", s->mmap, off, s->len);
     if (munmap(s->mmap, s->len)) {
       rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
       goto finish;
