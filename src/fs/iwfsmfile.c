@@ -387,16 +387,18 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl, uint64_t offset_bits, int64_t len
  *
  *  @param impl `_FSM`
  *  @param length_blk Desired segment length in blocks.
- *  @param [in,out] offset_blk Allocated segment offset in blocks will be stored
- * into.
- *                  It also specified the desired segment offset to provide
- * allocation locality.
+ *  @param [in,out] offset_blk Allocated segment offset in blocks will be stored into.
+                    It also specified the desired segment offset to provide
+ *                  allocation locality.
  *  @param [out] olength_blk Assigned segment length in blocks.
  *  @param  max_offset_blk Maximal offset of allocated block.
  *  @param opts Allocation options.
  */
-static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl, int64_t length_blk, uint64_t *offset_blk,
-                                         int64_t *olength_blk, uint64_t max_offset_blk,
+static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl,
+                                         int64_t length_blk,
+                                         uint64_t *offset_blk,
+                                         int64_t *olength_blk,
+                                         uint64_t max_offset_blk,
                                          iwfs_fsm_aflags opts) {
   _fsm_bmopts bopts = 0;
   _FSMBK *nk;
@@ -954,15 +956,11 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
     bmoffset = 8 * impl->bmlen * (1 << impl->bpow);
     bmoffset = IW_ROUNDUP(bmoffset, impl->psize);
     rc = pool->ensure_size(pool, bmoffset + bmlen);
-    if (rc) {
-      return rc;
-    }
+    if (rc) return rc;
   }
   if (!impl->mmap_all) {
     rc = pool->add_mmap(pool, bmoffset, bmlen);
-    if (rc) {
-      return rc;
-    }
+    if (rc) return rc;
   }
   rc = _fsm_init_lw(impl, bmoffset, bmlen);
   if (rc && !impl->mmap_all) {
@@ -984,7 +982,8 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
  * @param opts
  */
 static iwrc _fsm_blk_allocate_lw(_FSM *impl,
-                                 int64_t length_blk, uint64_t *offset_blk,
+                                 int64_t length_blk,
+                                 uint64_t *offset_blk,
                                  int64_t *olength_blk,
                                  iwfs_fsm_aflags opts) {
   iwrc rc;
@@ -992,8 +991,20 @@ static iwrc _fsm_blk_allocate_lw(_FSM *impl,
   _fsm_bmopts bopts = 0;
 
   if (opts & IWFSM_ALLOC_PAGE_ALIGNED) {
-    return _fsm_blk_allocate_aligned_lw(impl, length_blk, offset_blk, olength_blk, UINT64_MAX, opts);
+    while(1) {
+      rc = _fsm_blk_allocate_aligned_lw(impl, length_blk, offset_blk, olength_blk, UINT64_MAX, opts);
+      if (rc == IWFS_ERROR_NO_FREE_SPACE) {
+        if (opts & IWFSM_ALLOC_NO_EXTEND) {
+          return IWFS_ERROR_NO_FREE_SPACE;
+        }
+        rc = _fsm_resize_fsm_bitmap_lw(impl, impl->bmlen << 1);
+        if (rc) return rc;
+        continue;
+      }
+      return rc;
+    }
   }
+
   *olength_blk = length_blk;
 
 start:
@@ -1031,9 +1042,7 @@ start:
       return IWFS_ERROR_NO_FREE_SPACE;
     }
     rc = _fsm_resize_fsm_bitmap_lw(impl, impl->bmlen << 1);
-    if (rc) {
-      return rc;
-    }
+    if (rc) return rc;
     goto start;
   }
 
