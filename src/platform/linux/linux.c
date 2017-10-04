@@ -38,6 +38,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <ftw.h>
 
 #define _IW_TIMESPEC2MS(IW_ts) ((IW_ts).tv_sec * 1000) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6)
 
@@ -56,17 +57,17 @@ IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fstat) {
   assert(fstat);
   iwrc rc = 0;
   struct stat st = {0};
-
+  
   memset(fstat, 0, sizeof(*fstat));
   if (stat(path, &st)) {
     return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
   }
-
+  
   fstat->atime = _IW_TIMESPEC2MS(st.st_atim);
   fstat->mtime = _IW_TIMESPEC2MS(st.st_mtim);
   fstat->ctime = _IW_TIMESPEC2MS(st.st_ctim);
   fstat->size = st.st_size;
-
+  
   if (S_ISREG(st.st_mode)) {
     fstat->ftype = IWP_TYPE_FILE;
   } else if (S_ISDIR(st.st_mode)) {
@@ -187,4 +188,20 @@ iwrc iwp_sleep(uint64_t ms) {
     rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, errno);
   }
   return rc;
+}
+
+
+static int _rmfile(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
+  if (remove(pathname) < 0) {
+    perror(pathname);
+    return -1;
+  }
+  return 0;
+}
+
+iwrc iwp_removedir(const char *path) {
+  if (nftw(path, _rmfile, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS) < 0) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  }
+  return 0;
 }

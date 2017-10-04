@@ -182,6 +182,14 @@ IW_EXPORT iwrc iwp_ftruncate(HANDLE fh, off_t len);
  */
 IW_EXPORT iwrc iwp_sleep(uint64_t ms);
 
+
+/**
+ * @brief Recursive directory removal specified by @a path.
+ * @param path Directory path
+ */
+IW_EXPORT iwrc iwp_removedir(const char *path);
+
+
 /**
  * @brief Init iwp module.
  * @return `0` on success or error code.
