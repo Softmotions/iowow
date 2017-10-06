@@ -316,9 +316,13 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl, uint64_t offset_bits, int64_t len
   uint8_t *mmap;
   uint64_t sp, *p, set_mask;
   int set_bits;
-  
+      
   if (bend < offset_bits) {
     return IW_ERROR_OUT_OF_BOUNDS;
+  }
+  assert(impl->bmlen * 8 >= offset_bits + length_bits);  
+  if (impl->bmlen * 8 < offset_bits + length_bits) {
+    return IWFS_ERROR_FSM_SEGMENTATION;
   }
   if (impl->mmap_all) {
     rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
