@@ -821,6 +821,10 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
                       bmlen);
     return rc;
   }
+  
+  rc = _fsm_ensure_size_lw(impl, bmoff + bmlen);
+  if (rc) return rc;
+  
   if (impl->mmap_all) {
     rc = pool->get_mmap(pool, 0, &mmap, &sp);
     if (!rc) {
@@ -970,8 +974,6 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
   } else if (rc == IWFS_ERROR_NO_FREE_SPACE) {
     bmoffset = 8 * impl->bmlen * (1 << impl->bpow);
     bmoffset = IW_ROUNDUP(bmoffset, impl->psize);
-    rc = _fsm_ensure_size_lw(impl, bmoffset + bmlen);
-    if (rc) return rc;
   }
   if (!impl->mmap_all) {
     rc = pool->add_mmap(pool, bmoffset, bmlen);
@@ -1288,9 +1290,6 @@ static iwrc _fsm_init_new_lw(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   bmlen = opts->bmlen > 0 ? IW_ROUNDUP(opts->bmlen, impl->psize) : impl->psize;
   bmoff = IW_ROUNDUP(impl->hdrlen, impl->psize);
   
-  rc = _fsm_ensure_size_lw(impl, bmoff + bmlen);
-  if (rc) return rc;
-  
   if (impl->mmap_all) {
     /* mmap whole file */
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
@@ -1380,9 +1379,10 @@ static iwrc _fsm_is_fully_allocated_lr(_FSM *impl, uint64_t offset_blk, int64_t 
 static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
+  iwrc rc = 0;
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
-    iwrc rc = _fsm_ctrl_rlock(impl);
+    rc = _fsm_ctrl_rlock(impl);
     if (rc) return rc;
     
     IWRC(_fsm_is_fully_allocated_lr(impl,
@@ -1467,17 +1467,16 @@ static iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size) {
   if (impl->bmoff + impl->bmlen > size) {
     return IWFS_ERROR_RESIZE_FAIL;
   }
-  IWRC(impl->pool.ensure_size(&impl->pool, size), rc);
+  rc = impl->pool.ensure_size(&impl->pool, size);
   if (!rc && impl->bmptr && impl->mmap_all) {
     rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
-    if (rc) {
-      return rc;
-    }
+    if (rc) return rc;
     if (sp < impl->bmoff + impl->bmlen) {
       rc = IWFS_ERROR_RESIZE_FAIL;
       return rc;
     }
-    impl->bmptr = (uint64_t *)(mmap + impl->bmoff);
+    mmap += impl->bmoff;
+    impl->bmptr = (uint64_t *) mmap;
   }
   return rc;
 }
@@ -1529,6 +1528,8 @@ static iwrc _fsm_unlock(struct IWFS_FSM *f, off_t start, off_t len) {
 static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
+//  rc = _fsm_ensure_size_lw(impl, off + siz);
+//  if (rc) return rc;
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
