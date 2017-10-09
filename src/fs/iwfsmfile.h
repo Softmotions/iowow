@@ -123,7 +123,8 @@ typedef enum {
   IWFS_ERROR_FSM_SEGMENTATION,   /**< Free-space map segmentation error */
   IWFS_ERROR_INVALID_FILEMETA,   /**< Invalid file-metadata */
   IWFS_ERROR_PLATFORM_PAGE,      /**< Platform page size incopatibility, data
-                                      migration required. */
+                                      migration required. */       
+  IWFS_ERROR_RESIZE_FAIL,        /**< Failed to resize file   */                        
   _IWFS_FSM_ERROR_END
 } iwfs_fsm_ecode;
 

@@ -121,6 +121,8 @@ struct IWFS_FSM_IMPL {
   int mmap_all;              /**< Mmap all file data */
 };
 
+static iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 IW_INLINE int _fsm_cmp(_FSMBK a, _FSMBK b) {
@@ -309,18 +311,21 @@ static _FSMBK *_fsm_find_matching_fblock_lw(_FSM *impl,
  * @param bit_status  If `1` bits will be set to `1` otherwise `0`
  * @param opts        Operation options
  */
-static iwrc _fsm_set_bit_status_lw(_FSM *impl, uint64_t offset_bits, int64_t length_bits, int bit_status,
+static iwrc _fsm_set_bit_status_lw(_FSM *impl,
+                                   uint64_t offset_bits,
+                                   int64_t length_bits,
+                                   int bit_status,
                                    _fsm_bmopts opts) {
   iwrc rc;
   uint64_t bend = offset_bits + length_bits;
   uint8_t *mmap;
   uint64_t sp, *p, set_mask;
   int set_bits;
-      
+  
   if (bend < offset_bits) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
-  assert(impl->bmlen * 8 >= offset_bits + length_bits);  
+  assert(impl->bmlen * 8 >= offset_bits + length_bits);
   if (impl->bmlen * 8 < offset_bits + length_bits) {
     return IWFS_ERROR_FSM_SEGMENTATION;
   }
@@ -732,7 +737,6 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
   int hasleft = 0, hasright = 0;
   uint64_t key_offset = offset_blk, key_length = length_blk;
   uint64_t rm_offset = 0, rm_length = 0;
-  uint64_t *addr = impl->bmptr;
   _fsm_bmopts bopts = 0;
   
   if (impl->oflags & IWFSM_STRICT) {
@@ -744,12 +748,12 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
     return rc;
   }
   /* Merge with neighborhoods */
-  left = _fsm_find_prev_set_bit(addr, offset_blk, 0, &hasleft);
+  left = _fsm_find_prev_set_bit(impl->bmptr, offset_blk, 0, &hasleft);
   if (impl->lfbkoff > 0 && impl->lfbkoff == offset_blk + length_blk) {
     right = impl->lfbkoff + impl->lfbklen;
     hasright = 1;
   } else {
-    right = _fsm_find_next_set_bit(addr, offset_blk + length_blk, impl->lfbkoff, &hasright);
+    right = _fsm_find_next_set_bit(impl->bmptr, offset_blk + length_blk, impl->lfbkoff, &hasright);
   }
   if (hasleft) {
     if (offset_blk > left + 1) {
@@ -966,7 +970,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
   } else if (rc == IWFS_ERROR_NO_FREE_SPACE) {
     bmoffset = 8 * impl->bmlen * (1 << impl->bpow);
     bmoffset = IW_ROUNDUP(bmoffset, impl->psize);
-    rc = pool->ensure_size(pool, bmoffset + bmlen);
+    rc = _fsm_ensure_size_lw(impl, bmoffset + bmlen);
     if (rc) return rc;
   }
   if (!impl->mmap_all) {
@@ -1284,7 +1288,7 @@ static iwrc _fsm_init_new_lw(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   bmlen = opts->bmlen > 0 ? IW_ROUNDUP(opts->bmlen, impl->psize) : impl->psize;
   bmoff = IW_ROUNDUP(impl->hdrlen, impl->psize);
   
-  rc = pool->ensure_size(pool, bmoff + bmlen);
+  rc = _fsm_ensure_size_lw(impl, bmoff + bmlen);
   if (rc) return rc;
   
   if (impl->mmap_all) {
@@ -1456,11 +1460,33 @@ static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
   return rc;
 }
 
+static iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size) {
+  uint64_t sp;
+  uint8_t *mmap;
+  iwrc rc = 0;
+  if (impl->bmoff + impl->bmlen > size) {
+    return IWFS_ERROR_RESIZE_FAIL;
+  }
+  IWRC(impl->pool.ensure_size(&impl->pool, size), rc);
+  if (!rc && impl->bmptr && impl->mmap_all) {
+    rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
+    if (rc) {
+      return rc;
+    }
+    if (sp < impl->bmoff + impl->bmlen) {
+      rc = IWFS_ERROR_RESIZE_FAIL;
+      return rc;
+    }
+    impl->bmptr = (uint64_t *)(mmap + impl->bmoff);
+  }
+  return rc;
+}
+
 static iwrc _fsm_ensure_size(struct IWFS_FSM *f, off_t size) {
   _FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
   if (rc) return rc;
-  IWRC(f->impl->pool.ensure_size(&f->impl->pool, size), rc);
+  rc = _fsm_ensure_size_lw(f->impl, size);
   IWRC(_fsm_ctrl_unlock(f->impl), rc);
   return rc;
 }
@@ -1886,6 +1912,9 @@ static const char *_fsmfile_ecodefn(locale_t locale, uint32_t ecode) {
     case IWFS_ERROR_PLATFORM_PAGE:
       return "The block size incompatible with platform page size, data "
              "migration required. (IWFS_ERROR_PLATFORM_PAGE)";
+    case IWFS_ERROR_RESIZE_FAIL:
+      return "Failed to resize file, "
+             "conflicting with free-space map location (IWFS_ERROR_RESIZE_FAIL)";
   }
   return 0;
 }
