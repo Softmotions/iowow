@@ -244,7 +244,18 @@ void test_fsm_open_close(void) {
   CU_ASSERT_FALSE_FATAL(rc);
 }
 
-void test_fsm_uniform_alloc(void) {
+
+void test_fsm_uniform_alloc_impl(int mmap_all);
+
+void test_fsm_uniform_alloc(void)  {
+  test_fsm_uniform_alloc_impl(0);
+}
+
+void test_fsm_uniform_alloc_mmap_all(void)  {
+  test_fsm_uniform_alloc_impl(1);
+}
+
+void test_fsm_uniform_alloc_impl(int mmap_all) {
   iwrc rc;
   IWFS_FSMDBG_STATE state1, state2;
   IWFS_FSM_OPTS opts = {
@@ -260,7 +271,8 @@ void test_fsm_uniform_alloc(void) {
     },
     .bpow = 6,
     .hdrlen = 64,
-    .oflags = IWFSM_STRICT
+    .oflags = IWFSM_STRICT,
+    .mmap_all = mmap_all  
   };
 
   typedef struct {
@@ -508,7 +520,7 @@ static void *recordsthr(void *op) {
   return 0;
 }
 
-void test_block_allocation_impl(int nthreads, int numrec, int avgrecsz, int blkpow, const char *path) {
+void test_block_allocation_impl(int mmap_all, int nthreads, int numrec, int avgrecsz, int blkpow, const char *path) {
   iwrc rc;
   pthread_t *tlist = malloc(nthreads * sizeof(pthread_t));
 
@@ -520,7 +532,8 @@ void test_block_allocation_impl(int nthreads, int numrec, int avgrecsz, int blkp
       }
     },
     .bpow = blkpow,
-    .oflags = IWFSM_STRICT
+    .oflags = IWFSM_STRICT,
+    .mmap_all = mmap_all
   };
 
   FSMRECTASK task;
@@ -558,7 +571,16 @@ void test_block_allocation_impl(int nthreads, int numrec, int avgrecsz, int blkp
   free(tlist);
 }
 
+
+void test_block_allocation1_impl(int mmap_all);
 void test_block_allocation1(void) {
+  test_block_allocation1_impl(0);
+}
+void test_block_allocation1_mmap_all(void) {
+  test_block_allocation1_impl(1);
+}
+
+void test_block_allocation1_impl(int mmap_all) {
   iwrc rc;
   IWFS_FSM fsm;
   IWFS_FSM_OPTS opts = {
@@ -572,7 +594,8 @@ void test_block_allocation1(void) {
     },
     .hdrlen = 62 * 64,
     .bpow = 6,
-    .oflags = IWFSM_STRICT
+    .oflags = IWFSM_STRICT,
+    .mmap_all = mmap_all
   };
 
   off_t oaddr = 0;
@@ -688,9 +711,17 @@ void test_block_allocation1(void) {
   CU_ASSERT_FALSE_FATAL(rc);
 }
 
-void test_block_allocation2(void) {
-  test_block_allocation_impl(4, 50000, 493, 6, "test_block_allocation2.fsm");
-  test_block_allocation_impl(4, 50000, 5, 6, "test_block_allocation2.fsm");
+void test_block_allocation2_impl(int mmap_all);
+void test_block_allocation2() {
+  test_block_allocation2_impl(0);
+}
+void test_block_allocation2_mmap_all() {
+  test_block_allocation2_impl(1);
+}
+
+void test_block_allocation2_impl(int mmap_all) {
+  test_block_allocation_impl(mmap_all, 4, 50000, 493, 6, "test_block_allocation2.fsm");
+  test_block_allocation_impl(mmap_all, 4, 50000, 5, 6, "test_block_allocation2.fsm");
 }
 
 int main() {
@@ -713,8 +744,11 @@ int main() {
   if ((NULL == CU_add_test(pSuite, "test_fsm_bitmap", test_fsm_bitmap)) ||
       (NULL == CU_add_test(pSuite, "test_fsm_open_close", test_fsm_open_close)) ||
       (NULL == CU_add_test(pSuite, "test_fsm_uniform_alloc", test_fsm_uniform_alloc)) ||
+      (NULL == CU_add_test(pSuite, "test_fsm_uniform_alloc_mmap_all", test_fsm_uniform_alloc_mmap_all)) ||
       (NULL == CU_add_test(pSuite, "test_block_allocation1", test_block_allocation1)) ||
-      (NULL == CU_add_test(pSuite, "test_block_allocation2", test_block_allocation2))) {
+      (NULL == CU_add_test(pSuite, "test_block_allocation1_mmap_all", test_block_allocation1_mmap_all)) ||
+      (NULL == CU_add_test(pSuite, "test_block_allocation2", test_block_allocation2)) || 
+      (NULL == CU_add_test(pSuite, "test_block_allocation2_mmap_all", test_block_allocation2_mmap_all))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

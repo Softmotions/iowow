@@ -110,7 +110,6 @@ struct IWFS_FSM_IMPL {
                                   `allocated` */
   IWFS_FSM *f;               /**< Self reference. */
   kbtree_t(fsm) *fsm;        /**< Free-space tree */
-  uint64_t *bmptr;           /**< Pointer to the bitmap area */
   pthread_rwlock_t *ctlrwlk; /**< Methods RW lock */
   size_t psize;              /**< System page size */
   iwfs_fsm_openflags oflags; /**< Operation mode flags. */
@@ -151,6 +150,27 @@ IW_INLINE iwrc _fsm_ctrl_rlock(_FSM *impl) {
 IW_INLINE iwrc _fsm_ctrl_unlock(_FSM *impl) {
   int err = impl->ctlrwlk ? pthread_rwlock_unlock(impl->ctlrwlk) : 0;
   return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
+}
+
+static iwrc _fsm_bmptr(_FSM *impl, uint64_t **bmptr) {
+  iwrc rc;
+  size_t sp;
+  uint8_t *mm;
+  *bmptr = 0;
+  rc = impl->pool.get_mmap(&impl->pool, impl->mmap_all ? 0 : impl->bmoff, &mm, &sp);
+  if (rc) return rc;
+  if (impl->mmap_all) {
+    if (sp < impl->bmoff + impl->bmlen) {
+      return IWFS_ERROR_NOT_MMAPED;
+    }
+    *bmptr = (uint64_t *)(mm + impl->bmoff);
+  } else {
+    if (sp < impl->bmlen) {
+      return IWFS_ERROR_NOT_MMAPED;
+    }
+    *bmptr = (uint64_t *) mm;
+  }
+  return rc;
 }
 
 /**
@@ -332,20 +352,23 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
   if (impl->mmap_all) {
     rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
     if (!rc) {
-      if (sp <= impl->bmoff) {
+      if (sp < impl->bmoff + impl->bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
       } else {
         mmap += impl->bmoff;
-        sp -= impl->bmoff;
       }
     }
   } else {
     rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
+    if (!rc && sp < impl->bmlen) {
+      rc = IWFS_ERROR_NOT_MMAPED;
+    }
   }
   if (rc) {
     iwlog_ecode_error3(rc);
     return rc;
   }
+  sp = impl->bmlen;
   p = ((uint64_t *) mmap) + offset_bits / 64;
   set_bits = 64 - (offset_bits & (64 - 1));
   set_mask = (~((uint64_t) 0) << (offset_bits & (64 - 1)));
@@ -411,10 +434,9 @@ static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl,
                                          iwfs_fsm_aflags opts) {
   _fsm_bmopts bopts = 0;
   _FSMBK *nk;
+  off_t psize_blk = (impl->psize >> impl->bpow);
   
   assert(impl && impl->fsm && length_blk > 0);
-  
-  off_t psize_blk = (impl->psize >> impl->bpow);
   if (impl->oflags & IWFSM_STRICT) {
     bopts |= _FSM_BM_STRICT;
   }
@@ -737,6 +759,7 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
   int hasleft = 0, hasright = 0;
   uint64_t key_offset = offset_blk, key_length = length_blk;
   uint64_t rm_offset = 0, rm_length = 0;
+  uint64_t *bmptr;
   _fsm_bmopts bopts = 0;
   
   if (impl->oflags & IWFSM_STRICT) {
@@ -744,16 +767,17 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
   }
   
   rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, 0, bopts);
-  if (rc) {
-    return rc;
-  }
+  if (rc) return rc;
+  rc = _fsm_bmptr(impl, &bmptr);
+  if (rc) return rc;
+  
   /* Merge with neighborhoods */
-  left = _fsm_find_prev_set_bit(impl->bmptr, offset_blk, 0, &hasleft);
+  left = _fsm_find_prev_set_bit(bmptr, offset_blk, 0, &hasleft);
   if (impl->lfbkoff > 0 && impl->lfbkoff == offset_blk + length_blk) {
     right = impl->lfbkoff + impl->lfbklen;
     hasright = 1;
   } else {
-    right = _fsm_find_next_set_bit(impl->bmptr, offset_blk + length_blk, impl->lfbkoff, &hasright);
+    right = _fsm_find_next_set_bit(bmptr, offset_blk + length_blk, impl->lfbkoff, &hasright);
   }
   if (hasleft) {
     if (offset_blk > left + 1) {
@@ -785,7 +809,7 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
  * @brief Initialize a new free-space bitmap area.
  *
  * If bitmap exists, its content will be moved into newly created area.
- * Blocks from previous bitmap are will disposed and deallocated.
+ * Blocks from the previous bitmap are will disposed and deallocated.
  *
  * @param impl `_FSM`
  * @param bmoff Byte offset of the new bitmap. Value must be page aligned.
@@ -798,18 +822,15 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   uint64_t sp, sp2;
   uint64_t old_bmoff, old_bmlen;
   IWFS_RWL *pool = &impl->pool;
-  size_t psize = impl->psize;
   
-  if ((bmlen & ((1 << impl->bpow) - 1))
-      || (bmoff & ((1 << impl->bpow) - 1))
-      || (bmoff & (psize - 1))) {
+  if ((bmlen & ((1 << impl->bpow) - 1)) || (bmoff & ((1 << impl->bpow) - 1)) || (bmoff & (impl->psize - 1))) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
   }
   
   if (bmlen < impl->bmlen) {
     rc = IW_ERROR_INVALID_ARGS;
     iwlog_ecode_error(rc, "Length of the newly initiated bitmap area (bmlen): %" PRIu64
-                      " must not be lesser than current bitmap area length %" PRIu64 "",
+                      " must not be lesser than the current bitmap area length %" PRIu64 "",
                       bmlen, impl->bmlen);
     return rc;
   }
@@ -828,68 +849,58 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   if (impl->mmap_all) {
     rc = pool->get_mmap(pool, 0, &mmap, &sp);
     if (!rc) {
-      if (sp <= bmoff) {
+      if (sp < bmoff + bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
       } else {
-        mmap += bmoff;
-        sp -= bmoff;
+        mmap += bmoff;        
       }
     }
   } else {
     rc = pool->get_mmap(pool, bmoff, &mmap, &sp);
+    if (!rc && sp < bmlen) {
+      rc = IWFS_ERROR_NOT_MMAPED;
+    }    
   }
   if (rc) {
     iwlog_ecode_error2(rc, "Fail to mmap fsm bitmap area");
     return rc;
   }
-  if (sp < bmlen) {
-    rc = IWFS_ERROR_NOT_MMAPED;
-    iwlog_ecode_error2(rc, "Fail to mmap fsm bitmap area");
-    return rc;
-  }
+  sp = bmlen;
   
   if (impl->bmlen) {
-    /* We have an old active bitmap. Lets copy its content to the new location.
-     */
+    /* We have an old active bitmap. Lets copy its content to the new location.*/
     if (IW_RANGES_OVERLAP(impl->bmoff, impl->bmoff + impl->bmlen, bmoff, bmoff + bmlen)) {
       rc = IW_ERROR_INVALID_ARGS;
-      iwlog_ecode_error2(rc, "New and old bitmap areas are overlapping");
+      iwlog_ecode_error2(rc, "New and old bitmap areas are overlaped");
       return rc;
     }
     if (impl->mmap_all) {
-      rc = pool->get_mmap(pool, 0, &mmap2, &sp2);
-      if (!rc) {
-        if (sp2 <= impl->bmoff) {
-          rc = IWFS_ERROR_NOT_MMAPED;
-        } else {
-          mmap2 += impl->bmoff;
-          sp2 -= impl->bmoff;
-        }
-      }
+      mmap2 = mmap - bmoff + impl->bmoff;      
     } else {
       rc = pool->get_mmap(pool, impl->bmoff, &mmap2, &sp2);
+      if (!rc && sp2 < impl->bmlen) {
+        rc = IWFS_ERROR_NOT_MMAPED;
+      }      
+      if (rc) {
+        iwlog_ecode_error2(rc, "Old bitmap area is not mmaped");
+        return rc;
+      }      
     }
-    if (rc) {
-      iwlog_ecode_error2(rc, "Old bitmap area is not mmaped");
-      return rc;
-    }
+    sp2 = impl->bmlen;          
+    assert(!((sp2 - sp) & ((1 << impl->bpow) - 1)));    
     if (impl->mmap_all) {
-      assert(bmlen >= impl->bmlen);
       memcpy(mmap, mmap2, impl->bmlen);
       if (bmlen > impl->bmlen) {
         memset(mmap + impl->bmlen, 0, bmlen - impl->bmlen);
       }
     } else {
-      assert(sp >= sp2);
-      assert(!(sp2 & ((1 << impl->bpow) - 1)));
-      assert(!((sp2 - sp) & ((1 << impl->bpow) - 1)));
       memcpy(mmap, mmap2, sp2);
       if (sp > sp2) {
         memset(mmap + sp2, 0, sp - sp2);
       }
     }
   } else {
-    memset(mmap, 0, sp);
+    memset(mmap, 0, bmlen);
   }
   
   /* Backup the previous bitmap range */
@@ -898,7 +909,6 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   
   impl->bmoff = bmoff;
   impl->bmlen = bmlen;
-  impl->bmptr = (uint64_t *) mmap;
   
   rc = _fsm_set_bit_status_lw(impl, (bmoff >> impl->bpow), (bmlen >> impl->bpow), 1, _FSM_BM_NONE);
   if (rc) {
@@ -914,7 +924,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     }
   }
   /* Reload the fsm tree */
-  _fsm_load_fsm_lw(impl, mmap, sp);
+  _fsm_load_fsm_lw(impl, mmap, bmlen);
   
   /* Sync fsm */
   rc = pool->sync_mmap(pool, impl->mmap_all ? 0 : bmoff, impl->sync_flags);
@@ -943,8 +953,7 @@ rollback: /* try to rollback bitmap state */
   impl->bmoff = old_bmoff;
   impl->bmlen = old_bmlen;
   if (old_bmlen > 0) {
-    impl->bmptr = (uint64_t *) mmap2;
-    _fsm_load_fsm_lw(impl, mmap2, sp2);
+    _fsm_load_fsm_lw(impl, mmap2, old_bmlen);
   }
   pool->sync_mmap(pool, 0, impl->sync_flags);
   return rc;
@@ -1091,7 +1100,9 @@ static iwrc _fsm_trim_tail_lw(_FSM *impl) {
   iwrc rc;
   uint64_t offset = 0, lastblk;
   int64_t length;
+  uint64_t *bmptr;
   int hasleft;
+  IWFS_RWL_STATE pstate;
   
   if (!(impl->omode & IWFS_OWRITE) || !impl->lfbkoff) {
     return 0;
@@ -1112,23 +1123,28 @@ static iwrc _fsm_trim_tail_lw(_FSM *impl) {
     assert(offset != impl->bmoff);
     impl->pool.add_mmap(&impl->pool, offset, length);
     rc = _fsm_init_lw(impl, offset, length);
+    if (rc) goto finish;
   } else {
     /* shoud never be reached */
     assert(0);
     rc = _fsm_blk_deallocate_lw(impl, offset, length);
+    if (rc) goto finish;
   }
+  
+  rc = _fsm_bmptr(impl, &bmptr);
+  if (rc) goto finish;
+  
   lastblk = impl->lfbkoff;
-  offset = _fsm_find_prev_set_bit(impl->bmptr, impl->lfbkoff, 0, &hasleft);
+  offset = _fsm_find_prev_set_bit(bmptr, impl->lfbkoff, 0, &hasleft);
   if (hasleft) {
     lastblk = offset + 1;
   }
-  if (!rc) {
-    IWFS_RWL_STATE pstate;
-    rc = impl->pool.state(&impl->pool, &pstate);
-    if (!rc && pstate.exfile.fsize > (lastblk << impl->bpow)) {
-      rc = impl->pool.truncate(&impl->pool, lastblk << impl->bpow);
-    }
+  rc = impl->pool.state(&impl->pool, &pstate);
+  if (!rc && pstate.exfile.fsize > (lastblk << impl->bpow)) {
+    rc = impl->pool.truncate(&impl->pool, lastblk << impl->bpow);
   }
+  
+finish:
   return rc;
 }
 
@@ -1308,45 +1324,43 @@ static iwrc _fsm_init_new_lw(_FSM *impl, const IWFS_FSM_OPTS *opts) {
 static iwrc _fsm_init_existing_lw(_FSM *impl) {
   _FSM_ENSURE_OPEN(impl);
   iwrc rc;
-  uint8_t *mmap;
   size_t sp;
+  uint8_t *mmap;
   IWFS_RWL *pool = &impl->pool;
   
   rc = _fsm_read_meta_lr(impl);
-  if (rc) return rc;
+  if (rc) goto finish;
   
   if (impl->mmap_all) {
     /* mmap whole file */
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
-    if (rc) return rc;
+    if (rc) goto finish;
     rc = pool->get_mmap(pool, 0, &mmap, &sp);
-    if (!rc) {
-      if (sp <= impl->bmoff) {
-        rc = IWFS_ERROR_NOT_MMAPED;
-      } else {
-        mmap += impl->bmoff;
-      }
+    if (rc) goto finish;
+    if (sp < impl->bmoff + impl->bmlen) {
+      rc = IWFS_ERROR_NOT_MMAPED;
+      goto finish;
+    } else {
+      mmap += impl->bmoff;
     }
   } else {
     /* mmap the header part of file */
     rc = pool->add_mmap(pool, 0, impl->hdrlen);
-    if (rc) return rc;
+    if (rc) goto finish;
     /* mmap the fsm bitmap index */
     rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
-    if (rc) return rc;
+    if (rc) goto finish;
     rc = pool->get_mmap(pool, impl->bmoff, &mmap, &sp);
+    if (rc) goto finish;
+    if (sp < impl->bmlen) {
+      rc = IWFS_ERROR_NOT_MMAPED;
+      goto finish;
+    }
   }
-  if (rc) {
-    return rc;
-  }
-  if (sp < impl->bmlen) {
-    rc = IWFS_ERROR_NOT_MMAPED;
-    iwlog_ecode_error2(rc, "Fail to mmap fsm bitmap area");
-    return rc;
-  }
-  impl->bmptr = (uint64_t *) mmap;
   _fsm_load_fsm_lw(impl, mmap, impl->bmlen);
-  return 0;
+  
+finish:
+  return rc;
 }
 
 /**
@@ -1461,31 +1475,19 @@ static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
 }
 
 static iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size) {
-  uint64_t sp;
-  uint8_t *mmap;
-  iwrc rc = 0;
-  if (impl->bmoff + impl->bmlen > size) {
-    return IWFS_ERROR_RESIZE_FAIL;
-  }
-  rc = impl->pool.ensure_size(&impl->pool, size);
-  if (!rc && impl->bmptr && impl->mmap_all) {
-    rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
-    if (rc) return rc;
-    if (sp < impl->bmoff + impl->bmlen) {
-      rc = IWFS_ERROR_RESIZE_FAIL;
-      return rc;
-    }
-    mmap += impl->bmoff;
-    impl->bmptr = (uint64_t *) mmap;
-  }
-  return rc;
+  return impl->pool.ensure_size(&impl->pool, size);
 }
 
 static iwrc _fsm_ensure_size(struct IWFS_FSM *f, off_t size) {
   _FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
   if (rc) return rc;
+  if (f->impl->bmoff + f->impl->bmlen > size) {
+    rc = IWFS_ERROR_RESIZE_FAIL;
+    goto finish;
+  }
   rc = _fsm_ensure_size_lw(f->impl, size);
+finish:
   IWRC(_fsm_ctrl_unlock(f->impl), rc);
   return rc;
 }
@@ -1528,8 +1530,8 @@ static iwrc _fsm_unlock(struct IWFS_FSM *f, off_t start, off_t len) {
 static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
-//  rc = _fsm_ensure_size_lw(impl, off + siz);
-//  if (rc) return rc;
+  //  rc = _fsm_ensure_size_lw(impl, off + siz);
+  //  if (rc) return rc;
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     iwrc rc = _fsm_ctrl_rlock(impl);
