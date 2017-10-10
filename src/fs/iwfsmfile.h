@@ -99,7 +99,11 @@ typedef enum {
   IWFSM_ALLOC_PAGE_ALIGNED = 0x04U,
 
   /** Do not update(collect) internal allocation stats for this allocation. */
-  IWFSM_ALLOC_NO_STATS = 0x08U
+  IWFSM_ALLOC_NO_STATS = 0x08U,
+  
+  /** Force all allocated address space backed by real file address space, 
+      useful when operating on mmaped allocated regions. */
+  IWFSM_SOLID_ALLOCATED_SPACE = 0x10U
 
 } iwfs_fsm_aflags;
 

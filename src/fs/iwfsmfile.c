@@ -852,14 +852,14 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
       if (sp < bmoff + bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
       } else {
-        mmap += bmoff;        
+        mmap += bmoff;
       }
     }
   } else {
     rc = pool->get_mmap(pool, bmoff, &mmap, &sp);
     if (!rc && sp < bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
-    }    
+    }
   }
   if (rc) {
     iwlog_ecode_error2(rc, "Fail to mmap fsm bitmap area");
@@ -875,19 +875,19 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
       return rc;
     }
     if (impl->mmap_all) {
-      mmap2 = mmap - bmoff + impl->bmoff;      
+      mmap2 = mmap - bmoff + impl->bmoff;
     } else {
       rc = pool->get_mmap(pool, impl->bmoff, &mmap2, &sp2);
       if (!rc && sp2 < impl->bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
-      }      
+      }
       if (rc) {
         iwlog_ecode_error2(rc, "Old bitmap area is not mmaped");
         return rc;
-      }      
+      }
     }
-    sp2 = impl->bmlen;          
-    assert(!((sp2 - sp) & ((1 << impl->bpow) - 1)));    
+    sp2 = impl->bmlen;
+    assert(!((sp2 - sp) & ((1 << impl->bpow) - 1)));
     if (impl->mmap_all) {
       memcpy(mmap, mmap2, impl->bmlen);
       if (bmlen > impl->bmlen) {
@@ -1027,6 +1027,11 @@ static iwrc _fsm_blk_allocate_lw(_FSM *impl,
         if (rc) return rc;
         continue;
       }
+      if (!rc && (opts & IWFSM_SOLID_ALLOCATED_SPACE)) {
+        uint64_t bs = *offset_blk;
+        int64_t bl = *olength_blk;
+        rc = _fsm_ensure_size_lw(impl, (bs << impl->bpow) + (bl << impl->bpow));
+      }
       return rc;
     }
   }
@@ -1089,6 +1094,11 @@ start:
     avg = (double_t) impl->crzsum / (double_t) impl->crznum; /* average */
     impl->crzvar +=
       (uint64_t)(((double_t) length_blk - avg) * ((double_t) length_blk - avg) + 0.5L); /* variance */
+  }
+  if (!rc && (opts & IWFSM_SOLID_ALLOCATED_SPACE)) {
+    uint64_t bs = *offset_blk;
+    int64_t bl = *olength_blk;
+    rc = _fsm_ensure_size_lw(impl, (bs << impl->bpow) + (bl << impl->bpow));
   }
   return rc;
 }
@@ -1474,7 +1484,7 @@ static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
   return rc;
 }
 
-static iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size) {
+IW_INLINE iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size) {
   return impl->pool.ensure_size(&impl->pool, size);
 }
 
