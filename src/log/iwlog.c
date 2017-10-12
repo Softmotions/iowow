@@ -351,6 +351,7 @@ static iwrc _default_logfn(locale_t locale,
     break;
   case IWLOG_INFO:
     cat = "INFO";
+    file = 0;
     break;
   case IWLOG_WARN:
     cat = "WARN";
