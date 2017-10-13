@@ -189,6 +189,13 @@ IW_EXPORT iwrc iwp_sleep(uint64_t ms);
  */
 IW_EXPORT iwrc iwp_removedir(const char *path);
 
+/**
+ * @brief Get executable path for the current process.
+ * It will be writein into @a opath
+ * @param opath Allocated buffer at least `PATH_MAX` length
+ */
+IW_EXPORT iwrc iwp_exec_path(char *opath);
+
 
 /**
  * @brief Init iwp module.
