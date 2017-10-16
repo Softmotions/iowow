@@ -223,3 +223,8 @@ iwrc iwp_exec_path(char *opath) {
   }
   return 0;
 }
+
+uint16_t iwp_num_cpu_cores() {
+  long res = sysconf(_SC_NPROCESSORS_ONLN);
+  return res > 0 ? res : 1;
+}
