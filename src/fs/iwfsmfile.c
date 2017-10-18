@@ -1718,8 +1718,7 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
   }
   if (addr & ((1 << impl->bpow) - 1)) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
-  }
-  len = IW_ROUNDUP(len, 1 << impl->bpow);
+  }  
   rc = _fsm_ctrl_wlock(impl);
   if (rc) return rc;
   if (IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow)) ||
