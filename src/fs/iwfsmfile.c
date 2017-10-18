@@ -1403,17 +1403,14 @@ static iwrc _fsm_is_fully_allocated_lr(_FSM *impl, uint64_t offset_blk, int64_t 
 static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
-  iwrc rc = 0;
+  iwrc rc = _fsm_ctrl_rlock(impl);
+  if (rc) return rc;
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
-    rc = _fsm_ctrl_rlock(impl);
-    if (rc) return rc;
-    
     IWRC(_fsm_is_fully_allocated_lr(impl,
                                     off >> impl->bpow,
                                     IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated), rc);
-    _fsm_ctrl_unlock(impl);
     if (!rc) {
       if (!allocated) {
         rc = IWFS_ERROR_FSM_SEGMENTATION;
@@ -1421,24 +1418,23 @@ static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t si
         rc = impl->pool.write(&impl->pool, off, buf, siz, sp);
       }
     }
-    return rc;
   } else {
-    return impl->pool.write(&impl->pool, off, buf, siz, sp);
+    rc = impl->pool.write(&impl->pool, off, buf, siz, sp);
   }
+  _fsm_ctrl_unlock(impl);
+  return rc;
 }
 
 static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
+  iwrc rc = _fsm_ctrl_rlock(impl);
+  if (rc) return rc;
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
-    iwrc rc = _fsm_ctrl_rlock(impl);
-    if (rc) return rc;
-    
     IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
-    _fsm_ctrl_unlock(impl);
     if (!rc) {
       if (!allocated) {
         rc = IWFS_ERROR_FSM_SEGMENTATION;
@@ -1446,10 +1442,11 @@ static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size
         rc = impl->pool.read(&impl->pool, off, buf, siz, sp);
       }
     }
-    return rc;
   } else {
-    return impl->pool.read(&impl->pool, off, buf, siz, sp);
+    rc = impl->pool.read(&impl->pool, off, buf, siz, sp);
   }
+  _fsm_ctrl_unlock(impl);
+  return rc;
 }
 
 static iwrc _fsm_close(struct IWFS_FSM *f) {
@@ -1540,19 +1537,15 @@ static iwrc _fsm_unlock(struct IWFS_FSM *f, off_t start, off_t len) {
 static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
-  //  rc = _fsm_ensure_size_lw(impl, off + siz);
-  //  if (rc) return rc;
+  iwrc rc = _fsm_ctrl_rlock(impl);
+  if (rc) return rc;
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
-    iwrc rc = _fsm_ctrl_rlock(impl);
-    if (rc) return rc;
-    
     IWRC(_fsm_is_fully_allocated_lr(impl,
                                     off >> impl->bpow,
                                     IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
-    _fsm_ctrl_unlock(impl);
     if (!rc) {
       if (!allocated) {
         rc = IWFS_ERROR_FSM_SEGMENTATION;
@@ -1560,25 +1553,25 @@ static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t s
         rc = impl->pool.lwrite(&impl->pool, off, buf, siz, sp);
       }
     }
-    return rc;
   } else {
-    return impl->pool.lwrite(&impl->pool, off, buf, siz, sp);
+    rc = impl->pool.lwrite(&impl->pool, off, buf, siz, sp);
   }
+  _fsm_ctrl_unlock(impl);
+  return rc;
 }
 
 static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
+  iwrc rc = _fsm_ctrl_rlock(impl);
+  if (rc) return rc;
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
-    iwrc rc = _fsm_ctrl_rlock(impl);
-    if (rc) return rc;
     IWRC(_fsm_is_fully_allocated_lr(impl,
                                     off >> impl->bpow,
                                     IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
                                     &allocated),
          rc);
-    _fsm_ctrl_unlock(impl);
     if (!rc) {
       if (!allocated) {
         rc = IWFS_ERROR_FSM_SEGMENTATION;
@@ -1586,10 +1579,11 @@ static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, siz
         rc = impl->pool.lread(&impl->pool, off, buf, siz, sp);
       }
     }
-    return rc;
   } else {
-    return impl->pool.lread(&impl->pool, off, buf, siz, sp);
+    rc = impl->pool.lread(&impl->pool, off, buf, siz, sp);
   }
+  _fsm_ctrl_unlock(impl);
+  return rc;
 }
 
 static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
@@ -1718,7 +1712,7 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
   }
   if (addr & ((1 << impl->bpow) - 1)) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
-  }  
+  }
   rc = _fsm_ctrl_wlock(impl);
   if (rc) return rc;
   if (IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow)) ||
