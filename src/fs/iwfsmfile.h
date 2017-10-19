@@ -100,8 +100,8 @@ typedef enum {
 
   /** Do not update(collect) internal allocation stats for this allocation. */
   IWFSM_ALLOC_NO_STATS = 0x08U,
-  
-  /** Force all allocated address space backed by real file address space, 
+
+  /** Force all allocated address space backed by real file address space,
       useful when operating on mmaped allocated regions. */
   IWFSM_SOLID_ALLOCATED_SPACE = 0x10U
 
@@ -127,8 +127,8 @@ typedef enum {
   IWFS_ERROR_FSM_SEGMENTATION,   /**< Free-space map segmentation error */
   IWFS_ERROR_INVALID_FILEMETA,   /**< Invalid file-metadata */
   IWFS_ERROR_PLATFORM_PAGE,      /**< Platform page size incopatibility, data
-                                      migration required. */       
-  IWFS_ERROR_RESIZE_FAIL,        /**< Failed to resize file   */                        
+                                      migration required. */
+  IWFS_ERROR_RESIZE_FAIL,        /**< Failed to resize file   */
   _IWFS_FSM_ERROR_END
 } iwfs_fsm_ecode;
 
@@ -300,8 +300,22 @@ typedef struct IWFS_FSM {
   /** @see IWFS_EXT::add_mmap */
   iwrc(*add_mmap)(struct IWFS_FSM *f, off_t off, size_t maxlen);
 
-  /** @see IWFS_EXT::get_mmap */
+  /**
+   * @brief Get a pointer to the registered mmap area starting at `off`.
+   *
+   * WARNING: Internal read lock will be acquired and
+   *          must be released by subsequent `release_mmap()` call
+   *          after all activity with mmaped region has finished.
+   *
+   * @see IWFS_FSM::add_mmap
+   * @see IWFS_EXT::get_mmap
+   */
   iwrc(*get_mmap)(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp);
+
+  /**
+   * @brief Release the lock acquired by successfull call of `get_mmap()`
+   */
+  iwrc(*release_mmap)(struct IWFS_FSM *f);
 
   /** @see IWFS_EXT::remove_mmap */
   iwrc(*remove_mmap)(struct IWFS_FSM *f, off_t off);
