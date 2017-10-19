@@ -1642,7 +1642,6 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
   uint64_t oaddr_blk = *oaddr >> impl->bpow;
   uint64_t naddr_blk = oaddr_blk;
   int64_t sp;
-  int deallocated = 0;
 
   if (nlen_blk == olen_blk) {
     return 0;
@@ -1667,9 +1666,8 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
       uint64_t nkoffset = _FSMBK_OFFSET(nk);
       if (nkoffset == naddr_blk) { // we can easily extend end of block
         rc = _fsm_blk_allocate_lw(impl, nlen_blk - olen_blk, &naddr_blk, &sp, opts);
-        if (rc) {
-          goto error;
-        }
+        if (rc) goto finish;
+
         if (naddr_blk == nkoffset) { // we using the same block
           *olen = (olen_blk + sp) << impl->bpow;
           goto finish;
@@ -1679,34 +1677,22 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
         }
       }
     }
-    rc = _fsm_blk_deallocate_lw(impl, oaddr_blk, olen_blk);
-    if (rc) {
-      goto finish;
-    }
-    deallocated = 1;
     naddr_blk = oaddr_blk;
     rc = _fsm_blk_allocate_lw(impl, nlen_blk, &naddr_blk, &sp, opts);
-    if (rc) {
-      goto error;
-    }
+    if (rc) goto finish;
+
     if (naddr_blk != oaddr_blk) {
       // we need to copy data to the new place
       rc = impl->pool.copy(&impl->pool, *oaddr, *olen, naddr_blk << impl->bpow);
-      if (rc) {
-        goto error;
-      }
+      if (rc) goto finish;
     }
+    rc = _fsm_blk_deallocate_lw(impl, oaddr_blk, olen_blk);
+    if (rc) goto finish;
+
     *oaddr = naddr_blk << impl->bpow;
     *olen = sp << impl->bpow;
   }
 finish:
-  IWRC(_fsm_ctrl_unlock(impl), rc);
-  return rc;
-error:
-  if (deallocated) {
-    // trying to fix things back
-    IWRC(_fsm_blk_allocate_lw(impl, olen_blk, &oaddr_blk, &sp, opts), rc);
-  }
   IWRC(_fsm_ctrl_unlock(impl), rc);
   return rc;
 }
