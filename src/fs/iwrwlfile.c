@@ -26,7 +26,8 @@
 
 #include "iwcfg.h"
 #include "iwrwlfile.h"
-#include "utils/iwrlock.h"
+#include "iwrlock.h"
+#include "iwutils.h"
 
 typedef struct IWFS_RWL_IMPL {
   IWFS_EXT exfile; /**< Underlying exfile */
@@ -191,13 +192,10 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f, const IWFS_RWL_OPTS *opts) {
   }
 
   rc = iwfs_exfile_open(&impl->exfile, &opts->exfile);
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
+
   rc = iwrl_new(&impl->lk);
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
 
 finish:
   if (rc) {

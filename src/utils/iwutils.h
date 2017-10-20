@@ -46,6 +46,12 @@ IW_EXTERN_C_START
 #define IW_LINE_SEP "\n"
 #endif
 
+#ifdef __GNUC__
+#define RCGO(rc__, label__) if (__builtin_expect((!!(rc__)), 0)) goto label__
+#else
+#define RCGO(rc__, label__) if (rc) goto label__
+#endif
+
 #ifndef MIN
 #define MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))
 #endif

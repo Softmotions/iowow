@@ -127,7 +127,7 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, _MMAPSLOT *s) {
     int flags = MAP_SHARED;
     int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE | PROT_READ) : (PROT_READ);
     s->len = nlen;
-    s->mmap = mmap(0, s->len, prot, flags, impl->fh, s->off);    
+    s->mmap = mmap(0, s->len, prot, flags, impl->fh, s->off);
     if (s->mmap == MAP_FAILED) {
       return iwrc_set_errno(IW_ERROR_ERRNO, errno);
     }
@@ -168,9 +168,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
     }
     impl->fsize = size;
     rc = iwp_ftruncate(impl->fh, size);
-    if (rc) {
-      goto truncfail;
-    }
+    RCGO(rc, truncfail);
     rc = _exfile_initmmap_lw(f);
   } else if (old_size > size) {
     if (!(omode & IWFS_OWRITE)) {
@@ -178,13 +176,9 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
     }
     impl->fsize = size;
     rc = _exfile_initmmap_lw(f);
-    if (rc) {
-      goto truncfail;
-    }
+    RCGO(rc, truncfail);
     rc = iwp_ftruncate(impl->fh, size);
-    if (rc) {
-      goto truncfail;
-    }
+    RCGO(rc, truncfail);
   }
   return rc;
 
@@ -253,8 +247,7 @@ static iwrc _exfile_write(struct IWFS_EXT *f,
     }
     if (end > impl->fsize) {
       rc = _exfile_ensure_size_lw(f, end);
-      if (rc)
-        goto finish;
+      RCGO(rc, finish);
     }
   }
   s = impl->mmslots;
@@ -280,9 +273,7 @@ static iwrc _exfile_write(struct IWFS_EXT *f,
   }
   if (wp > 0) {
     rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), wp, sp);
-    if (rc) {
-      goto finish;
-    }
+    RCGO(rc, finish);
     wp = wp - *sp;
     // off = off + *sp;
   }
@@ -321,9 +312,7 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
     if (s->off > off) {
       len = MIN(rp, s->off - off);
       rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), len, sp);
-      if (rc) {
-        goto finish;
-      }
+      RCGO(rc, finish);
       rp = rp - *sp;
       off = off + *sp;
     }
@@ -337,9 +326,7 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
   }
   if (rp > 0) {
     rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), rp, sp);
-    if (rc) {
-      goto finish;
-    }
+    RCGO(rc, finish);
     rp = rp - *sp;
     // off = off + *sp;
   }
@@ -499,9 +486,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
   ns->mmapfh = INVALIDHANDLE;
 #endif
   rc = _exfile_initmmap_slot_lw(f, ns);
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
   if (impl->mmslots == 0) {
     ns->next = 0;
     ns->prev = ns;
@@ -748,18 +733,15 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   impl->use_locks = opts->use_locks;
 
   rc = _exfile_initlocks(f);
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
+
   rc = iwfs_file_open(&impl->file, &opts->file);
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
+
   IWP_FILE_STAT fstat;
   rc = iwp_fstat(path, &fstat);
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
+
   impl->fsize = fstat.size;
 
   IWFS_FILE_STATE fstate;

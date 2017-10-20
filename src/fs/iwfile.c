@@ -28,6 +28,7 @@
 #include "log/iwlog.h"
 #include "platform/iwp.h"
 #include "iwfile.h"
+#include "iwutils.h"
 
 #include <fcntl.h>
 #include <limits.h>
@@ -201,9 +202,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   }
   if (opts->lock_mode != IWP_NOLOCK) {
     rc = iwp_flock(impl->fh, opts->lock_mode);
-    if (rc) {
-      goto finish;
-    }
+    RCGO(rc, finish);
   }
 
 finish:

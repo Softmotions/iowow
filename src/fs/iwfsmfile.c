@@ -1133,16 +1133,16 @@ static iwrc _fsm_trim_tail_lw(_FSM *impl) {
     assert(offset != impl->bmoff);
     impl->pool.add_mmap(&impl->pool, offset, length);
     rc = _fsm_init_lw(impl, offset, length);
-    if (rc) goto finish;
+    RCGO(rc, finish);
   } else {
     /* shoud never be reached */
     assert(0);
     rc = _fsm_blk_deallocate_lw(impl, offset, length);
-    if (rc) goto finish;
+    RCGO(rc, finish);
   }
 
   rc = _fsm_bmptr(impl, &bmptr);
-  if (rc) goto finish;
+  RCGO(rc, finish);
 
   lastblk = impl->lfbkoff;
   offset = _fsm_find_prev_set_bit(bmptr, impl->lfbkoff, 0, &hasleft);
@@ -1339,14 +1339,16 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
   IWFS_RWL *pool = &impl->pool;
 
   rc = _fsm_read_meta_lr(impl);
-  if (rc) goto finish;
+  RCGO(rc, finish);
 
   if (impl->mmap_all) {
     /* mmap whole file */
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
-    if (rc) goto finish;
+    RCGO(rc, finish);
+
     rc = pool->get_mmap(pool, 0, &mmap, &sp);
-    if (rc) goto finish;
+    RCGO(rc, finish);
+
     if (sp < impl->bmoff + impl->bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
       goto finish;
@@ -1356,12 +1358,15 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
   } else {
     /* mmap the header part of file */
     rc = pool->add_mmap(pool, 0, impl->hdrlen);
-    if (rc) goto finish;
+    RCGO(rc, finish);
+
     /* mmap the fsm bitmap index */
     rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
-    if (rc) goto finish;
+    RCGO(rc, finish);
+
     rc = pool->get_mmap(pool, impl->bmoff, &mmap, &sp);
-    if (rc) goto finish;
+    RCGO(rc, finish);
+
     if (sp < impl->bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
       goto finish;
@@ -1666,7 +1671,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
       uint64_t nkoffset = _FSMBK_OFFSET(nk);
       if (nkoffset == naddr_blk) { // we can easily extend end of block
         rc = _fsm_blk_allocate_lw(impl, nlen_blk - olen_blk, &naddr_blk, &sp, opts);
-        if (rc) goto finish;
+        RCGO(rc, finish);
 
         if (naddr_blk == nkoffset) { // we using the same block
           *olen = (olen_blk + sp) << impl->bpow;
@@ -1679,15 +1684,15 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
     }
     naddr_blk = oaddr_blk;
     rc = _fsm_blk_allocate_lw(impl, nlen_blk, &naddr_blk, &sp, opts);
-    if (rc) goto finish;
+    RCGO(rc, finish);
 
     if (naddr_blk != oaddr_blk) {
       // we need to copy data to the new place
       rc = impl->pool.copy(&impl->pool, *oaddr, *olen, naddr_blk << impl->bpow);
-      if (rc) goto finish;
+      RCGO(rc, finish);
     }
     rc = _fsm_blk_deallocate_lw(impl, oaddr_blk, olen_blk);
-    if (rc) goto finish;
+    RCGO(rc, finish);
 
     *oaddr = naddr_blk << impl->bpow;
     *olen = sp << impl->bpow;
@@ -1787,9 +1792,7 @@ static iwrc _fsm_clear(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags) {
   if (!impl->mmap_all) {
     IWRC(impl->pool.add_mmap(&impl->pool, bmoff, bmlen), rc);
   }
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
   impl->bmlen = 0;
   impl->bmoff = 0;
   rc = _fsm_init_lw(impl, bmoff, bmlen);
@@ -1867,17 +1870,17 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   rwl_opts.exfile.use_locks = !(opts->oflags & IWFSM_NOLOCKS);
 
   rc = _fsm_init_impl(impl, opts);
-  if (rc) goto finish;
+  RCGO(rc, finish);
 
   rc = _fsm_init_locks(impl, opts);
-  if (rc) goto finish;
+  RCGO(rc, finish);
 
   rc = iwfs_rwlfile_open(&impl->pool, &rwl_opts);
-  if (rc) goto finish;
+  RCGO(rc, finish);
 
   memset(&fstate, 0, sizeof(fstate));
   rc = impl->pool.state(&impl->pool, &fstate);
-  if (rc) goto finish;
+  RCGO(rc, finish);
 
   impl->omode = fstate.exfile.file.opts.omode;
 
