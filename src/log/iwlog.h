@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IWLOG_H
 #define IWLOG_H
 

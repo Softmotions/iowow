@@ -704,6 +704,9 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
 
   memset(f, 0, sizeof(*f));
 
+  rc = iwfs_exfile_init();
+  RCGO(rc, finish);
+
   f->close = _exfile_close;
   f->read = _exfile_read;
   f->write = _exfile_write;
@@ -785,6 +788,8 @@ static const char *_exfile_ecodefn(locale_t locale, uint32_t ecode) {
 
 iwrc iwfs_exfile_init(void) {
   static int _exfile_initialized = 0;
+  iwrc rc = iw_init();
+  if (rc) return rc;
   if (!__sync_bool_compare_and_swap(&_exfile_initialized, 0, 1)) {
     return 0;  // initialized already
   }

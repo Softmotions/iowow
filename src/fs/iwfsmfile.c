@@ -1830,6 +1830,8 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   const char *path = opts->rwlfile.exfile.file.path;
 
   memset(f, 0, sizeof(*f));
+  rc = iwfs_fsmfile_init();
+  RCGO(rc, finish);
 
   f->write = _fsm_write;
   f->read = _fsm_read;
@@ -1928,6 +1930,8 @@ static const char *_fsmfile_ecodefn(locale_t locale, uint32_t ecode) {
 
 iwrc iwfs_fsmfile_init(void) {
   static int _fsmfile_initialized = 0;
+  iwrc rc = iw_init();
+  if (rc) return rc;
   if (!__sync_bool_compare_and_swap(&_fsmfile_initialized, 0, 1)) {
     return 0;  // initialized already
   }

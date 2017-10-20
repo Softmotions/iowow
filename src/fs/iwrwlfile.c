@@ -161,6 +161,8 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f, const IWFS_RWL_OPTS *opts) {
   const char *path = opts->exfile.file.path;
 
   memset(f, 0, sizeof(*f));
+  rc = iwfs_rwlfile_init();
+  RCGO(rc, finish);
 
   f->write = _rwl_write;
   f->read = _rwl_read;
@@ -212,5 +214,5 @@ finish:
 }
 
 iwrc iwfs_rwlfile_init(void) {
-  return 0;
+  return iw_init();
 }

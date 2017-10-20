@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IOWOW_H
 #define IOWOW_H
 
@@ -35,6 +36,7 @@
 #endif
 
 #include "basedefs.h"
+IW_EXTERN_C_START
 
 /**
  * @brief Init iowow subsystem.
@@ -42,4 +44,5 @@
  */
 IW_EXPORT WUR iwrc iw_init(void);
 
+IW_EXTERN_C_END
 #endif

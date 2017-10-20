@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IW_FILE_H
 #define IW_FILE_H
 
@@ -63,6 +64,8 @@
 #include "iowow.h"
 #include "iwlog.h"
 #include "iwp.h"
+
+IW_EXTERN_C_START
 
 /**
  * @enum iwfs_omode
@@ -224,4 +227,5 @@ IW_EXPORT WUR iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts);
  */
 IW_EXPORT WUR iwrc iwfs_file_init(void);
 
+IW_EXTERN_C_END
 #endif

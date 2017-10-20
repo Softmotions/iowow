@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IW_CFG_H
 #define IW_CFG_H
 

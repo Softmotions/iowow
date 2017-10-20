@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IWFSMFILE_H
 #define IWFSMFILE_H
 
@@ -76,6 +77,8 @@
 
 #include "iwrwlfile.h"
 #include <math.h>
+
+IW_EXTERN_C_START
 
 /**
  * @brief Free space allocation flags.
@@ -398,5 +401,7 @@ IW_EXPORT WUR iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts);
  * @brief Init `iwfsmfile` submodule.
  */
 IW_EXPORT WUR iwrc iwfs_fsmfile_init(void);
+
+IW_EXTERN_C_END
 
 #endif

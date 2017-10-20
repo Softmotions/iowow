@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IWEXFILE_H
 #define IWEXFILE_H
 
@@ -62,6 +63,8 @@
  */
 
 #include "iwfile.h"
+
+IW_EXTERN_C_START
 
 struct IWFS_EXT_OPTS;
 struct IWFS_EXT;
@@ -305,5 +308,7 @@ IW_EXPORT WUR iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts);
  * @brief Init `iwexfile` submodule.
  */
 IW_EXPORT WUR iwrc iwfs_exfile_init(void);
+
+IW_EXTERN_C_END
 
 #endif

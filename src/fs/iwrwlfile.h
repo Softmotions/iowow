@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IWRWLFILE_H
 #define IWRWLFILE_H
 
@@ -54,6 +55,8 @@
 
 #include "iwexfile.h"
 #include "iwrlock.h"
+
+IW_EXTERN_C_START
 
 /**
  * @brief `IWFS_RWL` file open options.
@@ -208,5 +211,7 @@ IW_EXPORT WUR iwrc iwfs_rwlfile_open(IWFS_RWL *f, const IWFS_RWL_OPTS *opts);
  * @brief Init `iwrwlfile` submodule.
  */
 IW_EXPORT WUR iwrc iwfs_rwlfile_init(void);
+
+IW_EXTERN_C_END
 
 #endif

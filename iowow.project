@@ -66,10 +66,6 @@
       <VirtualDirectory Name="linux">
         <File Name="src/platform/linux/linux.c"/>
       </VirtualDirectory>
-      <VirtualDirectory Name="tmpl">
-        <File Name="src/platform/tmpl/libiowow.pc.in"/>
-        <File Name="src/platform/tmpl/iwcfg.h"/>
-      </VirtualDirectory>
       <File Name="src/platform/iwp.h"/>
       <File Name="src/platform/iwp.c"/>
     </VirtualDirectory>
@@ -94,6 +90,10 @@
     <File Name="src/iowow.h"/>
     <File Name="src/basedefs.h"/>
     <File Name="src/iowow.c"/>
+    <VirtualDirectory Name="kv">
+      <File Name="src/kv/iwkv.h"/>
+      <File Name="src/kv/iwkv.c"/>
+    </VirtualDirectory>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>

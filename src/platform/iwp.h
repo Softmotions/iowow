@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IWP_H
 #define IWP_H
 
