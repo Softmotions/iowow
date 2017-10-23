@@ -1,11 +1,14 @@
 IWKV:
 
+prob: 1/3
+
 header:
-  sl_head:[n0-n4:u8]
+  sl_head:[n0-n21:u8]
 
 levels:
-
-  [p0:u8,n0:u8,n1-n4:u8,data_ptr:u8,ivmask:u8]:u64
+                             _[n6-n21]:u128
+                            /
+  [p0:u8,n0:u8,n1-n5:u8,nptr:u8,data_ptr:u8]:u64
                                \
-                                `[nels:u1,[[klen:vn,kval,vptr:u8],....n64]]: ~4K
-                                                            \_[pad:vn,vlen:vn,value]
+                                `[ukey:32,lkey:32,[kvptr:u8,...]]:u576
+                                                     \_[klen:vn,kval,pad:vn,vlen:vn,value]
