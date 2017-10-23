@@ -9,6 +9,6 @@ levels:
                              _[n6-n21]:u128
                             /
   [p0:u8,n0:u8,n1-n5:u8,nptr:u8,data_ptr:u8]:u64
-                               \
-                                `[ukey:32,lkey:32,[kvptr:u8,...]]:u576
-                                                     \_[klen:vn,kval,pad:vn,vlen:vn,value]
+                                  \
+                                   `[ukey:32,lkey:32,[kvptr:u8,...]]:u576
+                                                       \_[klen:vn,kval,pad:vn,vlen:vn,value]
