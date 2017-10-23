@@ -1,15 +1,10 @@
- 
- 
- IWKV:
- 
- level 4:  [lblk]  
+IWKV:
 
- level 2:  [nb:u4,[[db1:u4,kb1:u4]...[db31:u4,kb31:u4]],lkey:u4]:256 -> [lblk]-> [lblk] ->
- 
- level 1:  [lblk] ->  [nb*:u4,[[db:u4,kb:u4], *],*] -> [blk] -> [lblk] ->
-
- kvnode:   [pb:u4,nb:u4, klen:vlen,key, pad:vlen, vlen:vlen,value] -> 
+[p0:u8,n0:u8,n1-n4:u8,data_ptr:u8,inplace_mask:u8]:u64
+                             \
+                              `[nels:vn,pad:vn,[[klen:vn,kval,vptr:u8],....n64]]
+                                                                \_[pad:vn,vlen:vn,value]
 
 
- 
- 
+
+
