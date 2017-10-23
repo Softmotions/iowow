@@ -8,7 +8,7 @@ static const char *_iwkv_ecodefn(locale_t locale, uint32_t ecode) {
   }
   switch (ecode) {
   case IWKV_ERROR_NOTFOUND:
-    return "Record not found. (IWKV_ERROR_NOTFOUND)";
+    return "Key not found. (IWKV_ERROR_NOTFOUND)";
   }
   return 0;
 }

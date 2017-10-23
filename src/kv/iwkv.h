@@ -7,7 +7,7 @@
 
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
-  IWKV_ERROR_NOTFOUND, /**<  Record not found (IWKV_ERROR_NOTFOUND) */
+  IWKV_ERROR_NOTFOUND, /**<  Key not found (IWKV_ERROR_NOTFOUND) */
   _IWKV_ERROR_END
 } iwkv_ecode;
 
