@@ -1,8 +1,8 @@
 IWKV:
 
-[p0:u8,n0:u8,n1-n4:u8,data_ptr:u8,inplace_mask:u8]:u64
+[p0:u8,n0:u8,n1-n4:u8,data_ptr:u8,ivmask:u8]:u64
                              \
-                              `[nels:vn,pad:vn,[[klen:vn,kval,vptr:u8],....n64]]
+                              `[nels:vn,pad:vn,[[klen:vn,kval,vptr:u8],....n64]]: ~8K
                                                                 \_[pad:vn,vlen:vn,value]
 
 
