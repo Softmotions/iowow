@@ -12,7 +12,7 @@ levels:
   [p0:u8,n0:u8,n1-n5:u8,nptr:u8,data_ptr:u8]:u64
                                  \
                                   `[ukey:u24,lkey:u24,kvblk:u8,drbm:u8,[kvptr:u4,...]]:u320
-                                                       \_[blen:u4,vil:u2,[key,value,...]_______[kl1:vn,vl1:vn,...]]
+                                                       \_[blen:u4,idxl:u2,[key,value,...]_______[kl1:vn,vl1:vn,...]]
 
   drbm - Deleted records bitmask
-  vil - Value index sub-block size
+  idxl - Key/Value index sub-block size
