@@ -2,17 +2,29 @@ IWKV:
 
 prob: 1/3?
 block size: u64
+max key+value size: 268435455 (~255Mb) 
 
 header:
-  sl_head:[n0-n21:u8]
+  sl_head:[n0-n29:u4] 
 
 levels:
-                             _[n6-n21]:u128
+                             _[n13:u4-n29:u4]:u64
                             /
-  [p0:u8,n0:u8,n1-n5:u8,nptr:u8,data_ptr:u8]:u64
-                                 \
-                                  `[ukey:u24,lkey:u24,kvblk:u8,drbm:u8,[kvptr:u4,...]]:u320
-                                                       \_[blen:u4,idxl:u2,[[key,value],...]_______[bl:vn,...]]
+  [p0:u4,n0-n12:u4,nptr:u4,data_ptr:u4]:u64    
+                    \
+                     `[nbf:u1,uk:u26,lk:u26,pblk:u4,apbm:u8,[pp1:u1,...pp63:u1]]:u128  // Node block 
+                                             \_[blen:u1,ilen:u1,plen:vn,[[pair],...]___[ppos1:vn,...,ppos63:vn]] // Pairs block
+  pair: [pad:vn,klen:vn,key,value]              
+  
+  nbf   - Node block flags (reserved)
+  uk,lk - Upper and lower key values in pairs block 
+  pblk  - Address of `Pairs block (PB)` as block number.   
+  apbm  - Allocated pairs bitmask. 
+          If the highest bit of `apbm` is `1` then linked `Pairs block` is full
+  ppN   - Index of pair node ()
+  blen  - Whole block length as power of 2
+  ilen  - Length of [ppos...] array in bytes 
+  plen  - Length of pairs list
+  pposN  - Key/Value pair block start on i-th place
+  pair  - Key/Value pair
 
-  drbm - Deleted records bitmask
-  idxl - Key/Value block index sub-block size
