@@ -14,7 +14,7 @@ levels:
                     \
                      `[nbf:u1,uk:u26,lk:u26,pblk:u4,apbm:u8,[pp1:u1,...pp63:u1]]:u128  // Node block 
                                              \_[blen:u1,pplen:u1,plen:vn,[ppos1:vn,...,ppos63:vn]____[[pair],...]] // Pairs block
-  pair: [pad:vn,klen:vn,key,value]              
+  pair: [len:vn,klen:vn,key,value]              
   
   nbf   - Node block flags (reserved)
   uk,lk - Upper and lower key values in pairs block 
