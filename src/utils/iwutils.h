@@ -305,6 +305,10 @@ IW_EXPORT int iwu_rand(int range);
  */
 IW_EXPORT int iwu_rand_inorm(int range);
 
+IW_EXPORT int iwlog2_32(uint32_t val);
+
+IW_EXPORT int iwlog2_64(uint64_t val);
+
 IW_EXTERN_C_END
 
 #endif
