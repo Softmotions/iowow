@@ -86,6 +86,30 @@ typedef int HANDLE;
 
 #define IW_ERROR_START 70000
 
+#ifdef _WIN32
+#define IW_PATH_CHR '\\'
+#define IW_PATH_STR "\\"
+#define IW_LINE_SEP "\r\n"
+#else
+#define IW_PATH_CHR '/'
+#define IW_PATH_STR "/"
+#define IW_LINE_SEP "\n"
+#endif
+
+#ifdef __GNUC__
+#define RCGO(rc__, label__) if (__builtin_expect((!!(rc__)), 0)) goto label__
+#else
+#define RCGO(rc__, label__) if (rc) goto label__
+#endif
+
+#ifndef MIN
+#define MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))
+#endif
+
+#ifndef MAX
+#define MAX(a_, b_) ((a_) > (b_) ? (a_) : (b_))
+#endif
+
 #include <stdint.h>
 
 /**

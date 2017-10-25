@@ -31,6 +31,7 @@
 
 iwrc iwfs_init(void);
 iwrc iwp_init(void);
+iwrc iwkv_init(void);
 
 iwrc iw_init(void) {
   iwrc rc;
@@ -40,19 +41,16 @@ iwrc iw_init(void) {
   }
 
   rc = iwlog_init();
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
 
   rc = iwp_init();
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
 
   rc = iwfs_init();
-  if (rc) {
-    goto finish;
-  }
+  RCGO(rc, finish);
+
+  rc = iwkv_init();
+  RCGO(rc, finish);
 
 finish:
   return rc;
