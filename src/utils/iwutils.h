@@ -187,6 +187,107 @@ IW_EXTERN_C_START
    ((IW_s1_) >= (IW_s2_) && (IW_s1_) < (IW_e2_)) ||       \
    ((IW_s1_) <= (IW_s2_) && (IW_e1_) >= (IW_e2_)))
 
+
+///////////////////////////////////////////////////////////////////////////
+//                    Variable length number encoding                    //
+///////////////////////////////////////////////////////////////////////////
+
+/* set a buffer for a variable length 32 bit number */
+#define IW_SETVNUMBUF(len_, buf_, num_) \
+  do { \
+    int _num_ = (num_); \
+    if(_num_ == 0){ \
+      ((signed char *)(buf_))[0] = 0; \
+      (len_) = 1; \
+    } else { \
+      (len_) = 0; \
+      while(_num_ > 0) { \
+        int _rem_ = _num_ & 0x7f; \
+        _num_ >>= 7; \
+        if(_num_ > 0){ \
+          ((signed char *)(buf_))[(len_)] = ~(_rem_); \
+        } else { \
+          ((signed char *)(buf_))[(len_)] = _rem_; \
+        } \
+        (len_)++; \
+      } \
+    } \
+  } while(0)
+
+/* set a buffer for a variable length 64 number */
+#define IW_SETVNUMBUF64(len_, buf_, num_) \
+  do { \
+    long long int _num_ = (num_); \
+    if(_num_ == 0){ \
+      ((signed char *)(buf_))[0] = 0; \
+      (len_) = 1; \
+    } else { \
+      (len_) = 0; \
+      while(_num_ > 0) { \
+        int _rem_ = _num_ & 0x7f; \
+        _num_ >>= 7; \
+        if(_num_ > 0){ \
+          ((signed char *)(buf_))[(len_)] = ~(_rem_); \
+        } else { \
+          ((signed char *)(buf_))[(len_)] = _rem_; \
+        } \
+        (len_)++; \
+      } \
+    } \
+  } while(0)
+
+
+/* read a 32 bit variable length buffer */
+#define IW_READVNUMBUF(buf_, num_, step_) \
+  do { \
+    num_ = 0; \
+    int _base_ = 1; \
+    int _i_ = 0; \
+    while(1){ \
+      if(((signed char *)(buf_))[_i_] >= 0){ \
+        num_ += _base_ * ((signed char *)(buf_))[_i_]; \
+        break; \
+      } \
+      num_ += _base_ * ~(((signed char *)(buf_))[_i_]); \
+      _base_ <<= 7; \
+      _i_++; \
+    } \
+    (step_) = _i_ + 1; \
+  } while(0)
+
+/* read a 64 bit variable length buffer */
+#define IW_READVNUMBUF64(buf_, num_, step_) \
+  do { \
+    num_ = 0; \
+    long long int _base_ = 1; \
+    int _i_ = 0; \
+    while(1){ \
+      if(((signed char *)(buf_))[_i_] >= 0){ \
+        num_ += _base_ * ((signed char *)(buf_))[_i_]; \
+        break; \
+      } \
+      num_ += _base_ * ~(((signed char *)(buf_))[_i_]); \
+      _base_ <<= 7; \
+      _i_++; \
+    } \
+    (step_) = _i_ + 1; \
+  } while(0)
+
+
+#define IW_VNUMBUFSZ 10
+
+/* Size of variable number in bytes */
+#define IW_VNUMSIZE(num_) \
+  ((num_) < 0x80ULL ? 1 : \
+   (num_) < 0x4000ULL ? 2 : \
+   (num_) < 0x200000ULL ? 3 : \
+   (num_) < 0x10000000ULL ? 4 : \
+   (num_) < 0x800000000ULL ? 5 : \
+   (num_) < 0x40000000000ULL ? 6 : \
+   (num_) < 0x2000000000000ULL ? 7 : \
+   (num_) < 0x100000000000000ULL ? 8 : \
+   (num_) < 0x8000000000000000ULL ? 9 : 10)
+
 /**
  * @brief Create uniform distributed random number.
  * @param avg Distribution pivot

@@ -81,6 +81,14 @@
       <File Name="src/utils/kbtree.h"/>
       <File Name="src/utils/iwutils.h"/>
       <File Name="src/utils/iwbits.h"/>
+      <File Name="src/utils/iwxstr.h"/>
+      <File Name="src/utils/iwxstr.c"/>
+      <File Name="src/utils/iwconv.h"/>
+      <File Name="src/utils/iwconv.c"/>
+      <File Name="src/utils/iwarrays.h"/>
+      <File Name="src/utils/iwarrays.c"/>
+      <File Name="src/utils/iwpool.h"/>
+      <File Name="src/utils/iwpool.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="tmpl">
       <File Name="src/tmpl/libiowow.pc.in"/>
