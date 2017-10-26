@@ -111,6 +111,7 @@ typedef int HANDLE;
 #endif
 
 #include <stdint.h>
+#include <stddef.h>
 
 /**
  * @brief The operation result status code.
