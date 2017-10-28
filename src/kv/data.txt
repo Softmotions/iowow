@@ -13,18 +13,30 @@ levels:
   [p0:u4,n0-n12:u4,nptr:u4,data_ptr:u4]:u64    
                     \
                      `[nbf:u1,uk:u26,lk:u26,pblk:u4,apbm:u8,[pn1:u1,...pn63]]:u128  // Node block 
-                                             \_[blen:u1,pplen:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[_KV],...]] // _KVBLK
+                                             \_[blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[_KV],...]] // _KVBLK
   _KV: [klen:vn,key,value]              
   
-  nbf   - Node block flags (reserved)
-  uk,lk - Upper and lower key values in pairs block 
-  pblk  - Address of `Pairs block (PB)` as block number.   
-  apbm  - Allocated pairs bitmask. 
-          If the highest bit of `apbm` is `1` then linked `Pairs block` is full
-  pnN   - Index of pair node in `Pairs block`
-  blen  - Whole block length as power of 2
-  pplen - Length of [ppos,plen...] array in bytes 
-  ppN   - Key/Value pair block start on i-th place
-  plN   - Key/Value pair block length on i-th place 
-  pair  - Key/Value pair
+  nbf    - Node block flags (reserved)
+  uk,lk  - Upper and lower key values in pairs block 
+  pblk   - Address of `Pairs block (PB)` as block number.   
+  apbm   - Allocated pairs bitmask. 
+           If the highest bit of `apbm` is `1` then linked `Pairs block` is full
+  pnN    - Index of pair node in `Pairs block`
+  blen   - Whole block length as power of 2
+  idxsz -  Length of [ppos,plen...] array in bytes 
+  ppN    - Key/Value pair block start on i-th place
+  plN    - Key/Value pair block length on i-th place 
+  pair   - Key/Value pair
   
+------------------------------------------------------------
+
+
+[off
+ len
+]
+
+[off
+ len
+]
+
+-zero-

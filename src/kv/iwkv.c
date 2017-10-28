@@ -4,6 +4,7 @@
 #include "iwutils.h"
 #include "iwfsmfile.h"
 #include "iwcfg.h"
+#include <stdbool.h>
 
 // Size of KV fsm block as power of 2
 #define KVBPOW 6
@@ -20,6 +21,9 @@
 // KVBLK header size: blen:u1 + pplen:u2
 #define KVBLK_HDRSZ (1 + 2)
 
+// Max key + value size
+#define KVBLK_MAXKVSZ 0xfffffff
+
 struct IWKV {
   IWFS_FSM fsm;
 };
@@ -33,19 +37,20 @@ typedef struct KV {
 } KV;
 
 // KV index: Offset and length.
-typedef struct KVPP {
+typedef struct KVP {
   uint32_t off; /**< KV block offset relative to `end` of KVBLK */
   uint32_t len; /**< Length of  */
-} KVPP;
+} KVP;
 
-// KVBLK: [blen:u1,pplen:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[pair],...]]
+// KVBLK: [blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[pair],...]]
 typedef struct KVBLK {
   IWKV iwkv;
   off_t addr;              /**< Block address */
-  uint32_t maxoff;         /**< Maximal pair offset */
-  uint16_t pplen;          /**< Size of KV pairs index in bytes */
+  uint32_t maxoff;         /**< Max pair offset */
+  uint16_t idxsz;         /**< Size of KV pairs index in bytes */
+  int8_t eidx;            /**< Index of first empty pair slot, or -1 */
   uint8_t szpow;           /**< Block size power of 2 */
-  KVPP pp[KVBLK_IDXNUM];   /**< KV pairs index */
+  KVP pidx[KVBLK_IDXNUM];  /**< KV pairs index */
 } KVBLK;
 
 static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
@@ -65,7 +70,7 @@ static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   kblk->iwkv = iwkv;
   kblk->addr = baddr;
   kblk->szpow = KVBLK_SZPOW;
-  kblk->pplen = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
+  kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
 finish:
   if (rc) {
     if (step > 0) {
@@ -94,17 +99,59 @@ static iwrc _kvblk_destroy(KVBLK **blkp) {
   return rc;
 }
 
-static iwrc _kvblk_compact(KVBLK *kblk) {
+IW_INLINE off_t _kvblk_compacted_offset(KVBLK *kb) {
+  off_t coff = 0;
+  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+    KVP *kvp = kb->pidx + i;
+    coff += kvp->len;
+  }
+  return coff;
+}
+
+static iwrc _kvblk_compact(KVBLK *kb) {
   iwrc rc = 0;
+  off_t coff = _kvblk_compacted_offset(kb);
+  if (coff == kb->maxoff) { // already compacted
+    return 0;
+  }
   // todo:
   return rc;
 }
 
-static iwrc _kvblk_addpair(KVBLK *kblk, const IWKV_val *key, const IWKV_val *value) {
+static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *value) {
   iwrc rc = 0;
-  size_t psz = key->size + value->size + IW_VNUMSIZE(key->size); // required size
-  off_t end = KVBLK_HDRSZ + kblk->pplen;
-
+  off_t end;  // kvblk header size
+  off_t msz;  // max available free space
+  off_t rsz;  // required size to add new key/value pair
+  off_t noff; // offset of new kvpair from end of block
+  off_t psz = (key->size + value->size) + IW_VNUMSIZE(key->size); // required size
+  off_t maxoff = kb->maxoff;
+  bool compacted = false;
+  if (psz > KVBLK_MAXKVSZ) {
+    return IWKV_ERROR_MAXKVSZ;
+  }
+  if (kb->eidx < 0) {
+    return _IWKV_ERROR_KVBLOCK_FULL;
+  }
+start:
+  end = KVBLK_HDRSZ + kb->idxsz;
+  msz = (1 << kb->szpow) - end - maxoff;
+  noff = maxoff + psz;
+  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz) - 2;
+  if (msz < rsz) { // not enough space
+    if (!compacted) {
+      rc = _kvblk_compact(kb);
+      RCGO(rc, finish);
+      maxoff = kb->maxoff;
+      compacted = true;
+      goto start;
+    } else { // resize whoole block
+      //
+      // todo:
+      //
+    }
+  }
+finish:
   return rc;
 }
 
@@ -115,6 +162,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
   switch (ecode) {
     case IWKV_ERROR_NOTFOUND:
       return "Key not found. (IWKV_ERROR_NOTFOUND)";
+    case IWKV_ERROR_MAXKVSZ:
+      return "Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
   }
   return 0;
 }
@@ -163,8 +212,8 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
-
-
+  
+  
 finish:
   return rc;
 }
