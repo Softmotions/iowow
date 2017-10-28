@@ -3,6 +3,7 @@
 #define IWKV_H
 
 #include "iowow.h"
+#include "iwfile.h"
 #include <stddef.h>
 
 typedef enum {
@@ -12,7 +13,9 @@ typedef enum {
 } iwkv_ecode;
 
 typedef enum {
-  IWKV_NOLOCKS = 0x01U, /**< Do not use threading locks */
+  IWKV_NOLOCKS  = 0x01U,  /**< Do not use any threading locks */
+  IWKV_RDONLY   = 0x02U,  /**< Open storage in read-only mode */
+  IWKV_TRUNC    = 0x04U   /**< Truncate database file on open */
 } iwkv_openflags;
 
 typedef enum {
@@ -34,9 +37,9 @@ typedef struct IWKV_val {
 
 IW_EXPORT WUR iwrc iwkv_init(void);
 
-IW_EXPORT WUR iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkv);
+IW_EXPORT WUR iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp);
 
-IW_EXPORT void iwkv_close(IWKV *iwkv);
+IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
 
 IW_EXPORT iwrc iwkv_put(IWKV iwkv, int ns, IWKV_val *key, IWKV_val *val, iwkv_putflags flags);
 
