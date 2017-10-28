@@ -145,7 +145,7 @@ start:
       maxoff = kb->maxoff;
       compacted = true;
       goto start;
-    } else { // resize whoole block
+    } else { // resize whole block
       //
       // todo:
       //
