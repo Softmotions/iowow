@@ -65,7 +65,7 @@ static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   kblk->iwkv = iwkv;
   kblk->addr = baddr;
   kblk->szpow = KVBLK_SZPOW;
-  kblk->pplen = IW_VNUMSIZE(0) * KVBLK_IDXNUM;
+  kblk->pplen = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
 finish:
   if (rc) {
     if (step > 0) {
