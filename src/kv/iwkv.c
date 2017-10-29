@@ -47,8 +47,8 @@ typedef struct KVBLK {
   IWKV iwkv;
   off_t addr;              /**< Block address */
   uint32_t maxoff;         /**< Max pair offset */
-  uint16_t idxsz;         /**< Size of KV pairs index in bytes */
-  int8_t eidx;            /**< Index of first empty pair slot, or -1 */
+  uint16_t idxsz;          /**< Size of KV pairs index in bytes */
+  int8_t zidx;             /**< Index of first empty pair slot, or -1 */
   uint8_t szpow;           /**< Block size power of 2 */
   KVP pidx[KVBLK_IDXNUM];  /**< KV pairs index */
 } KVBLK;
@@ -120,37 +120,76 @@ static iwrc _kvblk_compact(KVBLK *kb) {
 
 static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *value) {
   iwrc rc = 0;
-  off_t end;  // kvblk header size
-  off_t msz;  // max available free space
-  off_t rsz;  // required size to add new key/value pair
-  off_t noff; // offset of new kvpair from end of block
+  int i;
+  off_t msz;    // max available free space
+  off_t rsz;    // required size to add new key/value pair
+  off_t noff;   // offset of new kvpair from end of block
+  uint8_t *mm;
+  size_t sp;
+  IWFS_FSM *fsm = &kb->iwkv->fsm;
   off_t psz = (key->size + value->size) + IW_VNUMSIZE(key->size); // required size
-  off_t maxoff = kb->maxoff;
   bool compacted = false;
+  
   if (psz > KVBLK_MAXKVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
-  if (kb->eidx < 0) {
+  if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
+  
 start:
-  end = KVBLK_HDRSZ + kb->idxsz;
-  msz = (1 << kb->szpow) - end - maxoff;
-  noff = maxoff + psz;
+  msz = (1 << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
+  noff = kb->maxoff + psz;
   rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz) - 2;
   if (msz < rsz) { // not enough space
     if (!compacted) {
       rc = _kvblk_compact(kb);
       RCGO(rc, finish);
-      maxoff = kb->maxoff;
       compacted = true;
       goto start;
-    } else { // resize whole block
-      //
-      // todo:
-      //
+    } else { // resize the whole block
+      off_t nsz = (rsz - msz) + (1 << kb->szpow);
+      uint8_t npow = kb->szpow;
+      while ((1 << ++npow) < nsz);
+      off_t naddr = kb->addr,
+            nlen = (1 << npow);
+      rc = fsm->reallocate(fsm, nlen, &naddr, &nlen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+      RCGO(rc, finish);
+      assert(nlen == (1 << npow));
+      // Move pairs area
+      // [hdr..[pairs]] =reallocate=> [hdr..[pairs]_____] =memove=> [hdr.._____[pairs]]
+      rc = fsm->get_mmap(fsm, 0, &mm, &sp);
+      RCGO(rc, finish);
+      memmove(mm + naddr + nlen - kb->maxoff, mm + naddr + (1 << kb->szpow) - kb->maxoff, kb->maxoff);
+      fsm->release_mmap(fsm);
+      kb->addr = naddr;
+      kb->szpow = npow;
+      goto start;
     }
   }
+  KVP *kvp = &kb->pidx[kb->zidx];
+  kvp->len = psz;
+  kvp->off = noff;
+  kb->maxoff = noff;
+  for (i = kb->zidx + 1; i < KVBLK_IDXNUM; ++i) {
+    if (!kb->pidx[i].len) {
+      kb->zidx = i;
+    }
+  }
+  if (i == KVBLK_IDXNUM) {
+    kb->zidx = -1;
+  }
+  rc = fsm->get_mmap(fsm, 0, &mm, &sp);
+  RCGO(rc, finish);
+  uint8_t *wp = mm + kb->addr + (1 << kb->szpow) - kvp->off;
+  // [klen:vn,key,value]
+  IW_SETVNUMBUF(sp, wp, key->size);
+  wp += sp;
+  memcpy(wp, key->data, key->size);
+  wp += key->size;
+  memcpy(wp, value->data, value->size);
+  fsm->release_mmap(fsm);
+    
 finish:
   return rc;
 }
@@ -208,7 +247,8 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
     },
     .bpow = KVBPOW,              // 64 bytes block size
     .hdrlen = KVHDRLEN,          // Size of custom file header
-    .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0)
+    .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0),
+    .mmap_all = 1
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
