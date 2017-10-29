@@ -120,13 +120,13 @@ static iwrc _kvblk_compact(KVBLK *kb) {
 
 static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *value) {
   iwrc rc = 0;
-  int i;
   off_t msz;    // max available free space
   off_t rsz;    // required size to add new key/value pair
   off_t noff;   // offset of new kvpair from end of block
-  uint8_t *mm;
-  size_t sp;
+  uint8_t *mm, *wp;
+  size_t i, sp;
   IWFS_FSM *fsm = &kb->iwkv->fsm;
+  KVP *kvp;
   off_t psz = (key->size + value->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
   
@@ -167,7 +167,7 @@ start:
       goto start;
     }
   }
-  KVP *kvp = &kb->pidx[kb->zidx];
+  kvp = &kb->pidx[kb->zidx];
   kvp->len = psz;
   kvp->off = noff;
   kb->maxoff = noff;
@@ -181,7 +181,7 @@ start:
   }
   rc = fsm->get_mmap(fsm, 0, &mm, &sp);
   RCGO(rc, finish);
-  uint8_t *wp = mm + kb->addr + (1 << kb->szpow) - kvp->off;
+  wp = mm + kb->addr + (1 << kb->szpow) - kvp->off;
   // [klen:vn,key,value]
   IW_SETVNUMBUF(sp, wp, key->size);
   wp += sp;
