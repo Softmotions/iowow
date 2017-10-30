@@ -129,14 +129,14 @@ IW_INLINE off_t _kvblk_compacted_offset(KVBLK *kb) {
 }
 
 static int _kvblk_sort_kv(const void *v1, const void *v2) {
-  uint32_t o1 = ((KVP*) v1)->off > 0 ? ((KVP*) v1)->off : -1UL;
-  uint32_t o2 = ((KVP*) v2)->off > 0 ? ((KVP*) v1)->off : -1UL;
+  uint32_t o1 = ((KVP *) v1)->off > 0 ? ((KVP *) v1)->off : -1UL;
+  uint32_t o2 = ((KVP *) v2)->off > 0 ? ((KVP *) v1)->off : -1UL;
   return o1 > o2 ? 1 : o1 < o2 ? -1 : 0;
 }
 
 static iwrc _kvblk_compact(KVBLK *kb) {
   iwrc rc = 0;
-  uint8_t *mm;
+  uint8_t *mm, i;
   size_t sp;
   IWFS_FSM *fsm = &kb->iwkv->fsm;
   off_t coff = _kvblk_compacted_offset(kb);
@@ -149,6 +149,15 @@ static iwrc _kvblk_compact(KVBLK *kb) {
 
   // todo
 
+  for (i = 0; i < KVBLK_IDXNUM; ++i) {
+    if (!kb->pidx[i].len)  {
+      kb->zidx = i;
+      break;
+    }
+  }
+  if (i == KVBLK_IDXNUM) {
+    kb->zidx = -1;
+  }
   _kvblk_sync(kb, mm);
   IWRC(fsm->release_mmap(fsm), rc);
   return rc;
@@ -225,6 +234,7 @@ start:
   for (i = kb->zidx + 1; i < KVBLK_IDXNUM; ++i) {
     if (!kb->pidx[i].len) {
       kb->zidx = i;
+      break;
     }
   }
   if (i == KVBLK_IDXNUM) {
