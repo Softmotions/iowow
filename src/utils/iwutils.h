@@ -91,13 +91,6 @@ IW_EXTERN_C_START
   memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
   IW_ptr_ += sizeof(IW_v_)
 
-
-#define IW_WRITESV(IW_ptr_, IW_v_, IW_m_)  \
-  IW_v_ = IW_m_;                          \
-  IW_v_ = IW_HTOIS(IW_v_);                \
-  memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
-  IW_ptr_ += sizeof(IW_v_)
-
 #define IW_WRITESV(IW_ptr_, IW_v_, IW_m_)  \
   IW_v_ = IW_m_;                          \
   IW_v_ = IW_HTOIS(IW_v_);                \
