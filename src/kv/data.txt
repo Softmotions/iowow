@@ -13,8 +13,8 @@ levels:
   [p0:u4,n0-n12:u4,nptr:u4,data_ptr:u4]:u64    
                     \
                      `[nbf:u1,uk:u26,lk:u26,pblk:u4,apbm:u8,[pn1:u1,...pn63]]:u128  // Node block 
-                                             \_[blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[_KV],...]] // _KVBLK
-  _KV: [klen:vn,key,value]              
+                                             \_[blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[_KV],...]] // KVBLK
+  KV: [klen:vn,key,value]              
   
   nbf    - Node block flags (reserved)
   uk,lk  - Upper and lower key values in pairs block 

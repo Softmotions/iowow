@@ -71,6 +71,7 @@ static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   kblk->addr = baddr;
   kblk->szpow = KVBLK_SZPOW;
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
+  *oblk = kblk;
 finish:
   if (rc) {
     if (step > 0) {
@@ -96,6 +97,34 @@ static iwrc _kvblk_destroy(KVBLK **blkp) {
   assert(iwkv && blk->szpow && blk->addr);
   rc = fsm->deallocate(fsm, blk->addr, 1 << blk->szpow);
   _kvblk_release(blkp);
+  return rc;
+}
+
+// [blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[_KV],...]]
+static iwrc _kvblk_at(IWKV iwkv, off_t addr, KVBLK **blkp) {
+  iwrc rc = 0;
+  uint8_t *mm, *rp;
+  size_t sp;
+  int step = 0;
+  IWFS_FSM *fsm = &iwkv->fsm;
+  KVBLK *kb = malloc(sizeof(*kb));
+  if (!kb) return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  rc = fsm->get_mmap(fsm, 0, &mm, &sp);
+  RCGO(rc, finish);
+  rp = mm + addr;
+  step++;
+  kb->iwkv = iwkv;
+  memcpy(&kb->szpow, rp, sizeof(kb->szpow));
+  rp += sizeof(kb->szpow);
+  // todo 
+  *blkp = kb;
+finish:
+  if (step > 0) {
+    fsm->release_mmap(fsm);
+  }
+  if (rc) {
+    _kvblk_release(blkp);
+  }
   return rc;
 }
 
@@ -145,10 +174,18 @@ static iwrc _kvblk_compact(KVBLK *kb) {
   }
   rc = fsm->get_mmap(fsm, 0, &mm, &sp);
   if (rc) return rc;
+  mm = mm + kb->addr + (1 << kb->szpow);
   qsort(kb->pidx, KVBLK_IDXNUM, sizeof(KVP), _kvblk_sort_kv);
-
-  // todo
-
+  coff = 0;
+  for (i = 0; i < KVBLK_IDXNUM; ++i) {
+    KVP *kvp = kb->pidx + i;
+    off_t noff = coff + kvp->len;
+    if (kvp->off > noff) {
+      memmove(mm - noff, mm - kvp->off, kvp->len);
+      kvp->off = noff;
+    }
+    coff += kvp->len;
+  }
   for (i = 0; i < KVBLK_IDXNUM; ++i) {
     if (!kb->pidx[i].len)  {
       kb->zidx = i;
@@ -189,14 +226,14 @@ static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *value
   IWFS_FSM *fsm = &kb->iwkv->fsm;
   off_t psz = (key->size + value->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
-
+  
   if (psz > KVBLK_MAXKVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-
+  
 start:
   msz = (1 << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -251,7 +288,7 @@ start:
   memcpy(wp, value->data, value->size);
   _kvblk_sync(kb, mm);
   fsm->release_mmap(fsm);
-
+  
 finish:
   return rc;
 }
@@ -265,6 +302,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
       return "Key not found. (IWKV_ERROR_NOTFOUND)";
     case IWKV_ERROR_MAXKVSZ:
       return "Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
+    case IWKV_ERROR_CORRUPTED:
+      return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
   }
   return 0;
 }
@@ -314,8 +353,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
-
-
+  
 finish:
   return rc;
 }
