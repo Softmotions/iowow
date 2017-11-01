@@ -11,7 +11,7 @@ typedef enum {
   IWKV_ERROR_NOTFOUND,  /**< Key not found (IWKV_ERROR_NOTFOUND) */
   IWKV_ERROR_MAXKVSZ,   /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
   IWKV_ERROR_CORRUPTED, /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
-  _IWKV_ERROR_KVBLOCK_FULL, 
+  _IWKV_ERROR_KVBLOCK_FULL,
   _IWKV_ERROR_END
 } iwkv_ecode;
 
@@ -49,5 +49,7 @@ IW_EXPORT iwrc iwkv_put(IWKV iwkv, int ns, IWKV_val *key, IWKV_val *val, iwkv_pu
 IW_EXPORT iwrc iwkv_get(IWKV iwkv, int ns, IWKV_val *key, IWKV_val *oval);
 
 IW_EXPORT iwrc iwkv_del(IWKV iwkv, int ns, IWKV_val *key);
+
+IW_EXPORT void iwkv_dispose(IWKV_val *key, IWKV_val *val);
 
 #endif

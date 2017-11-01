@@ -100,23 +100,121 @@ static iwrc _kvblk_destroy(KVBLK **blkp) {
   return rc;
 }
 
-// [blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[_KV],...]]
+static iwrc _kvblk_getkey(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key) {
+  assert(mm && idx >= 0 && idx < KVBLK_IDXNUM);
+  int32_t klen;
+  KVP *kvp = &kb->pidx[idx];
+  if (!kvp->len) {
+    key->data = 0;
+    key->size = 0;
+    return 0;
+  }
+  // [klen:vn,key,value]
+  uint8_t *rp = mm + (1 << kb->szpow) - kvp->off;
+  IW_READLV(rp, klen, klen);
+  if (klen < 1 || klen > kvp->len || klen > kvp->off) {
+    return IWKV_ERROR_CORRUPTED;
+  }
+  key->size = klen;
+  key->data = malloc(key->size);
+  if (!key->data) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
+  memcpy(key->data, rp, key->size);
+  rp += key->size;
+  return 0;
+}
+
+static iwrc _kvblk_getpair(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key, IWKV_val *val) {
+  assert(mm && idx >= 0 && idx < KVBLK_IDXNUM);
+  int32_t klen;
+  KVP *kvp = &kb->pidx[idx];
+  if (!kvp->len) {
+    key->data = 0;
+    key->size = 0;
+    val->data = 0;
+    val->size = 0;
+    return 0;
+  }
+  // [klen:vn,key,value]
+  uint8_t *rp = mm + (1 << kb->szpow) - kvp->off;
+  IW_READLV(rp, klen, klen);
+  if (klen < 1 || klen > kvp->len || klen > kvp->off) {
+    return IWKV_ERROR_CORRUPTED;
+  }
+  key->size = klen;
+  key->data = malloc(key->size);
+  if (!key->data) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
+  memcpy(key->data, rp, key->size);
+  rp += key->size;
+  if (kvp->len > klen) {
+    val->size = kvp->len - klen;
+    val->data = malloc(val->size);
+    if (!val->data) {
+      iwrc rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+      free(key->data);
+      key->data = 0;
+      key->size = 0;
+      val->size = 0;
+      return rc;
+    }
+    memcpy(val->data, rp, val->size);
+  } else {
+    val->data = 0;
+    val->size = 0;
+  }
+  return 0;
+}
+
 static iwrc _kvblk_at(IWKV iwkv, off_t addr, KVBLK **blkp) {
   iwrc rc = 0;
-  uint8_t *mm, *rp;
-  size_t sp;
+  uint8_t *mm, *rp, *sp;
+  uint16_t sv;
+  size_t sz;
   int step = 0;
   IWFS_FSM *fsm = &iwkv->fsm;
   KVBLK *kb = malloc(sizeof(*kb));
-  if (!kb) return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-  rc = fsm->get_mmap(fsm, 0, &mm, &sp);
+  if (!kb) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
+  rc = fsm->get_mmap(fsm, 0, &mm, &sz);
   RCGO(rc, finish);
   rp = mm + addr;
   step++;
   kb->iwkv = iwkv;
-  memcpy(&kb->szpow, rp, sizeof(kb->szpow));
-  rp += sizeof(kb->szpow);
-  // todo 
+  kb->addr = addr;
+  kb->maxoff = 0;
+  kb->zidx = -1;
+  IW_READBV(rp, kb->szpow, kb->szpow);
+  IW_READSV(rp, sv, kb->idxsz);
+  if (kb->idxsz > 2 * 4 * KVBLK_IDXNUM) {
+    rc = IWKV_ERROR_CORRUPTED;
+    goto finish;
+  }
+  sp = rp;
+  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+    IW_READVNUMBUF(rp, kb->pidx[i].off, step);
+    rp += step;
+    IW_READVNUMBUF(rp, kb->pidx[i].len, step);
+    rp += step;
+    if (rp - sp > kb->idxsz) {
+      rc = IWKV_ERROR_CORRUPTED;
+      goto finish;
+    }
+    if (kb->pidx[i].len) {
+      if (!kb->pidx[i].off) {
+        rc = IWKV_ERROR_CORRUPTED;
+        goto finish;
+      }
+      if (kb->pidx[i].off > kb->maxoff) {
+        kb->maxoff = kb->pidx[i].off;
+      }
+    } else if (kb->zidx == -1) {
+      kb->zidx = i;
+    }
+  }
   *blkp = kb;
 finish:
   if (step > 0) {
@@ -226,14 +324,14 @@ static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *value
   IWFS_FSM *fsm = &kb->iwkv->fsm;
   off_t psz = (key->size + value->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
-  
+
   if (psz > KVBLK_MAXKVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-  
+
 start:
   msz = (1 << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -288,9 +386,23 @@ start:
   memcpy(wp, value->data, value->size);
   _kvblk_sync(kb, mm);
   fsm->release_mmap(fsm);
-  
+
 finish:
   return rc;
+}
+
+void iwkv_dispose(IWKV_val *key, IWKV_val *val) {
+  assert(key && val);
+  if (key->data) {
+    free(key->data);
+  }
+  if (val->data) {
+    free(val->data);
+  }
+  key->size = 0;
+  key->data = 0;
+  val->size = 0;
+  val->data = 0;
 }
 
 static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
@@ -353,7 +465,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
-  
+
 finish:
   return rc;
 }
