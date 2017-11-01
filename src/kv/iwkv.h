@@ -50,6 +50,6 @@ IW_EXPORT iwrc iwkv_get(IWKV iwkv, int ns, IWKV_val *key, IWKV_val *oval);
 
 IW_EXPORT iwrc iwkv_del(IWKV iwkv, int ns, IWKV_val *key);
 
-IW_EXPORT void iwkv_dispose(IWKV_val *key, IWKV_val *val);
+IW_EXPORT void iwkv_disposekv(IWKV_val *key, IWKV_val *val);
 
 #endif

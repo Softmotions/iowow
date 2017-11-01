@@ -391,7 +391,7 @@ finish:
   return rc;
 }
 
-void iwkv_dispose(IWKV_val *key, IWKV_val *val) {
+void iwkv_disposekv(IWKV_val *key, IWKV_val *val) {
   assert(key && val);
   if (key->data) {
     free(key->data);
