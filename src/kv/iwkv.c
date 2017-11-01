@@ -221,7 +221,8 @@ finish:
     fsm->release_mmap(fsm);
   }
   if (rc) {
-    _kvblk_release(blkp);
+    *blkp = 0;
+    _kvblk_release(&kb);
   }
   return rc;
 }
