@@ -103,6 +103,7 @@ static iwrc _kvblk_destroy(KVBLK **blkp) {
 static iwrc _kvblk_getkey(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key) {
   assert(mm && idx >= 0 && idx < KVBLK_IDXNUM);
   int32_t klen;
+  int step;
   KVP *kvp = &kb->pidx[idx];
   if (!kvp->len) {
     key->data = 0;
@@ -111,7 +112,8 @@ static iwrc _kvblk_getkey(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key) {
   }
   // [klen:vn,key,value]
   uint8_t *rp = mm + (1 << kb->szpow) - kvp->off;
-  IW_READLV(rp, klen, klen);
+  IW_READVNUMBUF(rp, klen, step);
+  rp += step;
   if (klen < 1 || klen > kvp->len || klen > kvp->off) {
     return IWKV_ERROR_CORRUPTED;
   }
@@ -128,6 +130,7 @@ static iwrc _kvblk_getkey(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key) {
 static iwrc _kvblk_getpair(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key, IWKV_val *val) {
   assert(mm && idx >= 0 && idx < KVBLK_IDXNUM);
   int32_t klen;
+  int step;
   KVP *kvp = &kb->pidx[idx];
   if (!kvp->len) {
     key->data = 0;
@@ -138,7 +141,8 @@ static iwrc _kvblk_getpair(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key, IWKV_
   }
   // [klen:vn,key,value]
   uint8_t *rp = mm + (1 << kb->szpow) - kvp->off;
-  IW_READLV(rp, klen, klen);
+  IW_READVNUMBUF(rp, klen, step);
+  rp += step;
   if (klen < 1 || klen > kvp->len || klen > kvp->off) {
     return IWKV_ERROR_CORRUPTED;
   }
@@ -314,7 +318,42 @@ void _kvblk_rmpair(KVBLK *kb, uint8_t idx, uint8_t *mm) {
   _kvblk_sync(kb, mm);
 }
 
-static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *value) {
+static iwrc _kvblk_updateval(KVBLK *kb, uint8_t idx, const IWKV_val *val) {
+  iwrc rc = 0;
+  assert(idx < KVBLK_IDXNUM);
+  uint8_t *mm, *wp, *sp;
+  int32_t klen;
+  size_t sz;
+  KVP *kvp = &kb->pidx[idx];
+  IWFS_FSM *fsm = &kb->iwkv->fsm;
+  assert(kvp);
+  if (val->size <= kvp->len) {
+    rc = fsm->get_mmap(fsm, 0, &mm, &sz);
+    RCGO(rc, finish);
+    wp = mm + kb->addr + (1 << kb->szpow) - kvp->off;
+    sp = wp;
+    IW_READVNUMBUF(wp, klen, sz);
+    wp += sz;
+    if (klen < 1 || klen > kvp->len || klen > kvp->off) {
+      rc = IWKV_ERROR_CORRUPTED;
+    }
+    wp += klen;
+    memcpy(wp, val->data, val->size);
+    wp += val->size;
+    kvp->len = wp - sp;
+    _kvblk_sync(kb, mm);
+    IWRC(fsm->release_mmap(fsm), rc);
+  } else {
+  
+    // todo
+    
+  }
+  
+finish:
+  return rc;
+}
+
+static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *val) {
   iwrc rc = 0;
   off_t msz;    // max available free space
   off_t rsz;    // required size to add new key/value pair
@@ -323,16 +362,16 @@ static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *value
   size_t i, sp;
   KVP *kvp;
   IWFS_FSM *fsm = &kb->iwkv->fsm;
-  off_t psz = (key->size + value->size) + IW_VNUMSIZE(key->size); // required size
+  off_t psz = (key->size + val->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
-
+  
   if (psz > KVBLK_MAXKVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-
+  
 start:
   msz = (1 << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -384,10 +423,10 @@ start:
   wp += sp;
   memcpy(wp, key->data, key->size);
   wp += key->size;
-  memcpy(wp, value->data, value->size);
+  memcpy(wp, val->data, val->size);
   _kvblk_sync(kb, mm);
   fsm->release_mmap(fsm);
-
+  
 finish:
   return rc;
 }
@@ -466,7 +505,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
-
+  
 finish:
   return rc;
 }
