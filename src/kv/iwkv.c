@@ -307,7 +307,7 @@ static iwrc _kvblk_compact(KVBLK *kb) {
   return rc;
 }
 
-void _kvblk_rmpair(KVBLK *kb, uint8_t idx, uint8_t *mm) {
+void _kvblk_rmpair(KVBLK *kb, uint8_t idx, uint8_t *mm, bool sync) {
   if (kb->pidx[idx].off >= kb->maxoff) {
     kb->maxoff = 0;
     for (int i = 0; i < KVBLK_IDXNUM; ++i) {
@@ -319,7 +319,9 @@ void _kvblk_rmpair(KVBLK *kb, uint8_t idx, uint8_t *mm) {
   kb->pidx[idx].len = 0;
   kb->pidx[idx].off = 0;
   kb->zidx = idx;
-  _kvblk_sync(kb, mm);
+  if (sync) {
+    _kvblk_sync(kb, mm);
+  }
 }
 
 static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, uint8_t *oidx) {
@@ -424,11 +426,10 @@ static iwrc _kvblk_updateval(KVBLK *kb, uint8_t *idxp, const IWKV_val *key, cons
     goto finish;
   }
   wp += klen;
-  
   if (rsize <= kvp->len) {
     memcpy(wp, val->data, val->size);
     wp += val->size;
-    sync = (wp - sp) != kvp->len; 
+    sync = (wp - sp) != kvp->len;
     kvp->len = wp - sp;
   } else {
     KVP tidx[KVBLK_IDXNUM];
@@ -439,18 +440,18 @@ static iwrc _kvblk_updateval(KVBLK *kb, uint8_t *idxp, const IWKV_val *key, cons
         if (tidx[i].off - (i > 0 ? tidx[i - 1].off : 0) >= rsize) {
           memcpy(wp, val->data, val->size);
           wp += val->size;
-          sync = (wp - sp) != kvp->len; 
+          sync = (wp - sp) != kvp->len;
           kvp->len = wp - sp;
-        } else { 
-           _kvblk_rmpair(kb, idx, mm);
-           rc = _kvblk_addpair(kb, key, val, idxp);
-           sync = false;
+        } else {
+          _kvblk_rmpair(kb, idx, mm, false);
+          rc = _kvblk_addpair(kb, key, val, idxp);
+          sync = false; // sync already done by _kvblk_addpair
         }
         break;
       }
     }
   }
-
+  
 finish:
   if (!rc && sync) {
     _kvblk_sync(kb, mm);
