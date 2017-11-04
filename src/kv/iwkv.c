@@ -444,7 +444,7 @@ static iwrc _kvblk_updateval(KVBLK *kb, uint8_t *idxp, const IWKV_val *key, cons
         } else { 
            _kvblk_rmpair(kb, idx, mm);
            rc = _kvblk_addpair(kb, key, val, idxp);
-           sync = true;
+           sync = false;
         }
         break;
       }
