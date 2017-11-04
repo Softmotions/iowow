@@ -38,8 +38,9 @@ typedef struct KV {
 
 // KV index: Offset and length.
 typedef struct KVP {
-  uint32_t off; /**< KV block offset relative to `end` of KVBLK */
-  uint32_t len; /**< Length of  */
+  uint32_t off;   /**< KV block offset relative to `end` of KVBLK */
+  uint32_t len;   /**< Length of  */
+  uint8_t  ridx;  /**< Index position of persisted element */
 } KVP;
 
 // KVBLK: [blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[pair],...]]
@@ -207,6 +208,7 @@ static iwrc _kvblk_at(IWKV iwkv, off_t addr, KVBLK **blkp) {
       rc = IWKV_ERROR_CORRUPTED;
       goto finish;
     }
+    kb->pidx[i].ridx = i;
     if (kb->pidx[i].len) {
       if (!kb->pidx[i].off) {
         rc = IWKV_ERROR_CORRUPTED;
@@ -275,13 +277,15 @@ static iwrc _kvblk_compact(KVBLK *kb) {
   if (coff == kb->maxoff) { // already compacted
     return 0;
   }
+  KVP tidx[KVBLK_IDXNUM];
+  memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
   rc = fsm->get_mmap(fsm, 0, &mm, &sp);
   if (rc) return rc;
   mm = mm + kb->addr + (1 << kb->szpow);
-  qsort(kb->pidx, KVBLK_IDXNUM, sizeof(KVP), _kvblk_sort_kv);
+  qsort(tidx, KVBLK_IDXNUM, sizeof(KVP), _kvblk_sort_kv);
   coff = 0;
   for (i = 0; i < KVBLK_IDXNUM; ++i) {
-    KVP *kvp = kb->pidx + i;
+    KVP *kvp = kb->pidx + tidx[i].ridx;
     off_t noff = coff + kvp->len;
     if (kvp->off > noff) {
       memmove(mm - noff, mm - kvp->off, kvp->len);
@@ -318,42 +322,7 @@ void _kvblk_rmpair(KVBLK *kb, uint8_t idx, uint8_t *mm) {
   _kvblk_sync(kb, mm);
 }
 
-static iwrc _kvblk_updateval(KVBLK *kb, uint8_t idx, const IWKV_val *val) {
-  iwrc rc = 0;
-  assert(idx < KVBLK_IDXNUM);
-  uint8_t *mm, *wp, *sp;
-  int32_t klen;
-  size_t sz;
-  KVP *kvp = &kb->pidx[idx];
-  IWFS_FSM *fsm = &kb->iwkv->fsm;
-  assert(kvp);
-  if (val->size <= kvp->len) {
-    rc = fsm->get_mmap(fsm, 0, &mm, &sz);
-    RCGO(rc, finish);
-    wp = mm + kb->addr + (1 << kb->szpow) - kvp->off;
-    sp = wp;
-    IW_READVNUMBUF(wp, klen, sz);
-    wp += sz;
-    if (klen < 1 || klen > kvp->len || klen > kvp->off) {
-      rc = IWKV_ERROR_CORRUPTED;
-    }
-    wp += klen;
-    memcpy(wp, val->data, val->size);
-    wp += val->size;
-    kvp->len = wp - sp;
-    _kvblk_sync(kb, mm);
-    IWRC(fsm->release_mmap(fsm), rc);
-  } else {
-  
-    // todo
-    
-  }
-  
-finish:
-  return rc;
-}
-
-static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *val) {
+static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, uint8_t *oidx) {
   iwrc rc = 0;
   off_t msz;    // max available free space
   off_t rsz;    // required size to add new key/value pair
@@ -364,6 +333,8 @@ static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *val) 
   IWFS_FSM *fsm = &kb->iwkv->fsm;
   off_t psz = (key->size + val->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
+  
+  *oidx = -1;
   
   if (psz > KVBLK_MAXKVSZ) {
     return IWKV_ERROR_MAXKVSZ;
@@ -402,9 +373,11 @@ start:
       goto start;
     }
   }
+  *oidx = kb->zidx;
   kvp = &kb->pidx[kb->zidx];
   kvp->len = psz;
   kvp->off = noff;
+  kvp->ridx = kb->zidx;
   kb->maxoff = noff;
   for (i = kb->zidx + 1; i < KVBLK_IDXNUM; ++i) {
     if (!kb->pidx[i].len) {
@@ -428,6 +401,63 @@ start:
   fsm->release_mmap(fsm);
   
 finish:
+  return rc;
+}
+
+static iwrc _kvblk_updateval(KVBLK *kb, uint8_t *idxp, const IWKV_val *key, const IWKV_val *val) {
+  assert(*idxp < KVBLK_IDXNUM);
+  uint8_t *mm = 0, *wp, *sp, idx = *idxp;
+  int32_t klen, i;
+  size_t sz;
+  bool sync = false;
+  KVP *kvp = &kb->pidx[idx];
+  IWFS_FSM *fsm = &kb->iwkv->fsm;
+  size_t rsize = IW_VNUMSIZE(key->size) + key->size + val->size; // required size
+  iwrc rc = fsm->get_mmap(fsm, 0, &mm, &sz);
+  RCGO(rc, finish);
+  wp = mm + kb->addr + (1 << kb->szpow) - kvp->off;
+  sp = wp;
+  IW_READVNUMBUF(wp, klen, sz);
+  wp += sz;
+  if (klen != key->size || !memcmp(wp, key->data, key->size)) {
+    rc = IWKV_ERROR_CORRUPTED;
+    goto finish;
+  }
+  wp += klen;
+  
+  if (rsize <= kvp->len) {
+    memcpy(wp, val->data, val->size);
+    wp += val->size;
+    sync = (wp - sp) != kvp->len; 
+    kvp->len = wp - sp;
+  } else {
+    KVP tidx[KVBLK_IDXNUM];
+    memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
+    qsort(tidx, KVBLK_IDXNUM, sizeof(KVP), _kvblk_sort_kv);
+    for (i = 0; i < KVBLK_IDXNUM; ++i) {
+      if (tidx[i].ridx == idx) {
+        if (tidx[i].off - (i > 0 ? tidx[i - 1].off : 0) >= rsize) {
+          memcpy(wp, val->data, val->size);
+          wp += val->size;
+          sync = (wp - sp) != kvp->len; 
+          kvp->len = wp - sp;
+        } else { 
+           _kvblk_rmpair(kb, idx, mm);
+           rc = _kvblk_addpair(kb, key, val, idxp);
+           sync = true;
+        }
+        break;
+      }
+    }
+  }
+
+finish:
+  if (!rc && sync) {
+    _kvblk_sync(kb, mm);
+  }
+  if (mm) {
+    IWRC(fsm->release_mmap(fsm), rc);
+  }
   return rc;
 }
 
