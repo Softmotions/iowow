@@ -440,7 +440,7 @@ static iwrc _kvblk_updateval(KVBLK *kb, uint8_t *idxp, const IWKV_val *key, cons
         if (tidx[i].off - (i > 0 ? tidx[i - 1].off : 0) >= rsize) {
           memcpy(wp, val->data, val->size);
           wp += val->size;
-          sync = (wp - sp) != kvp->len;
+          sync = true;
           kvp->len = wp - sp;
         } else {
           _kvblk_rmpair(kb, idx, mm, false);
