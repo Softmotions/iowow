@@ -54,6 +54,9 @@ typedef struct KVBLK {
   KVP pidx[KVBLK_IDXNUM];  /**< KV pairs index */
 } KVBLK;
 
+// SBLK: [sbf:u1,apbm:u8,p0:u4,n0-n29:u4,uk:u28,lk:u28,pblk:u4,[pn1:u1,...pn63]]:u256  
+
+
 static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   iwrc rc = 0;
   off_t baddr = 0, blen;
