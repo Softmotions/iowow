@@ -6,6 +6,12 @@
 #include "iwcfg.h"
 #include <stdbool.h>
 
+// Max key + value size: 255Mb
+#define MAX_KVSZ 0xfffffff
+
+// Max database file size: ~255Gb
+#define MAX_DBSZ 0x3fffffffc0
+
 // Size of KV fsm block as power of 2
 #define KVBPOW 6
 
@@ -29,9 +35,6 @@
 
 // KVBLK header size: blen:u1 + pplen:u2
 #define KVBLK_HDRSZ (1 + 2)
-
-// Max key + value size
-#define KVBLK_MAXKVSZ 0xfffffff
 
 struct IWKV {
   IWFS_FSM fsm;
@@ -362,7 +365,7 @@ static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, 
 
   *oidx = -1;
 
-  if (psz > KVBLK_MAXKVSZ) {
+  if (psz > MAX_KVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
@@ -599,6 +602,36 @@ finish:
       sblk->kvblk = 0;
       IWRC(_sblk_destroy(&sblk), rc);
     }
+  }
+  return rc;
+}
+
+static iwrc _sblk_at(IWKV iwkv, off_t addr, SBLK **sblkp) {
+  iwrc rc = 0;
+  uint8_t *mm, *rp, *sp;
+  size_t sz;
+  int step = 0;
+  IWFS_FSM *fsm = &iwkv->fsm;
+  SBLK *sblk = calloc(1, sizeof(*sblk));
+  if (!sblk) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
+  rc = fsm->get_mmap(fsm, 0, &mm, &sz);
+  RCGO(rc, finish);
+  // rp = mm + addr;
+  step++;
+  // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256
+
+  // todo
+
+  *sblkp = sblk;
+finish:
+  if (step > 0) {
+    fsm->release_mmap(fsm);
+  }
+  if (rc) {
+    *sblkp = 0;
+    _sblk_release(&sblk);
   }
   return rc;
 }
