@@ -6,6 +6,12 @@
 #include "iwcfg.h"
 #include <stdbool.h>
 
+// Number of skip list levels
+#define SLEVELS 30
+
+// Lower key length in SBLK
+#define LKLEN 55
+
 // Size of KV fsm block as power of 2
 #define KVBPOW 6
 
@@ -17,6 +23,9 @@
 
 // Initial KVBLK size power of 2 (256 bytes)
 #define KVBLK_SZPOW 8
+
+// Size of `SBLK` as power of 2
+#define SBLK_SZPOW 8
 
 // KVBLK header size: blen:u1 + pplen:u2
 #define KVBLK_HDRSZ (1 + 2)
@@ -54,8 +63,21 @@ typedef struct KVBLK {
   KVP pidx[KVBLK_IDXNUM];  /**< KV pairs index */
 } KVBLK;
 
-// SBLK: [sbf:u1,apbm:u8,p0:u4,n0-n29:u4,uk:u28,lk:u28,pblk:u4,[pn1:u1,...pn63]]:u256  
+// SBLK: [flg:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u55,kblk:u4,akvm:u8,[pi1:u1,...pi63]]:u256
+typedef struct SBLK {
+  uint64_t akvm;              /**< Allocated kv pairs bitmask */
+  KVBLK *kvblk;               /**< Associated KVBLK */
+  off_t addr;                 /**< Block address */
+  uint32_t n[SLEVELS];        /**< Next pointers */
+  uint32_t p0;                /**< Prev pointer at zero level */
+  uint32_t kblk;              /**< Keys block number */
+  uint8_t flg;                /**< Flags */
+  uint8_t lkl;                /**< Lower key length */
+  uint8_t lk[LKLEN];          /**< Lower key value */
+  uint8_t pi[KVBLK_IDXNUM];   /**< Key/value pairs indexes in `KVBLK` */
+} SBLK;
 
+//--------------------------  KVBLK
 
 static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   iwrc rc = 0;
@@ -338,16 +360,16 @@ static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, 
   IWFS_FSM *fsm = &kb->iwkv->fsm;
   off_t psz = (key->size + val->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
-  
+
   *oidx = -1;
-  
+
   if (psz > KVBLK_MAXKVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-  
+
 start:
   msz = (1 << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -404,7 +426,7 @@ start:
   memcpy(wp, val->data, val->size);
   _kvblk_sync(kb, mm);
   fsm->release_mmap(fsm);
-  
+
 finish:
   return rc;
 }
@@ -446,15 +468,18 @@ static iwrc _kvblk_updateval(KVBLK *kb, uint8_t *idxp, const IWKV_val *key, cons
           sync = true;
           kvp->len = wp - sp;
         } else {
+          sync = false; // sync will be done by _kvblk_addpair
           _kvblk_rmpair(kb, idx, mm, false);
+          rc = fsm->release_mmap(fsm);
+          mm = 0;
+          RCGO(rc, finish);
           rc = _kvblk_addpair(kb, key, val, idxp);
-          sync = false; // sync already done by _kvblk_addpair
         }
         break;
       }
     }
   }
-  
+
 finish:
   if (!rc && sync) {
     _kvblk_sync(kb, mm);
@@ -477,6 +502,52 @@ void iwkv_disposekv(IWKV_val *key, IWKV_val *val) {
   key->data = 0;
   val->size = 0;
   val->data = 0;
+}
+
+//--------------------------  SBLK
+
+static iwrc _sblk_create(IWKV iwkv, SBLK **oblk) {
+  iwrc rc;
+  off_t baddr = 0, blen;
+  IWFS_FSM *fsm = &iwkv->fsm;
+  SBLK *sblk;
+  KVBLK *kvblk;
+
+  rc = _kvblk_create(iwkv, &kvblk);
+  if (rc) return rc;
+
+  rc = fsm->allocate(fsm, (1 << KVBLK_SZPOW), &baddr, &blen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+  RCGO(rc, finish);
+
+  sblk = calloc(1, sizeof(*sblk));
+  if (!sblk) {
+    rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    goto finish;
+  }
+  sblk->addr = baddr;
+  sblk->kvblk = kvblk;
+finish:
+  if (rc) {
+    IWRC(_kvblk_destroy(&kvblk), rc);
+  }
+  return rc;
+}
+
+static void _sblk_release(SBLK **sblkp) {
+  assert(sblkp && *sblkp);
+  free(*sblkp);
+  *sblkp = 0;
+}
+
+static iwrc _sblk_destroy(SBLK **sblkp) {
+  assert(sblkp && *sblkp && (*sblkp)->kvblk);
+  SBLK *sblk = *sblkp;
+  IWKV iwkv = sblk->kvblk->iwkv;
+  IWFS_FSM *fsm = &iwkv->fsm;
+  assert(sblk->addr);
+  iwrc rc = fsm->deallocate(fsm, sblk->addr, 1 << SBLK_SZPOW);
+  _sblk_release(sblkp);
+  return rc;
 }
 
 static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
@@ -539,7 +610,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
-  
+
 finish:
   return rc;
 }

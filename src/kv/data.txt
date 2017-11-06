@@ -2,29 +2,30 @@ IWKV:
 
 prob: 1/3?
 block size: u64
-max key+value size: 268435455 (~255Mb) 
+max key+value size: 268435455 (~255Mb)
 
 header:
-  sl_head:[n0-n29:u4] 
+  sl_head:[n0-n29:u4]
 
 levels:
-  [sbf:u1,apbm:u8,p0:u4,n0-n29:u4,uk:u28,lk:u28,pblk:u4,[pn1:u1,...pn63]]:u256  // SBLK Skip block 
+  [flg:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u55,kblk:u4,akvm:u8,[pi1:u1,...pi63]]:u256  // SBLK Skip block
                                                   \
-                                       [blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[_KV],...]] // KVBLK
-  KV: [klen:vn,key,value]              
+                                  [blen:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[_KV],...]] // KVBLK
+  KV: [klen:vn,key,value]
 
-  sbf    - Skip block flags (reserved)
-  uk,lk  - Upper and lower key values in pairs block 
-  pblk   - Address of `Pairs block (PB)` as block number.   
-  apbm   - Allocated pairs bitmask. 
-           If the highest bit of `apbm` is `1` then linked `Pairs block` is full
-  pnN    - Index of pair node in `Pairs block`
+  flg    - Skip block flags (reserved)
+  lk     - Lower key data in pairs block
+  lkl    - Lower key len
+  kblk   - Address of `Pairs block (PB)` as block number.
+  akvm   - Allocated kv pairs bitmask.
+           If the highest bit of `akvm` is `1` then linked `Pairs block` is full
+  piN    - Index of pair node in `Pairs block`
   blen   - Whole block length as power of 2
-  idxsz -  Length of [ppos,plen...] array in bytes 
-  ppN    - Key/Value pair block start on i-th place
-  plN    - Key/Value pair block length on i-th place 
+  idxsz -  Length of [ppos,plen...] array in bytes
+  psN    - Key/Value pair block start on i-th place
+  plN    - Key/Value pair block length on i-th place
   pair   - Key/Value pair
-  
+
 ------------------------------------------------------------
 
 
