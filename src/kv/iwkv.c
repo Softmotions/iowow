@@ -6,26 +6,26 @@
 #include "iwcfg.h"
 #include <stdbool.h>
 
-// Number of skip list levels
-#define SLEVELS 30
-
-// Lower key length in SBLK
-#define LKLEN 55
-
 // Size of KV fsm block as power of 2
 #define KVBPOW 6
 
 // Length of KV fsm header in bytes
-#define KVHDRLEN 255
+#define KVHDRSZ 255
 
-// Number of KV blocks in KVBLK
-#define KVBLK_IDXNUM 63
+// Number of skip list levels
+#define SLEVELS 30
 
-// Initial KVBLK size power of 2 (256 bytes)
-#define KVBLK_SZPOW 8
+// Lower key length in SBLK
+#define SBLK_LKLEN 55
 
 // Size of `SBLK` as power of 2
 #define SBLK_SZPOW 8
+
+// Number of `KV` blocks in KVBLK
+#define KVBLK_IDXNUM 63
+
+// Initial `KVBLK` size power of 2 (256 bytes)
+#define KVBLK_SZPOW 8
 
 // KVBLK header size: blen:u1 + pplen:u2
 #define KVBLK_HDRSZ (1 + 2)
@@ -63,17 +63,16 @@ typedef struct KVBLK {
   KVP pidx[KVBLK_IDXNUM];  /**< KV pairs index */
 } KVBLK;
 
-// SBLK: [flg:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u55,kblk:u4,akvm:u8,[pi1:u1,...pi63]]:u256
+// SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256
 typedef struct SBLK {
   uint64_t akvm;              /**< Allocated kv pairs bitmask */
   KVBLK *kvblk;               /**< Associated KVBLK */
   off_t addr;                 /**< Block address */
   uint32_t n[SLEVELS];        /**< Next pointers */
   uint32_t p0;                /**< Prev pointer at zero level */
-  uint32_t kblk;              /**< Keys block number */
   uint8_t flg;                /**< Flags */
   uint8_t lkl;                /**< Lower key length */
-  uint8_t lk[LKLEN];          /**< Lower key value */
+  uint8_t lk[SBLK_LKLEN];          /**< Lower key value */
   uint8_t pi[KVBLK_IDXNUM];   /**< Key/value pairs indexes in `KVBLK` */
 } SBLK;
 
@@ -506,6 +505,70 @@ void iwkv_disposekv(IWKV_val *key, IWKV_val *val) {
 
 //--------------------------  SBLK
 
+typedef enum {
+  SBLK_NOSYNC_KBLK = 1,
+} sblk_sync_flags_t;
+
+static void _sblk_release(SBLK **sblkp) {
+  assert(sblkp && *sblkp);
+  free(*sblkp);
+  *sblkp = 0;
+}
+
+static iwrc _sblk_destroy(SBLK **sblkp) {
+  assert(sblkp && *sblkp && (*sblkp)->kvblk);
+  iwrc rc = 0;
+  SBLK *sblk = *sblkp;
+  IWKV iwkv = sblk->kvblk->iwkv;
+  IWFS_FSM *fsm = &iwkv->fsm;
+  assert(sblk->addr);
+  if (sblk->kvblk) {
+    rc = _kvblk_destroy(&sblk->kvblk);
+  }
+  IWRC(fsm->deallocate(fsm, sblk->addr, 1 << SBLK_SZPOW), rc);
+  _sblk_release(sblkp);
+  return rc;
+}
+
+static iwrc _sblk_sync(SBLK *sblk, sblk_sync_flags_t sf) {
+  assert(sblk && sblk->kvblk && sblk->addr);
+  uint8_t *mm, *wp, *sp;
+  uint32_t lv;
+  uint64_t llv;
+  size_t sz;
+  IWKV iwkv = sblk->kvblk->iwkv;
+  IWFS_FSM *fsm = &iwkv->fsm;
+  iwrc rc = fsm->get_mmap(fsm, 0, &mm, &sz);
+  if (rc) return rc;
+  // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256
+  wp = mm + sblk->addr;
+  sp = wp;
+  memcpy(wp, &sblk->flg, 1);
+  wp += 1;
+  IW_WRITELV(wp, lv, sblk->kvblk->addr);
+  IW_WRITELV(wp, lv, sblk->p0);
+  for (int i = 0; i < SLEVELS; ++i) {
+    IW_WRITELV(wp, lv, sblk->n[i]);
+  }
+  memcpy(wp, &sblk->lkl, 1);
+  wp += 1;
+  memset(wp, 0, SBLK_LKLEN);
+  assert(sblk->lkl <= SBLK_LKLEN);
+  if (sblk->lkl) {
+    memcpy(wp, sblk->lk, sblk->lkl);
+  }
+  wp += SBLK_LKLEN;
+  IW_WRITELLV(wp, llv, sblk->akvm);
+  memcpy(wp, sblk->pi, KVBLK_IDXNUM);
+  wp += KVBLK_IDXNUM;
+  assert(wp - sp == (1 << SBLK_SZPOW));
+  if (!(sf & SBLK_NOSYNC_KBLK)) {
+    _kvblk_sync(sblk->kvblk, mm);
+  }
+  fsm->release_mmap(fsm);
+  return rc;
+}
+
 static iwrc _sblk_create(IWKV iwkv, SBLK **oblk) {
   iwrc rc;
   off_t baddr = 0, blen;
@@ -526,27 +589,17 @@ static iwrc _sblk_create(IWKV iwkv, SBLK **oblk) {
   }
   sblk->addr = baddr;
   sblk->kvblk = kvblk;
+  rc = _sblk_sync(sblk, SBLK_NOSYNC_KBLK);
+  RCGO(rc, finish);
+
 finish:
   if (rc) {
     IWRC(_kvblk_destroy(&kvblk), rc);
+    if (sblk) {
+      sblk->kvblk = 0;
+      IWRC(_sblk_destroy(&sblk), rc);
+    }
   }
-  return rc;
-}
-
-static void _sblk_release(SBLK **sblkp) {
-  assert(sblkp && *sblkp);
-  free(*sblkp);
-  *sblkp = 0;
-}
-
-static iwrc _sblk_destroy(SBLK **sblkp) {
-  assert(sblkp && *sblkp && (*sblkp)->kvblk);
-  SBLK *sblk = *sblkp;
-  IWKV iwkv = sblk->kvblk->iwkv;
-  IWFS_FSM *fsm = &iwkv->fsm;
-  assert(sblk->addr);
-  iwrc rc = fsm->deallocate(fsm, sblk->addr, 1 << SBLK_SZPOW);
-  _sblk_release(sblkp);
   return rc;
 }
 
@@ -604,7 +657,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
       }
     },
     .bpow = KVBPOW,              // 64 bytes block size
-    .hdrlen = KVHDRLEN,          // Size of custom file header
+    .hdrlen = KVHDRSZ,          // Size of custom file header
     .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0),
     .mmap_all = 1
   };
