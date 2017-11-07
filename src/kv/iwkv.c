@@ -370,7 +370,7 @@ void _kvblk_rmpair(KVBLK *kb, uint8_t idx, uint8_t *mm, bool sync) {
   }
 }
 
-static iwrc _kvblk_savekv(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
+static iwrc _kvblk_addkv(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
   iwrc rc = 0;
   off_t msz;    // max available free space
   off_t rsz;    // required size to add new key/value pair
@@ -452,7 +452,7 @@ finish:
   return rc;
 }
 
-static iwrc _kvblk_updateval(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const IWKV_val *val) {
+static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const IWKV_val *val) {
   assert(*idxp < KVBLK_IDXNUM);
   uint8_t *mm = 0, *wp, *sp;
   int32_t klen, i;
@@ -490,12 +490,12 @@ static iwrc _kvblk_updateval(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const
           sync = true;
           kvp->len = wp - sp;
         } else {
-          sync = false; // sync will be done by _kvblk_savekv
+          sync = false; // sync will be done by _kvblk_addkv
           _kvblk_rmpair(kb, idx, mm, false);
           rc = fsm->release_mmap(fsm);
           mm = 0;
           RCGO(rc, finish);
-          rc = _kvblk_savekv(kb, key, val, idxp);
+          rc = _kvblk_addkv(kb, key, val, idxp);
         }
         break;
       }
@@ -679,12 +679,12 @@ finish:
 // [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256  // SBLK Skip block
 // _IWKV_ERROR_KVBLOCK_FULL
 
-static iwrc _sblk_savekv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
+static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
   iwrc rc;
   int8_t idx;
   KVBLK *kvblk = sblk->kvblk;
   uint64_t akvm = sblk->akvm;
-  rc = _kvblk_savekv(kvblk, key, val, &idx);
+  rc = _kvblk_addkv(kvblk, key, val, &idx);
   if (rc) return rc;
 
 
