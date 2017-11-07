@@ -9,7 +9,7 @@ header:
   sl_head:[n0-n29:u4]
 
 levels:
-  [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256  // SBLK Skip block
+  [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
                                                   \
                                   [blen:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[_KV],...]] // KVBLK
   KV: [klen:vn,key,value]
@@ -18,9 +18,8 @@ levels:
   lk     - Lower key data in pairs block
   lkl    - Lower key len
   kblk   - Address of `Pairs block (PB)` as block number.
-  akvm   - Allocated kv pairs bitmask.
-           If the highest bit of `akvm` is `1` then linked `Pairs block` is full
-  piN    - Index of pair node in `Pairs block`
+  pnum   - Number of active pairs in `piN` array
+  piN    - Sorted indexes of pair nodes in `Pairs block`
   blen   - Whole block length as power of 2
   idxsz -  Length of [ppos,plen...] array in bytes
   psN    - Key/Value pair block start on i-th place

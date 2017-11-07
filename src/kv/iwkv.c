@@ -23,7 +23,7 @@
 #define SLEVELS 30
 
 // Lower key length in SBLK
-#define SBLK_LKLEN 55
+#define SBLK_LKLEN 62
 
 // Size of `SBLK` as power of 2
 #define SBLK_SZPOW 8
@@ -34,8 +34,8 @@
 // Initial `KVBLK` size power of 2 (256 bytes)
 #define KVBLK_SZPOW 8
 
-// KVBLK header size: blen:u1 + pplen:u2
-#define KVBLK_HDRSZ (1 + 2)
+// KVBLK header size: blen:u1,idxsz:u2
+#define KVBLK_HDRSZ 3
 
 struct IWKV {
   IWFS_FSM fsm;
@@ -68,9 +68,8 @@ typedef struct KVBLK {
   KVP pidx[KVBLK_IDXNUM];  /**< KV pairs index */
 } KVBLK;
 
-// SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256
+// SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
 typedef struct SBLK {
-  uint64_t akvm;              /**< Allocated kv pairs bitmask */
   KVBLK *kvblk;               /**< Associated KVBLK */
   off_t addr;                 /**< Block address */
   uint32_t n[SLEVELS];        /**< Next pointers */
@@ -78,6 +77,7 @@ typedef struct SBLK {
   uint8_t flg;                /**< Flags */
   uint8_t lkl;                /**< Lower key length */
   uint8_t lk[SBLK_LKLEN];     /**< Lower key value */
+  uint8_t pnum;               /**< Number of active pairs in `piN` array */
   uint8_t pi[KVBLK_IDXNUM];   /**< Key/value pairs indexes in `KVBLK` */
 } SBLK;
 
@@ -549,7 +549,7 @@ static iwrc _sblk_sync(SBLK *sblk, sblk_sync_flags_t sf) {
   IWFS_FSM *fsm = &iwkv->fsm;
   iwrc rc = fsm->get_mmap(fsm, 0, &mm, &sz);
   if (rc) return rc;
-  // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256
+  // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
   wp = mm + sblk->addr;
   sp = wp;
   memcpy(wp, &sblk->flg, 1);
@@ -567,7 +567,8 @@ static iwrc _sblk_sync(SBLK *sblk, sblk_sync_flags_t sf) {
     memcpy(wp, sblk->lk, sblk->lkl);
   }
   wp += SBLK_LKLEN;
-  IW_WRITELLV(wp, llv, sblk->akvm);
+  memcpy(wp, &sblk->pnum, 1);
+  wp += 1;
   memcpy(wp, sblk->pi, KVBLK_IDXNUM);
   wp += KVBLK_IDXNUM;
   assert(wp - sp == (1 << SBLK_SZPOW));
@@ -628,7 +629,7 @@ static iwrc _sblk_at(IWKV iwkv, off_t addr, SBLK **sblkp) {
   rp = mm + addr;
   sp = rp;
 
-  // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256
+  // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
   memcpy(&sblk->flg, rp, 1);
   rp += 1;
 
@@ -657,7 +658,8 @@ static iwrc _sblk_at(IWKV iwkv, off_t addr, SBLK **sblkp) {
     memcpy(sblk->lk, rp, sblk->lkl);
   }
   rp += SBLK_LKLEN;
-  IW_READLLV(rp, llv, sblk->akvm);
+  memcpy(&sblk->pnum, rp, 1);
+  rp += 1;
 
   memcpy(sblk->pi, rp, KVBLK_IDXNUM);
   rp += KVBLK_IDXNUM;
@@ -676,14 +678,14 @@ finish:
   return rc;
 }
 
-// [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256  // SBLK Skip block
+// [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
 // _IWKV_ERROR_KVBLOCK_FULL
 
 static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
   iwrc rc;
   int8_t idx;
   KVBLK *kvblk = sblk->kvblk;
-  uint64_t akvm = sblk->akvm;
+  uint8_t pnum = sblk->pnum;
   rc = _kvblk_addkv(kvblk, key, val, &idx);
   if (rc) return rc;
 
