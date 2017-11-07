@@ -5,6 +5,7 @@
 #include "iwfsmfile.h"
 #include "iwcfg.h"
 #include <stdbool.h>
+#include <pthread.h>
 
 // Max key + value size: 255Mb
 #define MAX_KVSZ 0xfffffff
@@ -13,7 +14,7 @@
 #define MAX_DBSZ 0x3fffffffc0
 
 // Size of KV fsm block as power of 2
-#define KVBPOW 6
+#define FSM_BPOW 6
 
 // Length of KV fsm header in bytes
 #define KVHDRSZ 255
@@ -58,6 +59,7 @@ typedef struct KVP {
 // KVBLK: [blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[pair],...]]
 typedef struct KVBLK {
   IWKV iwkv;
+  pthread_rwlock_t rwlk;   /**< Block rwlock */
   off_t addr;              /**< Block address */
   uint32_t maxoff;         /**< Max pair offset */
   uint16_t idxsz;          /**< Size of KV pairs index in bytes */
@@ -75,7 +77,7 @@ typedef struct SBLK {
   uint32_t p0;                /**< Prev pointer at zero level */
   uint8_t flg;                /**< Flags */
   uint8_t lkl;                /**< Lower key length */
-  uint8_t lk[SBLK_LKLEN];          /**< Lower key value */
+  uint8_t lk[SBLK_LKLEN];     /**< Lower key value */
   uint8_t pi[KVBLK_IDXNUM];   /**< Key/value pairs indexes in `KVBLK` */
 } SBLK;
 
@@ -84,7 +86,7 @@ typedef struct SBLK {
 static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   iwrc rc = 0;
   off_t baddr = 0, blen;
-  int step = 0;
+  int step = 0, rci;
   IWFS_FSM *fsm = &iwkv->fsm;
   KVBLK *kblk;
   rc = fsm->allocate(fsm, (1 << KVBLK_SZPOW), &baddr, &blen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
@@ -99,6 +101,11 @@ static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   kblk->addr = baddr;
   kblk->szpow = KVBLK_SZPOW;
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
+  rci = pthread_rwlock_init(&kblk->rwlk, 0);
+  if (rci) {
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    goto finish;
+  }
   *oblk = kblk;
 finish:
   if (rc) {
@@ -112,6 +119,7 @@ finish:
 
 static void _kvblk_release(KVBLK **blkp) {
   assert(blkp && *blkp);
+  pthread_rwlock_destroy(&(*blkp)->rwlk);
   free(*blkp);
   *blkp = 0;
 }
@@ -200,21 +208,22 @@ static iwrc _kvblk_getpair(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key, IWKV_
   return 0;
 }
 
-static iwrc _kvblk_at(IWKV iwkv, off_t addr, KVBLK **blkp) {
+static iwrc _kvblk_at2(IWKV iwkv, off_t addr, uint8_t *mm, KVBLK **blkp) {
   iwrc rc = 0;
-  uint8_t *mm, *rp, *sp;
+  uint8_t *rp, *sp;
   uint16_t sv;
-  size_t sz;
-  int step = 0;
+  int step = 0, rci;
   IWFS_FSM *fsm = &iwkv->fsm;
   KVBLK *kb = malloc(sizeof(*kb));
   if (!kb) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  rc = fsm->get_mmap(fsm, 0, &mm, &sz);
-  RCGO(rc, finish);
+  rci = pthread_rwlock_init(&kb->rwlk, 0);
+  if (rci) {
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    goto finish;
+  }
   rp = mm + addr;
-  step++;
   kb->iwkv = iwkv;
   kb->addr = addr;
   kb->maxoff = 0;
@@ -250,15 +259,25 @@ static iwrc _kvblk_at(IWKV iwkv, off_t addr, KVBLK **blkp) {
   }
   *blkp = kb;
 finish:
-  if (step > 0) {
-    fsm->release_mmap(fsm);
-  }
   if (rc) {
-    *blkp = 0;
     _kvblk_release(&kb);
   }
   return rc;
 }
+
+static iwrc _kvblk_at(IWKV iwkv, off_t addr, KVBLK **blkp) {
+  iwrc rc;
+  uint8_t *mm;
+  size_t sz;
+  IWFS_FSM *fsm = &iwkv->fsm;
+  *blkp = 0;
+  rc = fsm->get_mmap(fsm, 0, &mm, &sz);
+  if (rc) return rc;
+  rc = _kvblk_at2(iwkv, addr, mm, blkp);
+  IWRC(fsm->release_mmap(fsm), rc);
+  return rc;
+}
+
 
 static void _kvblk_sync(KVBLK *kb, uint8_t *mm) {
   uint8_t *szp;
@@ -492,20 +511,6 @@ finish:
   return rc;
 }
 
-void iwkv_disposekv(IWKV_val *key, IWKV_val *val) {
-  assert(key && val);
-  if (key->data) {
-    free(key->data);
-  }
-  if (val->data) {
-    free(val->data);
-  }
-  key->size = 0;
-  key->data = 0;
-  val->size = 0;
-  val->data = 0;
-}
-
 //--------------------------  SBLK
 
 typedef enum {
@@ -607,10 +612,11 @@ finish:
 }
 
 static iwrc _sblk_at(IWKV iwkv, off_t addr, SBLK **sblkp) {
-  iwrc rc = 0;
-  uint8_t *mm, *rp, *sp;
+  iwrc rc;
+  uint8_t *mm = 0, *rp, *sp;
+  uint32_t lv, kblkn;
+  uint64_t llv;
   size_t sz;
-  int step = 0;
   IWFS_FSM *fsm = &iwkv->fsm;
   SBLK *sblk = calloc(1, sizeof(*sblk));
   if (!sblk) {
@@ -618,15 +624,48 @@ static iwrc _sblk_at(IWKV iwkv, off_t addr, SBLK **sblkp) {
   }
   rc = fsm->get_mmap(fsm, 0, &mm, &sz);
   RCGO(rc, finish);
-  // rp = mm + addr;
-  step++;
+  rp = mm + addr;
+  sp = rp;
+
   // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u55,akvm:u8,[pi1:u1,...pi63]]:u256
+  memcpy(&sblk->flg, rp, 1);
+  rp += 1;
 
-  // todo
+  if (sblk->flg) { // zero now
+    rc = IWKV_ERROR_CORRUPTED;
+    goto finish;
+  }
 
+  IW_READLV(rp, lv, kblkn);
+  assert(kblkn);
+
+  rc = _kvblk_at2(iwkv, (((uint64_t) kblkn) << FSM_BPOW), mm, &sblk->kvblk);
+  RCGO(rc, finish);
+
+  IW_READLV(rp, lv, sblk->p0);
+  for (int i = 0; i < SLEVELS; ++i) {
+    IW_READLV(rp, lv, sblk->n[i]);
+  }
+  memcpy(&sblk->lkl, rp, 1);
+  rp += 1;
+  if (sblk->lkl) {
+    if (sblk->lkl > SBLK_LKLEN) {
+      rc = IWKV_ERROR_CORRUPTED;
+      goto finish;
+    }
+    memcpy(sblk->lk, rp, sblk->lkl);
+  }
+  rp += SBLK_LKLEN;
+  IW_READLLV(rp, llv, sblk->akvm);
+
+  memcpy(sblk->pi, rp, KVBLK_IDXNUM);
+  rp += KVBLK_IDXNUM;
+
+  assert(rp - sp == (1 << SBLK_SZPOW));
   *sblkp = sblk;
+
 finish:
-  if (step > 0) {
+  if (mm) {
     fsm->release_mmap(fsm);
   }
   if (rc) {
@@ -635,6 +674,10 @@ finish:
   }
   return rc;
 }
+
+// static iwrc _kvblk_addpair(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, uint8_t *oidx) {
+// _IWKV_ERROR_KVBLOCK_FULL
+
 
 static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
   if (!(ecode > _IWKV_ERROR_START && ecode < _IWKV_ERROR_END)) {
@@ -650,6 +693,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
   }
   return 0;
 }
+
+//--------------------------  PUBLIC API
 
 iwrc iwkv_init(void) {
   static int _kv_initialized = 0;
@@ -689,7 +734,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
         .rspolicy     = iw_exfile_szpolicy_fibo
       }
     },
-    .bpow = KVBPOW,              // 64 bytes block size
+    .bpow = FSM_BPOW,              // 64 bytes block size
     .hdrlen = KVHDRSZ,          // Size of custom file header
     .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0),
     .mmap_all = 1
@@ -709,4 +754,18 @@ iwrc iwkv_close(IWKV *iwkvp) {
   free(*iwkvp);
   *iwkvp = 0;
   return rc;
+}
+
+void iwkv_disposekv(IWKV_val *key, IWKV_val *val) {
+  assert(key && val);
+  if (key->data) {
+    free(key->data);
+  }
+  if (val->data) {
+    free(val->data);
+  }
+  key->size = 0;
+  key->data = 0;
+  val->size = 0;
+  val->data = 0;
 }
