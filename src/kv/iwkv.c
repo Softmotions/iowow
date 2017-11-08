@@ -852,6 +852,7 @@ static iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   IWFS_FSM *fsm = &kvblk->iwkv->fsm;
   assert(idx < sblk->pnum);
   uint8_t kidx = sblk->pi[idx]; // get kvblk index
+  assert(kidx < KVBLK_IDXNUM);
   rc = _kvblk_rmkv(kvblk, kidx, 0);
   if (rc) return rc;
   if (idx < sblk->pnum - 1 && sblk->pnum > 1) {
