@@ -754,9 +754,39 @@ finish:
   return rc;
 }
 
-static int _sblk_insert_pi(SBLK *sblk, int8_t nidx, const IWKV_val *key, uint8_t *mm) {
+static int _sblk_find_pi(SBLK *sblk, const IWKV_val *key, const uint8_t *mm) {
+  uint8_t *k;
+  uint32_t kl;
+  int idx = 0,
+      lb = 0,
+      ub = sblk->pnum - 1;
+  if (sblk->pnum < 1) {
+    return -1;
+  }
+  while (1) {
+    int cr;
+    idx = (ub + lb) / 2;
+    _kvblk_peekey(sblk->kvblk, idx, mm, &k, &kl);
+    assert(kl > 0);
+    IW_CMP(cr, k, kl, key->data, key->size);
+    if (!cr) {
+      return idx;
+    } else if (cr < 0) {
+      lb = idx + 1;
+      if (lb > ub) {
+        return -1;
+      }
+    } else {
+      ub = idx - 1;
+      if (lb > ub) {
+        return -1;
+      }
+    }
+  }
+  return idx;
+}
 
-  KVBLK *kvblk = sblk->kvblk;
+static int _sblk_insert_pi(SBLK *sblk, int8_t nidx, const IWKV_val *key, const uint8_t *mm) {
   uint8_t *k;
   uint32_t kl;
   int idx = 0,
@@ -771,7 +801,7 @@ static int _sblk_insert_pi(SBLK *sblk, int8_t nidx, const IWKV_val *key, uint8_t
   while (1) {
     int cr;
     idx = (ub + lb) / 2;
-    _kvblk_peekey(kvblk, idx, mm, &k, &kl);
+    _kvblk_peekey(sblk->kvblk, idx, mm, &k, &kl);
     assert(kl > 0);
     IW_CMP(cr, k, kl, key->data, key->size);
     if (!cr) {
@@ -816,9 +846,21 @@ static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, in
   return rc;
 }
 
-// _sblk_rmkv
-// iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
-
+static iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
+  iwrc rc;
+  KVBLK *kvblk = sblk->kvblk;
+  IWFS_FSM *fsm = &kvblk->iwkv->fsm;
+  assert(idx < sblk->pnum);
+  uint8_t kidx = sblk->pi[idx]; // get kvblk index
+  rc = _kvblk_rmkv(kvblk, kidx, 0);
+  if (rc) return rc;
+  if (idx < sblk->pnum - 1 && sblk->pnum > 1) {
+    memmove(sblk->pi + idx, sblk->pi + idx + 1, sblk->pnum - idx - 1);
+  }
+  sblk->pnum--;
+  rc = _sblk_sync(sblk, 0);
+  return rc;
+}
 
 static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
   if (!(ecode > _IWKV_ERROR_START && ecode < _IWKV_ERROR_END)) {
