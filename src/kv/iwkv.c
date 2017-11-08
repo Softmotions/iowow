@@ -32,7 +32,7 @@
 #define KVBLK_IDXNUM 63
 
 // Initial `KVBLK` size power of 2 (256 bytes)
-#define KVBLK_SZPOW 8
+#define KVBLK_INISZPOW 8
 
 // KVBLK header size: blen:u1,idxsz:u2
 #define KVBLK_HDRSZ 3
@@ -81,6 +81,11 @@ typedef struct SBLK {
   uint8_t pi[KVBLK_IDXNUM];   /**< Key/value pairs indexes in `KVBLK` */
 } SBLK;
 
+typedef enum {
+  RMKV_SYNC = 0x1,
+  RMKV_NO_RESIZE = 0x2
+} kvblk_rmkv_opts_t;
+
 //--------------------------  KVBLK
 
 static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
@@ -89,7 +94,8 @@ static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   int step = 0, rci;
   IWFS_FSM *fsm = &iwkv->fsm;
   KVBLK *kblk;
-  rc = fsm->allocate(fsm, (1 << KVBLK_SZPOW), &baddr, &blen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+  rc = fsm->allocate(fsm, (1 << KVBLK_INISZPOW), &baddr, &blen,
+                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
   RCGO(rc, finish);
   ++step; // 1
   kblk = calloc(1, sizeof(*kblk));
@@ -99,7 +105,7 @@ static iwrc _kvblk_create(IWKV iwkv, KVBLK **oblk) {
   }
   kblk->iwkv = iwkv;
   kblk->addr = baddr;
-  kblk->szpow = KVBLK_SZPOW;
+  kblk->szpow = KVBLK_INISZPOW;
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
   rci = pthread_rwlock_init(&kblk->rwlk, 0);
   if (rci) {
@@ -131,7 +137,7 @@ static iwrc _kvblk_destroy(KVBLK **kbp) {
   IWKV iwkv = blk->iwkv;
   IWFS_FSM *fsm = &iwkv->fsm;
   assert(iwkv && blk->szpow && blk->addr);
-  rc = fsm->deallocate(fsm, blk->addr, 1 << blk->szpow);
+  rc = fsm->deallocate(fsm, blk->addr, 1ULL << blk->szpow);
   _kvblk_release(kbp);
   return rc;
 }
@@ -144,7 +150,7 @@ IW_INLINE void _kvblk_peekey(const KVBLK *kb,
   assert(idx < KVBLK_IDXNUM);
   if (kb->pidx[idx].len) {
     uint32_t klen, step;
-    const uint8_t *rp = mm + kb->addr + (1 << kb->szpow) - kb->pidx[idx].off;
+    const uint8_t *rp = mm + kb->addr + (1ULL << kb->szpow) - kb->pidx[idx].off;
     IW_READVNUMBUF(rp, klen, step);
     rp += step;
     *okbuf = (uint8_t *) rp;
@@ -166,7 +172,7 @@ static iwrc _kvblk_getkey(KVBLK *kb, uint8_t *mm, int idx, IWKV_val *key) {
     return 0;
   }
   // [klen:vn,key,value]
-  uint8_t *rp = mm + (1 << kb->szpow) - kvp->off;
+  uint8_t *rp = mm + (1ULL << kb->szpow) - kvp->off;
   IW_READVNUMBUF(rp, klen, step);
   rp += step;
   if (klen < 1 || klen > kvp->len || klen > kvp->off) {
@@ -182,7 +188,7 @@ static iwrc _kvblk_getkey(KVBLK *kb, uint8_t *mm, int idx, IWKV_val *key) {
   return 0;
 }
 
-static iwrc _kvblk_getpair(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key, IWKV_val *val) {
+static iwrc _kvblk_getkv(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key, IWKV_val *val) {
   assert(mm && idx >= 0 && idx < KVBLK_IDXNUM);
   int32_t klen;
   int step;
@@ -195,7 +201,7 @@ static iwrc _kvblk_getpair(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key, IWKV_
     return 0;
   }
   // [klen:vn,key,value]
-  uint8_t *rp = mm + (1 << kb->szpow) - kvp->off;
+  uint8_t *rp = mm + (1ULL << kb->szpow) - kvp->off;
   IW_READVNUMBUF(rp, klen, step);
   rp += step;
   if (klen < 1 || klen > kvp->len || klen > kvp->off) {
@@ -297,7 +303,6 @@ static iwrc _kvblk_at(IWKV iwkv, off_t addr, KVBLK **blkp) {
   return rc;
 }
 
-
 static void _kvblk_sync(KVBLK *kb, uint8_t *mm) {
   uint8_t *szp;
   uint16_t sp;
@@ -314,6 +319,7 @@ static void _kvblk_sync(KVBLK *kb, uint8_t *mm) {
     wp += sp;
   }
   sp = wp - szp - sizeof(uint16_t);
+  kb->idxsz = sp;
   sp = IW_HTOIS(sp);
   memcpy(szp, &sp, sizeof(uint16_t));
 }
@@ -333,9 +339,9 @@ static int _kvblk_sort_kv(const void *v1, const void *v2) {
   return o1 > o2 ? 1 : o1 < o2 ? -1 : 0;
 }
 
-static iwrc _kvblk_compact(KVBLK *kb) {
+static iwrc _kvblk_compact(KVBLK *kb, uint8_t *mm) {
   iwrc rc = 0;
-  uint8_t *mm, i;
+  uint8_t i;
   size_t sp;
   IWFS_FSM *fsm = &kb->iwkv->fsm;
   off_t coff = _kvblk_compacted_offset(kb);
@@ -344,9 +350,7 @@ static iwrc _kvblk_compact(KVBLK *kb) {
   }
   KVP tidx[KVBLK_IDXNUM];
   memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
-  rc = fsm->get_mmap(fsm, 0, &mm, &sp);
-  if (rc) return rc;
-  mm = mm + kb->addr + (1 << kb->szpow);
+  mm = mm + kb->addr + (1ULL << kb->szpow);
   qsort(tidx, KVBLK_IDXNUM, sizeof(KVP), _kvblk_sort_kv);
   coff = 0;
   for (i = 0; i < KVBLK_IDXNUM; ++i) {
@@ -368,11 +372,34 @@ static iwrc _kvblk_compact(KVBLK *kb) {
     kb->zidx = -1;
   }
   _kvblk_sync(kb, mm);
-  IWRC(fsm->release_mmap(fsm), rc);
   return rc;
 }
 
-void _kvblk_rmpair(KVBLK *kb, uint8_t idx, uint8_t *mm, bool sync) {
+IW_INLINE uint64_t _kvblk_datasize(KVBLK *kb) {
+  uint64_t dsz = KVBLK_HDRSZ + kb->idxsz;
+  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+    dsz += kb->pidx[i].len;
+  }
+  return dsz;
+}
+
+IW_INLINE off_t _kvblk_maxkvoff(KVBLK *kb) {
+  off_t off = 0;
+  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+    if (kb->pidx[i].off > off) {
+      off = kb->pidx[i].off;
+    }
+  }
+  return off;
+}
+
+iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
+  iwrc rc = 0;
+  uint8_t *mm = 0;
+  uint64_t sz;
+  IWFS_FSM *fsm = &kb->iwkv->fsm;
+  rc = fsm->get_mmap(fsm, 0, &mm, &sz);
+  if (rc) return rc;
   if (kb->pidx[idx].off >= kb->maxoff) {
     kb->maxoff = 0;
     for (int i = 0; i < KVBLK_IDXNUM; ++i) {
@@ -384,9 +411,42 @@ void _kvblk_rmpair(KVBLK *kb, uint8_t idx, uint8_t *mm, bool sync) {
   kb->pidx[idx].len = 0;
   kb->pidx[idx].off = 0;
   kb->zidx = idx;
-  if (sync) {
+  if (!(RMKV_NO_RESIZE & opts)) {
+    uint64_t kbsz = 1ULL << kb->szpow;
+    uint64_t dsz = _kvblk_datasize(kb);
+    uint8_t dpow = 1;
+    sz = kbsz / 2;
+    while ((kb->szpow - dpow) > KVBLK_INISZPOW && dsz < sz / 2) {
+      sz = sz / 2;
+      dpow++;
+    }
+    if ((kb->szpow - dpow) > KVBLK_INISZPOW && dsz < kbsz / 2) { // We can shrink kvblock
+      rc = _kvblk_compact(kb, mm);
+      RCGO(rc, finish);
+      off_t naddr = kb->addr, nlen = kbsz;
+      off_t maxoff = _kvblk_maxkvoff(kb);
+      memmove(mm + kb->addr + sz - maxoff,
+              mm + kb->addr + kbsz - maxoff,
+              maxoff);
+      fsm->release_mmap(fsm);
+      mm = 0;
+      rc = fsm->reallocate(fsm, sz, &naddr, &nlen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+      RCGO(rc, finish);
+      kb->addr = naddr;
+      kb->szpow = kb->szpow - dpow;
+      opts |= RMKV_SYNC;
+      rc = fsm->get_mmap(fsm, 0, &mm, &sz);
+      RCGO(rc, finish);
+    }
+  }
+  if (RMKV_SYNC & opts) {
     _kvblk_sync(kb, mm);
   }
+finish:
+  if (mm) {
+    fsm->release_mmap(fsm);
+  }
+  return rc;
 }
 
 static iwrc _kvblk_addkv(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
@@ -410,29 +470,32 @@ static iwrc _kvblk_addkv(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, in
   }
 
 start:
-  msz = (1 << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
+  msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
   rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz) - 2;
   if (msz < rsz) { // not enough space
     if (!compacted) {
-      rc = _kvblk_compact(kb);
+      rc = fsm->get_mmap(fsm, 0, &mm, &sp);
+      RCGO(rc, finish);
+      rc = _kvblk_compact(kb, mm);
+      fsm->release_mmap(fsm);
       RCGO(rc, finish);
       compacted = true;
       goto start;
     } else { // resize the whole block
-      off_t nsz = (rsz - msz) + (1 << kb->szpow);
+      off_t nsz = (rsz - msz) + (1ULL << kb->szpow);
       uint8_t npow = kb->szpow;
-      while ((1 << ++npow) < nsz);
+      while ((1ULL << ++npow) < nsz);
       off_t naddr = kb->addr,
-            nlen = (1 << npow);
-      rc = fsm->reallocate(fsm, nlen, &naddr, &nlen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+            nlen = (1ULL << kb->szpow);
+      rc = fsm->reallocate(fsm, (1ULL << npow), &naddr, &nlen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
       RCGO(rc, finish);
-      assert(nlen == (1 << npow));
+      assert(nlen == (1ULL << npow));
       // Move pairs area
       // [hdr..[pairs]] =reallocate=> [hdr..[pairs]_____] =memove=> [hdr.._____[pairs]]
       rc = fsm->get_mmap(fsm, 0, &mm, &sp);
       RCGO(rc, finish);
-      memmove(mm + naddr + nlen - kb->maxoff, mm + naddr + (1 << kb->szpow) - kb->maxoff, kb->maxoff);
+      memmove(mm + naddr + nlen - kb->maxoff, mm + naddr + (1ULL << kb->szpow) - kb->maxoff, kb->maxoff);
       fsm->release_mmap(fsm);
       kb->addr = naddr;
       kb->szpow = npow;
@@ -456,7 +519,7 @@ start:
   }
   rc = fsm->get_mmap(fsm, 0, &mm, &sp);
   RCGO(rc, finish);
-  wp = mm + kb->addr + (1 << kb->szpow) - kvp->off;
+  wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
   // [klen:vn,key,value]
   IW_SETVNUMBUF(sp, wp, key->size);
   wp += sp;
@@ -482,7 +545,7 @@ static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const I
   size_t rsize = IW_VNUMSIZE(key->size) + key->size + val->size; // required size
   iwrc rc = fsm->get_mmap(fsm, 0, &mm, &sz);
   RCGO(rc, finish);
-  wp = mm + kb->addr + (1 << kb->szpow) - kvp->off;
+  wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
   sp = wp;
   IW_READVNUMBUF(wp, klen, sz);
   wp += sz;
@@ -509,9 +572,9 @@ static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const I
           kvp->len = wp - sp;
         } else {
           sync = false; // sync will be done by _kvblk_addkv
-          _kvblk_rmpair(kb, idx, mm, false);
-          rc = fsm->release_mmap(fsm);
+          fsm->release_mmap(fsm);
           mm = 0;
+          rc = _kvblk_rmkv(kb, idx, RMKV_NO_RESIZE);
           RCGO(rc, finish);
           rc = _kvblk_addkv(kb, key, val, idxp);
         }
@@ -607,9 +670,9 @@ static iwrc _sblk_create(IWKV iwkv, SBLK **oblk) {
   rc = _kvblk_create(iwkv, &kvblk);
   if (rc) return rc;
 
-  rc = fsm->allocate(fsm, (1 << KVBLK_SZPOW), &baddr, &blen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+  rc = fsm->allocate(fsm, (1 << KVBLK_INISZPOW), &baddr, &blen,
+                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
   RCGO(rc, finish);
-
   sblk = calloc(1, sizeof(*sblk));
   if (!sblk) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -731,7 +794,6 @@ static int _sblk_insert_pi(SBLK *sblk, int8_t nidx, const IWKV_val *key, uint8_t
   return idx;
 }
 
-// [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
 static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
   iwrc rc;
   int8_t idx;
@@ -754,6 +816,9 @@ static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, in
   return rc;
 }
 
+// _sblk_rmkv
+// iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
+
 
 static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
   if (!(ecode > _IWKV_ERROR_START && ecode < _IWKV_ERROR_END)) {
@@ -764,6 +829,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
       return "Key not found. (IWKV_ERROR_NOTFOUND)";
     case IWKV_ERROR_MAXKVSZ:
       return "Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
+    case IWKV_ERROR_MAXDBSZ:
+      return "Database file size reached its maximal limit: 0x3fffffffc0 bytes (IWKV_ERROR_MAXDBSZ)";
     case IWKV_ERROR_CORRUPTED:
       return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
   }
@@ -810,10 +877,11 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
         .rspolicy     = iw_exfile_szpolicy_fibo
       }
     },
-    .bpow = FSM_BPOW,              // 64 bytes block size
+    .bpow = FSM_BPOW,           // 64 bytes block size
     .hdrlen = KVHDRSZ,          // Size of custom file header
     .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0),
     .mmap_all = 1
+    //!!!! todo implement: .maxsize = MAX_DBSZ
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
