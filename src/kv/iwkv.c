@@ -695,7 +695,7 @@ static int _sblk_insert_pi(SBLK *sblk, int8_t nidx, const IWKV_val *key, uint8_t
 
   KVBLK *kvblk = sblk->kvblk;
   uint8_t *k;
-  uint32_t klen;
+  uint32_t kl;
   int idx = 0,
       lb = 0,
       ub = sblk->pnum - 1,
@@ -708,8 +708,9 @@ static int _sblk_insert_pi(SBLK *sblk, int8_t nidx, const IWKV_val *key, uint8_t
   while (1) {
     int cr;
     idx = (ub + lb) / 2;
-    _kvblk_peekey(kvblk, idx, mm, &k, &klen);
-    IW_CMP(cr, k, klen, key->data, key->size);
+    _kvblk_peekey(kvblk, idx, mm, &k, &kl);
+    assert(kl > 0);
+    IW_CMP(cr, k, kl, key->data, key->size);
     if (!cr) {
       break;
     } else if (cr < 0) {
