@@ -9,12 +9,12 @@ header:
   sl_head:[n0-n29:u4]
 
 levels:
-  [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
+  [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
                                                   \
                                   [blen:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[_KV],...]] // KVBLK
   KV: [klen:vn,key,value]
 
-  flg    - Skip block flags (reserved)
+  lvl    - Skip list level for this block
   lk     - Lower key data in pairs block
   lkl    - Lower key len
   kblk   - Address of `Pairs block (PB)` as block number.

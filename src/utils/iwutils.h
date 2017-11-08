@@ -257,6 +257,20 @@ IW_EXTERN_C_START
    (num_) < 0x100000000000000ULL ? 8 : \
    (num_) < 0x8000000000000000ULL ? 9 : 10)
 
+/* Lexicographic comparison of values */
+#define IW_CMP(rv_, vp1_, vp1sz_, vp2_, vp2sz_) \
+  do { \
+    (rv_) = 0; \
+    int _min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
+    for (int _i_ = 0; _i_ < _min_; _i_++) { \
+      if (((uint8_t *)(vp1_))[_i_] != ((uint8_t *)(vp2_))[_i_]) { \
+        (rv_) = ((uint8_t *)(vp1_))[_i_] - ((uint8_t *)(vp2_))[_i_]; \
+        break; \
+      } \
+    } \
+    if ((rv_) == 0) (rv_) = (vp1sz_) - (vp2sz_); \
+  } while(false)
+
 /**
  * @brief Create uniform distributed random number.
  * @param avg Distribution pivot

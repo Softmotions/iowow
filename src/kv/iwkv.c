@@ -68,13 +68,13 @@ typedef struct KVBLK {
   KVP pidx[KVBLK_IDXNUM];  /**< KV pairs index */
 } KVBLK;
 
-// SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
+// SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
 typedef struct SBLK {
   KVBLK *kvblk;               /**< Associated KVBLK */
   off_t addr;                 /**< Block address */
   uint32_t n[SLEVELS];        /**< Next pointers */
   uint32_t p0;                /**< Prev pointer at zero level */
-  uint8_t flg;                /**< Flags */
+  uint8_t lvl;                /**< Skip list level for this block */
   uint8_t lkl;                /**< Lower key length */
   uint8_t lk[SBLK_LKLEN];     /**< Lower key value */
   uint8_t pnum;               /**< Number of active pairs in `piN` array */
@@ -117,26 +117,45 @@ finish:
   return rc;
 }
 
-static void _kvblk_release(KVBLK **blkp) {
-  assert(blkp && *blkp);
-  pthread_rwlock_destroy(&(*blkp)->rwlk);
-  free(*blkp);
-  *blkp = 0;
+static void _kvblk_release(KVBLK **kbp) {
+  assert(kbp && *kbp);
+  pthread_rwlock_destroy(&(*kbp)->rwlk);
+  free(*kbp);
+  *kbp = 0;
 }
 
-static iwrc _kvblk_destroy(KVBLK **blkp) {
-  assert(blkp && *blkp);
+static iwrc _kvblk_destroy(KVBLK **kbp) {
+  assert(kbp && *kbp);
   iwrc rc = 0;
-  KVBLK *blk =  *blkp;
+  KVBLK *blk =  *kbp;
   IWKV iwkv = blk->iwkv;
   IWFS_FSM *fsm = &iwkv->fsm;
   assert(iwkv && blk->szpow && blk->addr);
   rc = fsm->deallocate(fsm, blk->addr, 1 << blk->szpow);
-  _kvblk_release(blkp);
+  _kvblk_release(kbp);
   return rc;
 }
 
-static iwrc _kvblk_getkey(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key) {
+IW_INLINE void _kvblk_peekey(const KVBLK *kb,
+                             uint8_t idx,
+                             const uint8_t *mm,
+                             uint8_t **okbuf,
+                             uint32_t *oklen) {
+  assert(idx < KVBLK_IDXNUM);
+  if (kb->pidx[idx].len) {
+    uint32_t klen, step;
+    const uint8_t *rp = mm + kb->addr + (1 << kb->szpow) - kb->pidx[idx].off;
+    IW_READVNUMBUF(rp, klen, step);
+    rp += step;
+    *okbuf = (uint8_t *) rp;
+    *oklen = klen;
+  } else {
+    *okbuf = 0;
+    *oklen = 0;
+  }
+}
+
+static iwrc _kvblk_getkey(KVBLK *kb, uint8_t *mm, int idx, IWKV_val *key) {
   assert(mm && idx >= 0 && idx < KVBLK_IDXNUM);
   int32_t klen;
   int step;
@@ -381,16 +400,15 @@ static iwrc _kvblk_addkv(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, in
   IWFS_FSM *fsm = &kb->iwkv->fsm;
   off_t psz = (key->size + val->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
-  
   *oidx = -1;
-  
+
   if (psz > MAX_KVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-  
+
 start:
   msz = (1 << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -447,7 +465,7 @@ start:
   memcpy(wp, val->data, val->size);
   _kvblk_sync(kb, mm);
   fsm->release_mmap(fsm);
-  
+
 finish:
   return rc;
 }
@@ -501,7 +519,7 @@ static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const I
       }
     }
   }
-  
+
 finish:
   if (!rc && sync) {
     _kvblk_sync(kb, mm);
@@ -549,12 +567,12 @@ static iwrc _sblk_sync(SBLK *sblk, sblk_sync_flags_t sf) {
   IWFS_FSM *fsm = &iwkv->fsm;
   iwrc rc = fsm->get_mmap(fsm, 0, &mm, &sz);
   if (rc) return rc;
-  // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
+  // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
   wp = mm + sblk->addr;
   sp = wp;
-  memcpy(wp, &sblk->flg, 1);
-  wp += 1;
   IW_WRITELV(wp, lv, sblk->kvblk->addr);
+  memcpy(wp, &sblk->lvl, 1);
+  wp += 1;
   IW_WRITELV(wp, lv, sblk->p0);
   for (int i = 0; i < SLEVELS; ++i) {
     IW_WRITELV(wp, lv, sblk->n[i]);
@@ -585,13 +603,13 @@ static iwrc _sblk_create(IWKV iwkv, SBLK **oblk) {
   IWFS_FSM *fsm = &iwkv->fsm;
   SBLK *sblk;
   KVBLK *kvblk;
-  
+
   rc = _kvblk_create(iwkv, &kvblk);
   if (rc) return rc;
-  
+
   rc = fsm->allocate(fsm, (1 << KVBLK_SZPOW), &baddr, &blen, IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
   RCGO(rc, finish);
-  
+
   sblk = calloc(1, sizeof(*sblk));
   if (!sblk) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -601,7 +619,7 @@ static iwrc _sblk_create(IWKV iwkv, SBLK **oblk) {
   sblk->kvblk = kvblk;
   rc = _sblk_sync(sblk, SBLK_NOSYNC_KBLK);
   RCGO(rc, finish);
-  
+
 finish:
   if (rc) {
     IWRC(_kvblk_destroy(&kvblk), rc);
@@ -628,22 +646,17 @@ static iwrc _sblk_at(IWKV iwkv, off_t addr, SBLK **sblkp) {
   RCGO(rc, finish);
   rp = mm + addr;
   sp = rp;
-  
-  // SBLK: [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
-  memcpy(&sblk->flg, rp, 1);
-  rp += 1;
-  
-  if (sblk->flg) { // zero now
-    rc = IWKV_ERROR_CORRUPTED;
-    goto finish;
-  }
-  
+
+  // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
   IW_READLV(rp, lv, kblkn);
   assert(kblkn);
-  
+
+  memcpy(&sblk->lvl, rp, 1);
+  rp += 1;
+
   rc = _kvblk_at2(iwkv, (((uint64_t) kblkn) << FSM_BPOW), mm, &sblk->kvblk);
   RCGO(rc, finish);
-  
+
   IW_READLV(rp, lv, sblk->p0);
   for (int i = 0; i < SLEVELS; ++i) {
     IW_READLV(rp, lv, sblk->n[i]);
@@ -660,13 +673,13 @@ static iwrc _sblk_at(IWKV iwkv, off_t addr, SBLK **sblkp) {
   rp += SBLK_LKLEN;
   memcpy(&sblk->pnum, rp, 1);
   rp += 1;
-  
+
   memcpy(sblk->pi, rp, KVBLK_IDXNUM);
   rp += KVBLK_IDXNUM;
-  
+
   assert(rp - sp == (1 << SBLK_SZPOW));
   *sblkp = sblk;
-  
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -678,61 +691,46 @@ finish:
   return rc;
 }
 
-
 static int _sblk_insert_pi(SBLK *sblk, int8_t nidx, const IWKV_val *key, uint8_t *mm) {
+
+  KVBLK *kvblk = sblk->kvblk;
+  uint8_t *k;
+  uint32_t klen;
   int idx = 0,
       lb = 0,
-      up = sblk->pnum - 1,
+      ub = sblk->pnum - 1,
       nels = sblk->pnum;
-      
   if (nels < 1) {
     sblk->pi[0] = nidx;
     sblk->pnum++;
     return 0;
   }
-  
-
-  // todo !!!
-
+  while (1) {
+    int cr;
+    idx = (ub + lb) / 2;
+    _kvblk_peekey(kvblk, idx, mm, &k, &klen);
+    IW_CMP(cr, k, klen, key->data, key->size);
+    if (!cr) {
+      break;
+    } else if (cr < 0) {
+      lb = idx + 1;
+      if (lb > ub) {
+        idx = lb;
+        break;
+      }
+    } else {
+      ub = idx - 1;
+      if (lb > ub) {
+        break;
+      }
+    }
+  }
+  memmove(sblk->pi + idx + 1, sblk->pi + idx, nels - idx);
+  sblk->pi[idx] = nidx;
   return idx;
 }
 
-//#define EL(idx_) (elsptr + (idx_) * elsize)
-//
-//  off_t idx = 0,
-//        lb = 0,
-//        ub = nels - 1;
-//  char *elsptr = els;
-//
-//  if (nels == 0) {
-//    memcpy(els, eptr, elsize);
-//    return idx;
-//  }
-//  while (1) {
-//    int cr;
-//    idx = (ub + lb) / 2;
-//    cr = cmp(EL(idx), eptr);
-//    if (!cr) {
-//      break;
-//    } else if (cr < 0) {
-//      lb = idx + 1;
-//      if (lb > ub) {
-//        idx = lb;
-//        break;
-//      }
-//    } else {
-//      ub = idx - 1;
-//      if (lb > ub) {
-//        break;
-//      }
-//    }
-//  }
-//  memmove(EL(idx + 1), EL(idx), nels - idx);
-//  memcpy(EL(idx), eptr, elsize);
-//
-
-
-// [flg:u1,kblk:u4,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
+// [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
 static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
   iwrc rc;
   int8_t idx;
@@ -740,7 +738,6 @@ static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, in
   uint8_t *mm;
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &kvblk->iwkv->fsm;
-  bool newlk = !sblk->lkl;
   if (sblk->pnum >= KVBLK_IDXNUM) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
@@ -748,14 +745,10 @@ static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, in
   if (rc) return rc;
   rc = fsm->get_mmap(fsm, 0, &mm, &sz);
   if (rc) return rc;
-  if (!newlk) {
-    newlk = (memcmp(key->data, sblk->lk, MIN(key->size, sblk->lkl)) < 0);
-  }
-  if (newlk) { // set the new lowest key
+  if (_sblk_insert_pi(sblk, idx, key, mm) == 0) { // the lowest key inserted
     sblk->lkl = MIN(SBLK_LKLEN, key->size);
     memcpy(sblk->lk, key->data, sblk->lkl);
   }
-  _sblk_insert_pi(sblk, idx, key, mm);
   fsm->release_mmap(fsm);
   return rc;
 }
@@ -823,7 +816,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
-  
+
 finish:
   return rc;
 }
