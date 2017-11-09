@@ -946,14 +946,13 @@ iwrc iwkv_init(void) {
 iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
   assert(iwkvp && opts);
   iwrc rc = 0;
-  int rci = 0;
   uint32_t lv;
   uint8_t *rp;
   *iwkvp = calloc(1, sizeof(struct IWKV));
   if (!*iwkvp) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  rci = pthread_mutex_init(&(*iwkvp)->mtx_ctl, 0);
+  int rci = pthread_mutex_init(&(*iwkvp)->mtx_ctl, 0);
   if (rci) {
     free(iwkvp);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -984,7 +983,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
     .hdrlen = KVHDRSZ,          // Size of custom file header
     .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0),
     .mmap_all = 1
-    //!!!! todo implement: .maxsize = IWK_MAX_DBSZ
+    //!!!! todo implement: .maxoff = IWK_MAX_DBSZ
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
