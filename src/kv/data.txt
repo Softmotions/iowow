@@ -1,12 +1,8 @@
 IWKV:
 
-prob: 1/3?
 block size: u64
 max key+value size: 268435455 (~255Mb)
 max data file size: 255G
-
-header:
-  sl_head:[n0-n29:u4]
 
 levels:
   [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
@@ -29,6 +25,13 @@ levels:
 db:
 
   [next_blk:u4,dbid:u4,n0-n29:u4]
+  
+header:
+
+  [magic:u4,u8:fistdb_addr]
+  
+  magic       - File magic number 0x69776b76
+  fistdb_addr - Address of the first db in the DB chain
 
 ------------------------------------------------------------
 
