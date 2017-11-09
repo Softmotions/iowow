@@ -148,7 +148,7 @@ static iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   return rc;
 }
 
-static void _db_sync(IWDB db, uint8_t *mm) {
+static void _db_sync_lg(IWDB db, uint8_t *mm) {
   uint32_t lv;
   uint8_t *wp = mm + db->addr;
   db->next_addr = db->next ? db->next->addr : 0;
@@ -159,7 +159,7 @@ static void _db_sync(IWDB db, uint8_t *mm) {
   }
 }
 
-static iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
+static iwrc _db_load_chain_init(IWKV iwkv, off_t addr, uint8_t *mm) {
   iwrc rc;
   if (!addr) {
     return 0;
@@ -216,11 +216,11 @@ static iwrc _db_destroy(IWDB *dbp) {
   }
   if (prev) {
     prev->next = next;
-    _db_sync(prev, mm);
+    _db_sync_lg(prev, mm);
   }
   if (next) {
     next->prev = prev;
-    _db_sync(next, mm);
+    _db_sync_lg(next, mm);
   }
   fsm->release_mmap(fsm);
   if (db->iwkv->dbfirst && db->iwkv->dbfirst->addr == db->addr) {
@@ -283,9 +283,9 @@ static iwrc _db_create(IWKV iwkv, uint32_t dbid, IWDB *odb) {
   }
   rc = fsm->get_mmap(fsm, 0, &mm, &sp);
   RCGO(rc, finish);
-  _db_sync(db, mm);
+  _db_sync_lg(db, mm);
   if (db->prev) {
-    _db_sync(db->prev, mm);
+    _db_sync_lg(db->prev, mm);
   }
   fsm->release_mmap(fsm);
   *odb = db;
@@ -1168,7 +1168,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
     llv = IW_ITOHLL(llv);
     rc = fsm->get_mmap(fsm, 0, &mm, &sp);
     RCGO(rc, finish);
-    rc = _db_load_chain(iwkv, llv, mm);
+    rc = _db_load_chain_init(iwkv, llv, mm);
     fsm->release_mmap(fsm);
   }
 finish:
