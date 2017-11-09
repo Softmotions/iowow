@@ -29,6 +29,9 @@ typedef enum {
 struct IWKV;
 typedef struct IWKV *IWKV;
 
+struct IWDB;
+typedef struct IWDB *IWDB;
+
 typedef struct IWKV_OPTS {
   char *path;
   iwkv_openflags oflags;
@@ -43,13 +46,15 @@ IW_EXPORT WUR iwrc iwkv_init(void);
 
 IW_EXPORT WUR iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp);
 
+IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, IWDB *dbp);
+
 IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
 
-IW_EXPORT iwrc iwkv_put(IWKV iwkv, int ns, IWKV_val *key, IWKV_val *val, iwkv_putflags flags);
+IW_EXPORT iwrc iwkv_put(IWDB iwdb, IWKV_val *key, IWKV_val *val, iwkv_putflags flags);
 
-IW_EXPORT iwrc iwkv_get(IWKV iwkv, int ns, IWKV_val *key, IWKV_val *oval);
+IW_EXPORT iwrc iwkv_get(IWDB iwdb, IWKV_val *key, IWKV_val *oval);
 
-IW_EXPORT iwrc iwkv_del(IWKV iwkv, int ns, IWKV_val *key);
+IW_EXPORT iwrc iwkv_del(IWDB iwdb, IWKV_val *key);
 
 IW_EXPORT void iwkv_disposekv(IWKV_val *key, IWKV_val *val);
 

@@ -5,10 +5,10 @@ endif()
 set(MODULES log utils platform fs kv)
 
 set(PROJECT_LLIBRARIES)
-set(PROJECT_INCLUDE_DIRS) 
+set(PROJECT_INCLUDE_DIRS)
 set(ALL_SRC)
 set(ALL_HDRS)
-set(PUB_HDRS) 
+set(PUB_HDRS)
 set(PROJECT_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 list(APPEND PROJECT_INCLUDE_DIRS "${PROJECT_GENERATED_DIR}"
                                   "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -84,7 +84,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwconv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrlock.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwbits.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwarrays.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwarr.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwpool.h
                      )
 

@@ -85,10 +85,10 @@
       <File Name="src/utils/iwxstr.c"/>
       <File Name="src/utils/iwconv.h"/>
       <File Name="src/utils/iwconv.c"/>
-      <File Name="src/utils/iwarrays.h"/>
-      <File Name="src/utils/iwarrays.c"/>
       <File Name="src/utils/iwpool.h"/>
       <File Name="src/utils/iwpool.c"/>
+      <File Name="src/utils/iwarr.h"/>
+      <File Name="src/utils/iwarr.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="tmpl">
       <File Name="src/tmpl/libiowow.pc.in"/>

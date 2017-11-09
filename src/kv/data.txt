@@ -25,6 +25,11 @@ levels:
   psN    - Key/Value pair block start on i-th place
   plN    - Key/Value pair block length on i-th place
 
+
+db:
+
+  [next_blk:u4,dbid:u4,n0-n29:u4]
+
 ------------------------------------------------------------
 
 
