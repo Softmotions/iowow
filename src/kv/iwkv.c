@@ -133,10 +133,19 @@ struct IWKV {
   bool isopen;              /**< True if kvstore is in OPEN state */
 };
 
+typedef enum {
+  IWLCTX_WRITE = 0x1,         /**< Perform write operation */
+  IWLCTX_SAVE_TPATH = 0x2     /**< Perfrom search with filling traverce path */  
+} iwlctx_status_t;
+
 /** Database lookup context */
 struct IWLCTX {
   IWDB db;
-  bool iswrite; /**< Write operation */
+  SBLK *lower;              /**< Next to upper bound block */  
+  SBLK *upper;              /**< Upper bound block */
+  SBLK* tpath[SLEVELS];     /**< Skip list traverse path: lower `SBLK` block[level index relative to top] 
+                                 filled when `IWLCTX_SAVE_TPATH` status is set */
+  iwlctx_status_t status;   /**< Write operation */
 } IWLCTX;
 
 #define IWKV_ENSURE_OPEN(iwkv_) \
