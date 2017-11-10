@@ -23,7 +23,7 @@ typedef enum {
 } iwkv_openflags;
 
 typedef enum {
-  IWKV_OVERWRITE = 1
+  IWKV_NO_OVERWRITE = 1
 } iwkv_putflags;
 
 struct IWKV;
@@ -48,14 +48,18 @@ IW_EXPORT WUR iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp);
 
 IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, IWDB *dbp);
 
+IW_EXPORT iwrc iwkv_db_destroy(IWDB* dbp);
+
+IW_EXPORT iwrc iwkv_sync(IWKV iwkv);
+
 IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
 
-IW_EXPORT iwrc iwkv_put(IWDB iwdb, IWKV_val *key, IWKV_val *val, iwkv_putflags flags);
+IW_EXPORT iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags);
 
-IW_EXPORT iwrc iwkv_get(IWDB iwdb, IWKV_val *key, IWKV_val *oval);
+IW_EXPORT iwrc iwkv_get(IWDB db, IWKV_val *key, IWKV_val *oval);
 
-IW_EXPORT iwrc iwkv_del(IWDB iwdb, IWKV_val *key);
+IW_EXPORT iwrc iwkv_del(IWDB db, IWKV_val *key);
 
-IW_EXPORT void iwkv_disposekv(IWKV_val *key, IWKV_val *val);
+IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
 
 #endif
