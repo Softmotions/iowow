@@ -232,7 +232,7 @@ finish:
 
 // Assumed:
 //  _iwrl_lock is active
-static iwrc _iwrl_range_nofify(IWRLOCK *lk, off_t start, off_t end) {
+static iwrc _iwrl_range_notify(IWRLOCK *lk, off_t start, off_t end) {
   iwrc rc = 0;
   int is_free;
   for (_IWRL_WAITER_RANGE *wr = lk->waiters; wr; wr = wr->next) {
@@ -400,7 +400,7 @@ iwrc iwrl_unlock(IWRLOCK *lk, off_t start, off_t len) {
       break;
     }
   }
-  IWRC(_iwrl_range_nofify(lk, start, end), rc);
+  IWRC(_iwrl_range_notify(lk, start, end), rc);
   IWRC(_iwrl_unlock(lk), rc);
   return rc;
 }
