@@ -65,8 +65,8 @@ typedef struct KV {
 // KV index: Offset and length.
 typedef struct KVP {
   uint32_t off;   /**< KV block offset relative to `end` of KVBLK */
-  uint32_t len;   /**< Length of  */
-  uint8_t  ridx;  /**< Index position of persisted element */
+  uint32_t len;   /**< Length of kv pair block */
+  uint8_t  ridx;  /**< Position of the auctually persisted slot in `KVBLK` */
 } KVP;
 
 // KVBLK: [blen:u1,idxsz:u2,[pp1:vn,pl1:vn,...,pp63,pl63]____[[pair],...]]
@@ -1231,29 +1231,42 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
 
 //--------------------------  IWLCTX (CRUD)
 
-static iwrc _lx_compare_upper_with_key(IWLCTX *lx, int *res) {
-  iwrc rc = 0;
-  SBLK *upper = lx->upper;
+static int _lx_compare_upper_with_key(IWLCTX *lx, uint8_t *mm) {
+  int res;
+  SBLK *sblk = lx->upper;
   IWKV_val *key = lx->key;
-  
-  // todo:
-  
-  return rc;
+  if (sblk->pnum < 1) { // empty block
+    return -1;
+  }
+  if (key->size < sblk->lkl) {  
+    IW_CMP(res, sblk->lk, sblk->lkl, key->data, key->size);
+    return res;
+  }
+  uint8_t *k;
+  uint32_t kl;
+  _kvblk_peekey(sblk->kvblk, sblk->pi[0] /* lower key index */, mm, &k, &kl);
+  if (!kl) {
+    return -1;
+  }
+  IW_CMP(res, k, kl, key->data, key->size);
+  return res;
 }
 
 static iwrc _lx_roll_forward(IWLCTX *lx) {
   iwrc rc = 0;
-  int cmr = 0;
   assert(lx->lower);
+  uint8_t *mm;
+  size_t sp;
+  IWFS_FSM *fsm  = &lx->db->iwkv->fsm;
+  rc = fsm->get_mmap(fsm, 0, &mm, &sp);
+  RCRET(rc);
   while (1) {
     if (!lx->lower->n[lx->lvl]) {
       break;
     }
     rc = _sblk_at(lx->db, lx->lower->n[lx->lvl], &lx->upper);
     RCRET(rc);
-    rc = _lx_compare_upper_with_key(lx, &cmr);
-    RCRET(rc);
-    if (cmr > 0) { // upper > key
+    if (_lx_compare_upper_with_key(lx, mm) > 0) { // upper > key
       break;
     } else {
       if (!lx->lower->pinned) {
@@ -1263,6 +1276,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx) {
       lx->upper = 0;
     }
   }
+  IWRC(fsm->release_mmap(fsm), rc);
   return rc;
 }
 
@@ -1302,7 +1316,7 @@ static iwrc _lx_find_bounds(IWLCTX *lx) {
     } else if (l > 0 && lx->upper) {
       _sblk_release(&lx->upper);
     }
-  }  
+  }
 finish:
   return rc;
 }
