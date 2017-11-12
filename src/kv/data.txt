@@ -24,9 +24,10 @@ levels:
 
 db:
 
-  [magic:u4,next_blk:u4,dbid:u4,n0-n29:u4]
+  [magic:u4,flags:u1,next_blk:u4,dbid:u4,n0-n29:u4]
 
   magic       - DB magic number 0x69776462
+  flags       - Various database flags 
   next_blk    - Next database meta block number or zero
   dbid        - Database ID
   n0-n29      - Skiplist next pointers to `SBLK`

@@ -158,7 +158,7 @@ static iwrc _fsm_bmptr(_FSM *impl, uint64_t **bmptr) {
   uint8_t *mm;
   *bmptr = 0;
   rc = impl->pool.get_mmap(&impl->pool, impl->mmap_all ? 0 : impl->bmoff, &mm, &sp);
-  if (rc) return rc;
+  RCRET(rc);
   if (impl->mmap_all) {
     if (sp < impl->bmoff + impl->bmlen) {
       return IWFS_ERROR_NOT_MMAPED;
@@ -767,9 +767,9 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
   }
 
   rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, 0, bopts);
-  if (rc) return rc;
+  RCRET(rc);
   rc = _fsm_bmptr(impl, &bmptr);
-  if (rc) return rc;
+  RCRET(rc);
 
   /* Merge with neighborhoods */
   left = _fsm_find_prev_set_bit(bmptr, offset_blk, 0, &hasleft);
@@ -844,7 +844,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   }
 
   rc = _fsm_ensure_size_lw(impl, bmoff + bmlen);
-  if (rc) return rc;
+  RCRET(rc);
 
   if (impl->mmap_all) {
     rc = pool->get_mmap(pool, 0, &mmap, &sp);
@@ -986,7 +986,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
   }
   if (!impl->mmap_all) {
     rc = pool->add_mmap(pool, bmoffset, bmlen);
-    if (rc) return rc;
+    RCRET(rc);
   }
   rc = _fsm_init_lw(impl, bmoffset, bmlen);
   if (rc && !impl->mmap_all) {
@@ -1024,7 +1024,7 @@ static iwrc _fsm_blk_allocate_lw(_FSM *impl,
           return IWFS_ERROR_NO_FREE_SPACE;
         }
         rc = _fsm_resize_fsm_bitmap_lw(impl, impl->bmlen << 1);
-        if (rc) return rc;
+        RCRET(rc);
         continue;
       }
       if (!rc && (opts & IWFSM_SOLID_ALLOCATED_SPACE)) {
@@ -1073,7 +1073,7 @@ start:
       return IWFS_ERROR_NO_FREE_SPACE;
     }
     rc = _fsm_resize_fsm_bitmap_lw(impl, impl->bmlen << 1);
-    if (rc) return rc;
+    RCRET(rc);
     goto start;
   }
 
@@ -1319,14 +1319,14 @@ static iwrc _fsm_init_new_lw(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   if (impl->mmap_all) {
     /* mmap whole file */
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
-    if (rc) return rc;
+    RCRET(rc);
   } else {
     /* mmap header */
     rc = pool->add_mmap(pool, 0, impl->hdrlen);
-    if (rc) return rc;
+    RCRET(rc);
     /* mmap the fsm bitmap index */
     rc = pool->add_mmap(pool, bmoff, bmlen);
-    if (rc) return rc;
+    RCRET(rc);
   }
   return _fsm_init_lw(impl, bmoff, bmlen);
 }
@@ -1409,7 +1409,7 @@ static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t si
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
-  if (rc) return rc;
+  RCRET(rc);
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     IWRC(_fsm_is_fully_allocated_lr(impl,
@@ -1434,7 +1434,7 @@ static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
-  if (rc) return rc;
+  RCRET(rc);
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     IWRC(_fsm_is_fully_allocated_lr(impl, off >> impl->bpow, IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
@@ -1480,7 +1480,7 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
 static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
   _FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
-  if (rc) return rc;
+  RCRET(rc);
   IWRC(_fsm_write_meta_lw(f->impl, 1), rc);
   IWRC(_fsm_ctrl_unlock(f->impl), rc);
   return rc;
@@ -1493,7 +1493,7 @@ IW_INLINE iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size) {
 static iwrc _fsm_ensure_size(struct IWFS_FSM *f, off_t size) {
   _FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
-  if (rc) return rc;
+  RCRET(rc);
   if (f->impl->bmoff + f->impl->bmlen > size) {
     rc = IWFS_ERROR_RESIZE_FAIL;
     goto finish;
@@ -1512,7 +1512,7 @@ static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen) {
 static iwrc _fsm_get_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
-  if (rc) return rc;
+  RCRET(rc);
   rc = f->impl->pool.get_mmap(&f->impl->pool, off, mm, sp);
   if (rc) {
     IWRC(_fsm_ctrl_unlock(f->impl), rc);
@@ -1554,7 +1554,7 @@ static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t s
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
-  if (rc) return rc;
+  RCRET(rc);
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     IWRC(_fsm_is_fully_allocated_lr(impl,
@@ -1580,7 +1580,7 @@ static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, siz
   _FSM_ENSURE_OPEN2(f);
   _FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
-  if (rc) return rc;
+  RCRET(rc);
   if (impl->oflags & IWFSM_STRICT) {
     int allocated = 0;
     IWRC(_fsm_is_fully_allocated_lr(impl,
@@ -1618,7 +1618,7 @@ static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *ol
   len = IW_ROUNDUP(len, 1 << impl->bpow);
 
   rc = _fsm_ctrl_wlock(impl);
-  if (rc) return rc;
+  RCRET(rc);
   rc = _fsm_blk_allocate_lw(f->impl, (len >> impl->bpow), &sbnum, &nlen, opts);
   if (!rc) {
     *olen = (nlen << impl->bpow);
@@ -1716,7 +1716,7 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
   }
   rc = _fsm_ctrl_wlock(impl);
-  if (rc) return rc;
+  RCRET(rc);
   if (IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow)) ||
       IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, (impl->bmoff >> impl->bpow),
                         (impl->bmoff >> impl->bpow) + (impl->bmlen >> impl->bpow))) {
@@ -1742,7 +1742,7 @@ static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t 
     return IW_ERROR_OUT_OF_BOUNDS;
   }
   rc = _fsm_ctrl_rlock(impl);
-  if (rc) return rc;
+  RCRET(rc);
   rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, 0);
   if (!rc) {
     assert(mmap);
@@ -1765,7 +1765,7 @@ static iwrc _fsm_readhdr(struct IWFS_FSM *f, off_t off, void *buf, off_t siz) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
   rc = _fsm_ctrl_rlock(impl);
-  if (rc) return rc;
+  RCRET(rc);
   rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, 0);
   if (!rc) {
     assert(mmap);
@@ -1931,7 +1931,7 @@ static const char *_fsmfile_ecodefn(locale_t locale, uint32_t ecode) {
 iwrc iwfs_fsmfile_init(void) {
   static int _fsmfile_initialized = 0;
   iwrc rc = iw_init();
-  if (rc) return rc;
+  RCRET(rc);
   if (!__sync_bool_compare_and_swap(&_fsmfile_initialized, 0, 1)) {
     return 0;  // initialized already
   }

@@ -205,7 +205,7 @@ static iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
 
 static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   iwrc rc = _exfile_rlock(f);
-  if (rc) return rc;
+  RCRET(rc);
 
   _EXF *impl = f->impl;
   _MMAPSLOT *s = impl->mmslots;
@@ -238,7 +238,7 @@ static iwrc _exfile_write(struct IWFS_EXT *f,
     return IW_ERROR_OUT_OF_BOUNDS;
   }
   iwrc rc = _exfile_rlock(f);
-  if (rc) return rc;
+  RCRET(rc);
 
   impl = f->impl;
   if (end > impl->fsize) {
@@ -341,7 +341,7 @@ finish:
 
 static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
   int rc = _exfile_rlock(f);
-  if (rc) return rc;
+  RCRET(rc);
   _EXF *xf = f->impl;
   IWRC(xf->file.state(&xf->file, &state->file), rc);
   state->fsize = f->impl->fsize;
@@ -351,7 +351,7 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
 
 static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) {
   int rc = _exfile_rlock(f);
-  if (rc) return rc;
+  RCRET(rc);
   _EXF *xf = f->impl;
   IWRC(xf->file.copy(&xf->file, off, siz, noff), rc);
   IWRC(_exfile_unlock(f), rc);
@@ -789,7 +789,7 @@ static const char *_exfile_ecodefn(locale_t locale, uint32_t ecode) {
 iwrc iwfs_exfile_init(void) {
   static int _exfile_initialized = 0;
   iwrc rc = iw_init();
-  if (rc) return rc;
+  RCRET(rc);
   if (!__sync_bool_compare_and_swap(&_exfile_initialized, 0, 1)) {
     return 0;  // initialized already
   }

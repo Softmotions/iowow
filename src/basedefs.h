@@ -99,8 +99,15 @@ typedef int HANDLE;
 #ifdef __GNUC__
 #define RCGO(rc__, label__) if (__builtin_expect((!!(rc__)), 0)) goto label__
 #else
-#define RCGO(rc__, label__) if (rc) goto label__
+#define RCGO(rc__, label__) if (rc__) goto label__
 #endif
+
+#ifdef __GNUC__
+#define RCRET(rc__) if (__builtin_expect((!!(rc__)), 0)) return (rc__)
+#else
+#define RCRET(rc__) if (rc__) return (rc__)
+#endif
+
 
 #ifndef MIN
 #define MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))
