@@ -258,8 +258,7 @@ static iwrc _exfile_write(struct IWFS_EXT *f,
     if (s->off > off) {
       len = MIN(wp, s->off - off);
       rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), len, sp);
-      if (rc)
-        goto finish;
+      RCGO(rc, finish);
       wp = wp - *sp;
       off = off + *sp;
     }
@@ -296,9 +295,7 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
     return IW_ERROR_OUT_OF_BOUNDS;
   }
   iwrc rc = _exfile_rlock(f);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
   impl = f->impl;
   s = impl->mmslots;
   if (end > impl->fsize) {
@@ -401,9 +398,7 @@ static iwrc _exfile_close(struct IWFS_EXT *f) {
     return 0;
   }
   iwrc rc = _exfile_wlock(f);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
   _EXF *impl = f->impl;
   _MMAPSLOT *s = impl->mmslots, *next;
   while (s) {
@@ -424,9 +419,12 @@ static iwrc _exfile_close(struct IWFS_EXT *f) {
 
 static iwrc _exfile_ensure_size(struct IWFS_EXT *f, off_t sz) {
   iwrc rc = _exfile_rlock(f);
-  if (rc) {
-    return rc;
+  RCRET(rc);
+  if (f->impl->fsize >= sz) {
+    return _exfile_unlock2(f->impl);
   }
+  rc = _exfile_wlock(f);
+  RCRET(rc);
   rc = _exfile_ensure_size_lw(f, sz);
   IWRC(_exfile_unlock2(f->impl), rc);
   return rc;
@@ -434,9 +432,7 @@ static iwrc _exfile_ensure_size(struct IWFS_EXT *f, off_t sz) {
 
 static iwrc _exfile_truncate(struct IWFS_EXT *f, off_t sz) {
   iwrc rc = _exfile_wlock(f);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
   rc = _exfile_truncate_lw(f, sz);
   IWRC(_exfile_unlock(f), rc);
   return rc;
@@ -451,9 +447,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
   _MMAPSLOT *ns = 0;
 
   rc = _exfile_wlock(f);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
   _EXF *impl = f->impl;
   if (off & (impl->psize - 1)) {
     rc = IW_ERROR_NOT_ALIGNED;
@@ -536,17 +530,13 @@ finish:
 }
 
 iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
-  assert(f);
-  assert(off >= 0);
-  assert(mm);
+  assert(f && mm && off >= 0);
   if (sp) {
     *sp = 0;
   }
   *mm = 0;
   iwrc rc = _exfile_rlock(f);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
   _EXF *impl = f->impl;
   _MMAPSLOT *s = impl->mmslots;
   while (s) {
@@ -571,26 +561,18 @@ iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
 }
 
 static iwrc _exfile_remove_mmap(struct IWFS_EXT *f, off_t off) {
-  assert(f);
-  assert(off >= 0);
-
+  assert(f && off >= 0);
   iwrc rc = _exfile_wlock(f);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
   rc = _exfile_remove_mmap_wl(f, off);
   IWRC(_exfile_unlock(f), rc);
   return rc;
 }
 
 static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, int _flags) {
-  assert(f);
-  assert(off >= 0);
-
+  assert(f && off >= 0);
   iwrc rc = _exfile_rlock(f);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
   _EXF *impl = f->impl;
   _MMAPSLOT *s = impl->mmslots;
   while (s) {
@@ -615,7 +597,6 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, int _flags) {
   if (!s) {
     rc = IWFS_ERROR_NOT_MMAPED;
   }
-
   IWRC(_exfile_unlock(f), rc);
   return rc;
 }
