@@ -553,11 +553,18 @@ iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
     }
     s = s->next;
   }
-  IWRC(_exfile_unlock(f), rc);
   if (!rc && !*mm) {
     rc = IWFS_ERROR_NOT_MMAPED;
   }
+  if (rc) {
+    _exfile_unlock(f);
+  }
   return rc;
+}
+
+iwrc _exfile_release_mmap(struct IWFS_EXT *f) {
+  assert(f);
+  return _exfile_unlock(f);
 }
 
 static iwrc _exfile_remove_mmap(struct IWFS_EXT *f, off_t off) {
@@ -698,6 +705,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   f->truncate = _exfile_truncate;
   f->add_mmap = _exfile_add_mmap;
   f->get_mmap = _exfile_get_mmap;
+  f->release_mmap = _exfile_release_mmap;
   f->remove_mmap = _exfile_remove_mmap;
   f->sync_mmap = _exfile_sync_mmap;
 

@@ -169,6 +169,9 @@ typedef struct IWFS_RWL {
   /** @see IWFS_EXT::get_mmap */
   iwrc(*get_mmap)(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp);
 
+  /** @see IWFS_EXT::get_mmap */
+  iwrc(*release_mmap)(struct IWFS_RWL *f);
+
   /** @see IWFS_EXT::remove_mmap */
   iwrc(*remove_mmap)(struct IWFS_RWL *f, off_t off);
 

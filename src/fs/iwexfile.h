@@ -211,6 +211,10 @@ typedef struct IWFS_EXT {
    * If region was not mmaped previously with IWFS_EXT::add_mmap
    * the `IWFS_ERROR_NOT_MMAPED` error code will be returned.
    *
+   * WARNING: Internal read lock will be acquired and
+   *          must be released by subsequent `release_mmap()` call
+   *          after all activity with mmaped region has finished.
+   *
    * @param f `IWFS_EXT`
    * @param off Region start offset
    * @param [out] mm Pointer assigned to start of mmaped region of `NULL` if
@@ -219,6 +223,12 @@ typedef struct IWFS_EXT {
    * @return `0` on success or error code.
    */
   iwrc(*get_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
+
+
+  /**
+   * @brief Release the lock acquired by successfull call of `get_mmap()`
+   */
+  iwrc(*release_mmap)(struct IWFS_EXT *f);
 
   /**
    * @brief Unmap mmaped region identified by @a off

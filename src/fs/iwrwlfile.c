@@ -92,6 +92,11 @@ static iwrc _rwl_get_mmap(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *s
   return f->impl->exfile.get_mmap(&f->impl->exfile, off, mm, sp);
 }
 
+static iwrc _rwl_release_mmap(struct IWFS_RWL *f) {
+  _RWL_ENSURE_OPEN(f);
+  return f->impl->exfile.release_mmap(&f->impl->exfile);
+}
+
 static iwrc _rwl_remove_mmap(struct IWFS_RWL *f, off_t off) {
   _RWL_ENSURE_OPEN(f);
   return f->impl->exfile.remove_mmap(&f->impl->exfile, off);
@@ -175,6 +180,7 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f, const IWFS_RWL_OPTS *opts) {
   f->truncate = _rwl_truncate;
   f->add_mmap = _rwl_add_mmap;
   f->get_mmap = _rwl_get_mmap;
+  f->release_mmap = _rwl_release_mmap;
   f->remove_mmap = _rwl_remove_mmap;
   f->sync_mmap = _rwl_sync_mmap;
 

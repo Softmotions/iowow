@@ -1511,18 +1511,12 @@ static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen) {
 
 static iwrc _fsm_get_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
-  iwrc rc = _fsm_ctrl_rlock(f->impl);
-  RCRET(rc);
-  rc = f->impl->pool.get_mmap(&f->impl->pool, off, mm, sp);
-  if (rc) {
-    IWRC(_fsm_ctrl_unlock(f->impl), rc);
-  }
-  return rc;
+  return f->impl->pool.get_mmap(&f->impl->pool, off, mm, sp);
 }
 
 static iwrc _fsm_release_mmap(struct IWFS_FSM *f) {
   _FSM_ENSURE_OPEN2(f);
-  return _fsm_ctrl_unlock(f->impl);
+  return f->impl->pool.release_mmap(&f->impl->pool);
 }
 
 static iwrc _fsm_remove_mmap(struct IWFS_FSM *f, off_t off) {
