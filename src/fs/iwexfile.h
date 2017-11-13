@@ -206,7 +206,7 @@ typedef struct IWFS_EXT {
   iwrc(*add_mmap)(struct IWFS_EXT *f, off_t off, size_t len);
 
   /**
-   * @brief Retrieve mmaped region by its offset @a off
+   * @brief Retrieve mmaped region by its offset @a off and keep file as read locked.
    *
    * If region was not mmaped previously with IWFS_EXT::add_mmap
    * the `IWFS_ERROR_NOT_MMAPED` error code will be returned.
@@ -225,7 +225,7 @@ typedef struct IWFS_EXT {
   iwrc(*acquire_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
 
   /**
-   * Another mmap chunk must be acquired before calling this method
+   * @brief Retrieve mmaped region by its offset @a off
    */
   iwrc(*probe_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
 
