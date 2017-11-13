@@ -1190,8 +1190,8 @@ static iwrc _fsm_destroy_locks(_FSM *impl) {
 static iwrc _fsm_read_meta_lr(_FSM *impl) {
   iwrc rc;
   uint8_t hdr[_FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
-  uint32_t lnum;
-  uint64_t llnum;
+  uint32_t lv;
+  uint64_t llv;
   size_t sp, rp = 0;
   
   /*
@@ -1209,14 +1209,14 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
   }
   
   /* Magic */
-  memcpy(&lnum, hdr + rp, sizeof(lnum));
-  lnum = IW_ITOHL(lnum);
-  if (lnum != _FSM_MAGICK) {
+  memcpy(&lv, hdr + rp, sizeof(lv));
+  lv = IW_ITOHL(lv);
+  if (lv != _FSM_MAGICK) {
     rc = IWFS_ERROR_INVALID_FILEMETA;
     iwlog_ecode_error2(rc, "Invalid file magic number");
     return rc;
   }
-  rp += sizeof(lnum);
+  rp += sizeof(lv);
   
   /* Block pow */
   assert(sizeof(impl->bpow) == 1);
@@ -1235,47 +1235,47 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
   }
   
   /* Free-space bitmap offset */
-  memcpy(&llnum, hdr + rp, sizeof(llnum));
-  llnum = IW_ITOHLL(llnum);
-  impl->bmoff = llnum;
-  rp += sizeof(llnum);
+  memcpy(&llv, hdr + rp, sizeof(llv));
+  llv = IW_ITOHLL(llv);
+  impl->bmoff = llv;
+  rp += sizeof(llv);
   
   /* Free-space bitmap length */
-  memcpy(&llnum, hdr + rp, sizeof(llnum));
-  llnum = IW_ITOHLL(llnum);
-  impl->bmlen = llnum;
-  if (llnum & (64 - 1)) {
+  memcpy(&llv, hdr + rp, sizeof(llv));
+  llv = IW_ITOHLL(llv);
+  impl->bmlen = llv;
+  if (llv & (64 - 1)) {
     rc = IWFS_ERROR_INVALID_FILEMETA;
     iwlog_ecode_error(rc, "Free-space bitmap length is not 64bit aligned: %" PRIuMAX "", impl->bmlen);
   }
-  rp += sizeof(llnum);
+  rp += sizeof(llv);
   
   /* Cumulative sum of record sizes acquired by `allocate` */
-  memcpy(&llnum, hdr + rp, sizeof(llnum));
-  llnum = IW_ITOHLL(llnum);
-  impl->crzsum = llnum;
-  rp += sizeof(llnum);
+  memcpy(&llv, hdr + rp, sizeof(llv));
+  llv = IW_ITOHLL(llv);
+  impl->crzsum = llv;
+  rp += sizeof(llv);
   
   /* Cumulative number of records acquired by `allocated` */
-  memcpy(&lnum, hdr + rp, sizeof(lnum));
-  lnum = IW_ITOHL(lnum);
-  impl->crznum = lnum;
-  rp += sizeof(lnum);
+  memcpy(&lv, hdr + rp, sizeof(lv));
+  lv = IW_ITOHL(lv);
+  impl->crznum = lv;
+  rp += sizeof(lv);
   
   /* Record sizes standard variance (deviation^2 * N) */
-  memcpy(&llnum, hdr + rp, sizeof(llnum));
-  llnum = IW_ITOHLL(llnum);
-  impl->crzvar = llnum;
-  rp += sizeof(llnum);
+  memcpy(&llv, hdr + rp, sizeof(llv));
+  llv = IW_ITOHLL(llv);
+  impl->crzvar = llv;
+  rp += sizeof(llv);
   
   /* Reserved */
   rp += 32;
   
   /* Header size */
-  memcpy(&lnum, hdr + rp, sizeof(lnum));
-  lnum = IW_ITOHL(lnum);
-  impl->hdrlen = lnum;
-  rp += sizeof(lnum);
+  memcpy(&lv, hdr + rp, sizeof(lv));
+  lv = IW_ITOHL(lv);
+  impl->hdrlen = lv;
+  rp += sizeof(lv);
   
   assert(rp == _FSM_CUSTOM_HDR_DATA_OFFSET);
   return rc;
