@@ -1231,8 +1231,10 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
 
 //--------------------------  IWLCTX (CRUD)
 
-static int _lx_compare_upper_with_key(IWLCTX *lx, uint8_t *mm) {
+IW_INLINE int _lx_compare_upper_with_key(IWLCTX *lx, uint8_t *mm) {
   int res;
+  uint8_t *k;
+  uint32_t kl;
   SBLK *sblk = lx->upper;
   IWKV_val *key = lx->key;
   if (sblk->pnum < 1) { // empty block
@@ -1242,8 +1244,6 @@ static int _lx_compare_upper_with_key(IWLCTX *lx, uint8_t *mm) {
     IW_CMP(res, sblk->lk, sblk->lkl, key->data, key->size);
     return res;
   }
-  uint8_t *k;
-  uint32_t kl;
   _kvblk_peekey(sblk->kvblk, sblk->pi[0] /* lower key index */, mm, &k, &kl);
   if (!kl) {
     return -1;
