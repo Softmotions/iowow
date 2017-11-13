@@ -423,6 +423,8 @@ static iwrc _exfile_ensure_size(struct IWFS_EXT *f, off_t sz) {
   if (f->impl->fsize >= sz) {
     return _exfile_unlock2(f->impl);
   }
+  rc = _exfile_unlock2(f->impl);
+  RCRET(rc);
   rc = _exfile_wlock(f);
   RCRET(rc);
   rc = _exfile_ensure_size_lw(f, sz);
