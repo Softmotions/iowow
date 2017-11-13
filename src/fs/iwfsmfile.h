@@ -311,12 +311,12 @@ typedef struct IWFS_FSM {
    *          after all activity with mmaped region has finished.
    *
    * @see IWFS_FSM::add_mmap
-   * @see IWFS_EXT::get_mmap
+   * @see IWFS_EXT::acquire_mmap
    */
-  iwrc(*get_mmap)(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp);
+  iwrc(*acquire_mmap)(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp);
 
   /**
-   * @brief Release the lock acquired by successfull call of `get_mmap()`
+   * @brief Release the lock acquired by successfull call of `acquire_mmap()`
    */
   iwrc(*release_mmap)(struct IWFS_FSM *f);
 

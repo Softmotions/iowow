@@ -87,9 +87,14 @@ static iwrc _rwl_add_mmap(struct IWFS_RWL *f, off_t off, size_t maxlen) {
   return f->impl->exfile.add_mmap(&f->impl->exfile, off, maxlen);
 }
 
-static iwrc _rwl_get_mmap(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp) {
+static iwrc _rwl_acquire_mmap(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp) {
   _RWL_ENSURE_OPEN(f);
-  return f->impl->exfile.get_mmap(&f->impl->exfile, off, mm, sp);
+  return f->impl->exfile.acquire_mmap(&f->impl->exfile, off, mm, sp);
+}
+
+static iwrc _rwl_probe_mmap(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp) {
+  _RWL_ENSURE_OPEN(f);
+  return f->impl->exfile.probe_mmap(&f->impl->exfile, off, mm, sp);
 }
 
 static iwrc _rwl_release_mmap(struct IWFS_RWL *f) {
@@ -179,7 +184,8 @@ iwrc iwfs_rwlfile_open(IWFS_RWL *f, const IWFS_RWL_OPTS *opts) {
   f->ensure_size = _rwl_ensure_size;
   f->truncate = _rwl_truncate;
   f->add_mmap = _rwl_add_mmap;
-  f->get_mmap = _rwl_get_mmap;
+  f->acquire_mmap = _rwl_acquire_mmap;
+  f->probe_mmap = _rwl_probe_mmap;
   f->release_mmap = _rwl_release_mmap;
   f->remove_mmap = _rwl_remove_mmap;
   f->sync_mmap = _rwl_sync_mmap;

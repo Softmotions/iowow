@@ -152,25 +152,30 @@ IW_INLINE iwrc _fsm_ctrl_unlock(_FSM *impl) {
   return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
 }
 
-static iwrc _fsm_bmptr(_FSM *impl, uint64_t **bmptr) {
-  iwrc rc;
+static iwrc _fsm_acquire_bmptr(_FSM *impl, uint64_t **bmptr) {
   size_t sp;
   uint8_t *mm;
   *bmptr = 0;
-  rc = impl->pool.get_mmap(&impl->pool, impl->mmap_all ? 0 : impl->bmoff, &mm, &sp);
+  iwrc rc = impl->pool.acquire_mmap(&impl->pool, impl->mmap_all ? 0 : impl->bmoff, &mm, &sp);
   RCRET(rc);
   if (impl->mmap_all) {
     if (sp < impl->bmoff + impl->bmlen) {
+      impl->pool.release_mmap(&impl->pool);
       return IWFS_ERROR_NOT_MMAPED;
     }
     *bmptr = (uint64_t *)(mm + impl->bmoff);
   } else {
     if (sp < impl->bmlen) {
+      impl->pool.release_mmap(&impl->pool);
       return IWFS_ERROR_NOT_MMAPED;
     }
     *bmptr = (uint64_t *) mm;
   }
-  return rc;
+  return 0;
+}
+
+IW_INLINE iwrc _fsm_release_bmptr(_FSM *impl) {
+  return impl->pool.release_mmap(&impl->pool);
 }
 
 /**
@@ -350,22 +355,22 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
     return IWFS_ERROR_FSM_SEGMENTATION;
   }
   if (impl->mmap_all) {
-    rc = impl->pool.get_mmap(&impl->pool, 0, &mm, &sp);
-    if (!rc) {
-      if (sp < impl->bmoff + impl->bmlen) {
-        rc = IWFS_ERROR_NOT_MMAPED;
-      } else {
-        mm += impl->bmoff;
-      }
+    rc = impl->pool.acquire_mmap(&impl->pool, 0, &mm, &sp);
+    RCRET(rc);
+    if (sp < impl->bmoff + impl->bmlen) {
+      rc = IWFS_ERROR_NOT_MMAPED;
+    } else {
+      mm += impl->bmoff;
     }
   } else {
-    rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mm, &sp);
-    if (!rc && sp < impl->bmlen) {
+    rc = impl->pool.acquire_mmap(&impl->pool, impl->bmoff, &mm, &sp);
+    RCRET(rc);
+    if (sp < impl->bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
     }
   }
   if (rc) {
-    iwlog_ecode_error3(rc);
+    impl->pool.release_mmap(&impl->pool);
     return rc;
   }
   sp = impl->bmlen;
@@ -411,6 +416,7 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
       }
     }
   }
+  IWRC(impl->pool.release_mmap(&impl->pool), rc);
   return rc;
 }
 
@@ -768,7 +774,7 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
 
   rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, 0, bopts);
   RCRET(rc);
-  rc = _fsm_bmptr(impl, &bmptr);
+  rc = _fsm_acquire_bmptr(impl, &bmptr);
   RCRET(rc);
 
   /* Merge with neighborhoods */
@@ -779,6 +785,8 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
   } else {
     right = _fsm_find_next_set_bit(bmptr, offset_blk + length_blk, impl->lfbkoff, &hasright);
   }
+  rc = _fsm_release_bmptr(impl);
+  RCRET(rc);
   if (hasleft) {
     if (offset_blk > left + 1) {
       left += 1;
@@ -842,27 +850,26 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
                       bmlen);
     return rc;
   }
-
   rc = _fsm_ensure_size_lw(impl, bmoff + bmlen);
   RCRET(rc);
-
   if (impl->mmap_all) {
-    rc = pool->get_mmap(pool, 0, &mm, &sp);
-    if (!rc) {
-      if (sp < bmoff + bmlen) {
-        rc = IWFS_ERROR_NOT_MMAPED;
-      } else {
-        mm += bmoff;
-      }
+    rc = pool->acquire_mmap(pool, 0, &mm, &sp);
+    RCRET(rc);
+    if (sp < bmoff + bmlen) {
+      rc = IWFS_ERROR_NOT_MMAPED;
+    } else {
+      mm += bmoff;
     }
   } else {
-    rc = pool->get_mmap(pool, bmoff, &mm, &sp);
-    if (!rc && sp < bmlen) {
+    rc = pool->acquire_mmap(pool, bmoff, &mm, &sp);
+    RCRET(rc);
+    if (sp < bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
     }
   }
   if (rc) {
-    iwlog_ecode_error2(rc, "Fail to mmap fsm bitmap area");
+    pool->release_mmap(&impl->pool);
+    iwlog_ecode_error2(rc, "Failed to mmap fsm bitmap area");
     return rc;
   }
   sp = bmlen;
@@ -870,18 +877,19 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   if (impl->bmlen) {
     /* We have an old active bitmap. Lets copy its content to the new location.*/
     if (IW_RANGES_OVERLAP(impl->bmoff, impl->bmoff + impl->bmlen, bmoff, bmoff + bmlen)) {
-      rc = IW_ERROR_INVALID_ARGS;
+      pool->release_mmap(&impl->pool);
       iwlog_ecode_error2(rc, "New and old bitmap areas are overlaped");
-      return rc;
+      return IW_ERROR_INVALID_ARGS;
     }
     if (impl->mmap_all) {
       mm2 = mm - bmoff + impl->bmoff;
     } else {
-      rc = pool->get_mmap(pool, impl->bmoff, &mm2, &sp2);
+      rc = pool->probe_mmap(pool, impl->bmoff, &mm2, &sp2);
       if (!rc && sp2 < impl->bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
       }
       if (rc) {
+        pool->release_mmap(&impl->pool);
         iwlog_ecode_error2(rc, "Old bitmap area is not mmaped");
         return rc;
       }
@@ -1141,7 +1149,7 @@ static iwrc _fsm_trim_tail_lw(_FSM *impl) {
     RCGO(rc, finish);
   }
 
-  rc = _fsm_bmptr(impl, &bmptr);
+  rc = _fsm_acquire_bmptr(impl, &bmptr);
   RCGO(rc, finish);
 
   lastblk = impl->lfbkoff;
@@ -1149,6 +1157,9 @@ static iwrc _fsm_trim_tail_lw(_FSM *impl) {
   if (hasleft) {
     lastblk = offset + 1;
   }
+  rc = _fsm_release_bmptr(impl);
+  RCGO(rc, finish);
+
   rc = impl->pool.state(&impl->pool, &pstate);
   if (!rc && pstate.exfile.fsize > (lastblk << impl->bpow)) {
     rc = impl->pool.truncate(&impl->pool, lastblk << impl->bpow);
@@ -1346,7 +1357,7 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
     RCGO(rc, finish);
 
-    rc = pool->get_mmap(pool, 0, &mm, &sp);
+    rc = pool->acquire_mmap(pool, 0, &mm, &sp);
     RCGO(rc, finish);
 
     if (sp < impl->bmoff + impl->bmlen) {
@@ -1364,7 +1375,7 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
     rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
     RCGO(rc, finish);
 
-    rc = pool->get_mmap(pool, impl->bmoff, &mm, &sp);
+    rc = pool->acquire_mmap(pool, impl->bmoff, &mm, &sp);
     RCGO(rc, finish);
 
     if (sp < impl->bmlen) {
@@ -1509,9 +1520,9 @@ static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen) {
   return f->impl->pool.add_mmap(&f->impl->pool, off, maxlen);
 }
 
-static iwrc _fsm_get_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
+static iwrc _fsm_acquire_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
   _FSM_ENSURE_OPEN2(f);
-  return f->impl->pool.get_mmap(&f->impl->pool, off, mm, sp);
+  return f->impl->pool.acquire_mmap(&f->impl->pool, off, mm, sp);
 }
 
 static iwrc _fsm_release_mmap(struct IWFS_FSM *f) {
@@ -1737,7 +1748,7 @@ static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t 
   }
   rc = _fsm_ctrl_rlock(impl);
   RCRET(rc);
-  rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, 0);
+  rc = impl->pool.acquire_mmap(&impl->pool, 0, &mmap, 0);
   if (!rc) {
     assert(mmap);
     memmove(mmap + _FSM_CUSTOM_HDR_DATA_OFFSET + off, buf, siz);
@@ -1760,7 +1771,7 @@ static iwrc _fsm_readhdr(struct IWFS_FSM *f, off_t off, void *buf, off_t siz) {
   }
   rc = _fsm_ctrl_rlock(impl);
   RCRET(rc);
-  rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, 0);
+  rc = impl->pool.acquire_mmap(&impl->pool, 0, &mmap, 0);
   if (!rc) {
     assert(mmap);
     memmove(buf, mmap + _FSM_CUSTOM_HDR_DATA_OFFSET + off, siz);
@@ -1835,7 +1846,7 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
 
   f->ensure_size = _fsm_ensure_size;
   f->add_mmap = _fsm_add_mmap;
-  f->get_mmap = _fsm_get_mmap;
+  f->acquire_mmap = _fsm_acquire_mmap;
   f->release_mmap = _fsm_release_mmap;
   f->remove_mmap = _fsm_remove_mmap;
   f->sync_mmap = _fsm_sync_mmap;
@@ -1993,7 +2004,7 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
   _FSM *impl = f->impl;
   iwrc rc;
   if (impl->mmap_all) {
-    rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
+    rc = impl->pool.acquire_mmap(&impl->pool, 0, &mmap, &sp);
     if (!rc) {
       if (sp <= impl->bmoff) {
         rc = IWFS_ERROR_NOT_MMAPED;
@@ -2003,7 +2014,7 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
       }
     }
   } else {
-    rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
+    rc = impl->pool.acquire_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
   }
   if (rc) {
     iwlog_ecode_error3(rc);

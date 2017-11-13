@@ -166,10 +166,13 @@ typedef struct IWFS_RWL {
   /** @see IWFS_EXT::add_mmap */
   iwrc(*add_mmap)(struct IWFS_RWL *f, off_t off, size_t maxlen);
 
-  /** @see IWFS_EXT::get_mmap */
-  iwrc(*get_mmap)(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp);
+  /** @see IWFS_EXT::acquire_mmap */
+  iwrc(*acquire_mmap)(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp);
 
-  /** @see IWFS_EXT::get_mmap */
+  /** @see IWFS_EXT::probe_mmap */
+  iwrc(*probe_mmap)(struct IWFS_RWL *f, off_t off, uint8_t **mm, size_t *sp);
+
+  /** @see IWFS_EXT::release_mmap */
   iwrc(*release_mmap)(struct IWFS_RWL *f);
 
   /** @see IWFS_EXT::remove_mmap */

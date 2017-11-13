@@ -529,7 +529,7 @@ finish:
   return rc;
 }
 
-iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
+iwrc _exfile_acquire_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
   assert(f && mm && off >= 0);
   if (sp) {
     *sp = 0;
@@ -558,6 +558,36 @@ iwrc _exfile_get_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
   }
   if (rc) {
     _exfile_unlock(f);
+  }
+  return rc;
+}
+
+iwrc _exfile_probe_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
+  // todo remove code duplication
+  assert(f && mm && off >= 0);
+  if (sp) {
+    *sp = 0;
+  }
+  *mm = 0;
+  iwrc rc = 0;
+  _EXF *impl = f->impl;
+  _MMAPSLOT *s = impl->mmslots;
+  while (s) {
+    if (s->off == off) {
+      if (!s->len) {
+        rc = IWFS_ERROR_NOT_MMAPED;
+        break;
+      }
+      *mm = s->mmap;
+      if (sp) {
+        *sp = s->len;
+      }
+      break;
+    }
+    s = s->next;
+  }
+  if (!rc && !*mm) {
+    rc = IWFS_ERROR_NOT_MMAPED;
   }
   return rc;
 }
@@ -704,7 +734,8 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   f->ensure_size = _exfile_ensure_size;
   f->truncate = _exfile_truncate;
   f->add_mmap = _exfile_add_mmap;
-  f->get_mmap = _exfile_get_mmap;
+  f->acquire_mmap = _exfile_acquire_mmap;
+  f->probe_mmap = _exfile_probe_mmap;
   f->release_mmap = _exfile_release_mmap;
   f->remove_mmap = _exfile_remove_mmap;
   f->sync_mmap = _exfile_sync_mmap;

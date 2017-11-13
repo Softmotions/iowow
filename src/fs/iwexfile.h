@@ -196,7 +196,7 @@ typedef struct IWFS_EXT {
    * region
    * @endcode
    *
-   * Pointer to this region can be retrieved by  `IWFS_EXT::get_mmap`
+   * Pointer to this region can be retrieved by  `IWFS_EXT::acquire_mmap`
    *
    * @param f `IWFS_EXT`
    * @param off Offset of mmaped region
@@ -222,11 +222,15 @@ typedef struct IWFS_EXT {
    * @param [out] sp Length of region
    * @return `0` on success or error code.
    */
-  iwrc(*get_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
-
+  iwrc(*acquire_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
 
   /**
-   * @brief Release the lock acquired by successfull call of `get_mmap()`
+   * Another mmap chunk must be acquired before calling this method
+   */
+  iwrc(*probe_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
+
+  /**
+   * @brief Release the lock acquired by successfull call of `acquire_mmap()`
    */
   iwrc(*release_mmap)(struct IWFS_EXT *f);
 
