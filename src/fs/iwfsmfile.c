@@ -338,7 +338,7 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
                                    _fsm_bmopts opts) {
   iwrc rc;
   uint64_t bend = offset_bits + length_bits;
-  uint8_t *mmap;
+  uint8_t *mm;
   uint64_t sp, *p, set_mask;
   int set_bits;
 
@@ -350,16 +350,16 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
     return IWFS_ERROR_FSM_SEGMENTATION;
   }
   if (impl->mmap_all) {
-    rc = impl->pool.get_mmap(&impl->pool, 0, &mmap, &sp);
+    rc = impl->pool.get_mmap(&impl->pool, 0, &mm, &sp);
     if (!rc) {
       if (sp < impl->bmoff + impl->bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
       } else {
-        mmap += impl->bmoff;
+        mm += impl->bmoff;
       }
     }
   } else {
-    rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mmap, &sp);
+    rc = impl->pool.get_mmap(&impl->pool, impl->bmoff, &mm, &sp);
     if (!rc && sp < impl->bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
     }
@@ -369,7 +369,7 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
     return rc;
   }
   sp = impl->bmlen;
-  p = ((uint64_t *) mmap) + offset_bits / 64;
+  p = ((uint64_t *) mm) + offset_bits / 64;
   set_bits = 64 - (offset_bits & (64 - 1));
   set_mask = (~((uint64_t) 0) << (offset_bits & (64 - 1)));
   while (length_bits - set_bits >= 0) {
@@ -818,7 +818,7 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
  */
 static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   iwrc rc;
-  uint8_t *mmap, *mmap2;
+  uint8_t *mm, *mm2;
   uint64_t sp, sp2;
   uint64_t old_bmoff, old_bmlen;
   IWFS_RWL *pool = &impl->pool;
@@ -847,16 +847,16 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   RCRET(rc);
 
   if (impl->mmap_all) {
-    rc = pool->get_mmap(pool, 0, &mmap, &sp);
+    rc = pool->get_mmap(pool, 0, &mm, &sp);
     if (!rc) {
       if (sp < bmoff + bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
       } else {
-        mmap += bmoff;
+        mm += bmoff;
       }
     }
   } else {
-    rc = pool->get_mmap(pool, bmoff, &mmap, &sp);
+    rc = pool->get_mmap(pool, bmoff, &mm, &sp);
     if (!rc && sp < bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
     }
@@ -875,9 +875,9 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
       return rc;
     }
     if (impl->mmap_all) {
-      mmap2 = mmap - bmoff + impl->bmoff;
+      mm2 = mm - bmoff + impl->bmoff;
     } else {
-      rc = pool->get_mmap(pool, impl->bmoff, &mmap2, &sp2);
+      rc = pool->get_mmap(pool, impl->bmoff, &mm2, &sp2);
       if (!rc && sp2 < impl->bmlen) {
         rc = IWFS_ERROR_NOT_MMAPED;
       }
@@ -889,18 +889,18 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     sp2 = impl->bmlen;
     assert(!((sp2 - sp) & ((1 << impl->bpow) - 1)));
     if (impl->mmap_all) {
-      memcpy(mmap, mmap2, impl->bmlen);
+      memcpy(mm, mm2, impl->bmlen);
       if (bmlen > impl->bmlen) {
-        memset(mmap + impl->bmlen, 0, bmlen - impl->bmlen);
+        memset(mm + impl->bmlen, 0, bmlen - impl->bmlen);
       }
     } else {
-      memcpy(mmap, mmap2, sp2);
+      memcpy(mm, mm2, sp2);
       if (sp > sp2) {
-        memset(mmap + sp2, 0, sp - sp2);
+        memset(mm + sp2, 0, sp - sp2);
       }
     }
   } else {
-    memset(mmap, 0, bmlen);
+    memset(mm, 0, bmlen);
   }
 
   /* Backup the previous bitmap range */
@@ -924,7 +924,7 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     }
   }
   /* Reload the fsm tree */
-  _fsm_load_fsm_lw(impl, mmap, bmlen);
+  _fsm_load_fsm_lw(impl, mm, bmlen);
 
   /* Sync fsm */
   rc = pool->sync_mmap(pool, impl->mmap_all ? 0 : bmoff, impl->sync_flags);
@@ -953,7 +953,7 @@ rollback: /* try to rollback bitmap state */
   impl->bmoff = old_bmoff;
   impl->bmlen = old_bmlen;
   if (old_bmlen > 0) {
-    _fsm_load_fsm_lw(impl, mmap2, old_bmlen);
+    _fsm_load_fsm_lw(impl, mm2, old_bmlen);
   }
   pool->sync_mmap(pool, 0, impl->sync_flags);
   return rc;
@@ -1335,7 +1335,7 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
   _FSM_ENSURE_OPEN(impl);
   iwrc rc;
   size_t sp;
-  uint8_t *mmap;
+  uint8_t *mm;
   IWFS_RWL *pool = &impl->pool;
 
   rc = _fsm_read_meta_lr(impl);
@@ -1346,14 +1346,14 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
     RCGO(rc, finish);
 
-    rc = pool->get_mmap(pool, 0, &mmap, &sp);
+    rc = pool->get_mmap(pool, 0, &mm, &sp);
     RCGO(rc, finish);
 
     if (sp < impl->bmoff + impl->bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
       goto finish;
     } else {
-      mmap += impl->bmoff;
+      mm += impl->bmoff;
     }
   } else {
     /* mmap the header part of file */
@@ -1364,7 +1364,7 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
     rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
     RCGO(rc, finish);
 
-    rc = pool->get_mmap(pool, impl->bmoff, &mmap, &sp);
+    rc = pool->get_mmap(pool, impl->bmoff, &mm, &sp);
     RCGO(rc, finish);
 
     if (sp < impl->bmlen) {
@@ -1372,7 +1372,7 @@ static iwrc _fsm_init_existing_lw(_FSM *impl) {
       goto finish;
     }
   }
-  _fsm_load_fsm_lw(impl, mmap, impl->bmlen);
+  _fsm_load_fsm_lw(impl, mm, impl->bmlen);
 
 finish:
   return rc;

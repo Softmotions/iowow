@@ -275,7 +275,6 @@ static iwrc _exfile_write(struct IWFS_EXT *f,
     rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), wp, sp);
     RCGO(rc, finish);
     wp = wp - *sp;
-    // off = off + *sp;
   }
   *sp = siz - wp;
 finish:
