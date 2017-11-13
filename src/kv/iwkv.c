@@ -1529,11 +1529,13 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
 iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags) {
   iwrc rc = 0;
   IWKV iwkv = db->iwkv;
-  IWLCTX lx = {0};
-//  lx.db = db;
-//  lx.key = key;
-//  lx.val = val;
-//  lx.nlvl = -1;
+  IWLCTX lx = {
+    .db = db,
+    .key = key,
+    .val = val,
+    .nlvl = -1,
+    .op = IWLCTX_PUT
+  };
   int rci = pthread_rwlock_rdlock(&iwkv->rwl_api);
   if (rci) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   //rc = 
