@@ -556,9 +556,9 @@ static void _fsm_load_fsm_lw(_FSM *impl, uint8_t *bm, uint64_t len) {
  */
 static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
   uint8_t hdr[_FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
-  uint64_t llvalue;
+  uint64_t llv;
   size_t wlen;
-  uint32_t sp = 0, lvalue;
+  uint32_t sp = 0, lv;
   
   /*
       [FSM_CTL_MAGICK u32][block pow u8]
@@ -569,10 +569,10 @@ static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
   */
   
   /* magic */
-  lvalue = IW_HTOIL(_FSM_MAGICK);
-  assert(sp + sizeof(lvalue) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
-  memcpy(hdr + sp, &lvalue, sizeof(lvalue));
-  sp += sizeof(lvalue);
+  lv = IW_HTOIL(_FSM_MAGICK);
+  assert(sp + sizeof(lv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  memcpy(hdr + sp, &lv, sizeof(lv));
+  sp += sizeof(lv);
   
   /* block pow */
   assert(sizeof(impl->bpow) == 1);
@@ -581,49 +581,49 @@ static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
   sp += sizeof(impl->bpow);
   
   /* fsm bitmap block offset */
-  llvalue = impl->bmoff;
-  llvalue = IW_HTOILL(llvalue);
-  assert(sp + sizeof(llvalue) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
-  memcpy(hdr + sp, &llvalue, sizeof(llvalue));
-  sp += sizeof(llvalue);
+  llv = impl->bmoff;
+  llv = IW_HTOILL(llv);
+  assert(sp + sizeof(llv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  memcpy(hdr + sp, &llv, sizeof(llv));
+  sp += sizeof(llv);
   
   /* fsm bitmap block length */
-  llvalue = impl->bmlen;
-  llvalue = IW_HTOILL(llvalue);
-  assert(sp + sizeof(llvalue) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
-  memcpy(hdr + sp, &llvalue, sizeof(llvalue));
-  sp += sizeof(llvalue);
+  llv = impl->bmlen;
+  llv = IW_HTOILL(llv);
+  assert(sp + sizeof(llv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  memcpy(hdr + sp, &llv, sizeof(llv));
+  sp += sizeof(llv);
   
   /* Cumulative sum of record sizes acquired by `allocate` */
-  llvalue = impl->crzsum;
-  llvalue = IW_HTOILL(llvalue);
-  assert(sp + sizeof(llvalue) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
-  memcpy(hdr + sp, &llvalue, sizeof(llvalue));
-  sp += sizeof(llvalue);
+  llv = impl->crzsum;
+  llv = IW_HTOILL(llv);
+  assert(sp + sizeof(llv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  memcpy(hdr + sp, &llv, sizeof(llv));
+  sp += sizeof(llv);
   
   /* Cumulative number of records acquired by `allocated` */
-  lvalue = impl->crznum;
-  lvalue = IW_HTOIL(lvalue);
-  assert(sp + sizeof(lvalue) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
-  memcpy(hdr + sp, &lvalue, sizeof(lvalue));
-  sp += sizeof(lvalue);
+  lv = impl->crznum;
+  lv = IW_HTOIL(lv);
+  assert(sp + sizeof(lv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  memcpy(hdr + sp, &lv, sizeof(lv));
+  sp += sizeof(lv);
   
   /* Record sizes standard variance (deviation^2 * N) */
-  llvalue = impl->crzvar;
-  llvalue = IW_HTOILL(llvalue);
-  assert(sp + sizeof(lvalue) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
-  memcpy(hdr + sp, &llvalue, sizeof(llvalue));
-  sp += sizeof(llvalue);
+  llv = impl->crzvar;
+  llv = IW_HTOILL(llv);
+  assert(sp + sizeof(lv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  memcpy(hdr + sp, &llv, sizeof(llv));
+  sp += sizeof(llv);
   
   /* Reserved */
   sp += 32;
   
   /* Size of header */
-  lvalue = impl->hdrlen;
-  lvalue = IW_HTOIL(lvalue);
-  assert(sp + sizeof(lvalue) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
-  memcpy(hdr + sp, &lvalue, sizeof(lvalue));
-  sp += sizeof(lvalue);
+  lv = impl->hdrlen;
+  lv = IW_HTOIL(lv);
+  assert(sp + sizeof(lv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  memcpy(hdr + sp, &lv, sizeof(lv));
+  sp += sizeof(lv);
   
   assert(sp == _FSM_CUSTOM_HDR_DATA_OFFSET);
   iwrc rc = impl->pool.write(&impl->pool, 0, hdr, _FSM_CUSTOM_HDR_DATA_OFFSET, &wlen);
