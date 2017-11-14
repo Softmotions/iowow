@@ -307,6 +307,15 @@ static void _db_sync(IWDB db, uint8_t *mm) {
   }
 }
 
+static iwrc _db_sync2(IWDB db) {
+  uint8_t *mm;
+  IWFS_FSM *fsm = &db->iwkv->fsm;
+  iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCRET(rc);
+  _db_sync(db, mm);
+  return fsm->release_mmap(fsm);
+}
+
 static iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
   iwrc rc;
   if (!addr) {
@@ -1181,7 +1190,7 @@ static int _sblk_insert_pi(SBLK *sblk, int8_t nidx, const IWKV_val *key, const u
   return idx;
 }
 
-static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val, int8_t *oidx) {
+static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val) {
   iwrc rc;
   int8_t idx;
   uint8_t *mm;
@@ -1216,6 +1225,20 @@ static iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   }
   sblk->pnum--;
   rc = _sblk_sync(sblk, 0);
+  return rc;
+}
+
+IW_INLINE iwrc _sblk_create2(IWDB db, int8_t nlevel, IWKV_val *key, IWKV_val *val, SBLK **oblk) {
+  SBLK *sblk;
+  *oblk = 0;
+  iwrc rc = _sblk_create(db, nlevel, &sblk);
+  RCRET(rc);
+  rc = _sblk_addkv(sblk, key, val);
+  if (rc) {
+    _sblk_destroy(&sblk);
+  } else {
+    *oblk = sblk;
+  }
   return rc;
 }
 
@@ -1351,9 +1374,40 @@ static void _lx_release(IWLCTX *lx) {
 }
 
 static iwrc _lx_put_lr(IWLCTX *lx) {
-  assert(lx);
-  iwrc rc = 0;
+  uint8_t *mm;
+  IWDB db = lx->db;
+  iwrc rc;
+start:
+  rc = _lx_find_bounds(lx);
+  RCRET(rc);
+  if (lx->lower) {
+    if (lx->nlvl < 0 && lx->lower->pnum >= KVBLK_IDXNUM) {
+      lx->nlvl = _sblk_genlevel();
+      goto start;
+    }
+    if (lx->lower->pnum >= KVBLK_IDXNUM) {
 
+      // todo: insert new SBLK block
+
+    } else {
+      rc = _sblk_addkv(lx->lower, lx->key, lx->val);
+      RCGO(rc, finish);
+    }
+  } else {
+    assert(!lx->upper);
+    // empty db
+    SBLK *sblk;
+    db->lvl = _sblk_genlevel();
+    rc = _sblk_create2(db, db->lvl, lx->key, lx->val, &sblk);
+    RCGO(rc, finish);
+    lx->lower = sblk;
+    for (int i = 0; i <= db->lvl; ++i) {
+      db->n[i] = sblk->addr >> IWKV_FSM_BPOW;
+    }
+    rc = _db_sync2(db);
+  }
+finish:
+  _lx_release(lx);
   return rc;
 }
 
@@ -1541,9 +1595,7 @@ iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags) {
     .op = IWLCTX_PUT
   };
   IWKV_API_RLOCK(iwkv, rci);
-
-  //rc =
-
+  rc = _lx_put_lr(&lx);
   IWKV_API_UNLOCK(iwkv, rci, rc);
   return rc;
 }
