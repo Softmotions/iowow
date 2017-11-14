@@ -318,11 +318,11 @@ static iwrc _db_sync2(IWDB db) {
 
 static iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
   iwrc rc;
+  int rci;
+  IWDB db = 0, ndb;
   if (!addr) {
     return 0;
   }
-  int rci;
-  IWDB db = 0, ndb;
   do {
     rc = _db_at(iwkv, &ndb, addr, mm);
     if (rc) {
@@ -393,7 +393,7 @@ static iwrc _db_destroy_lwapi(IWDB *dbp) {
 }
 
 static iwrc _db_create_lwapi(IWKV iwkv, dbid_t dbid, IWDB *odb) {
-  iwrc rc = 0;
+  iwrc rc;
   int rci;
   uint8_t *mm;
   off_t baddr = 0, blen;
@@ -451,32 +451,24 @@ finish:
 //--------------------------  KVBLK
 
 static iwrc _kvblk_create(IWDB db, KVBLK **oblk) {
-  iwrc rc = 0;
-  off_t baddr = 0, blen;
-  int step = 0;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
   KVBLK *kblk;
-  rc = fsm->allocate(fsm, (1 << KVBLK_INISZPOW), &baddr, &blen,
-                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
-  RCGO(rc, finish);
-  ++step; // 1
+  off_t baddr = 0, blen;
+  IWFS_FSM *fsm = &db->iwkv->fsm;
+  iwrc rc = fsm->allocate(fsm, (1 << KVBLK_INISZPOW), &baddr, &blen,
+                          IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+  RCRET(rc);
   kblk = calloc(1, sizeof(*kblk));
   if (!kblk) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    goto finish;
+    IWRC(fsm->deallocate(fsm, baddr, blen), rc);
+    *oblk = 0;
+    return rc;
   }
   kblk->db = db;
   kblk->addr = baddr;
   kblk->szpow = KVBLK_INISZPOW;
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
   *oblk = kblk;
-finish:
-  if (rc) {
-    if (step > 0) {
-      IWRC(fsm->deallocate(fsm, baddr, blen), rc);
-    }
-    *oblk = 0;
-  }
   return rc;
 }
 
@@ -488,12 +480,11 @@ static void _kvblk_release(KVBLK **kbp) {
 
 static iwrc _kvblk_destroy(KVBLK **kbp) {
   assert(kbp && *kbp);
-  iwrc rc = 0;
   KVBLK *blk =  *kbp;
   IWKV iwkv = blk->db->iwkv;
   IWFS_FSM *fsm = &iwkv->fsm;
   assert(iwkv && blk->szpow && blk->addr);
-  rc = fsm->deallocate(fsm, blk->addr, 1ULL << blk->szpow);
+  iwrc rc = fsm->deallocate(fsm, blk->addr, 1ULL << blk->szpow);
   _kvblk_release(kbp);
   return rc;
 }
@@ -590,10 +581,10 @@ static iwrc _kvblk_getkv(uint8_t *mm, KVBLK *kb, int idx, IWKV_val *key, IWKV_va
 }
 
 static iwrc _kvblk_at2(IWDB db, off_t addr, uint8_t *mm, KVBLK **blkp) {
-  iwrc rc = 0;
   uint8_t *rp, *sp;
   uint16_t sv;
-  int step = 0, rci;
+  int step, rci;
+  iwrc rc = 0;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   KVBLK *kb = malloc(sizeof(*kb));
   if (!kb) {
@@ -689,14 +680,13 @@ static int _kvblk_sort_kv(const void *v1, const void *v2) {
   return o1 > o2 ? 1 : o1 < o2 ? -1 : 0;
 }
 
-static iwrc _kvblk_compact(KVBLK *kb, uint8_t *mm) {
-  iwrc rc = 0;
+static void _kvblk_compact(KVBLK *kb, uint8_t *mm) {
   uint8_t i;
   size_t sp;
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   off_t coff = _kvblk_compacted_offset(kb);
   if (coff == kb->maxoff) { // already compacted
-    return 0;
+    return;
   }
   KVP tidx[KVBLK_IDXNUM];
   memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
@@ -722,7 +712,6 @@ static iwrc _kvblk_compact(KVBLK *kb, uint8_t *mm) {
     kb->zidx = -1;
   }
   _kvblk_sync(kb, mm);
-  return rc;
 }
 
 IW_INLINE uint64_t _kvblk_datasize(KVBLK *kb) {
@@ -744,8 +733,8 @@ IW_INLINE off_t _kvblk_maxkvoff(KVBLK *kb) {
 }
 
 iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
-  iwrc rc = 0;
-  uint8_t *mm = 0;
+  iwrc rc;
+  uint8_t *mm;
   uint64_t sz;
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -771,8 +760,7 @@ iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       dpow++;
     }
     if ((kb->szpow - dpow) > KVBLK_INISZPOW && dsz < kbsz / 2) { // We can shrink kvblock
-      rc = _kvblk_compact(kb, mm);
-      RCGO(rc, finish);
+      _kvblk_compact(kb, mm);
       off_t naddr = kb->addr, nlen = kbsz;
       off_t maxoff = _kvblk_maxkvoff(kb);
       memmove(mm + kb->addr + sz - maxoff,
@@ -793,9 +781,7 @@ iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
     _kvblk_sync(kb, mm);
   }
 finish:
-  if (mm) {
-    fsm->release_mmap(fsm);
-  }
+  fsm->release_mmap(fsm);
   return rc;
 }
 
@@ -827,10 +813,9 @@ start:
     if (!compacted) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCGO(rc, finish);
-      rc = _kvblk_compact(kb, mm);
-      fsm->release_mmap(fsm);
-      RCGO(rc, finish);
+      _kvblk_compact(kb, mm);
       compacted = true;
+      fsm->release_mmap(fsm);
       goto start;
     } else { // resize the whole block
       off_t nsz = (rsz - msz) + (1ULL << kb->szpow);
@@ -885,16 +870,16 @@ finish:
 
 static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const IWKV_val *val) {
   assert(*idxp < KVBLK_IDXNUM);
-  uint8_t *mm = 0, *wp, *sp;
   int32_t klen, i;
   size_t sz;
   int8_t idx = *idxp;
   bool sync = false;
+  uint8_t *mm, *wp, *sp;
   KVP *kvp = &kb->pidx[idx];
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   size_t rsize = IW_VNUMSIZE(key->size) + key->size + val->size; // required size
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
+  RCRET(rc);
   wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
   sp = wp;
   IW_READVNUMBUF(wp, klen, sz);
@@ -937,9 +922,7 @@ finish:
   if (!rc && sync) {
     _kvblk_sync(kb, mm);
   }
-  if (mm) {
-    IWRC(fsm->release_mmap(fsm), rc);
-  }
+  IWRC(fsm->release_mmap(fsm), rc);
   return rc;
 }
 
@@ -973,9 +956,9 @@ static iwrc _sblk_destroy(SBLK **sblkp) {
 
 static iwrc _sblk_sync(SBLK *sblk, sblk_sync_flags_t sf) {
   assert(sblk && sblk->kvblk && sblk->addr);
-  uint8_t *mm, *wp, *sp;
   uint32_t lv;
   uint64_t llv;
+  uint8_t *mm, *wp, *sp;
   IWKV iwkv = sblk->kvblk->db->iwkv;
   IWFS_FSM *fsm = &iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -1021,10 +1004,10 @@ IW_INLINE uint8_t _sblk_genlevel() {
 
 static iwrc _sblk_create(IWDB db, int8_t nlevel, SBLK **oblk) {
   iwrc rc;
-  off_t baddr = 0, blen;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
   SBLK *sblk;
   KVBLK *kvblk;
+  off_t baddr = 0, blen;
+  IWFS_FSM *fsm = &db->iwkv->fsm;
 
   rc = _kvblk_create(db, &kvblk);
   RCRET(rc);
@@ -1057,10 +1040,10 @@ finish:
 
 static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   iwrc rc;
-  uint8_t *mm = 0, *rp, *sp;
   blkn_t kblkn;
   uint32_t lv;
   uint64_t llv;
+  uint8_t *mm, *rp, *sp;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   SBLK *sblk = calloc(1, sizeof(*sblk));
   if (!sblk) {
@@ -1068,9 +1051,8 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   }
   sblk->addr = addr;
   rc = _aln_acquire_read(db, sblk->addr);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
+
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   rp = mm + addr;
@@ -1110,9 +1092,7 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   *sblkp = sblk;
 
 finish:
-  if (mm) {
-    fsm->release_mmap(fsm);
-  }
+  fsm->release_mmap(fsm);
   if (rc) {
     *sblkp = 0;
     _sblk_release(&sblk);
