@@ -1489,7 +1489,9 @@ static iwrc _lx_split_sblk_lwu(IWLCTX *lx) {
       RCBREAK(rc);
       lb->kvblk->pidx[lb->pi[i]].len = 0;
       lb->kvblk->pidx[lb->pi[i]].off = 0;
-      lb->kvblk->zidx = lb->pi[i];
+      if (i == idx) {
+        lb->kvblk->zidx = lb->pi[i];
+      }
       lb->pnum--;
     }
     RCGO(rc, finish);
