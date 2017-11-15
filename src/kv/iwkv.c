@@ -1313,8 +1313,8 @@ IW_INLINE int _lx_compare_upper_with_key(IWLCTX *lx, uint8_t *mm) {
 }
 
 static iwrc _lx_roll_forward(IWLCTX *lx) {
-  iwrc rc = 0;
   assert(lx->lower);
+  iwrc rc;
   uint8_t *mm;
   IWFS_FSM *fsm  = &lx->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
