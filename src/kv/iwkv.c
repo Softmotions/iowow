@@ -1447,6 +1447,8 @@ static iwrc _lx_split_sblk_lwu(IWLCTX *lx) {
   rc = _sblk_create2(db, lx->nlvl, kvbpow, lx->key, lx->val, &nb);
   RCGO(rc, finish);
 
+  nb->p0 = lb->addr >> IWKV_FSM_BPOW;
+
   if (idx == lb->pnum) {
     // Upper side
     rc = _sblk_addkv(nb, lx->key, lx->val);
@@ -1459,7 +1461,6 @@ static iwrc _lx_split_sblk_lwu(IWLCTX *lx) {
     memcpy(&nbkp, nb, sizeof(*nb));
     nb->kvblk = lb->kvblk;
     nb->lkl = lb->lkl;
-    nb->p0 = lb->p0;
     nb->pnum = lb->pnum;
     memcpy(nb->lk, lb->lk, lb->lkl);
     memcpy(nb->pi, lb->pi, lb->pnum);
