@@ -316,6 +316,11 @@ typedef struct IWFS_FSM {
   iwrc(*acquire_mmap)(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp);
 
   /**
+   * @brief Retrieve mmaped region by its offset @a off
+   */
+  iwrc(*probe_mmap)(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp);
+
+  /**
    * @brief Release the lock acquired by successfull call of `acquire_mmap()`
    */
   iwrc(*release_mmap)(struct IWFS_FSM *f);

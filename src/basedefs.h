@@ -108,6 +108,11 @@ typedef int HANDLE;
 #define RCRET(rc__) if (rc__) return (rc__)
 #endif
 
+#ifdef __GNUC__
+#define RCBREAK(rc__) if (__builtin_expect((!!(rc__)), 0)) break
+#else
+#define RCBREAK(rc__) if (rc__) break
+#endif
 
 #ifndef MIN
 #define MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))
