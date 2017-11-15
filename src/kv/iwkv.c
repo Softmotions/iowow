@@ -1719,8 +1719,8 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
 }
 
 iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags) {
-  iwrc rc = 0;
   int rci;
+  iwrc rc = 0;
   IWKV iwkv = db->iwkv;
   IWLCTX lx = {
     .db = db,
