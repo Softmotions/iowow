@@ -102,6 +102,10 @@
       <File Name="src/kv/iwkv.h"/>
       <File Name="src/kv/iwkv.c"/>
       <File Name="src/kv/data.txt"/>
+      <VirtualDirectory Name="tests">
+        <File Name="src/kv/tests/iwkv_test1.c"/>
+        <File Name="src/kv/tests/CMakeLists.txt"/>
+      </VirtualDirectory>
     </VirtualDirectory>
   </VirtualDirectory>
   <Settings Type="Executable">
@@ -120,7 +124,7 @@
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/iwkv_test1" IntermediateDirectory="$(ProjectPath)/build/src/kv/tests" Command="$(IntermediateDirectory)/iwkv_test1" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
