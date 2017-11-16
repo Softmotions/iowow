@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 
-// IWK magic number in file header
+// IWKV magic number
 #define IWKV_MAGIC 0x69776b76
 
 // IWDB magic number
@@ -299,6 +299,7 @@ static iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   // [magic:u4,next_blk:u4,dbid:u4,n0-n29:u4]
   db->addr = addr;
   db->iwkv = iwkv;
+  db->aln = kh_init(ALN);
   rp = mm + addr;
   IW_READLV(rp, lv, lv);
   if (lv != IWDB_MAGIC) {
@@ -311,10 +312,14 @@ static iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   IW_READLV(rp, lv, db->id);
   for (int i = 0; i < SLEVELS; ++i) {
     IW_READLV(rp, lv, db->n[i]);
+    if (db->n[i]) {
+      db->lvl = i;
+    }
   }
   *dbp = db;
 finish:
   if (rc)  {
+    kh_destroy(ALN, (*dbp)->aln);
     pthread_mutex_destroy(&db->mtx_ctl);
     free(db);
   }
@@ -391,7 +396,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   IWDB prev = db->prev;
   IWDB next = db->next;
   IWFS_FSM *fsm = &db->iwkv->fsm;
-
+  
   kh_del(DBS, db->iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   if (prev) {
@@ -413,7 +418,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   if (db->iwkv->dblast && db->iwkv->dblast->addr == db->addr) {
     db->iwkv->dblast = prev;
   }
-
+  
   // TODO!!!: dispose all of `SBLK` & `KVBLK` blocks used by db
   IWRC(fsm->deallocate(fsm, db->addr, (1 << DB_SZPOW)), rc);
   _db_release_lw(dbp);
@@ -443,7 +448,7 @@ static iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t flg, IWDB *odb) {
   db->id = dbid;
   db->prev = iwkv->dblast;
   db->aln = kh_init(ALN);
-
+  
   if (!iwkv->dbfirst) {
     uint64_t llv;
     iwkv->dbfirst = db;
@@ -468,7 +473,7 @@ static iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t flg, IWDB *odb) {
   }
   fsm->release_mmap(fsm);
   *odb = db;
-
+  
 finish:
   if (rc) {
     fsm->deallocate(fsm, baddr, blen);
@@ -897,14 +902,14 @@ static iwrc _kvblk_addkv(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, in
   off_t psz = (key->size + val->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
   *oidx = -1;
-
+  
   if (psz > IWKV_MAX_KVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-
+  
 start:
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -964,7 +969,7 @@ start:
   memcpy(wp, val->data, val->size);
   _kvblk_sync(kb, mm);
   fsm->release_mmap(fsm);
-
+  
 finish:
   return rc;
 }
@@ -1018,7 +1023,7 @@ static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const I
       }
     }
   }
-
+  
 finish:
   if (!rc && (kb->flags & KVBLK_DURTY)) {
     _kvblk_sync(kb, mm);
@@ -1109,10 +1114,10 @@ static iwrc _sblk_create(IWDB db, int8_t nlevel, int8_t kvbpow, SBLK **oblk) {
   KVBLK *kvblk;
   off_t baddr = 0, blen;
   IWFS_FSM *fsm = &db->iwkv->fsm;
-
+  
   rc = _kvblk_create(db, kvbpow, &kvblk);
   RCRET(rc);
-
+  
   rc = fsm->allocate(fsm, 1 << SBLK_SZPOW, &baddr, &blen,
                      IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
   RCGO(rc, finish);
@@ -1127,7 +1132,7 @@ static iwrc _sblk_create(IWDB db, int8_t nlevel, int8_t kvbpow, SBLK **oblk) {
   sblk->flags |= SBLK_DURTY;
   rc = _sblk_sync(sblk);
   RCGO(rc, finish);
-
+  
 finish:
   IWRC(_aln_acquire_read(db, sblk->addr), rc);
   if (rc) {
@@ -1154,22 +1159,22 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   sblk->addr = addr;
   rc = _aln_acquire_read(db, sblk->addr);
   RCRET(rc);
-
+  
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   rp = mm + addr;
   sp = rp;
-
+  
   // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
   IW_READLV(rp, lv, kblkn);
   assert(kblkn);
-
+  
   memcpy(&sblk->lvl, rp, 1);
   rp += 1;
-
+  
   rc = _kvblk_at2(db, (((uint64_t) kblkn) << IWKV_FSM_BPOW), mm, &sblk->kvblk);
   RCGO(rc, finish);
-
+  
   IW_READLV(rp, lv, sblk->p0);
   for (int i = 0; i < SLEVELS; ++i) {
     IW_READLV(rp, lv, sblk->n[i]);
@@ -1186,13 +1191,13 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   rp += SBLK_LKLEN;
   memcpy(&sblk->pnum, rp, 1);
   rp += 1;
-
+  
   memcpy(sblk->pi, rp, KVBLK_IDXNUM);
   rp += KVBLK_IDXNUM;
-
+  
   assert(rp - sp == (1 << SBLK_SZPOW));
   *sblkp = sblk;
-
+  
 finish:
   fsm->release_mmap(fsm);
   if (rc) {
@@ -1495,7 +1500,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx) {
   SBLK *nb, *lb = lx->lower;
   IWDB db = lx->db;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-
+  
   if (lb->pnum < KVBLK_IDXNUM) {
     return _sblk_addkv(lx->lower, lx->key, lx->val);
   }
@@ -1513,10 +1518,10 @@ static iwrc _lx_split_addkv(IWLCTX *lx) {
     kvbpow = iwlog2_64(KVBLK_MAX_NKV_SZ + sz);
   }
   fsm->release_mmap(fsm);
-
+  
   rc = _sblk_create2(db, lx->nlvl, kvbpow, lx->key, lx->val, &nb);
   RCGO(rc, finish);
-
+  
   if (idx == lb->pnum) {
     // Upper side
     rc = _sblk_addkv(nb, lx->key, lx->val);
@@ -1729,7 +1734,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   iwkv->dbs = kh_init(DBS);
   rc = fsm->state(fsm, &fsmstate);
   RCGO(rc, finish);
-
+  
   if (fsmstate.rwlfile.exfile.file.ostatus & IWFS_OPEN_NEW) {
     // Write magic number
     lv = IWKV_MAGIC;
@@ -1853,7 +1858,7 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   return rc;
 }
 
-iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags) {
+iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_putflags flags) {
   if (!db || !key || !key->size || !val) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -1865,8 +1870,8 @@ iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags) {
   IWKV iwkv = db->iwkv;
   IWLCTX lx = {
     .db = db,
-    .key = key,
-    .val = val,
+    .key = (IWKV_val *) key,
+    .val = (IWKV_val *) val,
     .nlvl = -1,
     .op = IWLCTX_PUT
   };
@@ -1876,7 +1881,7 @@ iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags) {
   return rc;
 }
 
-iwrc iwkv_get(IWDB db, IWKV_val *key, IWKV_val *oval) {
+iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
   if (!db || !key || !oval) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -1885,7 +1890,7 @@ iwrc iwkv_get(IWDB db, IWKV_val *key, IWKV_val *oval) {
   IWKV iwkv = db->iwkv;
   IWLCTX lx = {
     .db = db,
-    .key = key,
+    .key = (IWKV_val *) key,
     .val = oval,
     .nlvl = -1
   };

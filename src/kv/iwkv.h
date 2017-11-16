@@ -60,9 +60,9 @@ IW_EXPORT iwrc iwkv_sync(IWKV iwkv);
 
 IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
 
-IW_EXPORT iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags);
+IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_putflags flags);
 
-IW_EXPORT iwrc iwkv_get(IWDB db, IWKV_val *key, IWKV_val *oval);
+IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
 
 IW_EXPORT iwrc iwkv_del(IWDB db, IWKV_val *key);
 
