@@ -150,6 +150,7 @@ struct IWKV {
   IWDB dblast;              /**< Last database in chain */
   IWDB dbfirst;             /**< First database in chain */
   bool isopen;              /**< True if kvstore is in OPEN state */
+  iwkv_openflags oflags;    /**< Open flags */
 };
 
 typedef enum {
@@ -327,7 +328,7 @@ static void _db_sync(IWDB db, uint8_t *mm) {
   // [magic:u4,next_blk:u4,dbid:u4,n0-n29:u4]
   IW_WRITELV(wp, lv, IWDB_MAGIC);
   IW_WRITEBV(wp, lv, db->flg);
-  IW_WRITELV(wp, lv, db->next_addr);
+  IW_WRITELV(wp, lv, (db->next_addr >> IWKV_FSM_BPOW));
   IW_WRITELV(wp, lv, db->id);
   for (int i = 0; i < SLEVELS; ++i) {
     IW_WRITELV(wp, lv, db->n[i]);
@@ -365,7 +366,7 @@ static iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
     addr = db->next_addr;
     iwkv->dblast = db;
     khiter_t k = kh_put(DBS, iwkv->dbs, db->id, &rci);
-    if (!rci) {
+    if (rci != -1) {
       kh_value(iwkv->dbs, k) = db;
     } else {
       rc = IW_ERROR_FAIL;
@@ -451,10 +452,10 @@ static iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t flg, IWDB *odb) {
     rc = fsm->writehdr(fsm, sizeof(uint32_t) /*skip magic*/, &llv, sizeof(llv));
   } else if (iwkv->dblast) {
     iwkv->dblast->next = db;
-    iwkv->dblast = db;
   }
+  iwkv->dblast = db;
   khiter_t k = kh_put(DBS, iwkv->dbs, db->id, &rci);
-  if (!rci) {
+  if (rci != -1) {
     kh_value(iwkv->dbs, k) = db;
   } else {
     RCGO(IW_ERROR_FAIL, finish);
@@ -1682,7 +1683,7 @@ iwrc iwkv_init(void) {
   return iwlog_register_ecodefn(_kv_ecodefn);
 }
 
-iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
+iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   assert(iwkvp && opts);
   iwrc rc = 0;
   uint32_t lv;
@@ -1703,6 +1704,7 @@ iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp) {
   if (!(oflags & IWKV_RDONLY)) {
     omode |= IWFS_OWRITE;
   }
+  iwkv->oflags = oflags;
   IWFS_FSM_STATE fsmstate;
   IWFS_FSM_OPTS fsmopts = {
     .rwlfile = {
@@ -1765,6 +1767,9 @@ finish:
 
 iwrc iwkv_sync(IWKV iwkv) {
   IWKV_ENSURE_OPEN(iwkv);
+  if (iwkv->oflags & IWKV_RDONLY) {
+    return IW_ERROR_READONLY;
+  }
   iwrc rc = 0;
   IWFS_FSM *fsm  = &iwkv->fsm;
   int rci = pthread_rwlock_rdlock(&iwkv->rwl_api);
@@ -1801,9 +1806,9 @@ iwrc iwkv_close(IWKV *iwkvp) {
 
 iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp) {
   IWKV_ENSURE_OPEN(iwkv);
-  IWDB db;
   int rci;
   iwrc rc = 0;
+  IWDB db = 0;
   *dbp = 0;
   IWKV_API_RLOCK(iwkv, rci);
   khiter_t ki = kh_get(DBS, iwkv->dbs, dbid);
@@ -1815,6 +1820,9 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp) {
   if (db) {
     *dbp = db;
     return 0;
+  }
+  if (iwkv->oflags & IWKV_RDONLY) {
+    return IW_ERROR_READONLY;
   }
   IWKV_API_WLOCK(iwkv, rci);
   ki = kh_get(DBS, iwkv->dbs, dbid);
@@ -1835,6 +1843,9 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   int rci;
   iwrc rc = 0;
   IWKV iwkv = (*dbp)->iwkv;
+  if (iwkv->oflags & IWKV_RDONLY) {
+    return IW_ERROR_READONLY;
+  }
   IWKV_ENSURE_OPEN(iwkv);
   IWKV_API_WLOCK(iwkv, rci);
   rc = _db_destroy_lw(dbp);
@@ -1845,6 +1856,9 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
 iwrc iwkv_put(IWDB db, IWKV_val *key, IWKV_val *val, iwkv_putflags flags) {
   if (!db || !key || !key->size || !val) {
     return IW_ERROR_INVALID_ARGS;
+  }
+  if (db->iwkv->oflags & IWKV_RDONLY) {
+    return IW_ERROR_READONLY;
   }
   int rci;
   iwrc rc = 0;

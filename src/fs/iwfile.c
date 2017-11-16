@@ -214,6 +214,8 @@ finish:
     if (opts->path) {
       free((char *) opts->path);
     }
+    f->impl = 0;
+    free(impl);
   }
   return rc;
 }

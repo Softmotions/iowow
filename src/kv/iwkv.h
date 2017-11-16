@@ -50,7 +50,7 @@ typedef struct IWKV_val {
 
 IW_EXPORT WUR iwrc iwkv_init(void);
 
-IW_EXPORT WUR iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp);
+IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
 
 IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp);
 

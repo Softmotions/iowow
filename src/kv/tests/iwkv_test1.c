@@ -16,7 +16,63 @@ int clean_suite(void) {
 }
 
 static void iwkv_test1(void) {
-  printf("Test open/close!!!\n");
+  IWKV_OPTS opts = {
+    .path = "iwkv_test1.db",
+    .oflags = IWKV_TRUNC
+  };
+  // Test open/close
+  IWKV iwkv;
+  IWDB db1, db2, db3;
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Test open/close existing db
+  opts.oflags = 0;
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Test create/destroy db
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 2, 0, &db2); // destroyed
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 3, 0, &db3);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db_destroy(&db2);     // destroyed
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Test one in read-only mode
+  opts.oflags = IWKV_RDONLY;
+  opts.path = "not-existing.db";
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_TRUE_FATAL(rc);
+  iwrc_strip_errno(&rc);
+  CU_ASSERT_EQUAL(rc, IW_ERROR_IO_ERRNO);
+
+  // Open in read-only mode and acquire not existing db
+  opts.path = "iwkv_test1.db";
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_db(iwkv, 2, 0, &db2);
+  CU_ASSERT_EQUAL(rc, IW_ERROR_READONLY);
+
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_db(iwkv, 3, 0, &db3);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 

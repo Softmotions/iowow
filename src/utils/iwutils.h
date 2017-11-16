@@ -87,49 +87,49 @@ IW_EXTERN_C_START
 #endif
 
 #define IW_WRITEBV(IW_ptr_, IW_v_, IW_m_)  \
-  IW_v_ = IW_m_;                          \
+  IW_v_ = (IW_m_);                          \
   memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
   IW_ptr_ += sizeof(IW_v_)
 
 #define IW_WRITESV(IW_ptr_, IW_v_, IW_m_)  \
-  IW_v_ = IW_m_;                          \
+  IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOIS(IW_v_);                \
   memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
   IW_ptr_ += sizeof(IW_v_)
 
 #define IW_WRITELV(IW_ptr_, IW_v_, IW_m_)  \
-  IW_v_ = IW_m_;                          \
+  IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOIL(IW_v_);                \
   memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
   IW_ptr_ += sizeof(IW_v_)
 
 #define IW_WRITELLV(IW_ptr_, IW_v_, IW_m_) \
-  IW_v_ = IW_m_;                          \
+  IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOILL(IW_v_);               \
   memcpy(IW_ptr_, &IW_v_, sizeof(IW_v_)); \
   IW_ptr_ += sizeof(IW_v_)
 
 #define IW_READBV(IW_ptr_, IW_t_, IW_m_)   \
-  memcpy(&IW_t_, IW_ptr_, sizeof(IW_t_));  \
-  IW_m_ = IW_t_;                          \
+  memcpy(&(IW_t_), IW_ptr_, sizeof(IW_t_));  \
+  IW_m_ = (IW_t_);                          \
   IW_ptr_ += sizeof(IW_t_)
 
 #define IW_READSV(IW_ptr_, IW_t_, IW_m_)   \
-  memcpy(&IW_t_, IW_ptr_, sizeof(IW_t_));  \
+  memcpy(&(IW_t_), IW_ptr_, sizeof(IW_t_));  \
   IW_t_ = IW_ITOHS(IW_t_);                \
-  IW_m_ = IW_t_;                          \
+  IW_m_ = (IW_t_);                          \
   IW_ptr_ += sizeof(IW_t_)
 
 #define IW_READLV(IW_ptr_, IW_t_, IW_m_)   \
-  memcpy(&IW_t_, IW_ptr_, sizeof(IW_t_));  \
+  memcpy(&(IW_t_), IW_ptr_, sizeof(IW_t_));  \
   IW_t_ = IW_ITOHL(IW_t_);                \
-  IW_m_ = IW_t_;                          \
+  IW_m_ = (IW_t_);                          \
   IW_ptr_ += sizeof(IW_t_)
 
 #define IW_READLLV(IW_ptr_, IW_t_, IW_m_)  \
-  memcpy(&IW_t_, IW_ptr_, sizeof(IW_t_));  \
+  memcpy(&(IW_t_), IW_ptr_, sizeof(IW_t_));  \
   IW_t_ = IW_ITOHLL(IW_t_);               \
-  IW_m_ = IW_t_;                          \
+  IW_m_ = (IW_t_);                          \
   IW_ptr_ += sizeof(IW_t_)
 
 #ifndef SIZE_T_MAX
