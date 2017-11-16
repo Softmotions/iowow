@@ -23,6 +23,12 @@ typedef enum {
 } iwkv_openflags;
 
 typedef enum {
+  IWDB_DUP_INT32_VALS = 0x1,  /**< Duplicated uint32 values allowed */
+  IWDB_DUP_INT64_VALS = 0x2,  /**< Duplicated uint64 values allowed */
+  IWDB_DUP_SORTED = 0x4       /**< Sort duplicated values  */
+} iwdb_flags_t;
+
+typedef enum {
   IWKV_NO_OVERWRITE = 1
 } iwkv_putflags;
 
@@ -46,7 +52,7 @@ IW_EXPORT WUR iwrc iwkv_init(void);
 
 IW_EXPORT WUR iwrc iwkv_open(IWKV_OPTS *opts, IWKV *iwkvp);
 
-IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, IWDB *dbp);
+IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp);
 
 IW_EXPORT iwrc iwkv_db_destroy(IWDB* dbp);
 

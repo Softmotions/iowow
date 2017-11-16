@@ -121,13 +121,6 @@ typedef struct ALN {
 
 KHASH_MAP_INIT_INT(ALN, ALN *)
 
-typedef enum {
-  IWDB_DUP_INT32_VALS = 0x1,  /**< Duplicated uint32 values allowed */
-  IWDB_DUP_INT64_VALS = 0x2,  /**< Duplicated uint64 values allowed */
-  IWDB_DUP_SORTED = 0x4       /**< Sort duplicated values  */
-
-} iwdb_flags_t;
-
 /** Database instance */
 struct IWDB {
   IWKV iwkv;
@@ -379,7 +372,7 @@ static iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
   return rc;
 }
 
-static void _db_release_lwapi(IWDB *dbp) {
+static void _db_release_lw(IWDB *dbp) {
   assert(dbp && *dbp);
   pthread_mutex_destroy(&(*dbp)->mtx_ctl);
   kh_destroy(ALN, (*dbp)->aln);
@@ -387,7 +380,7 @@ static void _db_release_lwapi(IWDB *dbp) {
   *dbp = 0;
 }
 
-static iwrc _db_destroy_lwapi(IWDB *dbp) {
+static iwrc _db_destroy_lw(IWDB *dbp) {
   iwrc rc;
   uint8_t *mm;
   IWDB db = *dbp;
@@ -419,11 +412,11 @@ static iwrc _db_destroy_lwapi(IWDB *dbp) {
 
   // TODO!!!: dispose all of `SBLK` & `KVBLK` blocks used by db
   IWRC(fsm->deallocate(fsm, db->addr, (1 << DB_SZPOW)), rc);
-  _db_release_lwapi(dbp);
+  _db_release_lw(dbp);
   return rc;
 }
 
-static iwrc _db_create_lwapi(IWKV iwkv, dbid_t dbid, IWDB *odb) {
+static iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t flg, IWDB *odb) {
   iwrc rc;
   int rci;
   uint8_t *mm;
@@ -437,10 +430,11 @@ static iwrc _db_create_lwapi(IWKV iwkv, dbid_t dbid, IWDB *odb) {
   rc = fsm->allocate(fsm, (1 << DB_SZPOW), &baddr, &blen,
                      IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
   if (rc) {
-    _db_release_lwapi(&db);
+    _db_release_lw(&db);
     return rc;
   }
   db->iwkv = iwkv;
+  db->flg = flg;
   db->addr = baddr;
   db->id = dbid;
   db->prev = iwkv->dblast;
@@ -474,7 +468,7 @@ static iwrc _db_create_lwapi(IWKV iwkv, dbid_t dbid, IWDB *odb) {
 finish:
   if (rc) {
     fsm->deallocate(fsm, baddr, blen);
-    _db_release_lwapi(&db);
+    _db_release_lw(&db);
   }
   return rc;
 }
@@ -1729,7 +1723,7 @@ iwrc iwkv_close(IWKV *iwkvp) {
   IWDB db = iwkv->dbfirst;
   while (db) {
     IWDB ndb = db->next;
-    _db_release_lwapi(&db);
+    _db_release_lw(&db);
     db = ndb;
   }
   IWRC(iwkv->fsm.close(&iwkv->fsm), rc);
@@ -1744,7 +1738,7 @@ iwrc iwkv_close(IWKV *iwkvp) {
   return rc;
 }
 
-iwrc iwkv_db(IWKV iwkv, uint32_t dbid, IWDB *dbp) {
+iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp) {
   IWKV_ENSURE_OPEN(iwkv);
   IWDB db;
   int rci;
@@ -1769,7 +1763,7 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, IWDB *dbp) {
   if (db) {
     *dbp = db;
   } else {
-    rc = _db_create_lwapi(iwkv, dbid, dbp);
+    rc = _db_create_lw(iwkv, dbid, flags, dbp);
   }
   IWKV_API_UNLOCK(iwkv, rci, rc);
   return rc;
@@ -1782,7 +1776,7 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   IWKV iwkv = (*dbp)->iwkv;
   IWKV_ENSURE_OPEN(iwkv);
   IWKV_API_WLOCK(iwkv, rci);
-  rc = _db_destroy_lwapi(dbp);
+  rc = _db_destroy_lw(dbp);
   IWKV_API_UNLOCK(iwkv, rci, rc);
   return rc;
 }
