@@ -70,9 +70,8 @@ IW_INLINE iwrc _exfile_wlock(IWFS_EXT *f) {
 
 IW_INLINE iwrc _exfile_rlock(IWFS_EXT *f) {
   assert(f);
-  if (!f->impl) return IW_ERROR_INVALID_STATE;
+  if (!f->impl || !f->impl->rwlock) return IW_ERROR_INVALID_STATE;
   if (!f->impl->use_locks) return 0;
-  if (!f->impl->rwlock) return IW_ERROR_INVALID_STATE;
   int rv = pthread_rwlock_rdlock(f->impl->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
@@ -539,8 +538,7 @@ iwrc _exfile_acquire_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *s
   *mm = 0;
   iwrc rc = _exfile_rlock(f);
   RCRET(rc);
-  _EXF *impl = f->impl;
-  _MMAPSLOT *s = impl->mmslots;
+  _MMAPSLOT *s = f->impl->mmslots;
   while (s) {
     if (s->off == off) {
       if (!s->len) {
