@@ -55,3 +55,8 @@ iwrc iw_init(void) {
 finish:
   return rc;
 }
+
+//__attribute__((constructor))
+//void lock_constructor() {
+//  iwrc rc = iw_init();
+//}

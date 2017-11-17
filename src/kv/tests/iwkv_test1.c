@@ -73,7 +73,7 @@ static void iwkv_test1(void) {
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   // Open in write mode, then put a simple kv
   opts.oflags = 0;
   rc = iwkv_open(&opts, &iwkv);
@@ -85,6 +85,8 @@ static void iwkv_test1(void) {
   IWKV_val val = {.data = "bar"};
   val.size = strlen(val.data);
   rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 

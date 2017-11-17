@@ -180,7 +180,7 @@ void test_mmap1(void) {
   IWFS_EXT_OPTS opts = {.file = {.path = path, .omode = IWFS_OTRUNC}, .use_locks = 0};
 
   for (int i = 0; i < dsize; ++i) {
-    data[i] = iwu_rand(256);
+    data[i] = iwu_rand_range(256);
   }
   rc = iwfs_exfile_open(&ef, &opts);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -213,7 +213,7 @@ void test_mmap1(void) {
   CU_ASSERT_EQUAL_FATAL(memcmp(data, cdata, psize), 0);
 
   for (int i = 0; i < dsize; ++i) {
-    data[i] = iwu_rand(256);
+    data[i] = iwu_rand_range(256);
   }
 
   // iwrc(*remove_mmap)(struct IWFS_EXT* f, off_t off);
@@ -240,7 +240,7 @@ void test_mmap1(void) {
   }
 
   for (int i = 0; i < dsize; ++i) {
-    data[i] = iwu_rand(256);
+    data[i] = iwu_rand_range(256);
   }
 
   rc = ef.remove_mmap(&ef, 0);
@@ -257,7 +257,7 @@ void test_mmap1(void) {
   }
 
   for (int i = 0; i < dsize; ++i) {
-    data[i] = iwu_rand(256);
+    data[i] = iwu_rand_range(256);
   }
   rc = ef.remove_mmap(&ef, 2 * psize);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -273,7 +273,7 @@ void test_mmap1(void) {
   }
 
   for (int i = 0; i < dsize; ++i) {
-    data[i] = iwu_rand(256);
+    data[i] = iwu_rand_range(256);
   }
   rc = ef.remove_mmap(&ef, 3 * psize);
   CU_ASSERT_EQUAL_FATAL(rc, 0);

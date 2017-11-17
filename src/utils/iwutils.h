@@ -144,8 +144,8 @@ IW_EXTERN_C_START
 #endif
 
 #ifdef __GNUC__
-#define IW_LIKELY(x_) __builtin_expect((x_), 1)
-#define IW_UNLIKELY(x_) __builtin_expect((x_), 0)
+#define IW_LIKELY(x_) __builtin_expect(!!(x_), 1)
+#define IW_UNLIKELY(x_) __builtin_expect(!!(x_), 0)
 #else
 #define IW_LIKELY(x_)
 #define IW_UNLIKELY(x_)
@@ -271,6 +271,17 @@ IW_EXTERN_C_START
     if ((rv_) == 0) (rv_) = (vp1sz_) - (vp2sz_); \
   } while(false)
 
+
+/**
+ * @brief Set seed to random generator
+ */
+IW_EXPORT void iwu_rand_seed(uint32_t seed);
+
+/**
+ * @brief Generate random in [0, 0xffffffff]
+ */
+IW_EXPORT uint32_t iwu_rand_u32();
+
 /**
  * @brief Create uniform distributed random number.
  * @param avg Distribution pivot
@@ -281,12 +292,12 @@ IW_EXPORT double_t iwu_rand_dnorm(double_t avg, double_t sd);
 /**
  * @brief Create uniform distributed integer random number in: `[0, range)`
  */
-IW_EXPORT int iwu_rand(int range);
+IW_EXPORT uint32_t iwu_rand_range(int range);
 
 /**
  * @brief Create normal distributed integer random number.
  */
-IW_EXPORT int iwu_rand_inorm(int range);
+IW_EXPORT uint32_t iwu_rand_inorm(int range);
 
 IW_EXPORT int iwlog2_32(uint32_t val);
 

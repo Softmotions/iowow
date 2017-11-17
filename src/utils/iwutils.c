@@ -29,24 +29,36 @@
 #include "iwcfg.h"
 #include "iwutils.h"
 #include <limits.h>
+#include <stdint.h>
+#include "mt19937ar.h"
+
+#define IWU_RAND_MAX 0xffffffff
+
+void iwu_rand_seed(uint32_t seed) {
+  init_genrand(seed);
+}
+
+IW_EXPORT uint32_t iwu_rand_u32() {
+  return genrand_int32();
+}
 
 double_t iwu_rand_dnorm(double_t avg, double_t sd) {
   assert(sd >= 0.0);
-  return sqrt(-2.0 * log((rand() / (double_t) RAND_MAX))) *
-         cos(2 * 3.141592653589793 * (rand() / (double_t) RAND_MAX)) * sd + avg;
+  return sqrt(-2.0 * log((genrand_int31() / (double_t) INT_MAX))) *
+         cos(2 * 3.141592653589793 * (genrand_int31() / (double_t) INT_MAX)) * sd + avg;
 }
 
-int iwu_rand(int range) {
+uint32_t iwu_rand_range(int range) {
   int high, low;
   if (range < 2)
     return 0;
-  high = (unsigned int) rand() >> 4;
-  low = range * (rand() / (RAND_MAX + 1.0));
-  low &= (unsigned int) INT_MAX >> 4;
+  high = genrand_int31() >> 4;
+  low = range * (genrand_int31() / (INT_MAX + 1.0));
+  low &= INT_MAX >> 4;
   return (high + low) % range;
 }
 
-int iwu_rand_inorm(int range) {
+uint32_t iwu_rand_inorm(int range) {
   int num = (int) iwu_rand_dnorm(range >> 1, range / 10);
   return (num < 0 || num >= range) ? 0 : num;
 }

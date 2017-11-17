@@ -106,7 +106,7 @@ void test_iwrlock3(void) {
   CU_ASSERT_TRUE(num_lockers(lk) == 1);
   lock(lk, 0, 1, IWRL_WRITE, 0, 0, 0);
   unlock(lk, 0, 1);
-  
+
   lock(lk, 0, 2, IWRL_READ, 0, 0, 0);
   unlock(lk, 0, 1);
   unlock(lk, 1, 1);
@@ -118,16 +118,16 @@ static void *lk4th(void *op) {
   iwrc rc = 0;
   CU_ASSERT_PTR_NOT_NULL_FATAL(task);
   for (int i = 0; i < LK4TITERATIONS; ++i) {
-    iwrl_lockflags mode = (iwu_rand(3) == 0) ? IWRL_WRITE : IWRL_READ;
-    off_t start = iwu_rand(LK4RANGESZ - 1);
-    off_t len = iwu_rand(LK4RANGESZ - start);
+    iwrl_lockflags mode = (iwu_rand_range(3) == 0) ? IWRL_WRITE : IWRL_READ;
+    off_t start = iwu_rand_range(LK4RANGESZ - 1);
+    off_t len = iwu_rand_range(LK4RANGESZ - start);
     if (!len)
       len = 1;
-    rc = lock(lk, start, len, mode, 0, iwu_rand(4), 0);
+    rc = lock(lk, start, len, mode, 0, iwu_rand_range(4), 0);
     CU_ASSERT_FALSE_FATAL(rc);
     for (int j = 0; j < len; ++j) {
       if (mode & IWRL_WRITE) {
-        if (iwu_rand(10) == 1) {
+        if (iwu_rand_range(10) == 1) {
           iwp_sleep(1);
         }
         lk4range[start + j] = 0xff;
@@ -136,7 +136,7 @@ static void *lk4th(void *op) {
       }
     }
     if (mode & IWRL_WRITE) {
-      iwp_sleep(iwu_rand(4));
+      iwp_sleep(iwu_rand_range(4));
       for (int j = 0; j < len; ++j) {
         lk4range[start + j] = 0x00;
       }
@@ -163,19 +163,19 @@ void test_iwrlock4(void) {
 int main() {
   setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
-  
+
   /* Initialize the CUnit test registry */
   if (CUE_SUCCESS != CU_initialize_registry())
     return CU_get_error();
-    
+
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwrlock_test1", init_suite, clean_suite);
-  
+
   if (NULL == pSuite) {
     CU_cleanup_registry();
     return CU_get_error();
   }
-  
+
   /* Add the tests to the suite */
   if ((NULL == CU_add_test(pSuite, "test_iwrlock1", test_iwrlock1)) ||
       (NULL == CU_add_test(pSuite, "test_iwrlock2", test_iwrlock2)) ||
@@ -184,7 +184,7 @@ int main() {
     CU_cleanup_registry();
     return CU_get_error();
   }
-  
+
   /* Run all tests using the CUnit Basic interface */
   CU_basic_set_mode(CU_BRM_VERBOSE);
   CU_basic_run_tests();
