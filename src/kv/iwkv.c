@@ -1675,7 +1675,7 @@ IW_INLINE iwrc _lx_put_lr(IWLCTX *lx) {
 start:
   rc = _lx_find_bounds(lx);
   RCRET(rc);
-  if (lx->lower) {
+  if (IW_LIKELY(lx->lower)) {
     int idx;
     uint8_t *mm;
     bool found;
@@ -1686,7 +1686,7 @@ start:
     if (found && (lx->opf & IWKV_NO_OVERWRITE)) {
       return IWKV_ERROR_KEY_EXISTS;
     }
-    if (!found && lx->lower->pnum >= KVBLK_IDXNUM) {
+    if (IW_UNLIKELY(!found && lx->lower->pnum >= KVBLK_IDXNUM)) {
       if (lx->nlvl < 0) {
         lx->nlvl = _sblk_genlevel();
         _lx_release(lx);
