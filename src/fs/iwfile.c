@@ -136,9 +136,8 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   int mode;
 
   memset(f, 0, sizeof(*f));
-
   rc = iwfs_file_init();
-  RCGO(rc, finish);
+  RCRET(rc);
 
   f->write = _iwfs_write;
   f->read = _iwfs_read;

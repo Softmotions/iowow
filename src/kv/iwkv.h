@@ -8,10 +8,11 @@
 
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
-  IWKV_ERROR_NOTFOUND,  /**< Key not found (IWKV_ERROR_NOTFOUND) */
-  IWKV_ERROR_MAXKVSZ,   /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
-  IWKV_ERROR_MAXDBSZ,   /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
-  IWKV_ERROR_CORRUPTED, /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
+  IWKV_ERROR_NOTFOUND,   /**< Key not found (IWKV_ERROR_NOTFOUND) */
+  IWKV_ERROR_KEY_EXISTS, /**< Key already exists. (IWKV_ERROR_KEY_EXISTS) */  
+  IWKV_ERROR_MAXKVSZ,    /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
+  IWKV_ERROR_MAXDBSZ,    /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
+  IWKV_ERROR_CORRUPTED,  /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
   _IWKV_ERROR_KVBLOCK_FULL,
   _IWKV_ERROR_END
 } iwkv_ecode;
@@ -29,8 +30,8 @@ typedef enum {
 } iwdb_flags_t;
 
 typedef enum {
-  IWKV_NO_OVERWRITE = 1
-} iwkv_putflags;
+  IWKV_NO_OVERWRITE = 0x1
+} iwkv_opflags;
 
 struct IWKV;
 typedef struct IWKV *IWKV;
@@ -60,7 +61,7 @@ IW_EXPORT iwrc iwkv_sync(IWKV iwkv);
 
 IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
 
-IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_putflags flags);
+IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags opflags);
 
 IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
 
