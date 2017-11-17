@@ -88,6 +88,23 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Open db and get out single record
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  val.size = 0;
+  val.data = 0;
+  rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_NSTRING_EQUAL(key.data, "foo", key.size);
+  CU_ASSERT_NSTRING_EQUAL(val.data, "bar", val.size);
+  iwkv_kv_dispose(0, &val);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  //Test remove key/value
+  // todo:
 }
 
 
