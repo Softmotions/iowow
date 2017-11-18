@@ -100,6 +100,18 @@ static void iwkv_test1(void) {
   CU_ASSERT_NSTRING_EQUAL(key.data, "foo", key.size);
   CU_ASSERT_NSTRING_EQUAL(val.data, "bar", val.size);
   iwkv_kv_dispose(0, &val);
+  
+  // put foo->bazzz
+  key.data = "foo";
+  key.size = strlen(key.data);
+  val.data = "bazzz";
+  val.size = strlen(val.data);
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_NSTRING_EQUAL(key.data, "foo", key.size);
+  CU_ASSERT_NSTRING_EQUAL(val.data, "bazzz", val.size);
+  iwkv_kv_dispose(0, &val);
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 

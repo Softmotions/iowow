@@ -693,7 +693,7 @@ static iwrc _kvblk_at2(IWDB db, off_t addr, uint8_t *mm, KVBLK **blkp) {
   int step;
   iwrc rc = 0;
   KVBLK *kb = malloc(sizeof(*kb));
-
+  
   *blkp = 0;
   if (!kb) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -851,7 +851,7 @@ iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
   if (kb->pidx[idx].off >= kb->maxoff) {
     kb->maxoff = 0;
     for (int i = 0; i < KVBLK_IDXNUM; ++i) {
-      if (kb->pidx[i].off > kb->maxoff) {
+      if (i != idx && kb->pidx[i].off > kb->maxoff) {
         kb->maxoff = kb->pidx[i].off;
       }
     }
@@ -980,7 +980,6 @@ start:
   memcpy(wp, key->data, key->size);
   wp += key->size;
   memcpy(wp, val->data, val->size);
-  _kvblk_sync(kb, mm);
   fsm->release_mmap(fsm);
   
 finish:
@@ -1002,7 +1001,7 @@ static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const I
   sp = wp;
   IW_READVNUMBUF(wp, klen, sz);
   wp += sz;
-  if (klen != key->size || !memcmp(wp, key->data, key->size)) {
+  if (klen != key->size || memcmp(wp, key->data, key->size)) {
     rc = IWKV_ERROR_CORRUPTED;
     goto finish;
   }
@@ -1038,10 +1037,9 @@ static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const I
   }
   
 finish:
-  if (!rc && (kb->flags & KVBLK_DURTY)) {
-    _kvblk_sync(kb, mm);
+  if (mm) {
+    IWRC(fsm->release_mmap(fsm), rc);
   }
-  IWRC(fsm->release_mmap(fsm), rc);
   return rc;
 }
 
@@ -1087,7 +1085,7 @@ static iwrc _sblk_sync(SBLK *sblk) {
   if (sblk->flags & SBLK_DURTY) {
     // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
     wp = mm + sblk->addr;
-#ifndef NDEBUG    
+#ifndef NDEBUG
     sp = wp;
 #endif
     IW_WRITELV(wp, lv, sblk->kvblk->addr >> IWKV_FSM_BPOW);
@@ -1173,7 +1171,7 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   uint8_t *mm, *rp;
 #ifndef NDEBUG
   uint8_t *sp;
-#endif 
+#endif
   IWFS_FSM *fsm = &db->iwkv->fsm;
   SBLK *sblk = calloc(1, sizeof(*sblk));
   if (!sblk) {
@@ -1186,9 +1184,9 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   rp = mm + addr;
-#ifndef NDEBUG  
+#ifndef NDEBUG
   sp = rp;
-#endif  
+#endif
   // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
   IW_READLV(rp, lv, kblkn);
   assert(kblkn);
