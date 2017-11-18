@@ -70,8 +70,9 @@ IW_INLINE iwrc _exfile_wlock(IWFS_EXT *f) {
 
 IW_INLINE iwrc _exfile_rlock(IWFS_EXT *f) {
   assert(f);
-  if (!f->impl || !f->impl->rwlock) return IW_ERROR_INVALID_STATE;
+  if (!f->impl) return IW_ERROR_INVALID_STATE;
   if (!f->impl->use_locks) return 0;
+  if (!f->impl->rwlock) return IW_ERROR_INVALID_STATE;
   int rv = pthread_rwlock_rdlock(f->impl->rwlock);
   return rv ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rv) : 0;
 }
@@ -205,7 +206,7 @@ static iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
 static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   iwrc rc = _exfile_rlock(f);
   RCRET(rc);
-  
+
   _EXF *impl = f->impl;
   _MMAPSLOT *s = impl->mmslots;
   while (s) {
@@ -241,9 +242,10 @@ static iwrc _exfile_write(struct IWFS_EXT *f,
   
   impl = f->impl;
   if (end > impl->fsize) {
-    if ((rc = _exfile_unlock2(impl)) || (rc = _exfile_wlock(f))) {
-      goto end;
-    }
+    rc = _exfile_unlock2(impl);
+    RCGO(rc, end);
+    rc = _exfile_wlock(f);
+    RCGO(rc, end);
     if (end > impl->fsize) {
       rc = _exfile_ensure_size_lw(f, end);
       RCGO(rc, finish);
@@ -323,7 +325,6 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
     rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), rp, sp);
     RCGO(rc, finish);
     rp = rp - *sp;
-    // off = off + *sp;
   }
   *sp = siz - rp;
 finish:
@@ -380,7 +381,6 @@ static iwrc _exfile_remove_mmap_wl(struct IWFS_EXT *f, off_t off) {
     s->next->prev = s->prev;
   }
   if (s->len) {
-    //fprintf(stderr, "munmap %p off %ld len %ld\n", s->mmap, off, s->len);
     if (munmap(s->mmap, s->len)) {
       rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
       goto finish;
@@ -440,8 +440,7 @@ static iwrc _exfile_truncate(struct IWFS_EXT *f, off_t sz) {
 }
 
 static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
-  assert(f);
-  assert(off >= 0);
+  assert(f && off >= 0);
   
   iwrc rc;
   size_t tmp;
