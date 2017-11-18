@@ -28,6 +28,9 @@
 
 #include "log/iwlog.h"
 #include "platform/iwp.h"
+#include <stdio.h>
+
+unsigned int iwcpuflags = 0;
 
 #if defined(__linux) || defined(__unix)
 #include "linux/linux.c"
@@ -35,6 +38,28 @@
 #error Unsupported platform
 #endif
 
+// Thanks to https://attractivechaos.wordpress.com/2017/09/04/on-cpu-dispatch
+static unsigned int x86_simd(void) {
+  unsigned int eax, ebx, ecx, edx, flag = 0;
+#ifdef _MSC_VER
+  int cpuid[4];
+  __cpuid(cpuid, 1);
+  eax = cpuid[0], ebx = cpuid[1], ecx = cpuid[2], edx = cpuid[3];
+#else
+  __asm volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(1));
+#endif
+  if (edx >> 25 & 1) flag |= IWCPU_SSE;
+  if (edx >> 26 & 1) flag |= IWCPU_SSE2;
+  if (ecx >> 0 & 1) flag |= IWCPU_SSE3;
+  if (ecx >> 19 & 1) flag |= IWCPU_SSE4_1;
+  if (ecx >> 20 & 1) flag |= IWCPU_SSE4_2;
+  if (ecx >> 28 & 1) flag |= IWCPU_AVX;
+  if (ebx >> 5 & 1) flag |= IWCPU_AVX2;
+  if (ebx >> 16 & 1) flag |= IWCPU_AVX512F;
+  return flag;
+}
+
 iwrc iwp_init(void) {
+  iwcpuflags = x86_simd();
   return 0;
 }

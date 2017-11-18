@@ -38,6 +38,21 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define IWCPU_SSE     0x1
+#define IWCPU_SSE2    0x2
+#define IWCPU_SSE3    0x4
+#define IWCPU_SSE4_1  0x8
+#define IWCPU_SSE4_2  0x10
+#define IWCPU_AVX     0x20
+#define IWCPU_AVX2    0x40
+#define IWCPU_AVX512F 0x80
+
+/**
+ * Flags supported by current CPU. 
+ * `iwp_init()` must be called.
+ */
+extern unsigned int iwcpuflags;
+
 /**
  * @enum iwp_ecode
  * @brief Error codes.
