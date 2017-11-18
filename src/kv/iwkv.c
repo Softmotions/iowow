@@ -540,7 +540,6 @@ static iwrc _kvblk_destroy(KVBLK **kbp) {
   return rc;
 }
 
-
 IW_INLINE void _kvblk_peek_key(const KVBLK *kb,
                                uint8_t idx,
                                const uint8_t *mm,
@@ -1682,7 +1681,8 @@ start:
     idx = _sblk_find_pi(lx->lower, lx->key, mm, &found);
     fsm->release_mmap(fsm);
     if (found && (lx->opf & IWKV_NO_OVERWRITE)) {
-      return IWKV_ERROR_KEY_EXISTS;
+      rc = IWKV_ERROR_KEY_EXISTS;
+      goto finish;
     }
     if (IW_UNLIKELY(!found && lx->lower->pnum >= KVBLK_IDXNUM)) {
       if (lx->nlvl < 0) {
