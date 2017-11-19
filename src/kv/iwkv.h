@@ -14,6 +14,7 @@ typedef enum {
   IWKV_ERROR_MAXDBSZ,    /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
   IWKV_ERROR_CORRUPTED,  /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
   _IWKV_ERROR_KVBLOCK_FULL,
+  _IWKV_ERROR_REQUIRE_WL,
   _IWKV_ERROR_END
 } iwkv_ecode;
 
@@ -65,7 +66,7 @@ IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_
 
 IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
 
-IW_EXPORT iwrc iwkv_del(IWDB db, IWKV_val *key);
+IW_EXPORT iwrc iwkv_del(IWDB db, const IWKV_val *key);
 
 IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
 

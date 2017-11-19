@@ -1761,6 +1761,41 @@ IW_INLINE iwrc _lx_get_lr(IWLCTX *lx) {
   return rc;
 }
 
+IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool wl) {
+  int idx, rci;
+  bool found;
+  uint8_t *mm;
+  iwrc rc;
+  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  
+  rc = _lx_find_bounds(lx);
+  RCRET(rc);
+  if (!lx->lower) {
+    _lx_release(lx);
+    return IWKV_ERROR_NOTFOUND;
+  }
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCRET(rc);
+  idx = _sblk_find_pi(lx->lower, lx->key, mm, &found);
+  fsm->release_mmap(fsm);
+  if (!found) {
+    _lx_release(lx);
+    return IWKV_ERROR_NOTFOUND;
+  }
+  rc = _sblk_rmkv(lx->lower, idx);
+  if (IW_LIKELY(lx->lower->pnum > 0)) {
+    IWRC(_sblk_sync(lx->lower), rc);
+  } else {
+    if (!wl) {
+      _lx_release(lx);
+      return _IWKV_ERROR_REQUIRE_WL;
+    }
+    // todo: relink
+  }
+  _lx_release(lx);
+  return rc;
+}
+
 //--------------------------  PUBLIC API
 
 iwrc iwkv_init(void) {
@@ -1958,7 +1993,6 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
   }
   int rci;
   iwrc rc = 0;
-  IWKV iwkv = db->iwkv;
   IWLCTX lx = {
     .db = db,
     .key = key,
@@ -1967,9 +2001,9 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     .op = IWLCTX_PUT,
     .opf = opflags
   };
-  IWKV_API_RLOCK(iwkv, rci);
+  IWKV_API_RLOCK(db->iwkv, rci);
   rc = _lx_put_lr(&lx);
-  IWKV_API_UNLOCK(iwkv, rci, rc);
+  IWKV_API_UNLOCK(db->iwkv, rci, rc);
   return rc;
 }
 
@@ -1979,7 +2013,6 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
   }
   int rci;
   iwrc rc = 0;
-  IWKV iwkv = db->iwkv;
   IWLCTX lx = {
     .db = db,
     .key = key,
@@ -1987,9 +2020,32 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     .nlvl = -1
   };
   oval->size = 0;
-  IWKV_API_RLOCK(iwkv, rci);
+  IWKV_API_RLOCK(db->iwkv, rci);
   rc = _lx_get_lr(&lx);
-  IWKV_API_UNLOCK(iwkv, rci, rc);
+  IWKV_API_UNLOCK(db->iwkv, rci, rc);
+  return rc;
+}
+
+iwrc iwkv_del(IWDB db, const IWKV_val *key) {
+  if (!db || !key) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  int rci;
+  iwrc rc = 0;
+  IWLCTX lx = {
+    .db = db,
+    .key = key,
+    .nlvl = -1,
+    .op = IWLCTX_DEL
+  };
+  IWKV_API_RLOCK(db->iwkv, rci);
+  rc = _lx_del_lr(&lx, false);
+  IWKV_API_UNLOCK(db->iwkv, rci, rc);
+  if (rc == _IWKV_ERROR_REQUIRE_WL) {
+    IWKV_API_WLOCK(db->iwkv, rci);
+    rc = _lx_del_lr(&lx, true);
+    IWKV_API_UNLOCK(db->iwkv, rci, rc);
+  }
   return rc;
 }
 
