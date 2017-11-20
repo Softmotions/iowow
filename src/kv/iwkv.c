@@ -884,8 +884,6 @@ iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       kb->addr = naddr;
       kb->szpow = kb->szpow - dpow;
       opts |= RMKV_SYNC;
-      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      RCGO(rc, finish);
     }
   }
   if (RMKV_SYNC & opts) {
