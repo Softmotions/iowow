@@ -1765,6 +1765,7 @@ IW_INLINE iwrc _lx_get_lr(IWLCTX *lx) {
   } else {
     lx->val->size = 0;
     lx->val->data = 0;
+    rc = IWKV_ERROR_NOTFOUND;
   }
   _lx_release(lx);
   return rc;

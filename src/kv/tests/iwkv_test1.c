@@ -137,13 +137,15 @@ static void iwkv_test1(void) {
   CU_ASSERT_NSTRING_EQUAL(key.data, "foo", key.size);
   CU_ASSERT_NSTRING_EQUAL(val.data, "bar", val.size);
   iwkv_kv_dispose(0, &val);
+
+  // remove key/value
   rc = iwkv_del(db1, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  //Test remove key/value
-  // todo:
 }
 
 
