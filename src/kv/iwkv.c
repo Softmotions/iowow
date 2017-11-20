@@ -136,6 +136,7 @@ struct IWDB {
   khash_t(ALN) *aln;        /**< Block id -> ALN node mapping */
   dbid_t id;                /**< Database ID */
   blkn_t n[SLEVELS];        /**< Next pointers blknum */
+  blkn_t last_sblkn;        /**< Last block in skiplist chain */
   uint8_t lvl;              /**< Upper skip list level used */
 };
 
@@ -505,7 +506,7 @@ static iwrc _kvblk_create(IWDB db, int8_t kvbpow, KVBLK **oblk) {
   if (kvbpow < KVBLK_INISZPOW) {
     kvbpow = KVBLK_INISZPOW;
   }
-  iwrc rc = fsm->allocate(fsm, (1 << kvbpow), &baddr, &blen,
+  iwrc rc = fsm->allocate(fsm, (1ULL << kvbpow), &baddr, &blen,
                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
   RCRET(rc);
   kblk = calloc(1, sizeof(*kblk));
@@ -530,11 +531,9 @@ static void _kvblk_release(KVBLK **kbp) {
 }
 
 static iwrc _kvblk_destroy(KVBLK **kbp) {
-  assert(kbp && *kbp);
-  KVBLK *blk =  *kbp;
-  IWKV iwkv = blk->db->iwkv;
-  IWFS_FSM *fsm = &iwkv->fsm;
-  assert(iwkv && blk->szpow && blk->addr);
+  assert(kbp && *kbp && (*kbp)->db && (*kbp)->szpow && (*kbp)->addr);
+  KVBLK *blk = *kbp;
+  IWFS_FSM *fsm = &blk->db->iwkv->fsm;
   iwrc rc = fsm->deallocate(fsm, blk->addr, 1ULL << blk->szpow);
   _kvblk_release(kbp);
   return rc;
@@ -1051,17 +1050,15 @@ IW_INLINE void _sblk_release(SBLK **sblkp) {
 }
 
 static iwrc _sblk_destroy(SBLK **sblkp) {
-  assert(sblkp && *sblkp && (*sblkp)->kvblk);
-  iwrc rc = 0;
+  assert(sblkp && *sblkp && (*sblkp)->kvblk && (*sblkp)->addr);
+  iwrc rc;
   SBLK *sblk = *sblkp;
-  IWKV iwkv = sblk->kvblk->db->iwkv;
-  IWFS_FSM *fsm = &iwkv->fsm;
-  assert(sblk->addr);
-  if (sblk->kvblk) {
-    rc = _kvblk_destroy(&sblk->kvblk);
-  }
-  IWRC(fsm->deallocate(fsm, sblk->addr, 1 << SBLK_SZPOW), rc);
+  IWFS_FSM *fsm = &sblk->kvblk->db->iwkv->fsm;
+  off_t kvb_addr = sblk->kvblk->addr, sblk_addr = sblk->addr;
+  uint8_t kvb_szpow = sblk->kvblk->szpow;
   _sblk_release(sblkp);
+  rc = fsm->deallocate(fsm, sblk_addr, 1 << SBLK_SZPOW);
+  IWRC(fsm->deallocate(fsm, kvb_addr, 1ULL << kvb_szpow), rc);
   return rc;
 }
 
@@ -1667,9 +1664,11 @@ IW_INLINE iwrc _lx_put_lr(IWLCTX *lx) {
   IWDB db = lx->db;
   int8_t nlvl = -1;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+
 start:
   rc = _lx_find_bounds(lx);
   RCRET(rc);
+
   if (IW_LIKELY(lx->lower)) {
     int idx;
     uint8_t *mm;
@@ -1713,12 +1712,20 @@ start:
     rc = _sblk_sync(lx->nb);
     RCGO(rc, finish);
   }
+
   if (lx->nb) {
+    bool dbsync = false;
     int exlv = -1;
-    if (IW_UNLIKELY(nlvl >= 0)) {  // first record in db
+    if (IW_UNLIKELY(nlvl >= 0)) { // first record in db
       exlv = 0;
     } else if (lx->nb->lvl > db->lvl) { // new node with higher lever than in db
       exlv = db->lvl + 1;
+    }
+    if (!lx->nb->n[0] && lx->db->last_sblkn != (lx->nb->addr >> IWKV_FSM_BPOW)) {
+      rc = _db_write_upgrade(lx);
+      RCGO(rc, finish);
+      db->last_sblkn = lx->nb->addr >> IWKV_FSM_BPOW;
+      dbsync = true;
     }
     if (exlv >= 0 && exlv <= lx->nb->lvl) {
       rc = _db_write_upgrade(lx);
@@ -1726,9 +1733,13 @@ start:
       for (int i = exlv; i <= lx->nb->lvl; ++i) {
         db->n[i] = lx->nb->addr >> IWKV_FSM_BPOW;
       }
+      dbsync = true;
+    }
+    if (dbsync) {
       rc = _db_sync2(db);
     }
   }
+
 finish:
   _lx_release(lx);
   return rc;
@@ -1814,8 +1825,10 @@ IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool wl) {
         RCGO(rc, finish);
       }
     } while (lvl <= sb->lvl);
-    rc = _sblk_sync(lx->upper);
-    RCGO(rc, finish);
+    if (lx->upper) {
+      rc = _sblk_sync(lx->upper);
+      RCGO(rc, finish);
+    }
     rc = _sblk_destroy(&lx->lower);
   }
 finish:
