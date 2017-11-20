@@ -20,6 +20,11 @@ static void iwkv_test1(void) {
     .path = "iwkv_test1.db",
     .oflags = IWKV_TRUNC
   };
+#define KBUFSZ 128
+#define VBUFSZ 128
+  char kbuf[KBUFSZ];
+  char vbuf[VBUFSZ];
+
   // Test open/close
   IWKV iwkv;
   IWDB db1, db2, db3;
@@ -146,6 +151,30 @@ static void iwkv_test1(void) {
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
+
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
+
+
+  for (int i = 0; i < 63 * 2; i += 2) {
+    snprintf(kbuf, KBUFSZ, "%03dkey", i);
+    snprintf(vbuf, VBUFSZ, "%03dval", i);
+    key.data = kbuf;
+    key.size = strlen(key.data);
+    val.data = kbuf;
+    val.size = strlen(val.data);
+    rc = iwkv_put(db1, &key, &val, 0);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+#undef KBUFSZ
+#undef VBUFSZ
 }
 
 
