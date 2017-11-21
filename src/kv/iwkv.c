@@ -168,7 +168,7 @@ typedef enum {
 /** Database lookup context */
 typedef struct IWLCTX {
   IWDB db;
-  const IWKV_val *key;            /**< Search key */
+  const IWKV_val *key;      /**< Search key */
   IWKV_val *val;            /**< Update value */
   SBLK *lower;              /**< Next to upper bound block */
   SBLK *upper;              /**< Upper bound block */
@@ -179,7 +179,7 @@ typedef struct IWLCTX {
   int8_t lvl;               /**< Current level */
   int8_t nlvl;              /**< Level of new inserted `SBLK` node. -1 if no new node inserted */
   iwlctx_op_t op;           /**< Context operation flags */
-  iwkv_opflags opf;     /**< Operation flags */
+  iwkv_opflags opf;         /**< Operation flags */
   iwlctx_state_t smask;     /**< Context state mask */
 } IWLCTX;
 
@@ -1567,7 +1567,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK **onb) {
   RCRET(rc);
 
   // Ok we need a new node
-  rc = _sblk_create2(db, lx->nlvl, kvbpow, lx->key, lx->val, &nb);
+  rc = _sblk_create(db, lx->nlvl, kvbpow, &nb);
   RCRET(rc);
   nblk = nb->addr >> IWKV_FSM_BPOW;
 
@@ -1619,9 +1619,9 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK **onb) {
       lb->pnum--;
     }
     if (idx > pivot) {
-      rc = _sblk_addkv(nb, &key, &val);
+      rc = _sblk_addkv(nb, lx->key, lx->val);
     } else {
-      rc = _sblk_addkv(lx->lower, &key, &key);
+      rc = _sblk_addkv(lx->lower, lx->key, lx->val);
     }
     RCGO(rc, finish);
   }
