@@ -1495,10 +1495,7 @@ static iwrc _lx_find_bounds(IWLCTX *lx) {
 
 static void _lx_release(IWLCTX *lx) {
   uint64_t laddr = 0;
-  if (lx->nb) {
-    if (lx->nb == lx->lower) {
-      lx->lower = 0;
-    }
+  if (lx->nb && lx->nb != lx->lower) {
     _sblk_release(&lx->nb);
   }
   if (lx->nlvl > -1) {
@@ -1531,43 +1528,48 @@ static void _lx_release(IWLCTX *lx) {
   }
 }
 
-IW_INLINE iwrc _lx_write_upgrade(IWLCTX *lx) {
-  iwrc rc = 0;
-  for (int i = SLEVELS - 1; i >= 0; --i) {
-    for (int j = 0; j < 2; ++j) {
-      SBLK *sblk = (j % 2) ? lx->pupper[i] : lx->plower[i];
-      if (sblk) {
-        rc = _sblk_write_upgrade(sblk);
-        RCRET(rc);
-      }
-    }
-  }
-  return 0;
-}
-
 static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK **onb) {
+  assert(lx && lx->nlvl > -1);
   iwrc rc;
   uint8_t kvbpow = 0;
   SBLK *nb, *lb = lx->lower;
   IWDB db = lx->db;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  int pivot = (KVBLK_IDXNUM / 2) + 1; // 32
+  blkn_t nblk;
 
   *onb = 0;
+
   if (lb->pnum < KVBLK_IDXNUM) {
+    rc = _sblk_write_upgrade(lx->lower);
+    RCRET(rc);
     return _sblk_addkv(lx->lower, lx->key, lx->val);
   }
-  assert(lx->nlvl > -1);
+
+  if (idx == lb->pnum && lx->upper && lx->upper->pnum < KVBLK_IDXNUM) {
+    // Good to place lv into right(upper) block
+    rc = _sblk_write_upgrade(lx->upper);
+    RCRET(rc);
+    return _sblk_addkv(lx->upper, lx->key, lx->val);
+  }
+
   if (idx > 0 && idx < lb->pnum) {
     // Partial split required
     // Compute space required for the new sblk which stores kv pairs after pivot `idx`
     size_t sz = 0;
-    for (int i = idx; i < lb->pnum; ++i) {
+    for (int i = pivot; i < lb->pnum; ++i) {
       sz += lb->kvblk->pidx[lb->pi[i]].len;
     }
     kvbpow = iwlog2_64(KVBLK_MAX_NKV_SZ + sz);
   }
+
+  rc = _sblk_write_upgrade(lx->lower);
+  RCRET(rc);
+
+  // Ok we need a new node
   rc = _sblk_create2(db, lx->nlvl, kvbpow, lx->key, lx->val, &nb);
-  RCGO(rc, finish);
+  RCRET(rc);
+  nblk = nb->addr >> IWKV_FSM_BPOW;
 
   if (idx == lb->pnum) {
     // Upper side
@@ -1600,7 +1602,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK **onb) {
     // Move kv pairs into new `nb`
     uint8_t *mm;
     IWKV_val key, val;
-    for (int i = idx, end = lb->pnum; i < end; ++i) {
+    for (int i = pivot, end = lb->pnum; i < end; ++i) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCBREAK(rc);
       rc = _kvblk_getkv(mm, lb->kvblk, lb->pi[i], &key, &val);
@@ -1611,17 +1613,23 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK **onb) {
       RCBREAK(rc);
       lb->kvblk->pidx[lb->pi[i]].len = 0;
       lb->kvblk->pidx[lb->pi[i]].off = 0;
-      if (i == idx) {
+      if (i == pivot) {
         lb->kvblk->zidx = lb->pi[i];
       }
       lb->pnum--;
     }
+    if (idx > pivot) {
+      rc = _sblk_addkv(nb, &key, &val);
+    } else {
+      rc = _sblk_addkv(lx->lower, &key, &key);
+    }
     RCGO(rc, finish);
   }
-  // Link nodes
+
+  // Link and sync nodes
   nb->p0 = lb->addr >> IWKV_FSM_BPOW;
+
   for (int i = lx->nlvl; i >= 0; --i) {
-    blkn_t nblk = nb->addr >> IWKV_FSM_BPOW;
     SBLK *lb = lx->plower[i];
     SBLK *up = lx->pupper[i];
     if (lb) {
@@ -1629,6 +1637,8 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK **onb) {
       RCGO(rc, finish);
       lb->n[i] = nblk;
       lb->flags |= SBLK_DURTY;
+      rc = _sblk_sync(lb);
+      RCGO(rc, finish);
     }
     if (up) {
       if (i == 0) {
@@ -1636,19 +1646,13 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK **onb) {
         RCGO(rc, finish);
         up->p0 = nblk;
         up->flags |= SBLK_DURTY;
+        rc = _sblk_sync(up);
+        RCGO(rc, finish);
       }
       nb->n[i] = up->addr >> IWKV_FSM_BPOW;
     }
   }
-  // Sync/destroy nodes
-  for (int i = lx->nlvl; i >= 0; --i) {
-    for (int j = 0; j < 2; ++j) {
-      SBLK *sblk = (j % 2) ? lx->pupper[i] : lx->plower[i];
-      if (sblk) {
-        IWRC(_sblk_sync(sblk), rc);
-      }
-    }
-  }
+
 finish:
   if (rc) {
     IWRC(_sblk_destroy(&nb), rc);
@@ -1688,8 +1692,6 @@ start:
         lx->nlvl = _sblk_genlevel();
         goto start;
       }
-      rc = _sblk_write_upgrade(lx->lower);
-      RCGO(rc, finish);
       rc = _lx_split_addkv(lx, idx, &lx->nb);
       RCGO(rc, finish);
     } else {
@@ -1716,31 +1718,31 @@ start:
 
   if (lx->nb) {
     int exlv = -1;
+    blkn_t nblk = lx->nb->addr >> IWKV_FSM_BPOW;
     if (IW_UNLIKELY(nlvl >= 0)) { // first record in db
       exlv = 0;
     } else if (lx->nb->lvl > db->lvl) { // new node with higher lever than in db
       exlv = db->lvl + 1;
     }
-    if (!lx->nb->n[0] && lx->db->last_sblkn != (lx->nb->addr >> IWKV_FSM_BPOW)) {
+    if (!lx->nb->n[0] && lx->db->last_sblkn != nblk) {
       rc = _db_write_upgrade(lx);
       RCGO(rc, finish);
-      db->last_sblkn = lx->nb->addr >> IWKV_FSM_BPOW;
+      db->last_sblkn = nblk;
       dbsync = true;
     }
     if (exlv >= 0 && exlv <= lx->nb->lvl) {
       rc = _db_write_upgrade(lx);
       RCGO(rc, finish);
       for (int i = exlv; i <= lx->nb->lvl; ++i) {
-        db->n[i] = lx->nb->addr >> IWKV_FSM_BPOW;
+        db->n[i] = nblk;
       }
       db->lvl = lx->nb->lvl;
       dbsync = true;
     }
+    if (dbsync) {
+      rc = _db_sync2(db);
+    }
   }
-  if (dbsync) {
-    rc = _db_sync2(db);
-  }
-
 finish:
   _lx_release(lx);
   return rc;
