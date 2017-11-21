@@ -42,7 +42,34 @@ header:
 
 ------------------------------------------------------------
 
-       *
-|      |        |
-|   |  |     |  |
-|___|  |  |  |  |
+==15783==ERROR: AddressSanitizer: heap-use-after-free on address 0x6120000157c8 at pc 0x5560033083d9 bp 0x7ffc224332b0 sp 0x7ffc224332a0
+READ of size 8 at 0x6120000157c8 thread T0
+    #0 0x5560033083d8 in _lx_release /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:1513
+    #1 0x55600330b0c9 in _lx_put_lr /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:1757
+    #2 0x55600330de1b in iwkv_put /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:2059
+    #3 0x5560032f1e5c in iwkv_test1 /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/tests/iwkv_test1.c:193
+    #4 0x7fb8a07f0d36  (/usr/lib/x86_64-linux-gnu/libcunit.so.1+0x3d36)
+    #5 0x7fb8a07f106f  (/usr/lib/x86_64-linux-gnu/libcunit.so.1+0x406f)
+    #6 0x7fb8a07f13bd in CU_run_all_tests (/usr/lib/x86_64-linux-gnu/libcunit.so.1+0x43bd)
+    #7 0x5560032f214b in main /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/tests/iwkv_test1.c:234
+    #8 0x7fb89ff1f3f0 in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x203f0)
+    #9 0x5560032f0859 in _start (/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/kv/tests/iwkv_test1+0x9859)
+
+0x6120000157c8 is located 8 bytes inside of 272-byte region [0x6120000157c0,0x6120000158d0)
+freed by thread T0 here:
+    #0 0x7fb8a0ac2b60 in __interceptor_free (/usr/lib/x86_64-linux-gnu/libasan.so.3+0xc6b60)
+    #1 0x556003302cb1 in _sblk_release /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:1049
+    #2 0x55600330843d in _lx_release /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:1515
+    #3 0x55600330b0c9 in _lx_put_lr /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:1757
+    #4 0x55600330de1b in iwkv_put /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:2059
+    #5 0x5560032f1e5c in iwkv_test1 /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/tests/iwkv_test1.c:193
+    #6 0x7fb8a07f0d36  (/usr/lib/x86_64-linux-gnu/libcunit.so.1+0x3d36)
+
+previously allocated by thread T0 here:
+    #0 0x7fb8a0ac3080 in calloc (/usr/lib/x86_64-linux-gnu/libasan.so.3+0xc7080)
+    #1 0x55600330427d in _sblk_at /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:1167
+    #2 0x55600330791b in _lx_find_bounds /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:1461
+    #3 0x55600330a3f5 in _lx_put_lr /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:1684
+    #4 0x55600330de1b in iwkv_put /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/iwkv.c:2059
+    #5 0x5560032f1e5c in iwkv_test1 /home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/tests/iwkv_test1.c:193
+    #6 0x7fb8a07f0d36  (/usr/lib/x86_64-linux-gnu/libcunit.so.1+0x3d36)

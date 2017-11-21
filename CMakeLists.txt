@@ -34,6 +34,7 @@ set(${PROJECT_NAME}_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_TESTS "Build test cases" OFF)
+option(ASAN "Turn on address sanitizer" OFF)
 #option(BUILD_SAMPLES "Build iowow sample projects" OFF)
 option(PACKAGE_DEB "Build .deb instalation packages" OFF)
 option(PACKAGE_TGZ "Build .tgz package archive" ON)

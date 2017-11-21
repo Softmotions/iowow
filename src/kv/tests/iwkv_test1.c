@@ -182,7 +182,7 @@ static void iwkv_test1(void) {
     iwkv_kv_dispose(0, &val);
   }
 
-  // force extra block
+  // force extra blocks
   for (int i = 1; i < 63 * 2; i += 2) {
     snprintf(kbuf, KBUFSZ, "%03dkey", i);
     snprintf(vbuf, VBUFSZ, "%03dval", i);
@@ -196,7 +196,7 @@ static void iwkv_test1(void) {
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-
+ 
 #undef KBUFSZ
 #undef VBUFSZ
 }
