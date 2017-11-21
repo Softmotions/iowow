@@ -183,6 +183,9 @@ typedef struct IWLCTX {
   iwlctx_state_t smask;     /**< Context state mask */
 } IWLCTX;
 
+void iwkvd_sblk(FILE *f, SBLK *sb);
+void iwkvd_printdb(FILE *f, IWDB db);
+
 #define IWKV_ENSURE_OPEN(iwkv_) \
   if (!iwkv_ || !(iwkv_->isopen)) return IW_ERROR_INVALID_STATE;
 
@@ -802,8 +805,8 @@ static void _kvblk_compact(KVBLK *kb, uint8_t *mm) {
   mm = mm + kb->addr + (1ULL << kb->szpow);
   qsort(tidx, KVBLK_IDXNUM, sizeof(KVP), _kvblk_sort_kv);
   coff = 0;
-  for (i = 0; i < KVBLK_IDXNUM; ++i) {
-    KVP *kvp = kb->pidx + tidx[i].ridx;
+  for (i = 0; i < KVBLK_IDXNUM && tidx[i].off; ++i) {
+    KVP *kvp = &kb->pidx[tidx[i].ridx];
     off_t noff = coff + kvp->len;
     if (kvp->off > noff) {
       memmove(mm - noff, mm - kvp->off, kvp->len);
@@ -2109,4 +2112,64 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
 
 void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val) {
   _kv_dispose(key, val);
+}
+
+//--------------------------  DEBUG STAFF
+
+void iwkvd_sblk(FILE *f, SBLK *sb) {
+  assert(sb && sb->addr && sb->kvblk);
+  char lkbuf[SBLK_LKLEN + 1] = {0};
+  if (sb->lkl) {
+    memcpy(lkbuf, sb->lk, sb->lkl);
+  }
+  uint8_t *mm;
+  uint8_t *kbuf;
+  uint32_t klen;
+  IWFS_FSM *fsm = &sb->kvblk->db->iwkv->fsm;
+  blkn_t blkn = sb->addr >> IWKV_FSM_BPOW;
+  fprintf(f, " === SBLK[%u] lvl=%d, pnum=%d, flg=%x db=%d\n",
+          blkn, sb->lvl, sb->pnum, sb->flags, sb->kvblk->db->id);
+  fprintf(f, " === SBLK[%u] lkl=%d, lk=%s\n\n", blkn, sb->lkl, lkbuf);
+  iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  if (rc) {
+    iwlog_ecode_error3(rc);
+    return;
+  }
+  for (int i = 0, j = 0; i < sb->pnum; ++i, ++j) {
+    if (j == 3) {
+      fputc('\n', f);
+      j = 0;
+    }
+    if (j == 0) {
+      fprintf(f, " === SBLK[%u]", blkn);
+    }
+    _kvblk_peek_key(sb->kvblk, sb->pi[i], mm, &kbuf, &klen);
+    fprintf(f, "    [%02d,%02d] %.*s", i, sb->pi[i], klen, kbuf);
+  }
+  fsm->release_mmap(fsm);
+  fprintf(f, "\n\n");
+}
+
+void iwkvd_printdb(FILE *f, IWDB db) {
+  assert(db);
+  SBLK *sb;
+  iwrc rc;
+  blkn_t dblk = db->addr >> IWKV_FSM_BPOW;
+  blkn_t blk = db->n[0];
+  fprintf(f, "\n\n== DB[%d] lvl=%d, blk=%u, flg=%x\n", db->id, db->lvl, dblk, db->flg);
+  while (1) {
+    rc = _sblk_at(db, (off_t) blk << IWKV_FSM_BPOW, &sb);
+    if (rc) {
+      iwlog_ecode_error3(rc);
+      return;
+    }
+    iwkvd_sblk(f, sb);
+    if (!sb->n[0]) {
+      _sblk_release(&sb);
+      break;
+    } else {
+      blk = sb->n[0];
+    }
+    _sblk_release(&sb);
+  }
 }
