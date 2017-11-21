@@ -1430,25 +1430,31 @@ static iwrc _lx_roll_forward(IWLCTX *lx) {
   assert(lx->lower);
   uint8_t *mm;
   iwrc rc = 0;
+  blkn_t blkn = lx->lower->addr >> IWKV_FSM_BPOW;
   IWFS_FSM *fsm  = &lx->db->iwkv->fsm;
-  if (lx->lower->n[lx->lvl]) {
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCRET(rc);
+  /*do {
+    rc = _sblk_at(lx->db, (off_t) blkn << IWKV_FSM_BPOW, &lx->upper);
+  } while ((blkn = lx->lower->n[lx->lvl]));
+  */
+  
+  while (lx->lower->n[lx->lvl]) {
+    rc = _sblk_at(lx->db, (off_t) lx->lower->n[lx->lvl] << IWKV_FSM_BPOW, &lx->upper);
     RCRET(rc);
-    while (lx->lower->n[lx->lvl]) {
-      rc = _sblk_at(lx->db, lx->lower->n[lx->lvl] << IWKV_FSM_BPOW, &lx->upper);
-      RCRET(rc);
-      if (_lx_compare_upper_with_key(lx, mm) > 0) { // upper > key
-        break;
-      } else {
-        if (!(lx->lower->flags & SBLK_PINNED)) {
-          _sblk_release(&lx->lower);
-        }
-        lx->lower = lx->upper;
-        lx->upper = 0;
+    if (_lx_compare_upper_with_key(lx, mm) > 0) { // upper > key
+      break;
+    } else {
+      if (!(lx->lower->flags & SBLK_PINNED)) {
+        _sblk_release(&lx->lower);
       }
+      lx->lower = lx->upper;
+      lx->upper = 0;
     }
-    IWRC(fsm->release_mmap(fsm), rc);
   }
+  
+  IWRC(fsm->release_mmap(fsm), rc);
   return rc;
 }
 
@@ -2127,7 +2133,7 @@ void iwkvd_sblk(FILE *f, SBLK *sb) {
   uint32_t klen;
   IWFS_FSM *fsm = &sb->kvblk->db->iwkv->fsm;
   blkn_t blkn = sb->addr >> IWKV_FSM_BPOW;
-  fprintf(f, " === SBLK[%u] lvl=%d, pnum=%d, flg=%x db=%d\n",
+  fprintf(f, " === SBLK[%u] lvl=%d, pnum=%d, flg=%x, db=%d\n",
           blkn, sb->lvl, sb->pnum, sb->flags, sb->kvblk->db->id);
   fprintf(f, " === SBLK[%u] lkl=%d, lk=%s\n\n", blkn, sb->lkl, lkbuf);
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);

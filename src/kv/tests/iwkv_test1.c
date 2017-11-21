@@ -191,11 +191,19 @@ static void iwkv_test1(void) {
     key.size = strlen(key.data);
     val.data = vbuf;
     val.size = strlen(val.data);
+    //    if (i == 1 || i == 67) {
+    //      iwkvd_printdb(stderr, db1);
+    //    }
+    fprintf(stderr, "\n!!!! %s\n", kbuf);
+    iwkvd_printdb(stderr, db1);
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
+    //    if (i == 1 || i == 67) {
+    //      iwkvd_printdb(stderr, db1);
+    //    }
+    iwkvd_printdb(stderr, db1);
   }
   
-  iwkvd_printdb(stderr, db1);
   
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
