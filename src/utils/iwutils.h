@@ -264,7 +264,7 @@ IW_EXTERN_C_START
     int _min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
     for (int _i_ = 0; _i_ < _min_; _i_++) { \
       if (((uint8_t *)(vp1_))[_i_] != ((uint8_t *)(vp2_))[_i_]) { \
-        (rv_) = ((uint8_t *)(vp1_))[_i_] - ((uint8_t *)(vp2_))[_i_]; \
+        (rv_) = (int) (((uint8_t *)(vp1_))[_i_] - ((uint8_t *)(vp2_))[_i_]); \
         break; \
       } \
     } \

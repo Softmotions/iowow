@@ -73,6 +73,7 @@
       <VirtualDirectory Name="tests">
         <File Name="src/utils/tests/CMakeLists.txt"/>
         <File Name="src/utils/tests/iwrlock_test1.c"/>
+        <File Name="src/utils/tests/iwarr_test1.c"/>
       </VirtualDirectory>
       <File Name="src/utils/iwrlock.c"/>
       <File Name="src/utils/iwutils.c"/>
