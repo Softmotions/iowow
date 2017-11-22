@@ -1484,10 +1484,6 @@ static iwrc _lx_roll_forward(IWLCTX *lx) {
       lx->lower = sblk;
     }
   }
-  if (!lx->lower && lx->upper) {
-    lx->lower = lx->upper;
-    lx->upper = 0;
-  }
 finish:
   IWRC(fsm->release_mmap(fsm), rc);
   return rc;
