@@ -1451,15 +1451,15 @@ IW_INLINE int _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
 static iwrc _lx_roll_forward(IWLCTX *lx) {
   SBLK *sblk;
   blkn_t blkn;
-  uint8_t *mm;
+  uint8_t *mm, lvl = lx->lvl;
   IWDB db = lx->db;
   IWFS_FSM *fsm  = &db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-  while ((blkn = (lx->lower ? lx->lower->n[lx->lvl] : db->n[lx->lvl]))) {
+  while ((blkn = (lx->lower ? lx->lower->n[lvl] : db->n[lvl]))) {
     off_t blkaddr = (off_t) blkn << IWKV_FSM_BPOW;
-    if (IW_UNLIKELY(lx->nlvl != -1 && lx->lvl < lx->nlvl)) {
-      int8_t ulvl = lx->lvl + 1;
+    if (IW_UNLIKELY(lx->nlvl != -1 && lvl < lx->nlvl)) {
+      int8_t ulvl = lvl + 1;
       if (lx->pupper[ulvl] && lx->pupper[ulvl]->addr == blkaddr) {
         sblk = lx->pupper[ulvl];
       } else if (lx->plower[ulvl] && lx->plower[ulvl]->addr == blkaddr) {
