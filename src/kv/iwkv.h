@@ -9,13 +9,14 @@
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
   IWKV_ERROR_NOTFOUND,   /**< Key not found (IWKV_ERROR_NOTFOUND) */
-  IWKV_ERROR_KEY_EXISTS, /**< Key already exists. (IWKV_ERROR_KEY_EXISTS) */  
+  IWKV_ERROR_KEY_EXISTS, /**< Key already exists. (IWKV_ERROR_KEY_EXISTS) */
   IWKV_ERROR_MAXKVSZ,    /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
   IWKV_ERROR_MAXDBSZ,    /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
   IWKV_ERROR_CORRUPTED,  /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
+  _IWKV_ERROR_END,
   _IWKV_ERROR_KVBLOCK_FULL,
   _IWKV_ERROR_REQUIRE_WL,
-  _IWKV_ERROR_END
+  _IWKV_ERROR_REQUIRE_NLEVEL
 } iwkv_ecode;
 
 typedef enum {
