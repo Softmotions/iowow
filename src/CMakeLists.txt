@@ -107,7 +107,7 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(iowow_s ${PROJECT_LLIBRARIES})
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wno-unknown-pragmas -Wno-unused-function")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function")
 if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
