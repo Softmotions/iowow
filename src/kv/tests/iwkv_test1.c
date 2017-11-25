@@ -24,8 +24,7 @@ static int cmp_files(FILE *f1, FILE *f2) {
     if (c1 == '\n' && c2 == '\n') {
       line++;
       pos = 0;
-    }
-    if (c1 != c2) {
+    } else if (c1 != c2) {
       fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
       return (c1 - c2);
     }
@@ -82,6 +81,14 @@ static void iwkv_test2(void) {
   }
 
   logstage(f, "desc sorted 253 keys inserted", db1);
+
+
+  // Now delete whoole block
+  for (int i = 64; i <= 126; ++i) {
+    // todo
+  }
+
+
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
