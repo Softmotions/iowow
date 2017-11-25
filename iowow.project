@@ -108,6 +108,10 @@
       <VirtualDirectory Name="tests">
         <File Name="src/kv/tests/iwkv_test1.c"/>
         <File Name="src/kv/tests/CMakeLists.txt"/>
+        <VirtualDirectory Name="refs">
+          <File Name="src/kv/tests/iwkv_test1_1.ref"/>
+          <File Name="src/kv/tests/iwkv_test1_2.ref"/>
+        </VirtualDirectory>
       </VirtualDirectory>
       <File Name="src/kv/README.md"/>
     </VirtualDirectory>

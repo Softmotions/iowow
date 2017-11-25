@@ -500,7 +500,6 @@ static iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t flg, IWDB *odb) {
   }
   fsm->release_mmap(fsm);
   *odb = db;
-
 finish:
   if (rc) {
     fsm->deallocate(fsm, baddr, blen);
@@ -996,7 +995,6 @@ start:
   wp += key->size;
   memcpy(wp, val->data, val->size);
   fsm->release_mmap(fsm);
-
 finish:
   return rc;
 }
@@ -1051,7 +1049,6 @@ static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const I
       }
     }
   }
-
 finish:
   if (mm) {
     IWRC(fsm->release_mmap(fsm), rc);
@@ -1206,13 +1203,10 @@ static iwrc _sblk_at_dbg(IWDB db, off_t addr, SBLK **sblkp) {
   // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
   IW_READLV(rp, lv, kblkn);
   assert(kblkn);
-
   memcpy(&sblk->lvl, rp, 1);
   rp += 1;
-
   rc = _kvblk_at2(db, BLK2ADDR(kblkn), mm, &sblk->kvblk);
   RCGO(rc, finish);
-
   IW_READLV(rp, lv, sblk->p0);
   for (int i = 0; i < SLEVELS; ++i) {
     IW_READLV(rp, lv, sblk->n[i]);
@@ -1229,13 +1223,10 @@ static iwrc _sblk_at_dbg(IWDB db, off_t addr, SBLK **sblkp) {
   rp += SBLK_LKLEN;
   memcpy(&sblk->pnum, rp, 1);
   rp += 1;
-
   memcpy(sblk->pi, rp, KVBLK_IDXNUM);
   rp += KVBLK_IDXNUM;
-
   assert(rp - sp == (1 << SBLK_SZPOW));
   *sblkp = sblk;
-
 finish:
   if (rc) {
     *sblkp = 0;
@@ -1261,7 +1252,6 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   sblk->addr = addr;
   rc = _aln_acquire_read(db, sblk->addr);
   RCRET(rc);
-
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   rp = mm + addr;
@@ -1271,13 +1261,10 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
   IW_READLV(rp, lv, kblkn);
   assert(kblkn);
-
   memcpy(&sblk->lvl, rp, 1);
   rp += 1;
-
   rc = _kvblk_at2(db, BLK2ADDR(kblkn), mm, &sblk->kvblk);
   RCGO(rc, finish);
-
   IW_READLV(rp, lv, sblk->p0);
   for (int i = 0; i < SLEVELS; ++i) {
     IW_READLV(rp, lv, sblk->n[i]);
@@ -1294,13 +1281,10 @@ static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   rp += SBLK_LKLEN;
   memcpy(&sblk->pnum, rp, 1);
   rp += 1;
-
   memcpy(sblk->pi, rp, KVBLK_IDXNUM);
   rp += KVBLK_IDXNUM;
-
   assert(rp - sp == (1 << SBLK_SZPOW));
   *sblkp = sblk;
-
 finish:
   fsm->release_mmap(fsm);
   if (rc) {
