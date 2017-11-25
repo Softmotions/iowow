@@ -210,7 +210,6 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
   rci_ = pthread_rwlock_unlock(&(iwkv_)->rwl_api); \
   if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_)
 
-
 IW_INLINE void _kv_dispose(IWKV_val *key, IWKV_val *val) {
   if (key) {
     if (key->data) {
@@ -535,13 +534,13 @@ static iwrc _kvblk_create(IWDB db, int8_t kvbpow, KVBLK **oblk) {
   return rc;
 }
 
-static void _kvblk_release(KVBLK **kbp) {
+IW_INLINE void _kvblk_release(KVBLK **kbp) {
   assert(kbp && *kbp);
   free(*kbp);
   *kbp = 0;
 }
 
-static iwrc _kvblk_destroy(KVBLK **kbp) {
+IW_INLINE iwrc _kvblk_destroy(KVBLK **kbp) {
   assert(kbp && *kbp && (*kbp)->db && (*kbp)->szpow && (*kbp)->addr);
   KVBLK *blk = *kbp;
   IWFS_FSM *fsm = &blk->db->iwkv->fsm;
@@ -750,7 +749,7 @@ finish:
   return rc;
 }
 
-static iwrc _kvblk_at(IWDB db, off_t addr, KVBLK **blkp) {
+IW_INLINE iwrc _kvblk_at(IWDB db, off_t addr, KVBLK **blkp) {
   iwrc rc;
   uint8_t *mm;
   IWFS_FSM *fsm = &db->iwkv->fsm;
@@ -1068,7 +1067,7 @@ IW_INLINE void _sblk_release(SBLK **sblkp) {
   *sblkp = 0;
 }
 
-static iwrc _sblk_destroy(SBLK **sblkp) {
+IW_INLINE iwrc _sblk_destroy(SBLK **sblkp) {
   assert(sblkp && *sblkp && (*sblkp)->kvblk && (*sblkp)->addr);
   iwrc rc;
   SBLK *sblk = *sblkp;
@@ -1877,7 +1876,7 @@ finish:
   return rc;
 }
 
-IW_INLINE iwrc _lx_put_lr(IWLCTX *lx) {
+iwrc _lx_put_lr(IWLCTX *lx) {
   iwrc rc;
   IWDB db = lx->db;
   int8_t nlvl = -1;
@@ -1980,7 +1979,7 @@ IW_INLINE iwrc _lx_get_lr(IWLCTX *lx) {
   return rc;
 }
 
-IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool wl) {
+iwrc _lx_del_lr(IWLCTX *lx, bool wl) {
   int idx, rci;
   bool found;
   uint8_t *mm;
