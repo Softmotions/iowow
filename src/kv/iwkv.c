@@ -1178,7 +1178,6 @@ static iwrc _sblk_create(IWDB db, int8_t nlevel, int8_t kvbpow, SBLK **oblk) {
   return rc;
 }
 
-
 static iwrc _sblk_at_dbg(IWDB db, off_t addr, SBLK **sblkp) {
   iwrc rc;
   blkn_t kblkn;
@@ -1234,7 +1233,6 @@ finish:
   }
   return rc;
 }
-
 
 static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   iwrc rc;
