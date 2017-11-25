@@ -5,15 +5,42 @@
 #include <CUnit/Basic.h>
 #include <locale.h>
 
+
 #define KBUFSZ 128
 #define VBUFSZ 128
 char kbuf[KBUFSZ];
 char vbuf[VBUFSZ];
 
-
 extern int8_t iwkv_next_level;
 
-void iwkvd_db(FILE *f, IWDB db);
+static int cmp_files(FILE *f1, FILE *f2) {
+  fseek(f1, 0, SEEK_SET);
+  fseek(f2, 0, SEEK_SET);
+  char c1 = getc(f1);
+  char c2 = getc(f2);
+  int pos = 0, line = 1;
+  while (c1 != EOF && c2 != EOF) {
+    pos++;
+    if (c1 == '\n' && c2 == '\n') {
+      line++;
+      pos = 0;
+    }
+    if (c1 != c2) {
+      fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
+      return (c1 - c2);
+    }
+    c1 = getc(f1);
+    c2 = getc(f2);
+  }
+  return 0;
+}
+
+static int logstage(FILE *f, const char *name, IWDB db) {
+  int rci = fprintf(f, "\n#### Stage: %s\n", name);
+  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS);
+  fflush(f);
+  return rci < 0 ? rci : 0;
+}
 
 int init_suite(void) {
   iwrc rc = iwkv_init();
@@ -25,6 +52,9 @@ int clean_suite(void) {
 }
 
 static void iwkv_test2(void) {
+  FILE *f = fopen("iwkv_test1_2.log", "w+");
+  CU_ASSERT_PTR_NOT_NULL(f);
+
   iwrc rc;
   IWKV_val key = {0};
   IWKV_val val = {0};
@@ -50,14 +80,27 @@ static void iwkv_test2(void) {
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  //iwkvd_db(stderr, db1);
+
+  logstage(f, "desc sorted 253 keys inserted", db1);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // todo test remove keys
+
+  // Compare logs with referenced
+  FILE *r = fopen("iwkv_test1_2.ref", "r+");
+  CU_ASSERT_PTR_NOT_NULL(r);
+  int rci = cmp_files(r, f);
+  CU_ASSERT_EQUAL_FATAL(rci, 0);
+  fclose(f);
+  fclose(r);
 }
 
 
 static void iwkv_test1(void) {
+  FILE *f = fopen("iwkv_test1_1.log", "w+");
+  CU_ASSERT_PTR_NOT_NULL(f);
 
   IWKV_OPTS opts = {
     .path = "iwkv_test1.db",
@@ -120,6 +163,8 @@ static void iwkv_test1(void) {
   rc = iwkv_db(iwkv, 3, 0, &db3);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
+  logstage(f, "empty db", db1);
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -131,6 +176,9 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  logstage(f, "put foo:bar", db1);
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -165,6 +213,8 @@ static void iwkv_test1(void) {
   CU_ASSERT_NSTRING_EQUAL(val.data, "bazzz", val.size);
   iwkv_kv_dispose(0, &val);
 
+  logstage(f, "put foo:bazz", db1);
+
   // put foo->''
   val.data = "";
   val.size = strlen(val.data);
@@ -173,6 +223,8 @@ static void iwkv_test1(void) {
   rc = iwkv_get(db1, &key, &val);
   CU_ASSERT_NSTRING_EQUAL(key.data, "foo", key.size);
   CU_ASSERT_NSTRING_EQUAL(val.data, "", val.size);
+
+  logstage(f, "put foo:", db1);
 
   val.data = "bar";
   val.size = strlen(val.data);
@@ -183,11 +235,16 @@ static void iwkv_test1(void) {
   CU_ASSERT_NSTRING_EQUAL(val.data, "bar", val.size);
   iwkv_kv_dispose(0, &val);
 
+  logstage(f, "put foo:bar", db1);
+
   // remove key/value
   rc = iwkv_del(db1, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_get(db1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
+
+  logstage(f, "remove foo:bar", db1);
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -209,6 +266,8 @@ static void iwkv_test1(void) {
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
+
+  logstage(f, "fill up first block", db1);
 
   // iwkv_next_level = 0;
   for (int i = 0; i < 63 * 2; i += 2) {
@@ -224,7 +283,6 @@ static void iwkv_test1(void) {
 
   // force extra blocks
   // iwkv_next_level = 1;
-  //iwkvd_db(stderr, db1);
 
   for (int i = 1; i < 63 * 2; i += 2) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
@@ -236,7 +294,8 @@ static void iwkv_test1(void) {
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  //iwkvd_db(stderr, db1);
+
+  logstage(f, "fill up second block", db1);
 
   // Extra lower
   snprintf(kbuf, KBUFSZ, "%03dccc", 0);    // 000ke < 000key
@@ -244,38 +303,16 @@ static void iwkv_test1(void) {
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
+  logstage(f, "extra lower", db1);
+
   // Fill middle split in the middle
-  //  iwkvd_db(stderr, db1);
-  for (int i = 0; i < 32; ++i) {
-    snprintf(kbuf, KBUFSZ, "%03dccc", 32 + i);
-    snprintf(vbuf, VBUFSZ, "%03dval", 32 + i);
-    key.data = kbuf;
-    key.size = strlen(key.data);
-    val.data = vbuf;
-    val.size = strlen(val.data);
-    rc = iwkv_put(db1, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
-  }
   snprintf(kbuf, KBUFSZ, "%03dbbb", 33);
   snprintf(vbuf, VBUFSZ, "%sval", kbuf);
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  // Force split
-  snprintf(kbuf, KBUFSZ, "%03dddd", 33);
-  snprintf(vbuf, VBUFSZ, "%sval", kbuf);
-  rc = iwkv_put(db1, &key, &val, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  // Fill SBLK[128] node
-  for (int i = 0; 49 + i < 59; ++i) {
-    for (char c = 'l'; c < 'o'; ++c) {
-      snprintf(kbuf, KBUFSZ, "%03d%c%c%c", 49 + i, c, c, c);
-      snprintf(vbuf, VBUFSZ, "%03dval", 49 + i);
-      rc = iwkv_put(db1, &key, &val, 0);
-      CU_ASSERT_EQUAL_FATAL(rc, 0);
-    }
-  }
-  // iwkvd_db(stderr, db1);
+  logstage(f, "split SBLK[128]", db1);
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -285,12 +322,20 @@ static void iwkv_test1(void) {
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  //iwkvd_db(stderr, db1);
+  logstage(f, "state after reopen", db1);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-}
 
+
+  // Compare logs with referenced
+  FILE *r = fopen("iwkv_test1_1.ref", "r+");
+  CU_ASSERT_PTR_NOT_NULL(r);
+  int rci = cmp_files(r, f);
+  CU_ASSERT_EQUAL_FATAL(rci, 0);
+  fclose(f);
+  fclose(r);
+}
 
 int main() {
   setlocale(LC_ALL, "en_US.UTF-8");
@@ -309,7 +354,7 @@ int main() {
 
   /* Add the tests to the suite */
   if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))) {
+      (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

@@ -8,11 +8,11 @@
 
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
-  IWKV_ERROR_NOTFOUND,   /**< Key not found (IWKV_ERROR_NOTFOUND) */
-  IWKV_ERROR_KEY_EXISTS, /**< Key already exists. (IWKV_ERROR_KEY_EXISTS) */
-  IWKV_ERROR_MAXKVSZ,    /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
-  IWKV_ERROR_MAXDBSZ,    /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
-  IWKV_ERROR_CORRUPTED,  /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
+  IWKV_ERROR_NOTFOUND,        /**< Key not found (IWKV_ERROR_NOTFOUND) */
+  IWKV_ERROR_KEY_EXISTS,      /**< Key already exists. (IWKV_ERROR_KEY_EXISTS) */
+  IWKV_ERROR_MAXKVSZ,         /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
+  IWKV_ERROR_MAXDBSZ,         /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
+  IWKV_ERROR_CORRUPTED,       /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
   _IWKV_ERROR_END,
   _IWKV_ERROR_KVBLOCK_FULL,
   _IWKV_ERROR_REQUIRE_WL,
@@ -20,9 +20,9 @@ typedef enum {
 } iwkv_ecode;
 
 typedef enum {
-  IWKV_NOLOCKS  = 0x01U,  /**< Do not use any threading locks */
-  IWKV_RDONLY   = 0x02U,  /**< Open storage in read-only mode */
-  IWKV_TRUNC    = 0x04U   /**< Truncate database file on open */
+  IWKV_NOLOCKS  = 0x01U,      /**< Do not use any threading locks */
+  IWKV_RDONLY   = 0x02U,      /**< Open storage in read-only mode */
+  IWKV_TRUNC    = 0x04U       /**< Truncate database file on open */
 } iwkv_openflags;
 
 typedef enum {
@@ -32,7 +32,7 @@ typedef enum {
 } iwdb_flags_t;
 
 typedef enum {
-  IWKV_NO_OVERWRITE = 0x1
+  IWKV_NO_OVERWRITE = 0x1     /**< Do not overwrite value for an existing key */
 } iwkv_opflags;
 
 struct IWKV;
@@ -70,5 +70,13 @@ IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
 IW_EXPORT iwrc iwkv_del(IWDB db, const IWKV_val *key);
 
 IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
+
+// Do not print random levels of skiplist blocks
+#define IWKVD_PRINT_NO_LEVEVELS 0x1
+
+// Print record values
+#define IWKVD_PRINT_VALS 0x2
+
+void iwkvd_db(FILE *f, IWDB db, int flags);
 
 #endif

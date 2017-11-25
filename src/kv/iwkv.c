@@ -192,8 +192,8 @@ typedef struct IWLCTX {
 } IWLCTX;
 
 void iwkvd_kvblk(FILE *f, KVBLK *kb);
-void iwkvd_sblk(FILE *f, SBLK *sb);
-void iwkvd_db(FILE *f, IWDB db);
+void iwkvd_sblk(FILE *f, SBLK *sb, int flags);
+void iwkvd_db(FILE *f, IWDB db, int flags);
 
 #define IWKV_ENSURE_OPEN(iwkv_) \
   if (!iwkv_ || !(iwkv_->isopen)) return IW_ERROR_INVALID_STATE;
@@ -1735,7 +1735,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     rc = _sblk_addkv(nb, lx->key, lx->val);
     RCGO(rc, finish);
   } else if (idx == 0) {
-    // Lower side
+    // Lowest side
     SBLK sblkp, nbkp; //backup
     KVBLK *nkvb = nb->kvblk;
     memcpy(&sblkp, sblk, sizeof(*sblk));
@@ -1784,7 +1784,8 @@ restore1:
       goto finish;
     }
   } else {
-    // Partial split
+    // We are in the middle
+    // Do partial split
     // Move kv pairs into new `nb`
     uint8_t *mm;
     IWKV_val key, val;
@@ -1819,7 +1820,6 @@ restore1:
     }
     RCGO(rc, finish);
   }
-
   // Link blocks
   if (idx > 0) {
     nb->p0 = ADDR2BLK(sblk->addr);
@@ -1837,7 +1837,6 @@ restore1:
       }
     }
   }
-
   // Sync blocks
   for (int i = lx->nlvl; i >= 0; --i) {
     for (int j = 0; j < 2; ++j) {
@@ -1850,7 +1849,6 @@ restore1:
       }
     }
   }
-
 finish:
   if (rc) {
     lx->nb = 0;
@@ -2351,20 +2349,22 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb) {
   fprintf(f, "\n");
 }
 
-void iwkvd_sblk(FILE *f, SBLK *sb) {
+void iwkvd_sblk(FILE *f, SBLK *sb, int flags) {
   assert(sb && sb->addr && sb->kvblk);
   char lkbuf[SBLK_LKLEN + 1] = {0};
   if (sb->lkl) {
     memcpy(lkbuf, sb->lk, sb->lkl);
   }
   uint8_t *mm;
-  uint8_t *kbuf;
-  uint32_t klen;
+  uint8_t *kbuf, *vbuf;
+  uint32_t klen, vlen;
   IWFS_FSM *fsm = &sb->kvblk->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(sb->addr);
   fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, db=%d",
-          blkn, sb->lvl, sb->pnum, sb->flags, sb->kvblk->zidx, sb->kvblk->db->id);
-  fprintf(f, "\n === SBLK[%u] lkl=%d, lk=%s\n\n", blkn, sb->lkl, lkbuf);
+          blkn,
+          ((IWKVD_PRINT_NO_LEVEVELS & flags) ? -1 : sb->lvl),
+          sb->pnum, sb->flags, sb->kvblk->zidx, sb->kvblk->db->id);
+  fprintf(f, "\n === SBLK[%u] lkl=%d, lk=%s\n", blkn, sb->lkl, lkbuf);
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
   if (rc) {
     iwlog_ecode_error3(rc);
@@ -2379,25 +2379,34 @@ void iwkvd_sblk(FILE *f, SBLK *sb) {
       fprintf(f, " === SBLK[%u]", blkn);
     }
     _kvblk_peek_key(sb->kvblk, sb->pi[i], mm, &kbuf, &klen);
-    fprintf(f, "    [%02d,%02d] %.*s", i, sb->pi[i], klen, kbuf);
+    if (flags & IWKVD_PRINT_VALS) {
+      _kvblk_peek_val(sb->kvblk, sb->pi[i], mm, &vbuf, &vlen);
+      fprintf(f, "    [%02d,%02d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, vlen, vbuf);
+    } else {
+      fprintf(f, "    [%02d,%02d] %.*s", i, sb->pi[i], klen, kbuf);
+    }
   }
   fprintf(f, "\n\n");
 }
 
-void iwkvd_db(FILE *f, IWDB db) {
+void iwkvd_db(FILE *f, IWDB db, int flags) {
   assert(db);
   SBLK *sb;
   iwrc rc;
   blkn_t dblk = ADDR2BLK(db->addr);
   blkn_t blk = db->n[0];
-  fprintf(f, "\n\n== DB[%d] lvl=%d, blk=%u, flg=%x\n", db->id, db->lvl, dblk, db->flg);
-  while (1) {
+  fprintf(f, "\n\n== DB[%d] lvl=%d, blk=%u, flg=%x",
+          db->id,
+          ((IWKVD_PRINT_NO_LEVEVELS & flags) ? -1 : db->lvl),
+          dblk,
+          db->flg);
+  while (blk) {
     rc = _sblk_at_dbg(db, BLK2ADDR(blk), &sb);
     if (rc) {
       iwlog_ecode_error3(rc);
       return;
     }
-    iwkvd_sblk(f, sb);
+    iwkvd_sblk(f, sb, flags);
     if (!sb->n[0]) {
       _sblk_release(&sb);
       break;
