@@ -1539,9 +1539,14 @@ IW_INLINE int _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     IW_CMP(res, sblk->lk, sblk->lkl, key->data, key->size);
     return res;
   }
-  _kvblk_peek_key(sblk->kvblk, sblk->pi[0] /* lower key index */, mm, &k, &kl);
-  if (!kl) {
-    return -1;
+  if (sblk->flags & SBLK_FULL_LKEY) {
+    k = sblk->lk;
+    kl = sblk->lkl;
+  } else {
+    _kvblk_peek_key(sblk->kvblk, sblk->pi[0] /* lower key index */, mm, &k, &kl);
+    if (!kl) {
+      return -1;
+    }
   }
   IW_CMP(res, k, kl, key->data, key->size);
   return res;
