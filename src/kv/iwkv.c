@@ -98,10 +98,11 @@ typedef struct KVBLK {
 } KVBLK;
 
 typedef enum {
-  SBLK_PINNED = 0x1,
-  SBLK_WRITE_UPGRADED = 0x2,
-  SBLK_DURTY = 0x4,
-  SBLK_DBG_NOALN = 0x8
+  SBLK_PINNED = 0x1,          /**< `SBLK` pinned and should not be released in `_lx_find_bounds` */
+  SBLK_WRITE_UPGRADED = 0x2,  /**< `SBLK` locks upgraded for write operations */
+  SBLK_DURTY = 0x4,           /**< `SBLK` is duty, sync required to persist */
+  SBLK_DBG_NOALN = 0x8,       /**< Do not use locks when accessing `SBLK`, used in debug print routines */
+  SBLK_FULL_LKEY = 0x10       /**< The lowest `SBLK` key is fully contained in `SBLK` */
 } sblk_flags_t;
 
 // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
@@ -1402,6 +1403,11 @@ IW_INLINE iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const I
   if (idx == 0) {
     sblk->lkl = MIN(SBLK_LKLEN, key->size);
     memcpy(sblk->lk, key->data, sblk->lkl);
+    if (key->size <= SBLK_LKLEN) {
+      sblk->flags |= SBLK_FULL_LKEY;
+    } else {
+      sblk->flags &= ~SBLK_FULL_LKEY;
+    }
   }
   sblk->pi[idx] = kvidx;
   sblk->pnum++;
@@ -1426,6 +1432,11 @@ IW_INLINE iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val)
   if (_sblk_insert_pi(sblk, kvidx, key, mm) == 0) { // the lowest key inserted
     sblk->lkl = MIN(SBLK_LKLEN, key->size);
     memcpy(sblk->lk, key->data, sblk->lkl);
+    if (key->size <= SBLK_LKLEN) {
+      sblk->flags |= SBLK_FULL_LKEY;
+    } else {
+      sblk->flags &= ~SBLK_FULL_LKEY;
+    }
   }
   fsm->release_mmap(fsm);
   sblk->flags |= SBLK_DURTY;
@@ -1447,6 +1458,7 @@ IW_INLINE iwrc _sblk_updatekv(SBLK *sblk, int8_t idx, const IWKV_val *key, const
 IW_INLINE iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   iwrc rc;
   KVBLK *kvblk = sblk->kvblk;
+  IWFS_FSM *fsm = &kvblk->db->iwkv->fsm;
   assert(idx < sblk->pnum && sblk->pi[idx] < KVBLK_IDXNUM);
   rc = _kvblk_rmkv(kvblk, sblk->pi[idx], 0);
   RCRET(rc);
@@ -1455,7 +1467,27 @@ IW_INLINE iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   }
   sblk->pnum--;
   sblk->flags |= SBLK_DURTY;
-  return 0;
+  if (idx == 0) {
+    // Lowest key removed, replace it with the next key or reset
+    if (sblk->pnum > 0) {
+      uint32_t klen;
+      uint8_t *kbuf, *mm;
+      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      RCRET(rc);
+      _kvblk_peek_key(sblk->kvblk, idx + 1, mm, &kbuf, &klen);
+      sblk->lkl = MIN(SBLK_LKLEN, klen);
+      memcpy(sblk->lk, kbuf, sblk->lkl);
+      fsm->release_mmap(fsm);
+      if (sblk->lkl <= SBLK_LKLEN) {
+        sblk->flags |= SBLK_FULL_LKEY;
+      } else {
+        sblk->flags &= ~SBLK_FULL_LKEY;
+      }
+    } else {
+      sblk->lkl = 0;
+    }
+  }
+  return rc;
 }
 
 IW_INLINE iwrc _sblk_create2(IWDB db,
@@ -1522,7 +1554,7 @@ IW_INLINE int _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   if (sblk->pnum < 1) { // empty block
     return -1;
   }
-  if (key->size < sblk->lkl) {
+  if (key->size < sblk->lkl || ((sblk->flags & SBLK_FULL_LKEY) && key->size == sblk->lkl)) {
     IW_CMP(res, sblk->lk, sblk->lkl, key->data, key->size);
     return res;
   }
@@ -1720,6 +1752,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     sblk->kvblk = nkvb;
     sblk->pnum = 0;
     sblk->lkl = 0;
+    sblk->flags &= ~SBLK_FULL_LKEY;
     sblk->flags |= SBLK_DURTY;
     nb->flags |= SBLK_DURTY;
     // Link nodes

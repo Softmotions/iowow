@@ -5,6 +5,12 @@
 #include <CUnit/Basic.h>
 #include <locale.h>
 
+#define KBUFSZ 128
+#define VBUFSZ 128
+char kbuf[KBUFSZ];
+char vbuf[VBUFSZ];
+
+
 extern int8_t iwkv_next_level;
 
 void iwkvd_db(FILE *f, IWDB db);
@@ -17,11 +23,6 @@ int init_suite(void) {
 int clean_suite(void) {
   return 0;
 }
-
-#define KBUFSZ 128
-#define VBUFSZ 128
-char kbuf[KBUFSZ];
-char vbuf[VBUFSZ];
 
 static void iwkv_test2(void) {
   iwrc rc;
@@ -57,6 +58,7 @@ static void iwkv_test2(void) {
 
 
 static void iwkv_test1(void) {
+
   IWKV_OPTS opts = {
     .path = "iwkv_test1.db",
     .oflags = IWKV_TRUNC
