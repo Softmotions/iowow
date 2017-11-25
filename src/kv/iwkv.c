@@ -100,7 +100,8 @@ typedef struct KVBLK {
 typedef enum {
   SBLK_PINNED = 0x1,
   SBLK_WRITE_UPGRADED = 0x2,
-  SBLK_DURTY = 0x4
+  SBLK_DURTY = 0x4,
+  SBLK_DBG_NOALN = 0x8
 } sblk_flags_t;
 
 // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
@@ -189,8 +190,9 @@ typedef struct IWLCTX {
   iwlctx_state_t smask;     /**< Context state mask */
 } IWLCTX;
 
+void iwkvd_kvblk(FILE *f, KVBLK *kb);
 void iwkvd_sblk(FILE *f, SBLK *sb);
-void iwkvd_printdb(FILE *f, IWDB db);
+void iwkvd_db(FILE *f, IWDB db);
 
 #define IWKV_ENSURE_OPEN(iwkv_) \
   if (!iwkv_ || !(iwkv_->isopen)) return IW_ERROR_INVALID_STATE;
@@ -807,21 +809,24 @@ static void _kvblk_compact(KVBLK *kb, uint8_t *mm) {
     return;
   }
   KVP tidx[KVBLK_IDXNUM];
-  memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
-  mm = mm + kb->addr + (1ULL << kb->szpow);
+  uint8_t *wp = mm + kb->addr + (1ULL << kb->szpow);
+  memcpy(tidx, kb->pidx, sizeof(tidx));
   qsort(tidx, KVBLK_IDXNUM, sizeof(KVP), _kvblk_sort_kv);
   coff = 0;
   for (i = 0; i < KVBLK_IDXNUM && tidx[i].off; ++i) {
+#ifndef NDEBUG
     if (i > 0) {
       assert(tidx[i - 1].off < tidx[i].off);
     }
+#endif
     KVP *kvp = &kb->pidx[tidx[i].ridx];
     off_t noff = coff + kvp->len;
     if (kvp->off > noff) {
-      memmove(mm - noff, mm - kvp->off, kvp->len);
+      memmove(wp - noff, wp - kvp->off, kvp->len);
       kvp->off = noff;
     }
     coff += kvp->len;
+    kb->maxoff = coff;
   }
   for (i = 0; i < KVBLK_IDXNUM; ++i) {
     if (!kb->pidx[i].len)  {
@@ -1024,12 +1029,13 @@ static iwrc _kvblk_updatev(KVBLK *kb, int8_t *idxp, const IWKV_val *key, const I
     }
   } else {
     KVP tidx[KVBLK_IDXNUM];
+    uint32_t koff = kb->pidx[idx].off;
     memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
     qsort(tidx, KVBLK_IDXNUM, sizeof(KVP), _kvblk_sort_kv);
     kb->flags |= KVBLK_DURTY;
     for (i = 0; i < KVBLK_IDXNUM; ++i) {
-      if (tidx[i].ridx == idx) {
-        if (tidx[i].off - (i > 0 ? tidx[i - 1].off : 0) >= rsize) {
+      if (tidx[i].off == koff) {
+        if (koff - (i > 0 ? tidx[i - 1].off : 0) >= rsize) {
           memcpy(wp, val->data, val->size);
           wp += val->size;
           kvp->len = wp - sp;
@@ -1056,7 +1062,9 @@ finish:
 
 IW_INLINE void _sblk_release(SBLK **sblkp) {
   assert(sblkp && *sblkp);
-  _aln_release((*sblkp)->kvblk->db, (*sblkp)->addr);
+  if (!((*sblkp)->flags & SBLK_DBG_NOALN)) {
+    _aln_release((*sblkp)->kvblk->db, (*sblkp)->addr);
+  }
   _kvblk_release(&(*sblkp)->kvblk);
   free(*sblkp);
   *sblkp = 0;
@@ -1171,6 +1179,70 @@ static iwrc _sblk_create(IWDB db, int8_t nlevel, int8_t kvbpow, SBLK **oblk) {
   }
   return rc;
 }
+
+
+static iwrc _sblk_at_dbg(IWDB db, off_t addr, SBLK **sblkp) {
+  iwrc rc;
+  blkn_t kblkn;
+  uint32_t lv;
+  uint8_t *mm, *rp;
+#ifndef NDEBUG
+  uint8_t *sp;
+#endif
+  IWFS_FSM *fsm = &db->iwkv->fsm;
+  SBLK *sblk = calloc(1, sizeof(*sblk));
+  if (!sblk) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
+  sblk->addr = addr;
+  sblk->flags = SBLK_DBG_NOALN;
+  rc = fsm->probe_mmap(fsm, 0, &mm, 0);
+  RCGO(rc, finish);
+  rp = mm + addr;
+#ifndef NDEBUG
+  sp = rp;
+#endif
+  // SBLK: [kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u62,pnum:u1,[pi1:u1,...pi63]]:u256
+  IW_READLV(rp, lv, kblkn);
+  assert(kblkn);
+
+  memcpy(&sblk->lvl, rp, 1);
+  rp += 1;
+
+  rc = _kvblk_at2(db, BLK2ADDR(kblkn), mm, &sblk->kvblk);
+  RCGO(rc, finish);
+
+  IW_READLV(rp, lv, sblk->p0);
+  for (int i = 0; i < SLEVELS; ++i) {
+    IW_READLV(rp, lv, sblk->n[i]);
+  }
+  memcpy(&sblk->lkl, rp, 1);
+  rp += 1;
+  if (sblk->lkl) {
+    if (sblk->lkl > SBLK_LKLEN) {
+      rc = IWKV_ERROR_CORRUPTED;
+      goto finish;
+    }
+    memcpy(sblk->lk, rp, sblk->lkl);
+  }
+  rp += SBLK_LKLEN;
+  memcpy(&sblk->pnum, rp, 1);
+  rp += 1;
+
+  memcpy(sblk->pi, rp, KVBLK_IDXNUM);
+  rp += KVBLK_IDXNUM;
+
+  assert(rp - sp == (1 << SBLK_SZPOW));
+  *sblkp = sblk;
+
+finish:
+  if (rc) {
+    *sblkp = 0;
+    _sblk_release(&sblk);
+  }
+  return rc;
+}
+
 
 static iwrc _sblk_at(IWDB db, off_t addr, SBLK **sblkp) {
   iwrc rc;
@@ -1608,7 +1680,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     return _sblk_sync(lx->upper);
   }
 
-  if (idx >= 0 && idx < sblk->pnum) {
+  if (idx > 0 && idx < sblk->pnum) {
     // Partial split required
     // Compute space required for the new sblk which stores kv pairs after pivot `idx`
     size_t sz = 0;
@@ -1626,32 +1698,58 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   RCRET(rc);
   nblk = ADDR2BLK(nb->addr);
 
-  // Lower side todo:
-  //    KVBLK *nkvb = nb->kvblk;
-  //    SBLK lbkp, nbkp;
-  //    memcpy(&lbkp, lb, sizeof(*lb));
-  //    memcpy(&nbkp, nb, sizeof(*nb));
-  //    nb->kvblk = lb->kvblk;
-  //    nb->lkl = lb->lkl;
-  //    nb->pnum = lb->pnum;
-  //    memcpy(nb->lk, lb->lk, lb->lkl);
-  //    memcpy(nb->pi, lb->pi, lb->pnum);
-  //    memset(lb->pi, 0, KVBLK_IDXNUM);
-  //    lb->kvblk = nkvb;
-  //    lb->pnum = 0;
-  //    lb->lkl = 0;
-  //    rc = _sblk_addkv(lb, lx->key, lx->val);
-  //    if (rc) {
-  //      // Restore initial state
-  //      memcpy(lb, &lbkp, sizeof(*lb));
-  //      memcpy(nb, &nbkp, sizeof(*nb));
-  //      RCGO(rc, finish);
-  //    }
-
   if (idx == sblk->pnum) {
     // Upper side
     rc = _sblk_addkv(nb, lx->key, lx->val);
     RCGO(rc, finish);
+  } else if (idx == 0) {
+    // Lower side
+    SBLK sblkp, nbkp; //backup
+    KVBLK *nkvb = nb->kvblk;
+    memcpy(&sblkp, sblk, sizeof(*sblk));
+    memcpy(&nbkp, nb, sizeof(*nb));
+    nb->kvblk = sblk->kvblk;
+    nb->lkl = sblk->lkl;
+    nb->pnum = sblk->pnum;
+    nb->flags = sblk->flags;
+    nb->p0 = ADDR2BLK(sblk->addr);
+    memcpy(nb->lk, sblk->lk, sblk->lkl);
+    memcpy(nb->pi, sblk->pi, sblk->pnum);
+    memcpy(nb->n, sblk->n, sizeof(sblk->n));
+    memset(sblk->pi, 0, sizeof(sblk->pi));
+    sblk->kvblk = nkvb;
+    sblk->pnum = 0;
+    sblk->lkl = 0;
+    sblk->flags |= SBLK_DURTY;
+    nb->flags |= SBLK_DURTY;
+    // Link nodes
+    for (int i = 0; i <= nb->lvl; ++i) {
+      sblk->n[i] = ADDR2BLK(nb->addr);
+    }
+    if (nb->n[0]) {
+      if (lx->pupper[0] && nb->n[0] == ADDR2BLK(lx->pupper[0]->addr)) {
+        lx->pupper[0]->p0 = ADDR2BLK(nb->addr);
+        lx->pupper[0]->flags |= SBLK_DURTY;
+      } else {
+        SBLK *ub;
+        rc = _sblk_at(lx->db, BLK2ADDR(nb->n[0]), &ub);
+        RCGO(rc, restore1);
+        rc = _sblk_write_upgrade(ub);
+        RCGO(rc, restore1);
+        ub->p0 = ADDR2BLK(nb->addr);
+        rc = _sblk_sync(ub);
+        RCGO(rc, restore1);
+        _sblk_release(&ub);
+      }
+    }
+    rc = _sblk_addkv(sblk, lx->key, lx->val);
+    if (rc) {
+restore1:
+      // Restore initial state
+      memcpy(sblk, &sblkp, sizeof(*sblk));
+      memcpy(nb, &nbkp, sizeof(*nb));
+      goto finish;
+    }
   } else {
     // Partial split
     // Move kv pairs into new `nb`
@@ -1690,19 +1788,20 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   }
 
   // Link blocks
-  nb->p0 = ADDR2BLK(sblk->addr);
-
-  for (int i = lx->nlvl; i >= 0; --i) {
-    if (lx->plower[i]) {
-      lx->plower[i]->n[i] = nblk;
-      lx->plower[i]->flags |= SBLK_DURTY;
-    }
-    if (lx->pupper[i]) {
-      if (i == 0) {
-        lx->pupper[i]->p0 = nblk;
-        lx->pupper[i]->flags |= SBLK_DURTY;
+  if (idx > 0) {
+    nb->p0 = ADDR2BLK(sblk->addr);
+    for (int i = lx->nlvl; i >= 0; --i) {
+      if (lx->plower[i]) {
+        lx->plower[i]->n[i] = nblk;
+        lx->plower[i]->flags |= SBLK_DURTY;
       }
-      nb->n[i] = ADDR2BLK(lx->pupper[i]->addr);
+      if (lx->pupper[i]) {
+        if (i == 0) {
+          lx->pupper[i]->p0 = nblk;
+          lx->pupper[i]->flags |= SBLK_DURTY;
+        }
+        nb->n[i] = ADDR2BLK(lx->pupper[i]->addr);
+      }
     }
   }
 
@@ -2196,13 +2295,28 @@ void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val) {
 void iwkvd_kvblk(FILE *f, KVBLK *kb) {
   assert(f && kb && kb->addr);
   uint8_t *mm;
+  uint8_t *kbuf, *vbuf;
+  uint32_t klen, vlen;
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(kb->addr);
-  fprintf(f, " === KVBLK[%u] maxoff=%u, zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
+  fprintf(f, "\n === KVBLK[%u] maxoff=%u, zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
           blkn, kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
-  // todo
-}
 
+  iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
+  if (rc) {
+    iwlog_ecode_error3(rc);
+    return;
+  }
+  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+    KVP *kvp = &kb->pidx[i];
+    _kvblk_peek_key(kb, i, mm, &kbuf, &klen);
+    _kvblk_peek_val(kb, i, mm, &vbuf, &vlen);
+    fprintf(f, "\n    %02d: [%04d, %02d, %02d]: %.*s:%.*s",
+            i, kvp->off, kvp->len, kvp->ridx,
+            klen, kbuf, vlen, vbuf);
+  }
+  fprintf(f, "\n");
+}
 
 void iwkvd_sblk(FILE *f, SBLK *sb) {
   assert(sb && sb->addr && sb->kvblk);
@@ -2215,10 +2329,10 @@ void iwkvd_sblk(FILE *f, SBLK *sb) {
   uint32_t klen;
   IWFS_FSM *fsm = &sb->kvblk->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(sb->addr);
-  fprintf(f, " === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, db=%d\n",
+  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, db=%d",
           blkn, sb->lvl, sb->pnum, sb->flags, sb->kvblk->zidx, sb->kvblk->db->id);
-  fprintf(f, " === SBLK[%u] lkl=%d, lk=%s\n\n", blkn, sb->lkl, lkbuf);
-  iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  fprintf(f, "\n === SBLK[%u] lkl=%d, lk=%s\n\n", blkn, sb->lkl, lkbuf);
+  iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
   if (rc) {
     iwlog_ecode_error3(rc);
     return;
@@ -2234,11 +2348,10 @@ void iwkvd_sblk(FILE *f, SBLK *sb) {
     _kvblk_peek_key(sb->kvblk, sb->pi[i], mm, &kbuf, &klen);
     fprintf(f, "    [%02d,%02d] %.*s", i, sb->pi[i], klen, kbuf);
   }
-  fsm->release_mmap(fsm);
   fprintf(f, "\n\n");
 }
 
-void iwkvd_printdb(FILE *f, IWDB db) {
+void iwkvd_db(FILE *f, IWDB db) {
   assert(db);
   SBLK *sb;
   iwrc rc;
@@ -2246,7 +2359,7 @@ void iwkvd_printdb(FILE *f, IWDB db) {
   blkn_t blk = db->n[0];
   fprintf(f, "\n\n== DB[%d] lvl=%d, blk=%u, flg=%x\n", db->id, db->lvl, dblk, db->flg);
   while (1) {
-    rc = _sblk_at(db, BLK2ADDR(blk), &sb);
+    rc = _sblk_at_dbg(db, BLK2ADDR(blk), &sb);
     if (rc) {
       iwlog_ecode_error3(rc);
       return;

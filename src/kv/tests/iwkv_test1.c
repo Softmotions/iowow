@@ -7,7 +7,7 @@
 
 extern int8_t iwkv_next_level;
 
-void iwkvd_printdb(FILE *f, IWDB db);
+void iwkvd_db(FILE *f, IWDB db);
 
 int init_suite(void) {
   iwrc rc = iwkv_init();
@@ -39,8 +39,7 @@ static void iwkv_test2(void) {
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-
-  for (int i = 66; i >= 0; --i) {
+  for (int i = 252; i >= 0; --i) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
     snprintf(vbuf, VBUFSZ, "%03dval", i);
     key.data = kbuf;
@@ -50,7 +49,7 @@ static void iwkv_test2(void) {
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  iwkvd_printdb(stderr, db1);
+  //iwkvd_db(stderr, db1);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -223,7 +222,7 @@ static void iwkv_test1(void) {
 
   // force extra blocks
   // iwkv_next_level = 1;
-  //iwkvd_printdb(stderr, db1);
+  //iwkvd_db(stderr, db1);
 
   for (int i = 1; i < 63 * 2; i += 2) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
@@ -235,7 +234,7 @@ static void iwkv_test1(void) {
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  //iwkvd_printdb(stderr, db1);
+  //iwkvd_db(stderr, db1);
 
   // Extra lower
   snprintf(kbuf, KBUFSZ, "%03dccc", 0);    // 000ke < 000key
@@ -244,7 +243,7 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Fill middle split in the middle
-  //  iwkvd_printdb(stderr, db1);
+  //  iwkvd_db(stderr, db1);
   for (int i = 0; i < 32; ++i) {
     snprintf(kbuf, KBUFSZ, "%03dccc", 32 + i);
     snprintf(vbuf, VBUFSZ, "%03dval", 32 + i);
@@ -274,7 +273,7 @@ static void iwkv_test1(void) {
       CU_ASSERT_EQUAL_FATAL(rc, 0);
     }
   }
-  // iwkvd_printdb(stderr, db1);
+  // iwkvd_db(stderr, db1);
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -284,7 +283,7 @@ static void iwkv_test1(void) {
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  //iwkvd_printdb(stderr, db1);
+  //iwkvd_db(stderr, db1);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -307,7 +306,7 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (/*(NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||*/
+  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))) {
     CU_cleanup_registry();
     return CU_get_error();
