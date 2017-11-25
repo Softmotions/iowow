@@ -96,7 +96,7 @@ IW_INLINE int _fsm_cmp(FSMBK a, FSMBK b);
 KBTREE_INIT(fsm, FSMBK, _fsm_cmp)
 
 struct IWFS_FSM_IMPL {
-  IWFS_RWL pool;             /**< Underlying rwl file. */
+  IWFS_EXT pool;             /**< Underlying rwl file. */
   uint64_t bmlen;            /**< Free-space bitmap block length in bytes. */
   uint64_t bmoff;            /**< Free-space bitmap block offset in bytes. */
   uint64_t lfbkoff;          /**< Offset in blocks of free block chunk with the largest
@@ -820,7 +820,7 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   uint8_t *mm, *mm2;
   uint64_t sp, sp2;
   uint64_t old_bmoff, old_bmlen;
-  IWFS_RWL *pool = &impl->pool;
+  IWFS_EXT *pool = &impl->pool;
 
   if ((bmlen & ((1 << impl->bpow) - 1)) || (bmoff & ((1 << impl->bpow) - 1)) || (bmoff & (impl->psize - 1))) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
@@ -949,7 +949,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
   iwrc rc;
   int64_t sp;
   uint64_t bmoffset = 0, bmlen;
-  IWFS_RWL *pool = &impl->pool;
+  IWFS_EXT *pool = &impl->pool;
 
   if (impl->bmlen >= size) {
     return 0;
@@ -1092,7 +1092,7 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
   int hasleft;
   int64_t length;
   uint64_t *bmptr;
-  IWFS_RWL_STATE pstate;
+  IWFS_EXT_STATE pstate;
   uint64_t offset = 0, lastblk;
 
   if (!(impl->omode & IWFS_OWRITE) || !impl->lfbkoff) {
@@ -1131,7 +1131,7 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
     lastblk = offset + 1;
   }
   rc = impl->pool.state(&impl->pool, &pstate);
-  if (!rc && pstate.exfile.fsize > (lastblk << impl->bpow)) {
+  if (!rc && pstate.fsize > (lastblk << impl->bpow)) {
     rc = impl->pool.truncate(&impl->pool, lastblk << impl->bpow);
   }
 finish:
@@ -1286,7 +1286,7 @@ static iwrc _fsm_init_new_lw(FSM *impl, const IWFS_FSM_OPTS *opts) {
   FSM_ENSURE_OPEN(impl);
   iwrc rc;
   uint64_t bmlen, bmoff;
-  IWFS_RWL *pool = &impl->pool;
+  IWFS_EXT *pool = &impl->pool;
 
   assert(impl->psize && impl->bpow);
 
@@ -1316,7 +1316,7 @@ static iwrc _fsm_init_existing_lw(FSM *impl) {
   iwrc rc;
   size_t sp;
   uint8_t *mm;
-  IWFS_RWL *pool = &impl->pool;
+  IWFS_EXT *pool = &impl->pool;
 
   rc = _fsm_read_meta_lr(impl);
   RCGO(rc, finish);
@@ -1512,73 +1512,6 @@ static iwrc _fsm_remove_mmap(struct IWFS_FSM *f, off_t off) {
 static iwrc _fsm_sync_mmap(struct IWFS_FSM *f, off_t off, int flags) {
   FSM_ENSURE_OPEN2(f);
   return f->impl->pool.sync_mmap(&f->impl->pool, off, flags);
-}
-
-static iwrc _fsm_lock(struct IWFS_FSM *f, off_t start, off_t len, iwrl_lockflags lflags) {
-  FSM_ENSURE_OPEN2(f);
-  return f->impl->pool.lock(&f->impl->pool, start, len, lflags);
-}
-
-static iwrc _fsm_try_lock(struct IWFS_FSM *f, off_t start, off_t len, iwrl_lockflags lflags) {
-  FSM_ENSURE_OPEN2(f);
-  return f->impl->pool.try_lock(&f->impl->pool, start, len, lflags);
-}
-
-static iwrc _fsm_unlock(struct IWFS_FSM *f, off_t start, off_t len) {
-  FSM_ENSURE_OPEN2(f);
-  return f->impl->pool.unlock(&f->impl->pool, start, len);
-}
-
-static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
-  FSM_ENSURE_OPEN2(f);
-  FSM *impl = f->impl;
-  iwrc rc = _fsm_ctrl_rlock(impl);
-  RCRET(rc);
-  if (impl->oflags & IWFSM_STRICT) {
-    int allocated = 0;
-    IWRC(_fsm_is_fully_allocated_lr(impl,
-                                    off >> impl->bpow,
-                                    IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
-                                    &allocated),
-         rc);
-    if (!rc) {
-      if (!allocated) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
-      } else {
-        rc = impl->pool.lwrite(&impl->pool, off, buf, siz, sp);
-      }
-    }
-  } else {
-    rc = impl->pool.lwrite(&impl->pool, off, buf, siz, sp);
-  }
-  _fsm_ctrl_unlock(impl);
-  return rc;
-}
-
-static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp) {
-  FSM_ENSURE_OPEN2(f);
-  FSM *impl = f->impl;
-  iwrc rc = _fsm_ctrl_rlock(impl);
-  RCRET(rc);
-  if (impl->oflags & IWFSM_STRICT) {
-    int allocated = 0;
-    IWRC(_fsm_is_fully_allocated_lr(impl,
-                                    off >> impl->bpow,
-                                    IW_ROUNDUP(siz, 1 << impl->bpow) >> impl->bpow,
-                                    &allocated),
-         rc);
-    if (!rc) {
-      if (!allocated) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
-      } else {
-        rc = impl->pool.lread(&impl->pool, off, buf, siz, sp);
-      }
-    }
-  } else {
-    rc = impl->pool.lread(&impl->pool, off, buf, siz, sp);
-  }
-  _fsm_ctrl_unlock(impl);
-  return rc;
 }
 
 static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
@@ -1781,7 +1714,7 @@ static iwrc _fsm_state(struct IWFS_FSM *f, IWFS_FSM_STATE *state) {
   FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
   memset(state, 0, sizeof(*state));
-  IWRC(impl->pool.state(&impl->pool, &state->rwlfile), rc);
+  IWRC(impl->pool.state(&impl->pool, &state->exfile), rc);
   state->block_size = 1 << impl->bpow;
   state->oflags = impl->oflags;
   state->hdrlen = impl->hdrlen;
@@ -1796,8 +1729,8 @@ static iwrc _fsm_state(struct IWFS_FSM *f, IWFS_FSM_STATE *state) {
 iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   assert(f && opts);
   iwrc rc = 0;
-  IWFS_RWL_STATE fstate;
-  const char *path = opts->rwlfile.exfile.file.path;
+  IWFS_EXT_STATE fstate;
+  const char *path = opts->exfile.file.path;
 
   memset(f, 0, sizeof(*f));
   rc = iwfs_fsmfile_init();
@@ -1817,12 +1750,6 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   f->remove_mmap = _fsm_remove_mmap;
   f->sync_mmap = _fsm_sync_mmap;
 
-  f->lock = _fsm_lock;
-  f->try_lock = _fsm_try_lock;
-  f->unlock = _fsm_unlock;
-  f->lwrite = _fsm_lwrite;
-  f->lread = _fsm_lread;
-
   f->allocate = _fsm_allocate;
   f->reallocate = _fsm_reallocate;
   f->deallocate = _fsm_deallocate;
@@ -1839,8 +1766,8 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   }
   impl->f = f;
 
-  IWFS_RWL_OPTS rwl_opts = opts->rwlfile;
-  rwl_opts.exfile.use_locks = !(opts->oflags & IWFSM_NOLOCKS);
+  IWFS_EXT_OPTS rwl_opts = opts->exfile;
+  rwl_opts.use_locks = !(opts->oflags & IWFSM_NOLOCKS);
 
   rc = _fsm_init_impl(impl, opts);
   RCGO(rc, finish);
@@ -1848,16 +1775,16 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   rc = _fsm_init_locks(impl, opts);
   RCGO(rc, finish);
 
-  rc = iwfs_rwlfile_open(&impl->pool, &rwl_opts);
+  rc = iwfs_exfile_open(&impl->pool, &rwl_opts);
   RCGO(rc, finish);
 
   memset(&fstate, 0, sizeof(fstate));
   rc = impl->pool.state(&impl->pool, &fstate);
   RCGO(rc, finish);
 
-  impl->omode = fstate.exfile.file.opts.omode;
+  impl->omode = fstate.file.opts.omode;
 
-  if (fstate.exfile.file.ostatus & IWFS_OPEN_NEW) {
+  if (fstate.file.ostatus & IWFS_OPEN_NEW) {
     rc = _fsm_init_new_lw(impl, opts);
   } else {
     rc = _fsm_init_existing_lw(impl);
@@ -2005,7 +1932,7 @@ iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d) {
   FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
   memset(d, 0, sizeof(*d));
-  IWRC(impl->pool.state(&impl->pool, &d->state.rwlfile), rc);
+  IWRC(impl->pool.state(&impl->pool, &d->state.exfile), rc);
   d->state.block_size = 1 << impl->bpow;
   d->state.oflags = impl->oflags;
   d->state.hdrlen = impl->hdrlen;

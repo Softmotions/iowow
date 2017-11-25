@@ -422,7 +422,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   IWDB prev = db->prev;
   IWDB next = db->next;
   IWFS_FSM *fsm = &db->iwkv->fsm;
-
+  
   kh_del(DBS, db->iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   if (prev) {
@@ -444,7 +444,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   if (db->iwkv->dblast && db->iwkv->dblast->addr == db->addr) {
     db->iwkv->dblast = prev;
   }
-
+  
   // TODO!!!: dispose all of `SBLK` & `KVBLK` blocks used by db
   IWRC(fsm->deallocate(fsm, db->addr, (1 << DB_SZPOW)), rc);
   _db_release_lw(dbp);
@@ -474,7 +474,7 @@ static iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t flg, IWDB *odb) {
   db->id = dbid;
   db->prev = iwkv->dblast;
   db->aln = kh_init(ALN);
-
+  
   if (!iwkv->dbfirst) {
     uint64_t llv;
     iwkv->dbfirst = db;
@@ -702,7 +702,7 @@ static iwrc _kvblk_at2(IWDB db, off_t addr, uint8_t *mm, KVBLK **blkp) {
   int step;
   iwrc rc = 0;
   KVBLK *kb = calloc(1, sizeof(*kb));
-
+  
   *blkp = 0;
   if (!kb) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -928,14 +928,14 @@ static iwrc _kvblk_addkv(KVBLK *kb, const IWKV_val *key, const IWKV_val *val, in
   off_t psz = (key->size + val->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
   *oidx = -1;
-
+  
   if (psz > IWKV_MAX_KVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-
+  
 start:
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -1149,7 +1149,7 @@ static iwrc _sblk_create(IWDB db, int8_t nlevel, int8_t kvbpow, SBLK **oblk) {
   KVBLK *kvblk;
   off_t baddr = 0, blen;
   IWFS_FSM *fsm = &db->iwkv->fsm;
-
+  
   *oblk = 0;
   rc = _kvblk_create(db, kvbpow, &kvblk);
   RCRET(rc);
@@ -1680,7 +1680,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   int pivot = (KVBLK_IDXNUM / 2) + 1; // 32
   blkn_t nblk;
-
+  
   if (sblk->pnum < KVBLK_IDXNUM) {
     rc = _sblk_write_upgrade(sblk);
     RCRET(rc);
@@ -1688,7 +1688,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     RCRET(rc);
     return _sblk_sync(sblk);
   }
-
+  
   if (idx == sblk->pnum && lx->upper && lx->upper->pnum < KVBLK_IDXNUM) {
     // Good to place lv into right(upper) block
     rc = _sblk_write_upgrade(lx->upper);
@@ -1697,7 +1697,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     RCRET(rc);
     return _sblk_sync(lx->upper);
   }
-
+  
   if (idx > 0 && idx < sblk->pnum) {
     // Partial split required
     // Compute space required for the new sblk which stores kv pairs after pivot `idx`
@@ -1707,15 +1707,15 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     }
     kvbpow = iwlog2_64(KVBLK_MAX_NKV_SZ + sz);
   }
-
+  
   rc = _sblk_write_upgrade(sblk);
   RCRET(rc);
-
+  
   // Ok we need a new node
   rc = _sblk_create(db, lx->nlvl, kvbpow, &nb);
   RCRET(rc);
   nblk = ADDR2BLK(nb->addr);
-
+  
   if (idx == sblk->pnum) {
     // Upper side
     rc = _sblk_addkv(nb, lx->key, lx->val);
@@ -1886,11 +1886,11 @@ iwrc _lx_put_lr(IWLCTX *lx) {
   IWDB db = lx->db;
   int8_t nlvl = -1;
   bool dbsync = false;
-
+  
 start:
   rc = _lx_find_bounds(lx);
   RCGO(rc, finish);
-
+  
   if (IW_LIKELY(lx->lower)) {
     rc = _lx_addkv(lx, lx->lower);
     if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
@@ -1990,7 +1990,7 @@ iwrc _lx_del_lr(IWLCTX *lx, bool wl) {
   uint8_t *mm;
   iwrc rc;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-
+  
   rc = _lx_find_bounds(lx);
   RCRET(rc);
   if (!lx->lower) {
@@ -2092,15 +2092,13 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   iwkv->oflags = oflags;
   IWFS_FSM_STATE fsmstate;
   IWFS_FSM_OPTS fsmopts = {
-    .rwlfile = {
-      .exfile  = {
-        .file = {
-          .path       = opts->path,
-          .omode      = omode,
-          .lock_mode  = (oflags & IWKV_RDONLY) ? IWP_RLOCK : IWP_WLOCK
-        },
-        .rspolicy     = iw_exfile_szpolicy_fibo
-      }
+    .exfile = {
+      .file = {
+        .path       = opts->path,
+        .omode      = omode,
+        .lock_mode  = (oflags & IWKV_RDONLY) ? IWP_RLOCK : IWP_WLOCK
+      },
+      .rspolicy     = iw_exfile_szpolicy_fibo
     },
     .bpow = IWKV_FSM_BPOW,      // 64 bytes block size
     .hdrlen = KVHDRSZ,          // Size of custom file header
@@ -2114,8 +2112,8 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   iwkv->dbs = kh_init(DBS);
   rc = fsm->state(fsm, &fsmstate);
   RCGO(rc, finish);
-
-  if (fsmstate.rwlfile.exfile.file.ostatus & IWFS_OPEN_NEW) {
+  
+  if (fsmstate.exfile.file.ostatus & IWFS_OPEN_NEW) {
     // Write magic number
     lv = IWKV_MAGIC;
     lv = IW_HTOIL(lv);
@@ -2318,7 +2316,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb) {
   blkn_t blkn = ADDR2BLK(kb->addr);
   fprintf(f, "\n === KVBLK[%u] maxoff=%u, zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
           blkn, kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
-
+          
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
   if (rc) {
     iwlog_ecode_error3(rc);

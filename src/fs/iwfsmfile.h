@@ -75,7 +75,7 @@
  `IWFS_FSM::writehdr` and `IWFS_FSM::readhdr`
  */
 
-#include "iwrwlfile.h"
+#include "iwexfile.h"
 #include <math.h>
 
 IW_EXTERN_C_START
@@ -151,7 +151,7 @@ typedef enum {
  * @see iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts)
  */
 typedef struct IWFS_FSM_OPTS {
-  IWFS_RWL_OPTS rwlfile;
+  IWFS_EXT_OPTS exfile;
   iwfs_fsm_openflags oflags; /**< Operation mode flags */
   uint8_t bpow;              /**< Block size power for 2 */
   size_t bmlen;              /**< Initial size of free-space bitmap */
@@ -166,7 +166,7 @@ typedef struct IWFS_FSM_OPTS {
  * @see IWFS_FSM::state
  */
 typedef struct IWFS_FSM_STATE {
-  IWFS_RWL_STATE rwlfile;    /**< File pool state */
+  IWFS_EXT_STATE exfile;    /**< File pool state */
   size_t block_size;         /**< Size of data block in bytes. */
   iwfs_fsm_openflags oflags; /**< Operation mode flags. */
   uint32_t hdrlen;     /**< Length of custom file header length in bytes */
@@ -275,26 +275,6 @@ typedef struct IWFS_FSM {
    */
   iwrc(*clear)(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags);
 
-  /* See iwrwlfile.h */
-
-  /** @see IWFS_RWL::lock */
-  iwrc(*lock)(struct IWFS_FSM *f, off_t off, off_t len, iwrl_lockflags lflags);
-
-  /** @see IWFS_RWL::try_lock */
-  iwrc(*try_lock)(struct IWFS_FSM *f, off_t off, off_t len,
-                  iwrl_lockflags lflags);
-
-  /** @see IWFS_RWL::unlock */
-  iwrc(*unlock)(struct IWFS_FSM *f, off_t off, off_t len);
-
-  /** @see IWFS_RWL::lwrite */
-  iwrc(*lwrite)(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz,
-                size_t *sp);
-
-  /** @see IWFS_RWL::lread */
-  iwrc(*lread)(struct IWFS_FSM *f, off_t off, void *buf, size_t siz,
-               size_t *sp);
-
   /* See iwexfile.h */
 
   /** @see IWFS_EXT::ensure_size */
@@ -363,15 +343,13 @@ typedef struct IWFS_FSM {
  *
  * @code {.c}
  *  IWFS_FSM_OPTS opts = {
- *       .rwlfile = {
- *           .exfile  = {
- *               .file = {
- *                  .path       = "myfile.dat",
- *                  .omode      = IWFS_OWRITE | IWFS_OCREATE,
- *                  .lock_mode  = IWP_WLOCK
- *              },
- *              .rspolicy       = iw_exfile_szpolicy_fibo
- *            }
+ *       .exfile = {
+ *          .file = {
+ *              .path       = "myfile.dat",
+ *              .omode      = IWFS_OWRITE | IWFS_OCREATE,
+ *              .lock_mode  = IWP_WLOCK
+ *          },
+ *          .rspolicy       = iw_exfile_szpolicy_fibo
  *        },
  *       .bpow = 6,              // 2^6 bytes block size
  *       .hdrlen = 255,          // Size of custom file header
