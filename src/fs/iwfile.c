@@ -38,11 +38,11 @@ typedef struct IWFS_FILE_IMPL {
   HANDLE fh;               /**< File handle. */
   iwfs_openstatus ostatus; /**< File open status. */
   IWFS_FILE_OPTS opts;     /**< File open options. */
-} _IWF;
+} IWF;
 
 static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   assert(f);
-  _IWF *impl = f->impl;
+  IWF *impl = f->impl;
   if (!impl) {
     return IW_ERROR_INVALID_STATE;
   }
@@ -54,7 +54,7 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t 
 
 static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp) {
   assert(f);
-  _IWF *impl = f->impl;
+  IWF *impl = f->impl;
   if (!impl) {
     return IW_ERROR_INVALID_STATE;
   }
@@ -66,7 +66,7 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
     return 0;
   }
   iwrc rc = 0;
-  _IWF *impl = f->impl;
+  IWF *impl = f->impl;
   IWFS_FILE_OPTS *opts = &impl->opts;
   if (opts->lock_mode != IWP_NOLOCK) {
     IWRC(iwp_unlock(impl->fh), rc);
@@ -86,7 +86,7 @@ static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
   if (!f->impl) {
     return IW_ERROR_INVALID_STATE;
   }
-  _IWF *wf = (_IWF *) f->impl;
+  IWF *wf = (IWF *) f->impl;
   if (flags & IWFS_FDATASYNC) {
     if (fdatasync(wf->fh) == -1) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
@@ -101,7 +101,7 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE *state) {
   assert(f);
   assert(state);
   memset(state, 0, sizeof(*state));
-  _IWF *impl = f->impl;
+  IWF *impl = f->impl;
   state->is_open = !!impl;
   if (!state->is_open) {
     return 0;
@@ -114,7 +114,7 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE *state) {
 
 static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
   assert(f);
-  _IWF *impl = f->impl;
+  IWF *impl = f->impl;
   if (!impl) {
     return IW_ERROR_INVALID_STATE;
   }
@@ -129,7 +129,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   assert(_opts && _opts->path);
 
   IWFS_FILE_OPTS *opts;
-  _IWF *impl;
+  IWF *impl;
   IWP_FILE_STAT fstat;
   iwfs_omode omode;
   iwrc rc;
@@ -146,7 +146,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   f->state = _iwfs_state;
   f->copy = _iwfs_copy;
 
-  impl = f->impl = calloc(sizeof(_IWF), 1);
+  impl = f->impl = calloc(sizeof(IWF), 1);
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -206,7 +206,6 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     rc = iwp_flock(impl->fh, opts->lock_mode);
     RCGO(rc, finish);
   }
-
 finish:
   if (rc) {
     impl->ostatus = IWFS_OPEN_FAIL;

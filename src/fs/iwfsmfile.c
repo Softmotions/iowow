@@ -34,7 +34,7 @@
 
 #include <pthread.h>
 
-typedef struct IWFS_FSM_IMPL _FSM;
+typedef struct IWFS_FSM_IMPL FSM;
 
 void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
 
@@ -48,52 +48,52 @@ typedef struct {
   uint8_t b[8];
   /* Position of divider bit in the block offset|length data. */
   uint8_t div;
-} _FSMBK;
+} FSMBK;
 
 /** Additional options for `_fsm_set_bit_status_lw` routine */
 typedef enum {
-  _FSM_BM_NONE = 0,       /**< No options. */
-  _FSM_BM_DRY_RUN = 1,    /**< Do not modify bitmap. */
-  _FSM_BM_STRICT = 1 << 1 /**< Perform strict checking of bitmap consistency */
+  FSM_BM_NONE = 0,       /**< No options. */
+  FSM_BM_DRY_RUN = 1,    /**< Do not modify bitmap. */
+  FSM_BM_STRICT = 1 << 1 /**< Perform strict checking of bitmap consistency */
 } fsm_bmopts_t;
 
-#define _FSM_SEQ_IO_BUF_SIZE 8192
-#define _FSM_MAGICK 0x19cc7cc
+#define FSM_SEQ_IO_BUF_SIZE 8192
+#define FSM_MAGICK 0x19cc7cc
 
 /* Maximum size of block: 1Mb */
-#define _FSM_MAX_BLOCK_POW 20
+#define FSM_MAX_BLOCK_POW 20
 
 /* Maximum number of records used in allocation statistics */
-#define _FSM_MAX_STATS_COUNT 0x0000ffff
+#define FSM_MAX_STATS_COUNT 0x0000ffff
 
-#define _FSM_CUSTOM_HDR_DATA_OFFSET                                                                          \
+#define FSM_CUSTOM_HDR_DATA_OFFSET                                                                          \
   (4 /*magic*/ + 1 /*block pow*/ + 8 /*fsm bitmap block offset */ + 8 /*fsm bitmap block length*/ +          \
    8 /*all allocated block length sum */ + 4 /*number of all allocated areas */ +                            \
    8 /* allocated areas length standard variance (deviation^2 * N) */ + 32 /*reserved*/ +                    \
    4 /*custom hdr size*/)
 
-#define _FSM_ENSURE_OPEN(FSM_impl_)                                                                          \
+#define FSM_ENSURE_OPEN(FSM_impl_)                                                                          \
   if (!(FSM_impl_) || !(FSM_impl_)->f) return IW_ERROR_INVALID_STATE;
 
-#define _FSM_ENSURE_OPEN2(FSM_f_)                                                                            \
+#define FSM_ENSURE_OPEN2(FSM_f_)                                                                            \
   if (!(FSM_f_) || !(FSM_f_)->impl) return IW_ERROR_INVALID_STATE;
 
-#define _FSMBK_RESET(Bk_) memset((Bk_), 0, sizeof(*(Bk_)))
+#define FSMBK_RESET(Bk_) memset((Bk_), 0, sizeof(*(Bk_)))
 
-#define _FSMBK_I64(Bk_) (*((uint64_t *) (Bk_)))
+#define FSMBK_I64(Bk_) (*((uint64_t *) (Bk_)))
 
-#define _FSMBK_OFFSET(Bk_) (_FSMBK_I64(Bk_) & ((((uint64_t) 1) << (Bk_)->div) - 1))
+#define FSMBK_OFFSET(Bk_) (FSMBK_I64(Bk_) & ((((uint64_t) 1) << (Bk_)->div) - 1))
 
-#define _FSMBK_LENGTH(Bk_)                                                                                   \
-  ((Bk_)->div ? ((_FSMBK_I64(Bk_) >> (Bk_)->div) & ((((uint64_t) 1) << (64 - (Bk_)->div)) - 1))              \
-   : _FSMBK_I64(Bk_))
+#define FSMBK_LENGTH(Bk_)                                                                                   \
+  ((Bk_)->div ? ((FSMBK_I64(Bk_) >> (Bk_)->div) & ((((uint64_t) 1) << (64 - (Bk_)->div)) - 1))              \
+   : FSMBK_I64(Bk_))
 
-#define _FSMBK_END(Bk_) (_FSMBK_OFFSET(Bk_) + _FSMBK_LENGTH(Bk_))
+#define FSMBK_END(Bk_) (FSMBK_OFFSET(Bk_) + FSMBK_LENGTH(Bk_))
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-IW_INLINE int _fsm_cmp(_FSMBK a, _FSMBK b);
-KBTREE_INIT(fsm, _FSMBK, _fsm_cmp)
+IW_INLINE int _fsm_cmp(FSMBK a, FSMBK b);
+KBTREE_INIT(fsm, FSMBK, _fsm_cmp)
 
 struct IWFS_FSM_IMPL {
   IWFS_RWL pool;             /**< Underlying rwl file. */
@@ -120,39 +120,39 @@ struct IWFS_FSM_IMPL {
   int mmap_all;              /**< Mmap all file data */
 };
 
-static iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size);
+static iwrc _fsm_ensure_size_lw(FSM *impl, off_t size);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-IW_INLINE int _fsm_cmp(_FSMBK a, _FSMBK b) {
-  uint64_t la = _FSMBK_LENGTH(&a);
-  uint64_t lb = _FSMBK_LENGTH(&b);
+IW_INLINE int _fsm_cmp(FSMBK a, FSMBK b) {
+  uint64_t la = FSMBK_LENGTH(&a);
+  uint64_t lb = FSMBK_LENGTH(&b);
   int ret = ((lb < la) - (la < lb));
   if (ret) {
     return ret;
   } else {
-    uint64_t oa = _FSMBK_OFFSET(&a);
-    uint64_t ob = _FSMBK_OFFSET(&b);
+    uint64_t oa = FSMBK_OFFSET(&a);
+    uint64_t ob = FSMBK_OFFSET(&b);
     return ((ob < oa) - (oa < ob));
   }
 }
 
-IW_INLINE iwrc _fsm_ctrl_wlock(_FSM *impl) {
+IW_INLINE iwrc _fsm_ctrl_wlock(FSM *impl) {
   int err = impl->ctlrwlk ? pthread_rwlock_wrlock(impl->ctlrwlk) : 0;
   return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
 }
 
-IW_INLINE iwrc _fsm_ctrl_rlock(_FSM *impl) {
+IW_INLINE iwrc _fsm_ctrl_rlock(FSM *impl) {
   int err = impl->ctlrwlk ? pthread_rwlock_rdlock(impl->ctlrwlk) : 0;
   return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
 }
 
-IW_INLINE iwrc _fsm_ctrl_unlock(_FSM *impl) {
+IW_INLINE iwrc _fsm_ctrl_unlock(FSM *impl) {
   int err = impl->ctlrwlk ? pthread_rwlock_unlock(impl->ctlrwlk) : 0;
   return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
 }
 
-static iwrc _fsm_bmptr(_FSM *impl, uint64_t **bmptr) {
+static iwrc _fsm_bmptr(FSM *impl, uint64_t **bmptr) {
   size_t sp;
   uint8_t *mm;
   *bmptr = 0;
@@ -178,7 +178,7 @@ static iwrc _fsm_bmptr(_FSM *impl, uint64_t **bmptr) {
  *        with given @a offset
  *        and @a length values.
  */
-IW_INLINE iwrc _fsm_init_fbk(_FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
+IW_INLINE iwrc _fsm_init_fbk(FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
   uint64_t apply = 0;
   if (offset_blk) {
     bk->div = iwbits_find_last_sbit64(offset_blk) + 1;
@@ -199,12 +199,12 @@ IW_INLINE iwrc _fsm_init_fbk(_FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) 
 
 /**
  * @brief Remove free space block from the fsm tree.
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param offset_blk Offset block number
  * @param length_blk Number of blocks
  */
-IW_INLINE iwrc _fsm_del_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
-  _FSMBK fbk;
+IW_INLINE iwrc _fsm_del_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
+  FSMBK fbk;
   assert(length_blk);
   iwrc rc = _fsm_init_fbk(&fbk, offset_blk, length_blk);
   if (rc) {
@@ -218,7 +218,7 @@ IW_INLINE iwrc _fsm_del_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_blk
   s2 = kb_size(impl->fsm);
   assert(s2 < s1);
 #endif
-  if (_FSMBK_OFFSET(&fbk) == impl->lfbkoff) {
+  if (FSMBK_OFFSET(&fbk) == impl->lfbkoff) {
     impl->lfbkoff = 0;
     impl->lfbklen = 0;
   }
@@ -227,10 +227,10 @@ IW_INLINE iwrc _fsm_del_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_blk
 
 /**
  * @brief Deregister free-block chunk from the fsm tree.
- * @param impl `_FSM`
- * @param fbk `_FSMBK` Fsm tree key structure.
+ * @param impl `FSM`
+ * @param fbk `FSMBK` Fsm tree key structure.
  */
-IW_INLINE void _fsm_del_fbk2(_FSM *impl, const _FSMBK fbk) {
+IW_INLINE void _fsm_del_fbk2(FSM *impl, const FSMBK fbk) {
 #ifndef NDEBUG
   int s2, s1 = kb_size(impl->fsm);
 #endif
@@ -239,7 +239,7 @@ IW_INLINE void _fsm_del_fbk2(_FSM *impl, const _FSMBK fbk) {
   s2 = kb_size(impl->fsm);
   assert(s2 < s1);
 #endif
-  if (_FSMBK_OFFSET(&fbk) == impl->lfbkoff) {
+  if (FSMBK_OFFSET(&fbk) == impl->lfbkoff) {
     impl->lfbkoff = 0;
     impl->lfbklen = 0;
   }
@@ -247,12 +247,12 @@ IW_INLINE void _fsm_del_fbk2(_FSM *impl, const _FSMBK fbk) {
 
 /**
  * @brief Register free space block in the fsm tree.
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param offset_blk Offset block number
  * @param length_blk Number of blocks
  */
-IW_INLINE iwrc _fsm_put_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
-  _FSMBK fbk;
+IW_INLINE iwrc _fsm_put_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
+  FSMBK fbk;
   assert(length_blk);
   iwrc rc = _fsm_init_fbk(&fbk, offset_blk, length_blk);
   if (rc) {
@@ -268,12 +268,12 @@ IW_INLINE iwrc _fsm_put_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_blk
 
 /**
  * @brief Find a free-space chunk in the fsm tree.
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param offset_blk Offset block number
  * @param length_blk Number of blocks
  */
-IW_INLINE _FSMBK *_fsm_get_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
-  _FSMBK fbk;
+IW_INLINE FSMBK *_fsm_get_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
+  FSMBK fbk;
   assert(length_blk);
   iwrc rc = _fsm_init_fbk(&fbk, offset_blk, length_blk);
   if (rc) {
@@ -285,18 +285,18 @@ IW_INLINE _FSMBK *_fsm_get_fbk(_FSM *impl, uint64_t offset_blk, uint64_t length_
 
 /**
  * @brief Get the nearest free-space block.
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param offset_blk Desired offset in number of blocks.
  * @param length_blk Desired free area size specified in blocks.
  * @param opts Allocation opts
  * @return `0` if matching block is not found.
  */
-static _FSMBK *_fsm_find_matching_fblock_lw(_FSM *impl,
+static FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
                                             uint64_t offset_blk,
                                             uint64_t length_blk,
                                             iwfs_fsm_aflags opts) {
-  _FSMBK k;
-  _FSMBK *uk, *lk;
+  FSMBK k;
+  FSMBK *uk, *lk;
   iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
   if (rc) return 0;
 
@@ -306,12 +306,12 @@ static _FSMBK *_fsm_find_matching_fblock_lw(_FSM *impl,
   }
 
   uint64_t lkdist = UINT64_MAX;
-  uint64_t lkoffset = lk ? _FSMBK_OFFSET(lk) : 0;
-  uint64_t lklength = lk ? _FSMBK_LENGTH(lk) : 0;
+  uint64_t lkoffset = lk ? FSMBK_OFFSET(lk) : 0;
+  uint64_t lklength = lk ? FSMBK_LENGTH(lk) : 0;
 
   uint64_t ukdist = UINT64_MAX;
-  uint64_t ukoffset = uk ? _FSMBK_OFFSET(uk) : 0;
-  uint64_t uklength = uk ? _FSMBK_LENGTH(uk) : 0;
+  uint64_t ukoffset = uk ? FSMBK_OFFSET(uk) : 0;
+  uint64_t uklength = uk ? FSMBK_LENGTH(uk) : 0;
 
   if (lk && lklength >= length_blk) {
     lkdist = (lkoffset >= offset_blk) ? (lkoffset - offset_blk) : (offset_blk - lkoffset);
@@ -332,7 +332,7 @@ static _FSMBK *_fsm_find_matching_fblock_lw(_FSM *impl,
  * @param bit_status  If `1` bits will be set to `1` otherwise `0`
  * @param opts        Operation options
  */
-static iwrc _fsm_set_bit_status_lw(_FSM *impl,
+static iwrc _fsm_set_bit_status_lw(FSM *impl,
                                    uint64_t offset_bits,
                                    int64_t length_bits,
                                    int bit_status,
@@ -372,17 +372,17 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
   set_mask = (~((uint64_t) 0) << (offset_bits & (64 - 1)));
   while (length_bits - set_bits >= 0) {
     if (bit_status) {
-      if ((opts & _FSM_BM_STRICT) && (*p & set_mask)) {
+      if ((opts & FSM_BM_STRICT) && (*p & set_mask)) {
         rc = IWFS_ERROR_FSM_SEGMENTATION;
       }
-      if ((opts & _FSM_BM_DRY_RUN) == 0) {
+      if ((opts & FSM_BM_DRY_RUN) == 0) {
         *p |= set_mask;
       }
     } else {
-      if ((opts & _FSM_BM_STRICT) && ((*p & set_mask) != set_mask)) {
+      if ((opts & FSM_BM_STRICT) && ((*p & set_mask) != set_mask)) {
         rc = IWFS_ERROR_FSM_SEGMENTATION;
       }
-      if ((opts & _FSM_BM_DRY_RUN) == 0) {
+      if ((opts & FSM_BM_DRY_RUN) == 0) {
         *p &= ~set_mask;
       }
     }
@@ -394,17 +394,17 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
   if (length_bits) {
     set_mask &= (bend & (64 - 1)) ? ((((uint64_t) 1) << (bend & (64 - 1))) - 1) : ~((uint64_t) 0);
     if (bit_status) {
-      if ((opts & _FSM_BM_STRICT) && (*p & set_mask)) {
+      if ((opts & FSM_BM_STRICT) && (*p & set_mask)) {
         rc = IWFS_ERROR_FSM_SEGMENTATION;
       }
-      if ((opts & _FSM_BM_DRY_RUN) == 0) {
+      if ((opts & FSM_BM_DRY_RUN) == 0) {
         *p |= set_mask;
       }
     } else {
-      if ((opts & _FSM_BM_STRICT) && (*p & set_mask) != set_mask) {
+      if ((opts & FSM_BM_STRICT) && (*p & set_mask) != set_mask) {
         rc = IWFS_ERROR_FSM_SEGMENTATION;
       }
-      if ((opts & _FSM_BM_DRY_RUN) == 0) {
+      if ((opts & FSM_BM_DRY_RUN) == 0) {
         *p &= ~set_mask;
       }
     }
@@ -415,7 +415,7 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
 /**
  *  @brief Allocate a continuous segment of blocks with page aligned offset.
  *
- *  @param impl `_FSM`
+ *  @param impl `FSM`
  *  @param length_blk Desired segment length in blocks.
  *  @param [in,out] offset_blk Allocated segment offset in blocks will be stored into.
                     It also specified the desired segment offset to provide
@@ -424,19 +424,19 @@ static iwrc _fsm_set_bit_status_lw(_FSM *impl,
  *  @param  max_offset_blk Maximal offset of allocated block.
  *  @param opts Allocation options.
  */
-static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl,
+static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
                                          int64_t length_blk,
                                          uint64_t *offset_blk,
                                          int64_t *olength_blk,
                                          uint64_t max_offset_blk,
                                          iwfs_fsm_aflags opts) {
-  _FSMBK *nk;
+  FSMBK *nk;
   fsm_bmopts_t bopts = 0;
   off_t psize_blk = (impl->psize >> impl->bpow);
 
   assert(impl && impl->fsm && length_blk > 0);
   if (impl->oflags & IWFSM_STRICT) {
-    bopts |= _FSM_BM_STRICT;
+    bopts |= FSM_BM_STRICT;
   }
   *olength_blk = 0;
   *offset_blk = 0;
@@ -449,8 +449,8 @@ static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl,
       return IWFS_ERROR_NO_FREE_SPACE;
     }
   }
-  uint64_t akoff = _FSMBK_OFFSET(nk);
-  uint64_t aklen = _FSMBK_LENGTH(nk);
+  uint64_t akoff = FSMBK_OFFSET(nk);
+  uint64_t aklen = FSMBK_LENGTH(nk);
   uint64_t noff = IW_ROUNDUP(akoff, psize_blk);
   if (noff <= max_offset_blk && (noff < aklen + akoff) && (aklen - (noff - akoff) >= length_blk)) {
     aklen = aklen - (noff - akoff);
@@ -470,18 +470,18 @@ static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl,
   /* full scan */
 #define _fsm_traverse(k)                                                                                     \
   {                                                                                                          \
-    uint64_t koff = _FSMBK_OFFSET(k);                                                                        \
+    uint64_t koff = FSMBK_OFFSET(k);                                                                        \
     if (koff < akoff) {                                                                                      \
       uint64_t klen;                                                                                         \
       noff = IW_ROUNDUP(koff, psize_blk);                                                                    \
-      klen = _FSMBK_LENGTH(k);                                                                               \
+      klen = FSMBK_LENGTH(k);                                                                               \
       if (noff <= max_offset_blk && (noff < klen + akoff) && (klen - (noff - koff) >= length_blk)) {         \
         akoff = koff;                                                                                        \
         aklen = klen;                                                                                        \
       }                                                                                                      \
     }                                                                                                        \
   }
-  __kb_traverse(_FSMBK, impl->fsm, _fsm_traverse);
+  __kb_traverse(FSMBK, impl->fsm, _fsm_traverse);
 #undef _fsm_traverse
 
   if (akoff == UINT64_MAX) {
@@ -502,11 +502,11 @@ static iwrc _fsm_blk_allocate_aligned_lw(_FSM *impl,
 
 /**
  * @brief Load existing bitmap area into free-space search tree.
- * @param impl  `_FSM`
+ * @param impl  `FSM`
  * @param bm    Bitmap area start ptr
  * @param len   Bitmap area length in bytes.
  */
-static void _fsm_load_fsm_lw(_FSM *impl, uint8_t *bm, uint64_t len) {
+static void _fsm_load_fsm_lw(FSM *impl, uint8_t *bm, uint64_t len) {
   uint64_t b,
            bnum = len << 3,
            cbnum = 0,
@@ -555,11 +555,11 @@ static void _fsm_load_fsm_lw(_FSM *impl, uint8_t *bm, uint64_t len) {
  * @param is_sync If `1` perform mmap sync.
  * @return
  */
-static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
+static iwrc _fsm_write_meta_lw(FSM *impl, int is_sync) {
   uint64_t llv;
   size_t wlen;
   uint32_t sp = 0, lv;
-  uint8_t hdr[_FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
+  uint8_t hdr[FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
 
   /*
       [FSM_CTL_MAGICK u32][block pow u8]
@@ -570,49 +570,49 @@ static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
   */
 
   /* magic */
-  lv = IW_HTOIL(_FSM_MAGICK);
-  assert(sp + sizeof(lv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  lv = IW_HTOIL(FSM_MAGICK);
+  assert(sp + sizeof(lv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &lv, sizeof(lv));
   sp += sizeof(lv);
 
   /* block pow */
   assert(sizeof(impl->bpow) == 1);
-  assert(sp + sizeof(impl->bpow) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  assert(sp + sizeof(impl->bpow) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &impl->bpow, sizeof(impl->bpow));
   sp += sizeof(impl->bpow);
 
   /* fsm bitmap block offset */
   llv = impl->bmoff;
   llv = IW_HTOILL(llv);
-  assert(sp + sizeof(llv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  assert(sp + sizeof(llv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &llv, sizeof(llv));
   sp += sizeof(llv);
 
   /* fsm bitmap block length */
   llv = impl->bmlen;
   llv = IW_HTOILL(llv);
-  assert(sp + sizeof(llv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  assert(sp + sizeof(llv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &llv, sizeof(llv));
   sp += sizeof(llv);
 
   /* Cumulative sum of record sizes acquired by `allocate` */
   llv = impl->crzsum;
   llv = IW_HTOILL(llv);
-  assert(sp + sizeof(llv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  assert(sp + sizeof(llv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &llv, sizeof(llv));
   sp += sizeof(llv);
 
   /* Cumulative number of records acquired by `allocated` */
   lv = impl->crznum;
   lv = IW_HTOIL(lv);
-  assert(sp + sizeof(lv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  assert(sp + sizeof(lv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &lv, sizeof(lv));
   sp += sizeof(lv);
 
   /* Record sizes standard variance (deviation^2 * N) */
   llv = impl->crzvar;
   llv = IW_HTOILL(llv);
-  assert(sp + sizeof(lv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  assert(sp + sizeof(lv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &llv, sizeof(llv));
   sp += sizeof(llv);
 
@@ -622,12 +622,12 @@ static iwrc _fsm_write_meta_lw(_FSM *impl, int is_sync) {
   /* Size of header */
   lv = impl->hdrlen;
   lv = IW_HTOIL(lv);
-  assert(sp + sizeof(lv) <= _FSM_CUSTOM_HDR_DATA_OFFSET);
+  assert(sp + sizeof(lv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &lv, sizeof(lv));
   sp += sizeof(lv);
 
-  assert(sp == _FSM_CUSTOM_HDR_DATA_OFFSET);
-  iwrc rc = impl->pool.write(&impl->pool, 0, hdr, _FSM_CUSTOM_HDR_DATA_OFFSET, &wlen);
+  assert(sp == FSM_CUSTOM_HDR_DATA_OFFSET);
+  iwrc rc = impl->pool.write(&impl->pool, 0, hdr, FSM_CUSTOM_HDR_DATA_OFFSET, &wlen);
   if (!rc && is_sync) {
     rc = impl->pool.sync_mmap(&impl->pool, 0, impl->sync_flags);
   }
@@ -747,11 +747,11 @@ static uint64_t _fsm_find_prev_set_bit(const uint64_t *addr, uint64_t offset_bit
  * @brief Return a previously allocated blocks
  *        back into the free-blocks pool.
  *
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param offset_blk Starting block number of the specified range.
  * @param length_blk Range size in blocks.
  */
-static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t length_blk) {
+static iwrc _fsm_blk_deallocate_lw(FSM *impl, uint64_t offset_blk, int64_t length_blk) {
   iwrc rc;
   uint64_t *bmptr;
   uint64_t left, right;
@@ -761,7 +761,7 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
   fsm_bmopts_t bopts = 0;
 
   if (impl->oflags & IWFSM_STRICT) {
-    bopts |= _FSM_BM_STRICT;
+    bopts |= FSM_BM_STRICT;
   }
 
   rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, 0, bopts);
@@ -810,12 +810,12 @@ static iwrc _fsm_blk_deallocate_lw(_FSM *impl, uint64_t offset_blk, int64_t leng
  * If bitmap exists, its content will be moved into newly created area.
  * Blocks from the previous bitmap are will disposed and deallocated.
  *
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param bmoff Byte offset of the new bitmap. Value must be page aligned.
  * @param bmlen Byte length of the new bitmap. Value must be page aligned.
                 Its length must not be lesser than length of old bitmap.
  */
-static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
+static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   iwrc rc;
   uint8_t *mm, *mm2;
   uint64_t sp, sp2;
@@ -902,11 +902,11 @@ static iwrc _fsm_init_lw(_FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   impl->bmoff = bmoff;
   impl->bmlen = bmlen;
 
-  rc = _fsm_set_bit_status_lw(impl, (bmoff >> impl->bpow), (bmlen >> impl->bpow), 1, _FSM_BM_NONE);
+  rc = _fsm_set_bit_status_lw(impl, (bmoff >> impl->bpow), (bmlen >> impl->bpow), 1, FSM_BM_NONE);
   RCGO(rc, rollback);
   if (!old_bmlen) { /* First time initialization */
     /* Header allocation */
-    rc = _fsm_set_bit_status_lw(impl, 0, (impl->hdrlen >> impl->bpow), 1, _FSM_BM_NONE);
+    rc = _fsm_set_bit_status_lw(impl, 0, (impl->hdrlen >> impl->bpow), 1, FSM_BM_NONE);
     RCGO(rc, rollback);
   }
 
@@ -942,10 +942,10 @@ rollback: /* try to rollback bitmap state */
 
 /**
  * @brief Resize bitmap area.
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param size New size of bitmap area in bytes.
  */
-static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
+static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
   iwrc rc;
   int64_t sp;
   uint64_t bmoffset = 0, bmlen;
@@ -981,20 +981,20 @@ static iwrc _fsm_resize_fsm_bitmap_lw(_FSM *impl, uint64_t size) {
  *
  *    TODO: full description
  *
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param length_blk Desired segment length in blocks.
  * @param [in,out] offset_blk Allocated segment offset in blocks will be stored into.
  *                It also specified the desired segment offset to provide allocation locality.
  * @param [out] olength_blk Assigned segment length in blocks.
  * @param opts
  */
-static iwrc _fsm_blk_allocate_lw(_FSM *impl,
+static iwrc _fsm_blk_allocate_lw(FSM *impl,
                                  int64_t length_blk,
                                  uint64_t *offset_blk,
                                  int64_t *olength_blk,
                                  iwfs_fsm_aflags opts) {
   iwrc rc;
-  _FSMBK *nk;
+  FSMBK *nk;
   fsm_bmopts_t bopts = 0;
 
   if (opts & IWFSM_ALLOC_PAGE_ALIGNED) {
@@ -1022,8 +1022,8 @@ static iwrc _fsm_blk_allocate_lw(_FSM *impl,
 start:
   nk = _fsm_find_matching_fblock_lw(impl, *offset_blk, length_blk, opts);
   if (nk) { /* using existing free space block */
-    uint64_t nlength = _FSMBK_LENGTH(nk);
-    *offset_blk = _FSMBK_OFFSET(nk);
+    uint64_t nlength = FSMBK_LENGTH(nk);
+    *offset_blk = FSMBK_OFFSET(nk);
     assert(kb_get(fsm, impl->fsm, *nk));
 
 #ifndef NDEBUG
@@ -1059,13 +1059,13 @@ start:
   }
 
   if (impl->oflags & IWFSM_STRICT) {
-    bopts |= _FSM_BM_STRICT;
+    bopts |= FSM_BM_STRICT;
   }
   rc = _fsm_set_bit_status_lw(impl, *offset_blk, *olength_blk, 1, bopts);
   if (!rc && !(opts & IWFSM_ALLOC_NO_STATS)) {
     double_t avg;
     /* Update allocation statistics */
-    if (impl->crznum > _FSM_MAX_STATS_COUNT) {
+    if (impl->crznum > FSM_MAX_STATS_COUNT) {
       impl->crznum = 0;
       impl->crzsum = 0;
       impl->crzvar = 0;
@@ -1087,7 +1087,7 @@ start:
 /**
  * @brief Remove all free blocks from the and of file and trim its size.
  */
-static iwrc _fsm_trim_tail_lw(_FSM *impl) {
+static iwrc _fsm_trim_tail_lw(FSM *impl) {
   iwrc rc;
   int hasleft;
   int64_t length;
@@ -1138,7 +1138,7 @@ finish:
   return rc;
 }
 
-static iwrc _fsm_init_impl(_FSM *impl, const IWFS_FSM_OPTS *opts) {
+static iwrc _fsm_init_impl(FSM *impl, const IWFS_FSM_OPTS *opts) {
   impl->oflags = opts->oflags;
   impl->psize = iwp_page_size();
   impl->bpow = opts->bpow;
@@ -1146,7 +1146,7 @@ static iwrc _fsm_init_impl(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   impl->mmap_all = opts->mmap_all;
   if (!impl->bpow) {
     impl->bpow = 6;  // 64bit block
-  } else if (impl->bpow > _FSM_MAX_BLOCK_POW) {
+  } else if (impl->bpow > FSM_MAX_BLOCK_POW) {
     return IWFS_ERROR_INVALID_BLOCK_SIZE;
   } else if ((1 << impl->bpow) > impl->psize) {
     return IWFS_ERROR_PLATFORM_PAGE;
@@ -1154,7 +1154,7 @@ static iwrc _fsm_init_impl(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   return 0;
 }
 
-static iwrc _fsm_init_locks(_FSM *impl, const IWFS_FSM_OPTS *opts) {
+static iwrc _fsm_init_locks(FSM *impl, const IWFS_FSM_OPTS *opts) {
   if (opts->oflags & IWFSM_NOLOCKS) {
     impl->ctlrwlk = 0;
     return 0;
@@ -1173,7 +1173,7 @@ static iwrc _fsm_init_locks(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   return 0;
 }
 
-static iwrc _fsm_destroy_locks(_FSM *impl) {
+static iwrc _fsm_destroy_locks(FSM *impl) {
   if (!impl->ctlrwlk) {
     return 0;
   }
@@ -1188,12 +1188,12 @@ static iwrc _fsm_destroy_locks(_FSM *impl) {
   return rc;
 }
 
-static iwrc _fsm_read_meta_lr(_FSM *impl) {
+static iwrc _fsm_read_meta_lr(FSM *impl) {
   iwrc rc;
   uint32_t lv;
   uint64_t llv;
   size_t sp, rp = 0;
-  uint8_t hdr[_FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
+  uint8_t hdr[FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
 
   /*
       [FSM_CTL_MAGICK u32][block pow u8]
@@ -1203,7 +1203,7 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
       [fsm data...]
   */
 
-  rc = impl->pool.read(&impl->pool, 0, hdr, _FSM_CUSTOM_HDR_DATA_OFFSET, &sp);
+  rc = impl->pool.read(&impl->pool, 0, hdr, FSM_CUSTOM_HDR_DATA_OFFSET, &sp);
   if (rc) {
     iwlog_ecode_error3(rc);
     return rc;
@@ -1212,7 +1212,7 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
   /* Magic */
   memcpy(&lv, hdr + rp, sizeof(lv));
   lv = IW_ITOHL(lv);
-  if (lv != _FSM_MAGICK) {
+  if (lv != FSM_MAGICK) {
     rc = IWFS_ERROR_INVALID_FILEMETA;
     iwlog_ecode_error2(rc, "Invalid file magic number");
     return rc;
@@ -1224,7 +1224,7 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
   memcpy(&impl->bpow, hdr + rp, sizeof(impl->bpow));
   rp += sizeof(impl->bpow);
 
-  if (impl->bpow > _FSM_MAX_BLOCK_POW) {
+  if (impl->bpow > FSM_MAX_BLOCK_POW) {
     rc = IWFS_ERROR_INVALID_FILEMETA;
     iwlog_ecode_error(rc, "Invalid file blocks pow: %u", impl->bpow);
     return rc;
@@ -1278,19 +1278,19 @@ static iwrc _fsm_read_meta_lr(_FSM *impl) {
   impl->hdrlen = lv;
   rp += sizeof(lv);
 
-  assert(rp == _FSM_CUSTOM_HDR_DATA_OFFSET);
+  assert(rp == FSM_CUSTOM_HDR_DATA_OFFSET);
   return rc;
 }
 
-static iwrc _fsm_init_new_lw(_FSM *impl, const IWFS_FSM_OPTS *opts) {
-  _FSM_ENSURE_OPEN(impl);
+static iwrc _fsm_init_new_lw(FSM *impl, const IWFS_FSM_OPTS *opts) {
+  FSM_ENSURE_OPEN(impl);
   iwrc rc;
   uint64_t bmlen, bmoff;
   IWFS_RWL *pool = &impl->pool;
 
   assert(impl->psize && impl->bpow);
 
-  impl->hdrlen = opts->hdrlen + _FSM_CUSTOM_HDR_DATA_OFFSET;
+  impl->hdrlen = opts->hdrlen + FSM_CUSTOM_HDR_DATA_OFFSET;
   impl->hdrlen = IW_ROUNDUP(impl->hdrlen, 1 << impl->bpow);
 
   bmlen = opts->bmlen > 0 ? IW_ROUNDUP(opts->bmlen, impl->psize) : impl->psize;
@@ -1311,8 +1311,8 @@ static iwrc _fsm_init_new_lw(_FSM *impl, const IWFS_FSM_OPTS *opts) {
   return _fsm_init_lw(impl, bmoff, bmlen);
 }
 
-static iwrc _fsm_init_existing_lw(_FSM *impl) {
-  _FSM_ENSURE_OPEN(impl);
+static iwrc _fsm_init_existing_lw(FSM *impl) {
+  FSM_ENSURE_OPEN(impl);
   iwrc rc;
   size_t sp;
   uint8_t *mm;
@@ -1361,19 +1361,19 @@ finish:
 /**
  * @brief Check if all blocks within the specified range have been `allocated`.
  *
- * @param impl `_FSM`
+ * @param impl `FSM`
  * @param offset_blk Starting block number of the specified range.
  * @param length_blk Range size in blocks.
  * @param [out] ret Checking result.
  */
-static iwrc _fsm_is_fully_allocated_lr(_FSM *impl, uint64_t offset_blk, int64_t length_blk, int *ret) {
+static iwrc _fsm_is_fully_allocated_lr(FSM *impl, uint64_t offset_blk, int64_t length_blk, int *ret) {
   uint64_t end = offset_blk + length_blk;
   *ret = 1;
   if (length_blk < 1 || end < offset_blk || end > (impl->bmlen << 3)) {
     *ret = 0;
     return 0;
   }
-  iwrc rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, 0, _FSM_BM_DRY_RUN | _FSM_BM_STRICT);
+  iwrc rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, 0, FSM_BM_DRY_RUN | FSM_BM_STRICT);
   if (rc == IWFS_ERROR_FSM_SEGMENTATION) {
     *ret = 0;
     return 0;
@@ -1386,8 +1386,8 @@ static iwrc _fsm_is_fully_allocated_lr(_FSM *impl, uint64_t offset_blk, int64_t 
  *************************************************************************************************/
 
 static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
-  _FSM_ENSURE_OPEN2(f);
-  _FSM *impl = f->impl;
+  FSM_ENSURE_OPEN2(f);
+  FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
   RCRET(rc);
   if (impl->oflags & IWFSM_STRICT) {
@@ -1411,8 +1411,8 @@ static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t si
 }
 
 static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp) {
-  _FSM_ENSURE_OPEN2(f);
-  _FSM *impl = f->impl;
+  FSM_ENSURE_OPEN2(f);
+  FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
   RCRET(rc);
   if (impl->oflags & IWFSM_STRICT) {
@@ -1438,7 +1438,7 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
   if (!f || !f->impl) {
     return 0;
   }
-  _FSM *impl = f->impl;
+  FSM *impl = f->impl;
   iwrc rc = 0;
   IWRC(_fsm_ctrl_wlock(impl), rc);
   if (impl->omode & IWFS_OWRITE) {
@@ -1458,7 +1458,7 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
 }
 
 static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
   RCRET(rc);
   IWRC(_fsm_write_meta_lw(f->impl, 1), rc);
@@ -1466,12 +1466,12 @@ static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
   return rc;
 }
 
-IW_INLINE iwrc _fsm_ensure_size_lw(_FSM *impl, off_t size) {
+IW_INLINE iwrc _fsm_ensure_size_lw(FSM *impl, off_t size) {
   return impl->pool.ensure_size(&impl->pool, size);
 }
 
 static iwrc _fsm_ensure_size(struct IWFS_FSM *f, off_t size) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
   RCRET(rc);
   if (f->impl->bmoff + f->impl->bmlen > size) {
@@ -1485,53 +1485,53 @@ finish:
 }
 
 static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.add_mmap(&f->impl->pool, off, maxlen);
 }
 
 static iwrc _fsm_acquire_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.acquire_mmap(&f->impl->pool, off, mm, sp);
 }
 
 static iwrc _fsm_probe_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.probe_mmap(&f->impl->pool, off, mm, sp);
 }
 
 static iwrc _fsm_release_mmap(struct IWFS_FSM *f) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.release_mmap(&f->impl->pool);
 }
 
 static iwrc _fsm_remove_mmap(struct IWFS_FSM *f, off_t off) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.remove_mmap(&f->impl->pool, off);
 }
 
 static iwrc _fsm_sync_mmap(struct IWFS_FSM *f, off_t off, int flags) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.sync_mmap(&f->impl->pool, off, flags);
 }
 
 static iwrc _fsm_lock(struct IWFS_FSM *f, off_t start, off_t len, iwrl_lockflags lflags) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.lock(&f->impl->pool, start, len, lflags);
 }
 
 static iwrc _fsm_try_lock(struct IWFS_FSM *f, off_t start, off_t len, iwrl_lockflags lflags) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.try_lock(&f->impl->pool, start, len, lflags);
 }
 
 static iwrc _fsm_unlock(struct IWFS_FSM *f, off_t start, off_t len) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   return f->impl->pool.unlock(&f->impl->pool, start, len);
 }
 
 static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
-  _FSM_ENSURE_OPEN2(f);
-  _FSM *impl = f->impl;
+  FSM_ENSURE_OPEN2(f);
+  FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
   RCRET(rc);
   if (impl->oflags & IWFSM_STRICT) {
@@ -1556,8 +1556,8 @@ static iwrc _fsm_lwrite(struct IWFS_FSM *f, off_t off, const void *buf, size_t s
 }
 
 static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp) {
-  _FSM_ENSURE_OPEN2(f);
-  _FSM *impl = f->impl;
+  FSM_ENSURE_OPEN2(f);
+  FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
   RCRET(rc);
   if (impl->oflags & IWFSM_STRICT) {
@@ -1582,11 +1582,11 @@ static iwrc _fsm_lread(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, siz
 }
 
 static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   iwrc rc;
   int64_t nlen;
   uint64_t sbnum;
-  _FSM *impl = f->impl;
+  FSM *impl = f->impl;
 
   *olen = 0;
   if (!(impl->omode & IWFS_OWRITE)) {
@@ -1611,9 +1611,9 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
                             off_t nlen,
                             off_t *oaddr, off_t *olen,
                             iwfs_fsm_aflags opts) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   iwrc rc;
-  _FSM *impl = f->impl;
+  FSM *impl = f->impl;
 
   if (!(impl->omode & IWFS_OWRITE)) {
     return IW_ERROR_READONLY;
@@ -1645,9 +1645,9 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
     // TODO: _fsm_find_next_set_bit?
     // Try to find free-space at end of reallocated block
     naddr_blk = oaddr_blk + olen_blk;
-    _FSMBK *nk = _fsm_find_matching_fblock_lw(impl, naddr_blk, nlen_blk - olen_blk, opts);
+    FSMBK *nk = _fsm_find_matching_fblock_lw(impl, naddr_blk, nlen_blk - olen_blk, opts);
     if (nk) {
-      uint64_t nkoffset = _FSMBK_OFFSET(nk);
+      uint64_t nkoffset = FSMBK_OFFSET(nk);
       if (nkoffset == naddr_blk) { // we can easily extend end of block
         rc = _fsm_blk_allocate_lw(impl, nlen_blk - olen_blk, &naddr_blk, &sp, opts);
         RCGO(rc, finish);
@@ -1682,9 +1682,9 @@ finish:
 }
 
 static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   iwrc rc;
-  _FSM *impl = f->impl;
+  FSM *impl = f->impl;
   off_t offset_blk = addr >> impl->bpow;
   off_t length_blk = len >> impl->bpow;
 
@@ -1709,11 +1709,11 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
 }
 
 static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t siz) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   iwrc rc;
   uint8_t *mm;
-  _FSM *impl = f->impl;
-  uint64_t end = _FSM_CUSTOM_HDR_DATA_OFFSET + off + siz;
+  FSM *impl = f->impl;
+  uint64_t end = FSM_CUSTOM_HDR_DATA_OFFSET + off + siz;
   if (siz < 1) {
     return 0;
   }
@@ -1722,18 +1722,18 @@ static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t 
   }
   rc = impl->pool.acquire_mmap(&impl->pool, 0, &mm, 0);
   if (!rc) {
-    memmove(mm + _FSM_CUSTOM_HDR_DATA_OFFSET + off, buf, siz);
+    memmove(mm + FSM_CUSTOM_HDR_DATA_OFFSET + off, buf, siz);
     rc = impl->pool.release_mmap(&impl->pool);
   }
   return rc;
 }
 
 static iwrc _fsm_readhdr(struct IWFS_FSM *f, off_t off, void *buf, off_t siz) {
-  _FSM_ENSURE_OPEN2(f);
+  FSM_ENSURE_OPEN2(f);
   iwrc rc;
   uint8_t *mm;
-  _FSM *impl = f->impl;
-  uint64_t end = _FSM_CUSTOM_HDR_DATA_OFFSET + off + siz;
+  FSM *impl = f->impl;
+  uint64_t end = FSM_CUSTOM_HDR_DATA_OFFSET + off + siz;
   if (siz < 1) {
     return 0;
   }
@@ -1742,15 +1742,15 @@ static iwrc _fsm_readhdr(struct IWFS_FSM *f, off_t off, void *buf, off_t siz) {
   }
   rc = impl->pool.acquire_mmap(&impl->pool, 0, &mm, 0);
   if (!rc) {
-    memmove(buf, mm + _FSM_CUSTOM_HDR_DATA_OFFSET + off, siz);
+    memmove(buf, mm + FSM_CUSTOM_HDR_DATA_OFFSET + off, siz);
     rc = impl->pool.release_mmap(&impl->pool);
   }
   return rc;
 }
 
 static iwrc _fsm_clear(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags) {
-  _FSM_ENSURE_OPEN2(f);
-  _FSM *impl = f->impl;
+  FSM_ENSURE_OPEN2(f);
+  FSM *impl = f->impl;
   uint64_t bmoff, bmlen;
   iwrc rc = _fsm_ctrl_wlock(impl);
   bmlen = impl->bmlen;
@@ -1777,8 +1777,8 @@ finish:
 }
 
 static iwrc _fsm_state(struct IWFS_FSM *f, IWFS_FSM_STATE *state) {
-  _FSM_ENSURE_OPEN2(f);
-  _FSM *impl = f->impl;
+  FSM_ENSURE_OPEN2(f);
+  FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
   memset(state, 0, sizeof(*state));
   IWRC(impl->pool.state(&impl->pool, &state->rwlfile), rc);
@@ -1833,7 +1833,7 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   if (!path) {
     return IW_ERROR_INVALID_ARGS;
   }
-  _FSM *impl = f->impl = calloc(1, sizeof(*f->impl));
+  FSM *impl = f->impl = calloc(1, sizeof(*f->impl));
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -1916,7 +1916,7 @@ iwrc iwfs_fsmfile_init(void) {
 uint64_t iwfs_fsmdbg_number_of_free_areas(IWFS_FSM *f) {
   uint64_t ret = 0;
   assert(f);
-  _FSM *impl = f->impl;
+  FSM *impl = f->impl;
   _fsm_ctrl_rlock(impl);
   ret = kb_size(impl->fsm);
   _fsm_ctrl_unlock(impl);
@@ -1935,7 +1935,7 @@ uint64_t iwfs_fsmdbg_find_prev_set_bit(const uint64_t *addr, uint64_t offset_bit
 
 void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr) {
   assert(f);
-  _FSM *impl = f->impl;
+  FSM *impl = f->impl;
   fprintf(stderr, "FSM TREE: %s\n", hdr);
   if (!impl->fsm) {
     fprintf(stderr, "NONE\n");
@@ -1943,11 +1943,11 @@ void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr) {
   }
 #define _fsm_traverse(k)                                                                                     \
   {                                                                                                          \
-    uint64_t koff = _FSMBK_OFFSET(k);                                                                        \
-    uint64_t klen = _FSMBK_LENGTH(k);                                                                        \
+    uint64_t koff = FSMBK_OFFSET(k);                                                                        \
+    uint64_t klen = FSMBK_LENGTH(k);                                                                        \
     fprintf(stderr, "[%" PRIu64 " %" PRIu64 "]\n", koff, klen);                                              \
   }
-  __kb_traverse(_FSMBK, impl->fsm, _fsm_traverse);
+  __kb_traverse(FSMBK, impl->fsm, _fsm_traverse);
 #undef _fsm_traverse
 }
 
@@ -1967,7 +1967,7 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
   assert(f);
   uint64_t sp;
   uint8_t *mm;
-  _FSM *impl = f->impl;
+  FSM *impl = f->impl;
   iwrc rc;
   if (impl->mmap_all) {
     rc = impl->pool.probe_mmap(&impl->pool, 0, &mm, &sp);
@@ -2001,8 +2001,8 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
 
 
 iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d) {
-  _FSM_ENSURE_OPEN2(f);
-  _FSM *impl = f->impl;
+  FSM_ENSURE_OPEN2(f);
+  FSM *impl = f->impl;
   iwrc rc = _fsm_ctrl_rlock(impl);
   memset(d, 0, sizeof(*d));
   IWRC(impl->pool.state(&impl->pool, &d->state.rwlfile), rc);
