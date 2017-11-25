@@ -1535,7 +1535,7 @@ IW_INLINE int _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   if (sblk->pnum < 1) { // empty block
     return -1;
   }
-  if (key->size < sblk->lkl || ((sblk->flags & SBLK_FULL_LKEY) && key->size == sblk->lkl)) {
+  if (key->size < sblk->lkl) {
     IW_CMP(res, sblk->lk, sblk->lkl, key->data, key->size);
     return res;
   }
