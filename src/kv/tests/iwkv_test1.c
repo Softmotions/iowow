@@ -128,12 +128,10 @@ static void iwkv_test2(void) {
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
 
-  iwkvd_db(stderr, db1, 0);
+  logstage(f, "removed all keys in SBLK[58]", db1); // 125
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-
-  // todo test remove keys
 
   // Compare logs with referenced
   FILE *r = fopen("iwkv_test1_2.ref", "r+");
