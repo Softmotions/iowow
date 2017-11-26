@@ -45,7 +45,7 @@ IW_EXTERN_C_START
 #if defined(NDEBUG)
 #define IW_DODEBUG(IW_expr_) \
   do {                       \
-  } while (false)
+  } while (0)
 #else
 #define IW_DODEBUG(IW_expr_) \
   { IW_expr_; }
@@ -269,7 +269,7 @@ IW_EXTERN_C_START
       } \
     } \
     if ((rv_) == 0) (rv_) = (vp1sz_) - (vp2sz_); \
-  } while(false)
+  } while(0)
 
 
 /**

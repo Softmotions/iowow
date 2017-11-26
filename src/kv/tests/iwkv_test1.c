@@ -1,10 +1,10 @@
 #include "iwkv.h"
 #include "iwlog.h"
+#include "iwutils.h"
 #include "iwcfg.h"
 
 #include <CUnit/Basic.h>
 #include <locale.h>
-
 
 #define KBUFSZ 128
 #define VBUFSZ 128
@@ -82,13 +82,53 @@ static void iwkv_test2(void) {
 
   logstage(f, "desc sorted 253 keys inserted", db1);
 
-
-  // Now delete whoole block
-  for (int i = 64; i <= 126; ++i) {
-    // todo
+  for (int i = 0; i <= 252; ++i) {
+    int cret;
+    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
+    snprintf(vbuf, VBUFSZ, "%03dval", i);
+    int vsize = strlen(vbuf);
+    key.data = kbuf;
+    key.size = strlen(key.data);
+    rc = iwkv_get(db1, &key, &val);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_CMP(cret, vbuf, vsize, val.data, val.size);
+    CU_ASSERT_EQUAL_FATAL(cret, 0);
   }
 
+  snprintf(kbuf, KBUFSZ, "%03dkkk", 64);
+  key.data = kbuf;
+  key.size = strlen(key.data);
+  rc = iwkv_del(db1, &key);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
 
+  logstage(f, "removed 064kkk", db1);
+
+  // Now delete more than half of block records
+  // 126
+  for (int i = 64; i <= 99; ++i) {
+    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
+    key.data = kbuf;
+    key.size = strlen(key.data);
+    rc = iwkv_del(db1, &key);
+    if (i == 64) {
+      CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
+      rc = 0;
+      continue;
+    }
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+
+  logstage(f, "removed 065kkk - 099kkk", db1); // 125
+
+  for (int i = 100; i <= 126; ++i) {
+    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
+    key.data = kbuf;
+    key.size = strlen(key.data);
+    rc = iwkv_del(db1, &key);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+
+  iwkvd_db(stderr, db1, 0);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);

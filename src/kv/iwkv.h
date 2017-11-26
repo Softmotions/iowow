@@ -15,8 +15,8 @@ typedef enum {
   IWKV_ERROR_CORRUPTED,       /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
   _IWKV_ERROR_END,
   _IWKV_ERROR_KVBLOCK_FULL,
-  _IWKV_ERROR_REQUIRE_WL,
-  _IWKV_ERROR_REQUIRE_NLEVEL
+  _IWKV_ERROR_REQUIRE_NLEVEL,
+  _IWKV_ERROR_REQUIRE_WL
 } iwkv_ecode;
 
 typedef enum {

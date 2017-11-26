@@ -3,13 +3,13 @@
 
 
 == DB[1] lvl=-1, blk=6, flg=0
- === SBLK[14] lvl=-1, pnum=1, flg=8, kvzidx=1, db=1
- === SBLK[14] lkl=6, lk=000kkk
+ === SBLK[14] lvl=-1, pnum=1, flg=11, kvzidx=1, db=1
+ === SBLK[14] szpow=8, lkl=6, lk=000kkk
  === SBLK[14]    [00,00] 000kkk:000val
 
 
- === SBLK[160] lvl=-1, pnum=63, flg=8, kvzidx=-1, db=1
- === SBLK[160] lkl=6, lk=001kkk
+ === SBLK[160] lvl=-1, pnum=63, flg=11, kvzidx=-1, db=1
+ === SBLK[160] szpow=10, lkl=6, lk=001kkk
  === SBLK[160]    [00,62] 001kkk:001val    [01,61] 002kkk:002val    [02,60] 003kkk:003val
  === SBLK[160]    [03,59] 004kkk:004val    [04,58] 005kkk:005val    [05,57] 006kkk:006val
  === SBLK[160]    [06,56] 007kkk:007val    [07,55] 008kkk:008val    [08,54] 009kkk:009val
@@ -33,8 +33,8 @@
  === SBLK[160]    [60,02] 061kkk:061val    [61,01] 062kkk:062val    [62,00] 063kkk:063val
 
 
- === SBLK[58] lvl=-1, pnum=63, flg=8, kvzidx=-1, db=1
- === SBLK[58] lkl=6, lk=064kkk
+ === SBLK[58] lvl=-1, pnum=63, flg=11, kvzidx=-1, db=1
+ === SBLK[58] szpow=10, lkl=6, lk=064kkk
  === SBLK[58]    [00,62] 064kkk:064val    [01,61] 065kkk:065val    [02,60] 066kkk:066val
  === SBLK[58]    [03,59] 067kkk:067val    [04,58] 068kkk:068val    [05,57] 069kkk:069val
  === SBLK[58]    [06,56] 070kkk:070val    [07,55] 071kkk:071val    [08,54] 072kkk:072val
@@ -58,8 +58,8 @@
  === SBLK[58]    [60,02] 124kkk:124val    [61,01] 125kkk:125val    [62,00] 126kkk:126val
 
 
- === SBLK[54] lvl=-1, pnum=63, flg=8, kvzidx=-1, db=1
- === SBLK[54] lkl=6, lk=127kkk
+ === SBLK[54] lvl=-1, pnum=63, flg=11, kvzidx=-1, db=1
+ === SBLK[54] szpow=10, lkl=6, lk=127kkk
  === SBLK[54]    [00,62] 127kkk:127val    [01,61] 128kkk:128val    [02,60] 129kkk:129val
  === SBLK[54]    [03,59] 130kkk:130val    [04,58] 131kkk:131val    [05,57] 132kkk:132val
  === SBLK[54]    [06,56] 133kkk:133val    [07,55] 134kkk:134val    [08,54] 135kkk:135val
@@ -83,8 +83,8 @@
  === SBLK[54]    [60,02] 187kkk:187val    [61,01] 188kkk:188val    [62,00] 189kkk:189val
 
 
- === SBLK[34] lvl=-1, pnum=63, flg=8, kvzidx=-1, db=1
- === SBLK[34] lkl=6, lk=190kkk
+ === SBLK[34] lvl=-1, pnum=63, flg=11, kvzidx=-1, db=1
+ === SBLK[34] szpow=10, lkl=6, lk=190kkk
  === SBLK[34]    [00,62] 190kkk:190val    [01,61] 191kkk:191val    [02,60] 192kkk:192val
  === SBLK[34]    [03,59] 193kkk:193val    [04,58] 194kkk:194val    [05,57] 195kkk:195val
  === SBLK[34]    [06,56] 196kkk:196val    [07,55] 197kkk:197val    [08,54] 198kkk:198val
