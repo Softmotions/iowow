@@ -14,8 +14,6 @@ char vbuf[VBUFSZ];
 extern int8_t iwkv_next_level;
 
 static int cmp_files(FILE *f1, FILE *f2) {
-  if (1) return 0; // todo
-  
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
   char c1 = getc(f1);
@@ -38,7 +36,7 @@ static int cmp_files(FILE *f1, FILE *f2) {
 
 static int logstage(FILE *f, const char *name, IWDB db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
-  iwkvd_db(f, db, 0 /*IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS */);
+  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS);
   fflush(f);
   return rci < 0 ? rci : 0;
 }
@@ -358,7 +356,7 @@ static void iwkv_test1(void) {
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  logstage(f, "split SBLK[128]", db1);
+  logstage(f, "split SBLK[54]", db1);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
