@@ -361,7 +361,6 @@ static void iwkv_test1(void) {
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db1);
@@ -371,7 +370,6 @@ static void iwkv_test1(void) {
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-
 
   // Compare logs with referenced
   FILE *r = fopen("iwkv_test1_1.ref", "r+");

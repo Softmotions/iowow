@@ -23,7 +23,7 @@ levels:
   plN    - Key/Value pair block length on i-th place
 
 
-db:
+db: (4+1+4+4+4)
   [magic:u4,flags:u1,next_blk:u4,last_sblk:u4,dbid:u4,n0-n29:u4]
 
   magic       - DB magic number 0x69776462
