@@ -245,10 +245,6 @@ IW_INLINE blkn_t _sb_n(void *s, int n, uint8_t *mm) {
   return IW_ITOHL(lv);
 }
 
-IW_INLINE blkn_t _lx_lower_n(IWLCTX *lx, int n, uint8_t *mm) {
-  return _sb_n(lx->lower ? (void *) lx->lower : lx->db, n, mm);
-}
-
 IW_INLINE void _sb_set_n(void *s, int n, blkn_t v, uint8_t *mm) {
   assert(s && mm && n >= 0 && n < SLEVELS);
   SBH *sh = (SBH *) s;
@@ -1666,7 +1662,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
     rc = _sbh_at(lx->db, lx->db->addr, lx->sbflags, &lx->lower);
     RCRET(rc);
   }
-  while ((blkn = _lx_lower_n(lx, lvl, mm))) {
+  while ((blkn = _sb_n(lx, lvl, mm))) {
     off_t blkaddr = BLK2ADDR(blkn);
     if (lx->nlvl != -1 && lvl < lx->nlvl) {
       int8_t ulvl = lvl + 1;
@@ -1693,7 +1689,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
       lx->upper = sbh;
       break;
     } else {
-      if (lx->lower && !(lx->lower->flags & SBH_PINNED)) {
+      if (!(lx->lower->flags & SBH_PINNED)) {
         _sbh_release((SBH **)&lx->lower);
       }
       lx->lower = sbh;
@@ -1717,16 +1713,14 @@ static iwrc _lx_find_bounds(IWLCTX *lx, bool key2upper) {
     do {
       lx->lvl = lvl;
       if (lx->nlvl >= lvl) {
+        lx->lower->flags |= SBH_PINNED;
+        lx->plower[lvl] = lx->lower;
         if (lx->upper) {
           lx->upper->flags |= SBH_PINNED;
           lx->pupper[lvl] = lx->upper;
         }
-        if (lx->lower) {
-          lx->lower->flags |= SBH_PINNED;
-          lx->plower[lvl] = lx->lower;
-        }
       }
-    } while (lvl-- > 0 && _lx_lower_n(lx, lvl, mm) == ub);
+    } while (lvl-- > 0 && _sb_n(lx, lvl, mm) == ub);
   }
   fsm->release_mmap(fsm);
   return rc;
