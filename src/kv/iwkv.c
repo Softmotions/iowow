@@ -131,6 +131,7 @@ typedef struct ALN {
   pthread_rwlock_t rwl;       /**< RW lock */
   int64_t refs;               /**< Locked address refs count */
   bool write_pending;         /**< Pending write lock */
+  bool write_upgraded;        /**< Lock is write upgraded */
 } ALN;
 
 KHASH_MAP_INIT_INT(ALN, ALN *)
