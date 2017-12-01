@@ -5,7 +5,7 @@ max key+value size: 268435455 (~255Mb)
 max data file size: 255G
 
 levels:
-  [u1:flags,kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u61,pnum:u1,[pi1:u1,...pi63]]:u256  // SBLK Skip block
+  [u1:flags,kblk:u4,lvl:u1,p0:u4,n0-n29:u4,lkl:u1,lk:u61,pnum:u1,[pi0:u1,...pi62]]:u256  // SBLK Skip block
                                                   \
                                   [blen:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[_KV],...]] // KVBLK
   KV: [klen:vn,key,value]
@@ -22,14 +22,14 @@ levels:
   psN    - Key/Value pair block start on i-th place
   plN    - Key/Value pair block length on i-th place
 
-
-db: (4+1+4+4+4)
-  [magic:u4,flags:u1,next_blk:u4,last_sblk:u4,dbid:u4,n0-n29:u4]
+db:
+  [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
 
   magic       - DB magic number 0x69776462
-  flags       - Various database flags
-  next_blk    - Next database meta block number or zero
+  dbflg       - Database flags
+  next_db_blk - Next database meta block number or zero
   dbid        - Database ID
+  p0          - Last database block
   n0-n29      - Skiplist next pointers to `SBLK`
 
 header:
