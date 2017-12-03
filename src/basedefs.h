@@ -60,7 +60,7 @@
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
-#define IW_INLINE static __inline__
+#define IW_INLINE static inline __attribute__((always_inline))
 #else
 #define IW_INLINE static inline
 #endif
