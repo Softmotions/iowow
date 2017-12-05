@@ -181,14 +181,15 @@ typedef struct IWLCTX {
   IWDB db;
   const IWKV_val *key;        /**< Search key */
   IWKV_val *val;              /**< Update value */
-  SBLK *lower;                 /**< Next to upper bound block */
-  SBLK *upper;                 /**< Upper bound block */
-  SBLK *nb;                    /**< New block */
-  SBLK *plower[SLEVELS];       /**< Pinned lower nodes per level */
-  SBLK *pupper[SLEVELS];       /**< Pinned upper nodes per level */
-  uint8_t aapos;             /**< Position of next free element in allocation area */
+  SBLK *lower;                /**< Next to upper bound block */
+  SBLK *upper;                /**< Upper bound block */
+  SBLK *nb;                   /**< New block */
+  SBLK *plower[SLEVELS];      /**< Pinned lower nodes per level */
+  SBLK *pupper[SLEVELS];      /**< Pinned upper nodes per level */
   SBLK saa[AANUM];            /**< `SBLK` allocation area */
   KVBLK kaa[AANUM];           /**< `KVBLK` allocation area */
+  uint8_t saa_pos;            /**< Position of next free `SBLK` element in the `saa` area */
+  uint8_t kaa_pos;            /**< Position of next free `KVBLK` element in the `kaa` area */
   int8_t lvl;                 /**< Current level */
   int8_t nlvl;                /**< Level of new inserted `SBLK` node. -1 if no new node inserted */
   iwlctx_op_t op;             /**< Context operation flags */
@@ -604,8 +605,8 @@ static iwrc _kvblk_create(IWLCTX *lx,
   if (kvbpow < KVBLK_INISZPOW) {
     kvbpow = KVBLK_INISZPOW;
   }
-  assert(lx->aapos < AANUM);
-  kblk = &lx->kaa[lx->aapos];
+  assert(lx->kaa_pos < AANUM);
+  kblk = &lx->kaa[lx->kaa_pos];
   memset(lx->kaa, 0, sizeof(lx->kaa[0]));
   iwrc rc = fsm->allocate(fsm, (1ULL << kvbpow), &baddr, &blen,
                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
@@ -616,6 +617,7 @@ static iwrc _kvblk_create(IWLCTX *lx,
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
   kblk->flags = KVBLK_DURTY;
   *oblk = kblk;
+  AAPOS_INC(lx->kaa_pos);  
   return rc;
 }
 
@@ -792,7 +794,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   uint16_t sv;
   int step;
   iwrc rc = 0;
-  KVBLK *kb = &lx->kaa[lx->aapos];
+  KVBLK *kb = &lx->kaa[lx->kaa_pos];
   memset(kb, 0, sizeof(*kb));
   
   *blkp = 0;
@@ -831,6 +833,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
     }
   }
   *blkp = kb;
+  AAPOS_INC(lx->kaa_pos);
 finish:
   return rc;
 }
@@ -1222,7 +1225,7 @@ static iwrc _sblk_create(IWLCTX *lx,
     IWRC(_kvblk_destroy(&kvblk), rc);
     return rc;
   }
-  sblk = &lx->saa[lx->aapos];
+  sblk = &lx->saa[lx->saa_pos];
   memset(sblk, 0, sizeof(*sblk));
   sblk->db = lx->db;
   sblk->addr = baddr;
@@ -1233,7 +1236,7 @@ static iwrc _sblk_create(IWLCTX *lx,
   rc = _aln_acquire_read(lx->db, sblk->addr);
   if (!rc) {
     *oblk = sblk;
-    AAPOS_INC(lx->aapos);
+    AAPOS_INC(lx->saa_pos);
   }
   return rc;
 }
@@ -1245,7 +1248,7 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sbh_flags_t flags, uint8_t *mm, 
     RCRET(rc);
   }
   uint8_t *rp = mm + addr;
-  SBLK *sblk = &lx->saa[lx->aapos];
+  SBLK *sblk = &lx->saa[lx->saa_pos];
   memset(sblk, 0, sizeof(*sblk));
   if (IW_UNLIKELY(addr == lx->db->addr)) {
     sblk->addr = addr;
@@ -1264,7 +1267,7 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sbh_flags_t flags, uint8_t *mm, 
     memcpy(&sblk->pi, rp + SOFF_PI0_U1, KVBLK_IDXNUM);
     sblk->kvblkn = IW_ITOHL(sblk->kvblkn);
   }
-  AAPOS_INC(lx->aapos);
+  AAPOS_INC(lx->saa_pos);
   return 0;
 }
 
