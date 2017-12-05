@@ -110,7 +110,7 @@ typedef enum {
   SBLK_WLOCKED = 1 << 3,      /**< `SBH` write locked */
   SBLK_NO_LOCK = 1 << 4,      /**< Do not use locks when accessing `SBH`(used in debug print routines) */
   SBLK_DURTY = 1 << 5
-} sbh_flags_t;
+} sblk_flags_t;
 
 #define SBH_PERSISTENT_FLAGS (SBH_FULL_LKEY)
 
@@ -129,7 +129,7 @@ struct IWDB {
   // SBH
   IWDB db;                    /**< Database ref */
   off_t addr;                 /**< Block address */
-  sbh_flags_t flags;          /**< Flags */
+  sblk_flags_t flags;          /**< Flags */
   uint8_t lvl;                /**< Skip list node level */
   // !SBH
   IWKV iwkv;
@@ -147,7 +147,7 @@ typedef struct SBLK {
   // SBH
   IWDB db;                    /**< Database ref */
   off_t addr;                 /**< Block address */
-  sbh_flags_t flags;          /**< Flags */
+  sblk_flags_t flags;          /**< Flags */
   uint8_t lvl;                /**< Skip list node level */
   // !SBH
   KVBLK *kvblk;               /**< Associated KVBLK */
@@ -192,8 +192,10 @@ typedef struct IWLCTX {
   uint8_t kaa_pos;            /**< Position of next free `KVBLK` element in the `kaa` area */
   int8_t lvl;                 /**< Current level */
   int8_t nlvl;                /**< Level of new inserted `SBLK` node. -1 if no new node inserted */
-  iwlctx_op_t op;             /**< Context operation flags */
-  iwkv_opflags opflg;         /**< Operation flags */
+  iwlctx_op_t op;             /**< Context operation */
+  iwkv_opflags op_flags;      /**< Operation flags */
+  sblk_flags_t sblk_flags;    /**< `SBLK` flags applied to new blocks by default */
+
 } IWLCTX;
 
 #define AAPOS_INC(aapos_)        \
@@ -617,7 +619,7 @@ static iwrc _kvblk_create(IWLCTX *lx,
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
   kblk->flags = KVBLK_DURTY;
   *oblk = kblk;
-  AAPOS_INC(lx->kaa_pos);  
+  AAPOS_INC(lx->kaa_pos);
   return rc;
 }
 
@@ -1241,7 +1243,7 @@ static iwrc _sblk_create(IWLCTX *lx,
   return rc;
 }
 
-static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sbh_flags_t flags, uint8_t *mm, SBLK **sblkp) {
+static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sblk_flags_t flags, uint8_t *mm, SBLK **sblkp) {
   iwrc rc = 0;
   if (!(flags & SBLK_NO_LOCK)) {
     rc = _aln_acquire_read(lx->db, addr);
@@ -1514,6 +1516,93 @@ IW_INLINE iwrc _sblk_create2(IWLCTX *lx,
   }
   return rc;
 }
+
+//--------------------------  IWLCTX
+
+IW_INLINE int _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
+  int res;
+  uint8_t *k;
+  uint32_t kl;
+  const IWKV_val *key = lx->key;
+  if (sblk->pnum < 1) { // empty block
+    return -1;
+  }
+  kl = _mm_u1(mm, sblk->addr + SOFF_LKL_U1);
+  if (key->size < kl) {
+    k = mm + sblk->addr + SOFF_LK_U61;
+    IW_CMP(res, k, kl, key->data, key->size);
+    return res;
+  }
+  if (sblk->flags & SBLK_FULL_LKEY) {
+    k = mm + sblk->addr + SOFF_LK_U61;
+  } else {
+    _kvblk_peek_key(sblk->kvblk, sblk->pi[0] /* lower key index */, mm, &k, &kl);
+    if (!kl) {
+      return -1;
+    }
+  }
+  IW_CMP(res, k, kl, key->data, key->size);
+  return res;
+}
+
+static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
+  iwrc rc = 0;
+  SBLK *sblk;
+  blkn_t blkn;
+  uint8_t lvl = lx->lvl;
+  if (!lx->lower) {
+    rc = _sblk_at_mm(lx, lx->db->addr, lx->sblk_flags, mm, &lx->lower);
+  }
+  
+  
+  return rc;
+}
+
+
+//static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
+//  SBH *sbh;
+//  blkn_t blkn;
+//  iwrc rc = 0;
+//  uint8_t lvl = lx->lvl;
+//  if (!lx->lower) {
+//    rc = _sbh_at(lx->db, lx->db->addr, lx->sbflags, &lx->lower);
+//    RCRET(rc);
+//  }
+//  while ((blkn = _sb_n(lx, lvl, mm))) {
+//    off_t blkaddr = BLK2ADDR(blkn);
+//    if (lx->nlvl != -1 && lvl < lx->nlvl) {
+//      int8_t ulvl = lvl + 1;
+//      if (lx->pupper[ulvl] && lx->pupper[ulvl]->addr == blkaddr) {
+//        sbh = lx->pupper[ulvl];
+//      } else if (lx->plower[ulvl] && lx->plower[ulvl]->addr == blkaddr) {
+//        sbh = lx->plower[ulvl];
+//      } else {
+//        rc = _sbh_at(lx->db, blkaddr, lx->sbflags, &sbh);
+//      }
+//    } else {
+//      if (lx->upper && lx->upper->addr == blkaddr) {
+//        break;
+//      } else {
+//        rc = _sbh_at(lx->db, blkaddr, lx->sbflags, &sbh);
+//      }
+//    }
+//    RCRET(rc);
+//    int cret = (sbh->flags & SBH_DB) ? -1 : _lx_sblk_cmp_key(lx, (SBLK *) sbh, mm);
+//    if (key2upper ? cret >= 0 : cret > 0) { // upper >|>= key
+//      if (lx->upper && !(lx->upper->flags & SBH_PINNED)) {
+//        _sbh_release((SBH **)&lx->upper);
+//      }
+//      lx->upper = sbh;
+//      break;
+//    } else {
+//      if (!(lx->lower->flags & SBH_PINNED)) {
+//        _sbh_release((SBH **)&lx->lower);
+//      }
+//      lx->lower = sbh;
+//    }
+//  }
+//  return rc;
+//}
 
 //--------------------------  PUBLIC API
 
