@@ -277,6 +277,14 @@ IW_INLINE void _mm_set_u8(uint8_t *mm, off_t off, uint64_t llv) {
   memcpy(mm + off, &llv, sizeof(llv));
 }
 
+IW_INLINE blkn_t _sblk_n(SBLK *sblk, uint8_t n, uint8_t *mm) {
+  return _mm_u4(mm, sblk->addr + ((sblk->flags & SBLK_DB) ? DOFF_N0_U4 : SOFF_N0_U4) + 4 * n);
+}
+
+IW_INLINE void _sblk_set_n(SBLK *sblk, uint8_t n, blkn_t v, uint8_t *mm) {
+  _mm_set_u4(mm, sblk->addr + ((sblk->flags & SBLK_DB) ? DOFF_N0_U4 : SOFF_N0_U4) + 4 * n, v);
+}
+
 //--------------------------  ADDRESS LOCKING
 
 IW_INLINE iwrc _aln_release(IWDB db,
@@ -508,7 +516,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   IWDB prev = db->prev;
   IWDB next = db->next;
   IWFS_FSM *fsm = &db->iwkv->fsm;
-  
+
   kh_del(DBS, db->iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   if (prev) {
@@ -798,7 +806,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   iwrc rc = 0;
   KVBLK *kb = &lx->kaa[lx->kaa_pos];
   memset(kb, 0, sizeof(*kb));
-  
+
   *blkp = 0;
   rp = mm + addr;
   kb->db = lx->db;
@@ -1035,14 +1043,14 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   off_t psz = (key->size + val->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
   *oidx = -1;
-  
+
   if (psz > IWKV_MAX_KVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-  
+
 start:
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -1553,8 +1561,8 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
   if (!lx->lower) {
     rc = _sblk_at_mm(lx, lx->db->addr, lx->sblk_flags, mm, &lx->lower);
   }
-  
-  
+
+
   return rc;
 }
 
