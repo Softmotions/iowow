@@ -1977,8 +1977,6 @@ start:
   RCGO(rc, finish);
 
   if (IW_LIKELY(_sbh_is_sblk(lx->lower))) {
-
-
     rc = _lx_addkv(lx, (SBLK *) lx->lower);
     if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
       _lx_release(lx);
