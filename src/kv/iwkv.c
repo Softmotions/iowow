@@ -1690,9 +1690,9 @@ static iwrc _lx_release(IWLCTX *lx) {
     _sblk_release(lx, &lx->nb);
   }
   if (lx->nlvl > -1) {
-    
-    
-    
+  
+  
+  
     for (int i = 0; i <= lx->nlvl; ++i) {
       if (lx->pupper[i]) {
         if (lx->pupper[i] != usb) {
@@ -1934,20 +1934,21 @@ iwrc _lx_lock_chute_mm(IWLCTX *lx, uint8_t *mm) {
     }
   }
   for (int i = 0; i <= lx->nlvl; ++i) {
-    for (int j = 0; j < 2; ++j) {
-      SBLK *sblk = (j % 2) ? lx->pupper[i] : lx->plower[i];
-      rc = _sblk_write_upgrade_mm(lx, sblk, mm);
-      RCRET(rc);
-    }
+    rc = _sblk_write_upgrade_mm(lx, lx->plower[i], mm);
+    RCRET(rc);
     blkn_t bn = lx->plower[i]->n[i] ? lx->plower[i]->n[i] : dblk;
-    if (bn != ADDR2BLK(lx->pupper[i]->addr)) { 
+    if (bn != ADDR2BLK(lx->pupper[i]->addr)) {
       // address was changed
-      return _IWKV_ERROR_AGAIN; 
-    }
-    bn = lx->pupper[i]->p0 ? lx->pupper[i]->p0 : dblk;
-    if (bn != ADDR2BLK(lx->plower[i]->addr)) {
-      // prev ptr was changed
       return _IWKV_ERROR_AGAIN;
+    }
+    if (i == 0) {
+      rc = _sblk_write_upgrade_mm(lx, lx->pupper[0], mm);
+      RCRET(rc);
+      bn = lx->pupper[0]->p0 ? lx->pupper[0]->p0 : dblk;
+      if (bn != ADDR2BLK(lx->plower[0]->addr)) {
+        // prev ptr was changed
+        return _IWKV_ERROR_AGAIN;
+      }
     }
   }
   return 0;
