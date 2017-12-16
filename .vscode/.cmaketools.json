@@ -6,5 +6,908 @@
     },
     "description": "Emit debug information without performing optimizations"
   },
-  "activeEnvironments": []
+  "activeEnvironments": [],
+  "codeModel": {
+    "configurations": [
+      {
+        "name": "Debug",
+        "projects": [
+          {
+            "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+            "name": "iowow",
+            "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+            "targets": [
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ContinuousSubmit",
+                      "build/CMakeFiles/ContinuousSubmit.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ContinuousSubmit",
+                "name": "ContinuousSubmit",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ContinuousCoverage",
+                      "build/CMakeFiles/ContinuousCoverage.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ContinuousCoverage",
+                "name": "ContinuousCoverage",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ContinuousTest",
+                      "build/CMakeFiles/ContinuousTest.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ContinuousTest",
+                "name": "ContinuousTest",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ContinuousBuild",
+                      "build/CMakeFiles/ContinuousBuild.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ContinuousBuild",
+                "name": "ContinuousBuild",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ContinuousMemCheck",
+                      "build/CMakeFiles/ContinuousMemCheck.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ContinuousMemCheck",
+                "name": "ContinuousMemCheck",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/Nightly",
+                      "build/CMakeFiles/Nightly.rule"
+                    ]
+                  }
+                ],
+                "fullName": "Nightly",
+                "name": "Nightly",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlyTest",
+                      "build/CMakeFiles/NightlyTest.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlyTest",
+                "name": "NightlyTest",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlyUpdate",
+                      "build/CMakeFiles/NightlyUpdate.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlyUpdate",
+                "name": "NightlyUpdate",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/Continuous",
+                      "build/CMakeFiles/Continuous.rule"
+                    ]
+                  }
+                ],
+                "fullName": "Continuous",
+                "name": "Continuous",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlyBuild",
+                      "build/CMakeFiles/NightlyBuild.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlyBuild",
+                "name": "NightlyBuild",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlyStart",
+                      "build/CMakeFiles/NightlyStart.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlyStart",
+                "name": "NightlyStart",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlyMemoryCheck",
+                      "build/CMakeFiles/NightlyMemoryCheck.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlyMemoryCheck",
+                "name": "NightlyMemoryCheck",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlyMemCheck",
+                      "build/CMakeFiles/NightlyMemCheck.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlyMemCheck",
+                "name": "NightlyMemCheck",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ExperimentalStart",
+                      "build/CMakeFiles/ExperimentalStart.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ExperimentalStart",
+                "name": "ExperimentalStart",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ContinuousConfigure",
+                      "build/CMakeFiles/ContinuousConfigure.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ContinuousConfigure",
+                "name": "ContinuousConfigure",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlyCoverage",
+                      "build/CMakeFiles/NightlyCoverage.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlyCoverage",
+                "name": "NightlyCoverage",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ExperimentalUpdate",
+                      "build/CMakeFiles/ExperimentalUpdate.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ExperimentalUpdate",
+                "name": "ExperimentalUpdate",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ExperimentalConfigure",
+                      "build/CMakeFiles/ExperimentalConfigure.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ExperimentalConfigure",
+                "name": "ExperimentalConfigure",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ExperimentalCoverage",
+                      "build/CMakeFiles/ExperimentalCoverage.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ExperimentalCoverage",
+                "name": "ExperimentalCoverage",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ExperimentalBuild",
+                      "build/CMakeFiles/ExperimentalBuild.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ExperimentalBuild",
+                "name": "ExperimentalBuild",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlyConfigure",
+                      "build/CMakeFiles/NightlyConfigure.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlyConfigure",
+                "name": "NightlyConfigure",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ExperimentalTest",
+                      "build/CMakeFiles/ExperimentalTest.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ExperimentalTest",
+                "name": "ExperimentalTest",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ExperimentalMemCheck",
+                      "build/CMakeFiles/ExperimentalMemCheck.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ExperimentalMemCheck",
+                "name": "ExperimentalMemCheck",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/Experimental",
+                      "build/CMakeFiles/Experimental.rule"
+                    ]
+                  }
+                ],
+                "fullName": "Experimental",
+                "name": "Experimental",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/NightlySubmit",
+                      "build/CMakeFiles/NightlySubmit.rule"
+                    ]
+                  }
+                ],
+                "fullName": "NightlySubmit",
+                "name": "NightlySubmit",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ExperimentalSubmit",
+                      "build/CMakeFiles/ExperimentalSubmit.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ExperimentalSubmit",
+                "name": "ExperimentalSubmit",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ContinuousStart",
+                      "build/CMakeFiles/ContinuousStart.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ContinuousStart",
+                "name": "ContinuousStart",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build",
+                "fileGroups": [
+                  {
+                    "isGenerated": true,
+                    "sources": [
+                      "build/CMakeFiles/ContinuousUpdate",
+                      "build/CMakeFiles/ContinuousUpdate.rule"
+                    ]
+                  }
+                ],
+                "fullName": "ContinuousUpdate",
+                "name": "ContinuousUpdate",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow",
+                "type": "UTILITY"
+              },
+              {
+                "artifacts": [
+                  "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/libiowow.so"
+                ],
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src",
+                "fileGroups": [
+                  {
+                    "compileFlags": " -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable  -fPIC  ",
+                    "defines": [
+                      "IW_API_EXPORTS",
+                      "IW_PTHREADS",
+                      "_GNU_SOURCE",
+                      "_LARGEFILE_SOURCE"
+                    ],
+                    "includePath": [
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/generated"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/platform"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv"
+                      }
+                    ],
+                    "isGenerated": false,
+                    "language": "C",
+                    "sources": [
+                      "iowow.c",
+                      "log/iwlog.c",
+                      "utils/iwarr.c",
+                      "utils/iwconv.c",
+                      "utils/iwpool.c",
+                      "utils/iwrlock.c",
+                      "utils/iwutils.c",
+                      "utils/iwxstr.c",
+                      "utils/mt19937ar.c",
+                      "platform/iwp.c",
+                      "fs/iwexfile.c",
+                      "fs/iwfile.c",
+                      "fs/iwfs.c",
+                      "fs/iwfsmfile.c",
+                      "fs/iwrwlfile.c",
+                      "kv/iwkv.c"
+                    ]
+                  }
+                ],
+                "fullName": "libiowow.so",
+                "linkLibraries": "-lpthread -lm",
+                "linkerLanguage": "C",
+                "name": "iowow",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/src",
+                "type": "SHARED_LIBRARY"
+              },
+              {
+                "artifacts": [
+                  "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/libiowow-1.a"
+                ],
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src",
+                "fileGroups": [
+                  {
+                    "compileFlags": " -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable    -DIW_NODLL",
+                    "defines": [
+                      "IW_PTHREADS",
+                      "_GNU_SOURCE",
+                      "_LARGEFILE_SOURCE"
+                    ],
+                    "includePath": [
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/generated"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/platform"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv"
+                      }
+                    ],
+                    "isGenerated": false,
+                    "language": "C",
+                    "sources": [
+                      "iowow.c",
+                      "log/iwlog.c",
+                      "utils/iwarr.c",
+                      "utils/iwconv.c",
+                      "utils/iwpool.c",
+                      "utils/iwrlock.c",
+                      "utils/iwutils.c",
+                      "utils/iwxstr.c",
+                      "utils/mt19937ar.c",
+                      "platform/iwp.c",
+                      "fs/iwexfile.c",
+                      "fs/iwfile.c",
+                      "fs/iwfs.c",
+                      "fs/iwfsmfile.c",
+                      "fs/iwrwlfile.c",
+                      "kv/iwkv.c"
+                    ]
+                  }
+                ],
+                "fullName": "libiowow-1.a",
+                "linkerLanguage": "C",
+                "name": "iowow_s",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/src",
+                "type": "STATIC_LIBRARY"
+              },
+              {
+                "artifacts": [
+                  "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/log/tests/iwlog_test1"
+                ],
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/log/tests",
+                "fileGroups": [
+                  {
+                    "compileFlags": " -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable    -DIW_STATIC",
+                    "defines": [
+                      "IW_PTHREADS",
+                      "_GNU_SOURCE",
+                      "_LARGEFILE_SOURCE"
+                    ],
+                    "includePath": [
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/generated"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/platform"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv"
+                      }
+                    ],
+                    "isGenerated": false,
+                    "language": "C",
+                    "sources": [
+                      "iwlog_test1.c"
+                    ]
+                  }
+                ],
+                "fullName": "iwlog_test1",
+                "linkLanguageFlags": "-std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable",
+                "linkLibraries": "-rdynamic ../../libiowow-1.a -lcunit -lpthread -lm",
+                "linkerLanguage": "C",
+                "name": "iwlog_test1",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log/tests",
+                "type": "EXECUTABLE"
+              },
+              {
+                "artifacts": [
+                  "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/utils/tests/iwrlock_test1"
+                ],
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/utils/tests",
+                "fileGroups": [
+                  {
+                    "compileFlags": " -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable    -DIW_STATIC",
+                    "defines": [
+                      "IW_PTHREADS",
+                      "_GNU_SOURCE",
+                      "_LARGEFILE_SOURCE"
+                    ],
+                    "includePath": [
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/generated"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/platform"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv"
+                      }
+                    ],
+                    "isGenerated": false,
+                    "language": "C",
+                    "sources": [
+                      "iwrlock_test1.c"
+                    ]
+                  }
+                ],
+                "fullName": "iwrlock_test1",
+                "linkLanguageFlags": "-std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable",
+                "linkLibraries": "-rdynamic ../../libiowow-1.a -lcunit -lpthread -lm",
+                "linkerLanguage": "C",
+                "name": "iwrlock_test1",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils/tests",
+                "type": "EXECUTABLE"
+              },
+              {
+                "artifacts": [
+                  "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/utils/tests/iwarr_test1"
+                ],
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/utils/tests",
+                "fileGroups": [
+                  {
+                    "compileFlags": " -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable    -DIW_STATIC",
+                    "defines": [
+                      "IW_PTHREADS",
+                      "_GNU_SOURCE",
+                      "_LARGEFILE_SOURCE"
+                    ],
+                    "includePath": [
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/generated"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/platform"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv"
+                      }
+                    ],
+                    "isGenerated": false,
+                    "language": "C",
+                    "sources": [
+                      "iwarr_test1.c"
+                    ]
+                  }
+                ],
+                "fullName": "iwarr_test1",
+                "linkLanguageFlags": "-std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable",
+                "linkLibraries": "-rdynamic ../../libiowow-1.a -lcunit -lpthread -lm",
+                "linkerLanguage": "C",
+                "name": "iwarr_test1",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils/tests",
+                "type": "EXECUTABLE"
+              },
+              {
+                "artifacts": [
+                  "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/fs/tests/iwfs_test1"
+                ],
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/fs/tests",
+                "fileGroups": [
+                  {
+                    "compileFlags": " -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable    -DIW_STATIC",
+                    "defines": [
+                      "IW_PTHREADS",
+                      "_GNU_SOURCE",
+                      "_LARGEFILE_SOURCE"
+                    ],
+                    "includePath": [
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/generated"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/platform"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv"
+                      }
+                    ],
+                    "isGenerated": false,
+                    "language": "C",
+                    "sources": [
+                      "iwfs_test1.c"
+                    ]
+                  }
+                ],
+                "fullName": "iwfs_test1",
+                "linkLanguageFlags": "-std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable",
+                "linkLibraries": "-rdynamic ../../libiowow-1.a -lcunit -lpthread -lm",
+                "linkerLanguage": "C",
+                "name": "iwfs_test1",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs/tests",
+                "type": "EXECUTABLE"
+              },
+              {
+                "artifacts": [
+                  "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/fs/tests/iwfs_test2"
+                ],
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/fs/tests",
+                "fileGroups": [
+                  {
+                    "compileFlags": " -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable    -DIW_STATIC",
+                    "defines": [
+                      "IW_PTHREADS",
+                      "_GNU_SOURCE",
+                      "_LARGEFILE_SOURCE"
+                    ],
+                    "includePath": [
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/generated"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/platform"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv"
+                      }
+                    ],
+                    "isGenerated": false,
+                    "language": "C",
+                    "sources": [
+                      "iwfs_test2.c"
+                    ]
+                  }
+                ],
+                "fullName": "iwfs_test2",
+                "linkLanguageFlags": "-std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable",
+                "linkLibraries": "-rdynamic ../../libiowow-1.a -lcunit -lpthread -lm",
+                "linkerLanguage": "C",
+                "name": "iwfs_test2",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs/tests",
+                "type": "EXECUTABLE"
+              },
+              {
+                "artifacts": [
+                  "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/kv/tests/iwkv_test1"
+                ],
+                "buildDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/kv/tests",
+                "fileGroups": [
+                  {
+                    "compileFlags": " -std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable    -DIW_STATIC",
+                    "defines": [
+                      "IW_PTHREADS",
+                      "_GNU_SOURCE",
+                      "_LARGEFILE_SOURCE"
+                    ],
+                    "includePath": [
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/build/src/generated"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/log"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/utils"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/platform"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/fs"
+                      },
+                      {
+                        "path": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv"
+                      }
+                    ],
+                    "isGenerated": false,
+                    "language": "C",
+                    "sources": [
+                      "iwkv_test1.c"
+                    ]
+                  }
+                ],
+                "fullName": "iwkv_test1",
+                "linkLanguageFlags": "-std=c99 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -fPIC -D__FILENAME__='\"$(subst /home/adam/Projects/softmotions/graphereum-db/iowow/,,$(abspath $<))\"' -O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable",
+                "linkLibraries": "-rdynamic ../../libiowow-1.a -lcunit -lpthread -lm",
+                "linkerLanguage": "C",
+                "name": "iwkv_test1",
+                "sourceDirectory": "/home/adam/Projects/softmotions/graphereum-db/iowow/src/kv/tests",
+                "type": "EXECUTABLE"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "cookie": "0.3838115720585107",
+    "inReplyTo": "codemodel",
+    "type": "reply"
+  }
 }
