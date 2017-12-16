@@ -196,7 +196,7 @@ typedef struct IWLCTX {
   iwlctx_op_t op;             /**< Context operation */
   iwkv_opflags op_flags;      /**< Operation flags */
   sblk_flags_t sblk_flags;    /**< `SBLK` flags applied to new blocks in this context */
-
+  
 } IWLCTX;
 
 #define AAPOS_INC(aapos_)        \
@@ -509,7 +509,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   IWDB prev = db->prev;
   IWDB next = db->next;
   IWFS_FSM *fsm = &db->iwkv->fsm;
-
+  
   kh_del(DBS, db->iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   if (prev) {
@@ -800,7 +800,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   iwrc rc = 0;
   KVBLK *kb = kbp ? kbp : &lx->kaa[lx->kaa_pos];
   memset(kb, 0, sizeof(*kb));
-
+  
   *blkp = 0;
   rp = mm + addr;
   kb->db = lx->db;
@@ -1039,14 +1039,14 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   off_t psz = (key->size + val->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
   *oidx = -1;
-
+  
   if (psz > IWKV_MAX_KVSZ) {
     return IWKV_ERROR_MAXKVSZ;
   }
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
-
+  
 start:
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -1292,7 +1292,6 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sblk_flags_t flags, uint8_t *mm,
 }
 
 
-
 IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   if (sblk->flags & SBLK_WLOCKED) {
     return 0;
@@ -1344,7 +1343,6 @@ IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   }
   return rc;
 }
-
 
 IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
   assert(sblk && sblk->addr);
@@ -1692,6 +1690,9 @@ static iwrc _lx_release(IWLCTX *lx) {
     _sblk_release(lx, &lx->nb);
   }
   if (lx->nlvl > -1) {
+    
+    
+    
     for (int i = 0; i <= lx->nlvl; ++i) {
       if (lx->pupper[i]) {
         if (lx->pupper[i] != usb) {
@@ -1719,8 +1720,13 @@ static iwrc _lx_release(IWLCTX *lx) {
   return rc;
 }
 
-IW_INLINE bool _sblk_is_linked_mm(uint8_t lvl, SBLK *s1, SBLK *s2, uint8_t *mm) {
-  return true;
+IW_INLINE bool _sblk_is_linked(uint8_t lvl, SBLK *s1, SBLK *s2) {
+  assert(s1);
+  if (s2) {
+    return s1->n[lvl] == ADDR2BLK(s2->addr);
+  } else {
+    return (s1->n[lvl] == 0);
+  }
 }
 
 static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
@@ -1731,10 +1737,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   int pivot = (KVBLK_IDXNUM / 2) + 1; // 32
   assert(sblk->flags & SBLK_WLOCKED);
-
-  if (sblk->pnum < KVBLK_IDXNUM) {
-    return _sblk_addkv(sblk, lx->key, lx->val);
-  }
+  
   if (idx == sblk->pnum && lx->upper && lx->upper->pnum < KVBLK_IDXNUM) {
     // Good to place lv into the right(upper) block
     return _sblk_addkv(lx->upper, lx->key, lx->val);
@@ -1751,8 +1754,11 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     }
     kvbpow = iwlog2_64(KVBLK_MAX_NKV_SZ + sz);
   }
-
-
+  rc = _sblk_create(lx, lx->nlvl, kvbpow, &nb);
+  RCRET(rc);
+  
+  
+  
   return rc;
 }
 
@@ -1909,6 +1915,44 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
 //  return rc;
 //}
 
+iwrc _lx_lock_chute_mm(IWLCTX *lx, uint8_t *mm) {
+  iwrc rc = 0;
+  SBLK *db = 0;
+  blkn_t dblk = ADDR2BLK(lx->db->addr);
+  if (lx->plower[lx->nlvl] && (lx->plower[lx->nlvl]->flags & SBLK_DB)) {
+    assert(lx->plower[lx->nlvl]->addr == BLK2ADDR(dblk));
+    db = lx->plower[lx->nlvl];
+  }
+  if (!lx->pupper[lx->nlvl]) {
+    if (!db) {
+      rc = _sblk_at_mm(lx, lx->db->addr, 0, mm, &db);
+      RCRET(rc);
+    }
+    lx->pupper[lx->nlvl] = db;
+    for (int i = lx->nlvl - 1; i >= 0 && !lx->pupper[i]; --i) {
+      lx->pupper[i] = db;
+    }
+  }
+  for (int i = 0; i <= lx->nlvl; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      SBLK *sblk = (j % 2) ? lx->pupper[i] : lx->plower[i];
+      rc = _sblk_write_upgrade_mm(lx, sblk, mm);
+      RCRET(rc);
+    }
+    blkn_t bn = lx->plower[i]->n[i] ? lx->plower[i]->n[i] : dblk;
+    if (bn != ADDR2BLK(lx->pupper[i]->addr)) { 
+      // address was changed
+      return _IWKV_ERROR_AGAIN; 
+    }
+    bn = lx->pupper[i]->p0 ? lx->pupper[i]->p0 : dblk;
+    if (bn != ADDR2BLK(lx->plower[i]->addr)) {
+      // prev ptr was changed
+      return _IWKV_ERROR_AGAIN;
+    }
+  }
+  return 0;
+}
+
 IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx, SBLK *sblk) {
   int idx;
   bool found;
@@ -1916,20 +1960,30 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx, SBLK *sblk) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-  rc = _sblk_write_upgrade_mm(sblk, mm);
+  rc = _sblk_write_upgrade_mm(lx, sblk, mm);
   if (rc) {
     fsm->release_mmap(fsm);
     return rc;
   }
   idx = _sblk_find_pi(sblk, lx->key, mm, &found);
-  fsm->release_mmap(fsm);
   if (found && (lx->op_flags & IWKV_NO_OVERWRITE)) {
+    fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
   }
-  if (IW_UNLIKELY(!found && sblk->pnum >= KVBLK_IDXNUM)) {
+  if (!found && sblk->pnum >= KVBLK_IDXNUM) {
     if (lx->nlvl < 0) {
+      fsm->release_mmap(fsm);
       return _IWKV_ERROR_REQUIRE_NLEVEL;
     }
+    // lock sblk body chute
+    rc = _lx_lock_chute_mm(lx, mm);
+    if (rc) {
+      fsm->release_mmap(fsm);
+      return rc;
+    }
+  }
+  fsm->release_mmap(fsm);
+  if (!found && sblk->pnum >= KVBLK_IDXNUM) {
     rc = _lx_split_addkv(lx, idx, sblk);
   } else {
     if (!found) {
@@ -1955,9 +2009,9 @@ start:
       goto start;
     }
   } else if (lx->upper) {
-
+  
   } else {
-
+  
   }
 finish:
   return rc;
@@ -2044,7 +2098,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   iwkv->dbs = kh_init(DBS);
   rc = fsm->state(fsm, &fsmstate);
   RCGO(rc, finish);
-
+  
   if (fsmstate.exfile.file.ostatus & IWFS_OPEN_NEW) {
     // Write magic number
     lv = IWKV_MAGIC;
