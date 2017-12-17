@@ -1267,6 +1267,7 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sblk_flags_t flags, uint8_t *mm,
     sblk->db = lx->db;
     rp += DOFF_P0_U4;
     sblk->lvl = 0;
+    sblk->pnum = KVBLK_IDXNUM;
     IW_READLV(rp, lv, sblk->p0);
     for (int i = 0; i < SLEVELS; ++i) {
       IW_READLV(rp, lv, sblk->n[i]);
@@ -1395,6 +1396,10 @@ static int _sblk_find_pi(SBLK *sblk,
                          const IWKV_val *key,
                          const uint8_t *mm,
                          bool *found) {
+  if (sblk->flags & SBLK_DB) {
+    *found = false;
+    return KVBLK_IDXNUM;
+  }
   uint8_t *k;
   uint32_t kl;
   int idx = 0,
@@ -1800,8 +1805,11 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   } else if (idx == 0) {
     // Lowest side
     // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256
-    SBLK nbk;
+    SBLK nbk, sbk;  // SBLK backup
+    uint8_t lkl;    // Lower sblk key len backup
     memcpy(&nbk, nb, sizeof(*nb));
+    memcpy(&sbk, sblk, sizeof(*sblk));
+    memcpy(&lkl, mm + sblk->addr + SOFF_LKL_U1, 1);
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCGO(rc, finish);
     // Move sblk keys to nb
@@ -1810,22 +1818,64 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     nb->kvblk = sblk->kvblk;
     nb->kvblkn = sblk->kvblkn;
     memcpy(nb->pi, sblk->pi, sizeof(sblk->pi));
-    memcpy(mm + nbk.addr + SOFF_LKL_U1, mm + sblk->addr + SOFF_LKL_U1, 1 + SBLK_LKLEN);
+    memcpy(mm + nbk.addr + SOFF_LKL_U1,
+           mm + sblk->addr + SOFF_LKL_U1,
+           1 + SBLK_LKLEN);
     sblk->flags = nbk.flags;
     sblk->pnum = nbk.pnum;
     sblk->kvblk = nbk.kvblk;
     sblk->kvblkn = nbk.kvblkn;
-    memcpy(sblk->pi, nbk.pi, sizeof(nbk.pi));
-    memset(mm + sblk->addr + SOFF_LKL_U1, 0, 1 + SBLK_LKLEN);
+    memset(sblk->pi, 0, sizeof(sblk->pi));
+    memset(mm + sblk->addr + SOFF_LKL_U1, 0, 1); // reset lkl
     fsm->release_mmap(fsm);
+    rc = _sblk_addkv(sblk, lx->key, lx->val);
+    if (rc) {
+      // restore previous state
+      iwrc rc1 = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      RCGO(rc1, finish);
+      memcpy(sblk, &sbk, sizeof(*sblk));
+      memcpy(nb, &nbk, sizeof(*nb));
+      // restore LK data
+      memcpy(mm + sblk->addr + SOFF_LKL_U1, &lkl, 1);
+      fsm->release_mmap(fsm);
+      goto finish;
+    }
   } else {
     // We are in the middle
-    // Do partial split
+    // Do the partial split
     // Move kv pairs into new `nb`
-    
-    // TODO:
+    IWKV_val key, val;
+    for (int i = pivot, end = sblk->pnum; i < end; ++i) {
+      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      RCBREAK(rc);
+      rc = _kvblk_getkv(mm, sblk->kvblk, sblk->pi[i], &key, &val);
+      assert(key.size);
+      fsm->release_mmap(fsm);
+      RCBREAK(rc);
+      rc = _sblk_addkv(nb, &key, &val);
+      _kv_dispose(&key, &val);
+      RCBREAK(rc);
+      sblk->kvblk->pidx[sblk->pi[i]].len = 0;
+      sblk->kvblk->pidx[sblk->pi[i]].off = 0;
+      sblk->pnum--;
+      if (i == pivot) {
+        sblk->kvblk->zidx = sblk->pi[i];
+      }
+    }
+    // sync maxoff
+    sblk->kvblk->maxoff = 0;
+    for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+      if (sblk->kvblk->pidx[i].off > sblk->kvblk->maxoff) {
+        sblk->kvblk->maxoff = sblk->kvblk->pidx[i].off;
+      }
+    }
+    if (idx > pivot) {
+      rc = _sblk_addkv(nb, lx->key, lx->val);
+    } else {
+      rc = _sblk_addkv(sblk, lx->key, lx->val);
+    }
+    RCGO(rc, finish);
   }
-  
   // fix levels
   //  [ lb -> sblk -> ub ]
   //  [ lb -> sblk -> nb -> ub ]
@@ -1836,7 +1886,6 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     lx->plower[i]->flags |= SBLK_DURTY;
     nb->n[i] = (lx->pupper[i]->addr != lx->db->addr) ? ADDR2BLK(lx->pupper[i]->addr) : 0;
   }
-  
 finish:
   if (rc) {
     lx->nb = 0;
@@ -1847,80 +1896,8 @@ finish:
   return rc;
 }
 
-//  } else {
-//    // We are in the middle
-//    // Do partial split
-//    // Move kv pairs into new `nb`
-//    uint8_t *mm;
-//    IWKV_val key, val;
-//    for (int i = pivot, end = sblk->pnum; i < end; ++i) {
-//      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-//      RCBREAK(rc);
-//      rc = _kvblk_getkv(mm, sblk->kvblk, sblk->pi[i], &key, &val);
-//      assert(key.size);
-//      fsm->release_mmap(fsm);
-//      RCBREAK(rc);
-//      rc = _sblk_addkv(nb, &key, &val);
-//      _kv_dispose(&key, &val);
-//      RCBREAK(rc);
-//      sblk->kvblk->pidx[sblk->pi[i]].len = 0;
-//      sblk->kvblk->pidx[sblk->pi[i]].off = 0;
-//      sblk->pnum--;
-//      if (i == pivot) {
-//        sblk->kvblk->zidx = sblk->pi[i];
-//      }
-//    }
-//    // sync maxoff
-//    sblk->kvblk->maxoff = 0;
-//    for (int i = 0; i < KVBLK_IDXNUM; ++i) {
-//      if (sblk->kvblk->pidx[i].off > sblk->kvblk->maxoff) {
-//        sblk->kvblk->maxoff = sblk->kvblk->pidx[i].off;
-//      }
-//    }
-//    if (idx > pivot) {
-//      rc = _sblk_addkv(nb, lx->key, lx->val);
-//    } else {
-//      rc = _sblk_addkv(sblk, lx->key, lx->val);
-//    }
-//    RCGO(rc, finish);
-//  }
-//
-//  // Link blocks
-//  if (idx > 0) {
-//    // todo:
-//    //    nb->p0 = ADDR2BLK(sblk->addr);
-//    //    for (int i = lx->nlvl; i >= 0; --i) {
-//    //      if (lx->plower[i]) {
-//    //        lx->plower[i]->n[i] = nblk;
-//    //        lx->plower[i]->flags |= SBLK_DURTY;
-//    //      } else {
-//    //        lx->db->n[i] = nblk;
-//    //        //        lx->smask |= DB_DURTY;
-//    //        if (i > lx->db->lvl) {
-//    //          lx->db->lvl = i;
-//    //        }
-//    //      }
-//    //      if (lx->pupper[i]) {
-//    //        if (i == 0) {
-//    //          lx->pupper[i]->p0 = nblk;
-//    //          lx->pupper[i]->flags |= SBLK_DURTY;
-//    //        }
-//    //        nb->n[i] = ADDR2BLK(lx->pupper[i]->addr);
-//    //      }
-//    //    }
-//  }
-//
-//finish:
-//  if (rc) {
-//    lx->nb = 0;
-//    IWRC(_sblk_destroy(&nb), rc);
-//  } else {
-//    lx->nb = (SBH *) nb;
-//  }
-//  return rc;
-//}
-
 iwrc _lx_lock_chute_mm(IWLCTX *lx, uint8_t *mm) {
+  assert(lx->nlvl >= 0);
   iwrc rc = 0;
   SBLK *db = 0;
   blkn_t dblk = ADDR2BLK(lx->db->addr);
@@ -2003,24 +1980,22 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx, SBLK *sblk) {
 
 iwrc _lx_put_lr(IWLCTX *lx) {
   iwrc rc;
-  IWDB db = lx->db;
-  int8_t nlvl = -1;
 start:
   rc = _lx_find_bounds(lx, false);
-  RCGO(rc, finish);
-  if (!(lx->lower->flags & SBLK_DB)) {
-    rc = _lx_addkv(lx, lx->lower);
-    if (rc == _IWKV_ERROR_AGAIN || rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
-      _lx_release(lx);
-      goto start;
-    }
-  } else if (lx->upper) {
-  
-  } else {
-  
+  if (rc) {
+    _lx_release_mm(lx, 0);
+    return rc;
   }
-finish:
-  return rc;
+  rc = _lx_addkv(lx, lx->lower);
+  if (rc == _IWKV_ERROR_AGAIN || rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
+    _lx_release_mm(lx, 0);
+    if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
+      lx->nlvl = _sblk_genlevel();
+    }
+    goto start;
+  }
+  // sync and release
+  return _lx_release(lx);
 }
 
 //--------------------------  PUBLIC API
