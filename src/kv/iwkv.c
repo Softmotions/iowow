@@ -2043,11 +2043,12 @@ iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   idx = _sblk_find_pi(lx->upper, lx->key, mm, &found);
-  fsm->release_mmap(fsm);
   if (!found) {
+    fsm->release_mmap(fsm);
     _lx_release_mm(lx, 0);
     return IWKV_ERROR_NOTFOUND;;
   }
+  
   if (lx->upper->pnum <= 1 && !dbwlocked) {
     // ask DB write lock
     return _IWKV_ERROR_REQUIRE_WLOCK;
@@ -2068,6 +2069,8 @@ iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   //    lx->plower[i]->flags |= SBLK_DURTY;
   //    nb->n[i] = (lx->pupper[i]->addr != lx->db->addr) ? ADDR2BLK(lx->pupper[i]->addr) : 0;
   //  }  
+finish:
+  
   return rc;
 }
 
