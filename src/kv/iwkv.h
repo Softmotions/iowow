@@ -18,6 +18,7 @@ typedef enum {
   _IWKV_ERROR_REQUIRE_WL,
   _IWKV_ERROR_AGAIN,
   _IWKV_ERROR_REQUIRE_NLEVEL,
+  _IWKV_ERROR_REQUIRE_WLOCK,
 } iwkv_ecode;
 
 typedef enum {

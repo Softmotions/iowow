@@ -133,7 +133,8 @@ struct IWDB {
   // !SBH
   IWKV iwkv;
   iwdb_flags_t dbflg;         /**< Database flags */
-  pthread_mutex_t mtx_ctl;    /**< Main control mutex */
+  pthread_spinlock_t sl;      /**< Main control spinlock */
+  pthread_rwlock_t rwl;       /**< DB API RW lock */
   dbid_t id;                  /**< Database ID */
   uint64_t next_db_addr;      /**< Next IWDB addr */
   struct IWDB *next;          /**< Next IWDB meta */
@@ -285,7 +286,7 @@ IW_INLINE void _mm_set_u8(uint8_t *mm, off_t off, uint64_t llv) {
 
 IW_INLINE iwrc _aln_release(IWDB db,
                             blkn_t blkn) {
-  int rci = pthread_mutex_lock(&db->mtx_ctl);
+  int rci = pthread_spin_lock(&db->sl);
   if (rci) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   khiter_t k = kh_get(ALN, db->aln, blkn);
   if (k != kh_end(db->aln)) {
@@ -297,7 +298,7 @@ IW_INLINE iwrc _aln_release(IWDB db,
       free(aln);
     }
   }
-  pthread_mutex_unlock(&db->mtx_ctl);
+  pthread_spin_unlock(&db->sl);
   return 0;
 }
 
@@ -306,7 +307,7 @@ IW_INLINE iwrc _aln_acquire_read(IWDB db,
   ALN *aln;
   int rci;
   iwrc rc = 0;
-  rci = pthread_mutex_lock(&db->mtx_ctl);
+  rci = pthread_spin_lock(&db->sl);
   if (rci) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   khiter_t k = kh_get(ALN, db->aln, blkn);
   if (k == kh_end(db->aln)) {
@@ -331,7 +332,7 @@ IW_INLINE iwrc _aln_acquire_read(IWDB db,
     aln->refs++;
   }
 finish:
-  pthread_mutex_unlock(&db->mtx_ctl);
+  pthread_spin_unlock(&db->sl);
   if (!rc) {
     rci = pthread_rwlock_rdlock(&aln->rwl);
     if (rci) {
@@ -346,7 +347,7 @@ IW_INLINE iwrc _aln_write_upgrade(IWDB db,
   ALN *aln;
   int rci;
   iwrc rc = 0;
-  rci = pthread_mutex_lock(&db->mtx_ctl);
+  rci = pthread_spin_lock(&db->sl);
   if (rci) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   khiter_t k = kh_get(ALN, db->aln, blkn);
   if (k == kh_end(db->aln)) {
@@ -373,18 +374,18 @@ IW_INLINE iwrc _aln_write_upgrade(IWDB db,
   }
   aln->write_pending = true;
 finish:
-  pthread_mutex_unlock(&db->mtx_ctl);
+  pthread_spin_unlock(&db->sl);
   if (!rc) {
     rci = pthread_rwlock_wrlock(&aln->rwl);
     if (rci) {
       if (aln->refs < 1) {
-        rci = pthread_mutex_lock(&db->mtx_ctl);
+        rci = pthread_spin_lock(&db->sl);
         if (rci) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
         if (aln->refs < 1) {
           kh_del(ALN, db->aln, k);
           free(aln);
         }
-        pthread_mutex_unlock(&db->mtx_ctl);
+        pthread_spin_unlock(&db->sl);
       }
       return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
     }
@@ -427,8 +428,14 @@ static iwrc _db_at(IWKV iwkv,
   if (!db) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  rci = pthread_mutex_init(&db->mtx_ctl, 0);
+  rci = pthread_spin_init(&db->sl, 0);
   if (rci) {
+    free(db);
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  rci = pthread_rwlock_init(&db->rwl, 0);
+  if (rci) {
+    pthread_spin_destroy(&db->sl);
     free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
@@ -452,7 +459,8 @@ static iwrc _db_at(IWKV iwkv,
 finish:
   if (rc)  {
     kh_destroy(ALN, (*dbp)->aln);
-    pthread_mutex_destroy(&db->mtx_ctl);
+    pthread_spin_destroy(&db->sl);
+    pthread_rwlock_destroy(&db->rwl);
     free(db);
   }
   return rc;
@@ -499,7 +507,8 @@ static iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
 
 static void _db_release_lw(IWDB *dbp) {
   assert(dbp && *dbp);
-  pthread_mutex_destroy(&(*dbp)->mtx_ctl);
+  pthread_spin_destroy(&(*dbp)->sl);
+  pthread_rwlock_destroy(&(*dbp)->rwl);
   kh_destroy(ALN, (*dbp)->aln);
   free(*dbp);
   *dbp = 0;
@@ -1652,7 +1661,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
   assert(lx->lower);
   while ((blkn = lx->lower->n[lvl])) {
     off_t blkaddr = BLK2ADDR(blkn);
-    if (lx->nlvl != -1 && lvl < lx->nlvl) {
+    if (lx->nlvl > -1 && lvl < lx->nlvl) {
       int8_t ulvl = lvl + 1;
       if (lx->pupper[ulvl] && lx->pupper[ulvl]->addr == blkaddr) {
         sblk = lx->pupper[ulvl];
@@ -1994,8 +2003,72 @@ start:
     }
     goto start;
   }
-  // sync and release
   return _lx_release(lx);
+}
+
+iwrc _lx_get_lr(IWLCTX *lx) {
+  iwrc rc = _lx_find_bounds(lx, false);
+  RCRET(rc);
+  lx->val->size = 0;
+  if (!(lx->lower->flags & SBLK_DB)) {
+    bool found;
+    uint8_t *mm;
+    IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCRET(rc);
+    int idx = _sblk_find_pi(lx->lower, lx->key, mm, &found);
+    if (found) {
+      idx = lx->lower->pi[idx];
+      rc = _kvblk_getvalue(lx->lower->kvblk, mm, idx, lx->val);
+    } else {
+      rc = IWKV_ERROR_NOTFOUND;
+    }
+    rc = fsm->release_mmap(fsm);
+  }
+  _lx_release_mm(lx, 0);
+  return rc;
+}
+
+iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
+  iwrc rc;
+  int idx;
+  bool found;
+  uint8_t *mm;
+  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  rc = _lx_find_bounds(lx, true);
+  if (!lx->upper) {
+    _lx_release_mm(lx, 0);
+    return IWKV_ERROR_NOTFOUND;
+  }
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCRET(rc);
+  idx = _sblk_find_pi(lx->upper, lx->key, mm, &found);
+  fsm->release_mmap(fsm);
+  if (!found) {
+    _lx_release_mm(lx, 0);
+    return IWKV_ERROR_NOTFOUND;;
+  }
+  if (lx->upper->pnum <= 1 && !dbwlocked) {
+    // ask DB write lock
+    return _IWKV_ERROR_REQUIRE_WLOCK;
+  }
+  rc = _sblk_rmkv(lx->upper, idx);
+  RCRET(rc);
+  if (lx->upper->pnum < 1) {
+    //for (int i = 0; i <= lx->upper->lvl && i <= ;)
+  }
+  
+  // fix levels
+  //  [ lb -> sblk -> ub ]
+  //  [ lb -> sblk -> nb -> ub ]
+  //  lx->pupper[0]->p0 = nblk;
+  //  lx->pupper[0]->flags |= SBLK_DURTY;
+  //  for (int i = 0; i <= nb->lvl; ++i) {
+  //    lx->plower[i]->n[i] = nblk;
+  //    lx->plower[i]->flags |= SBLK_DURTY;
+  //    nb->n[i] = (lx->pupper[i]->addr != lx->db->addr) ? ADDR2BLK(lx->pupper[i]->addr) : 0;
+  //  }  
+  return rc;
 }
 
 //--------------------------  PUBLIC API
