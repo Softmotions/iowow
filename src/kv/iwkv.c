@@ -228,6 +228,33 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
   rci_ = pthread_rwlock_unlock(&(iwkv_)->rwl_api); \
   if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_)
 
+#define API_DB_RLOCK(db_, rci_)                               \
+  do {                                                        \
+    API_RLOCK((db_)->iwkv, rci_);                             \
+    rci_ = pthread_rwlock_rdlock(&(db_)->rwl);                \
+    if (rci_) {                                               \
+      pthread_rwlock_unlock(&(db_)->iwkv->rwl_api);           \
+      return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_);  \
+    }                                                         \
+  } while(0)
+
+#define API_DB_WLOCK(db_, rci_)                               \
+  do {                                                        \
+    API_RLOCK((db_)->iwkv, rci_);                             \
+    rci_ = pthread_wrlock_rdlock(&(db_)->rwl);                \
+    if (rci_) {                                               \
+      pthread_rwlock_unlock(&(db_)->iwkv->rwl_api);           \
+      return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_);  \
+    }                                                         \
+  } while(0)
+
+#define API_DB_UNLOCK(db_, rci_, rc_)                                     \
+  do {                                                                    \
+    rci_ = pthread_rwlock_unlock(&(db_)->rwl);                            \
+    if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_);  \
+    API_UNLOCK((db_)->iwkv, rci_, rc_);                                   \
+  } while(0)
+
 #define SBLK_SZ 256
 #define DB_SZ   137
 
@@ -2318,8 +2345,8 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     .op = IWLCTX_PUT,
     .op_flags = op_flags
   };
-  API_RLOCK(db->iwkv, rci);
+  API_DB_RLOCK(db, rci);
   rc = _lx_put_lr(&lx);
-  API_UNLOCK(db->iwkv, rci, rc);
+  API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
