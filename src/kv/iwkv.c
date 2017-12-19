@@ -83,7 +83,7 @@ typedef struct KVP {
 } KVP;
 
 typedef enum {
-  KVBLK_DURTY = 1 /**< KVBLK data is dury and should be flushed to mm */
+  KVBLK_DURTY = 1 /**< KVBLK data is durty and should be flushed to mm */
 } kvblk_flags_t;
 
 typedef enum {
@@ -105,9 +105,9 @@ typedef struct KVBLK {
 
 typedef enum {
   SBLK_FULL_LKEY = 1,         /**< The lowest `SBLK` key is fully contained in `SBLK`. Persistent flag. */
-  SBLK_DB = 1 << 1,           /**< This block is the database block. */
-  SBLK_PINNED = 1 << 2,       /**< `SBH` pinned and should not be released. */
-  SBLK_WLOCKED = 1 << 3,      /**< `SBH` write locked */
+  SBLK_DB = 1 << 1,           /**< This block is the start database block. */
+  SBLK_PINNED = 1 << 2,       /**< `SBLK` pinned and should not be released. */
+  SBLK_WLOCKED = 1 << 3,      /**< `SBLK` write locked */
   SBLK_NO_LOCK = 1 << 4,      /**< Do not use locks when accessing `SBH`(used in debug print routines) */
   SBLK_DURTY = 1 << 5
 } sblk_flags_t;
@@ -124,7 +124,7 @@ typedef struct ALN {
 
 KHASH_MAP_INIT_INT(ALN, ALN *)
 
-/* Database: [magic:u4,flags:u1,dbid:u4,next_blk:u4,p0:u4,n0-n29:u4] */
+/* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137 */
 struct IWDB {
   // SBH
   IWDB db;                    /**< Database ref */
@@ -142,7 +142,7 @@ struct IWDB {
   khash_t(ALN) *aln;          /**< Block id -> ALN node mapping */
 };
 
-/* Skiplist block */
+/* Skiplist block: [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256  */
 typedef struct SBLK {
   // SBH
   IWDB db;                    /**< Database ref */
@@ -162,12 +162,11 @@ KHASH_MAP_INIT_INT(DBS, IWDB)
 
 /** IWKV instance */
 struct IWKV {
-  pthread_rwlock_t rwl;   /**< API RW lock */
   IWFS_FSM fsm;               /**< FSM pool */
-  blkn_t  metablk;            /**< Database meta block */
-  khash_t(DBS) *dbs;          /**< Database id -> IWDB mapping */
-  IWDB last_db;               /**< Last database in chain */
+  pthread_rwlock_t rwl;       /**< API RW lock */
   IWDB first_db;              /**< First database in chain */
+  IWDB last_db;               /**< Last database in chain */
+  khash_t(DBS) *dbs;          /**< Database id -> IWDB mapping */
   iwkv_openflags oflags;      /**< Open flags */
   bool open;                  /**< True if kvstore is in OPEN state */
 };
@@ -189,8 +188,8 @@ typedef struct IWLCTX {
   SBLK *pupper[SLEVELS];      /**< Pinned upper nodes per level */
   SBLK saa[AANUM];            /**< `SBLK` allocation area */
   KVBLK kaa[AANUM];           /**< `KVBLK` allocation area */
-  uint8_t saa_pos;            /**< Position of next free `SBLK` element in the `saa` area */
-  uint8_t kaa_pos;            /**< Position of next free `KVBLK` element in the `kaa` area */
+  uint8_t saan;               /**< Position of next free `SBLK` element in the `saa` area */
+  uint8_t kaan;               /**< Position of next free `KVBLK` element in the `kaa` area */
   int8_t lvl;                 /**< Current level */
   int8_t nlvl;                /**< Level of new inserted `SBLK` node. -1 if no new node inserted */
   iwlctx_op_t op;             /**< Context operation */
@@ -245,12 +244,12 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
     API_UNLOCK((db_)->iwkv, rci_, rc_);                                   \
   } while(0)
 
-#define AAPOS_INC(aapos_)        \
+#define AAPOS_INC(aan_)        \
   do {                           \
-    if ((aapos_) < AANUM - 1) {  \
-      (aapos_) = (aapos_) + 1;   \
+    if ((aan_) < AANUM - 1) {  \
+      (aan_) = (aan_) + 1;   \
     } else {                     \
-      (aapos_) = 0;              \
+      (aan_) = 0;              \
     }                            \
   } while(0)
 
@@ -651,8 +650,8 @@ static iwrc _kvblk_create(IWLCTX *lx,
   if (kvbpow < KVBLK_INISZPOW) {
     kvbpow = KVBLK_INISZPOW;
   }
-  assert(lx->kaa_pos < AANUM);
-  kblk = &lx->kaa[lx->kaa_pos];
+  assert(lx->kaan < AANUM);
+  kblk = &lx->kaa[lx->kaan];
   memset(lx->kaa, 0, sizeof(lx->kaa[0]));
   iwrc rc = fsm->allocate(fsm, (1ULL << kvbpow), &baddr, &blen,
                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
@@ -663,7 +662,7 @@ static iwrc _kvblk_create(IWLCTX *lx,
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
   kblk->flags = KVBLK_DURTY;
   *oblk = kblk;
-  AAPOS_INC(lx->kaa_pos);
+  AAPOS_INC(lx->kaan);
   return rc;
 }
 
@@ -841,7 +840,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   uint16_t sv;
   int step;
   iwrc rc = 0;
-  KVBLK *kb = kbp ? kbp : &lx->kaa[lx->kaa_pos];
+  KVBLK *kb = kbp ? kbp : &lx->kaa[lx->kaan];
   memset(kb, 0, sizeof(*kb));
   
   *blkp = 0;
@@ -881,7 +880,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   }
   *blkp = kb;
   if (!kbp) {
-    AAPOS_INC(lx->kaa_pos);
+    AAPOS_INC(lx->kaan);
   }
 finish:
   return rc;
@@ -1274,7 +1273,7 @@ static iwrc _sblk_create(IWLCTX *lx,
     IWRC(_kvblk_destroy(&kvblk), rc);
     return rc;
   }
-  sblk = &lx->saa[lx->saa_pos];
+  sblk = &lx->saa[lx->saan];
   memset(sblk, 0, sizeof(*sblk));
   sblk->db = lx->db;
   sblk->addr = baddr;
@@ -1285,7 +1284,7 @@ static iwrc _sblk_create(IWLCTX *lx,
   rc = _aln_acquire_read(lx->db, sblk->addr);
   if (!rc) {
     *oblk = sblk;
-    AAPOS_INC(lx->saa_pos);
+    AAPOS_INC(lx->saan);
   }
   return rc;
 }
@@ -1298,7 +1297,7 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sblk_flags_t flags, uint8_t *mm,
   }
   uint32_t lv;
   uint8_t *rp = mm + addr;
-  SBLK *sblk = &lx->saa[lx->saa_pos];
+  SBLK *sblk = &lx->saa[lx->saan];
   memset(sblk, 0, sizeof(*sblk));
   if (IW_UNLIKELY(addr == lx->db->addr)) {
     // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
@@ -1331,7 +1330,7 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sblk_flags_t flags, uint8_t *mm,
     IW_READLV(rp, lv, sblk->kvblkn);
     memcpy(sblk->pi, rp, KVBLK_IDXNUM);
   }
-  AAPOS_INC(lx->saa_pos);
+  AAPOS_INC(lx->saan);
   return 0;
 }
 
