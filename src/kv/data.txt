@@ -7,7 +7,7 @@ max data file size: 255G
 levels:
   [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256  // SBLK Skip block
                                                   \
-                                  [blen:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[_KV],...]] // KVBLK
+                                  [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[_KV],...]] // KVBLK
   KV: [klen:vn,key,value]
 
   flags  - Block flags
@@ -17,7 +17,7 @@ levels:
   kblk   - Address of `Pairs block (PB)` as block number.
   pnum   - Number of active pairs in `piN` array
   piN    - Sorted indexes of pair nodes in `Pairs block`
-  blen   - Whole block length as power of 2
+  szpow  - Whole block length as power of 2
   idxsz -  Length of [ppos,plen...] array in bytes
   psN    - Key/Value pair block start on i-th place
   plN    - Key/Value pair block length on i-th place
