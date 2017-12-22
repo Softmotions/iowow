@@ -33,6 +33,7 @@
 
 #include "basedefs.h"
 #include <math.h>
+#include <assert.h>
 
 IW_EXTERN_C_START
 
@@ -87,49 +88,57 @@ IW_EXTERN_C_START
 #endif
 
 #define IW_WRITEBV(IW_ptr_, IW_v_, IW_m_)  \
+  static_assert(sizeof(IW_v_) >= 1, "Mismatch IW_v_ size"); \
   IW_v_ = (IW_m_);                          \
   memcpy(IW_ptr_, &IW_v_, 1); \
   IW_ptr_ += 1
 
 #define IW_WRITESV(IW_ptr_, IW_v_, IW_m_)  \
+  static_assert(sizeof(IW_v_) >= 2, "Mismatch IW_v_ size"); \
   IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOIS(IW_v_);                \
   memcpy(IW_ptr_, &IW_v_, 2); \
   IW_ptr_ += 2
 
 #define IW_WRITELV(IW_ptr_, IW_v_, IW_m_)  \
+  static_assert(sizeof(IW_v_) >= 4, "Mismatch IW_v_ size"); \
   IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOIL(IW_v_);                \
   memcpy(IW_ptr_, &IW_v_, 4); \
   IW_ptr_ += 4
 
 #define IW_WRITELLV(IW_ptr_, IW_v_, IW_m_) \
+  static_assert(sizeof(IW_v_) >= 8, "Mismatch IW_v_ size"); \
   IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOILL(IW_v_);               \
   memcpy(IW_ptr_, &IW_v_, 8); \
   IW_ptr_ += 8
 
 #define IW_READBV(IW_ptr_, IW_t_, IW_m_)   \
+  IW_t_ = 0; \
   memcpy(&(IW_t_), IW_ptr_, 1);  \
-  IW_m_ = (IW_t_);                          \
+  IW_m_ = (IW_t_);   \
   IW_ptr_ += 1
 
 #define IW_READSV(IW_ptr_, IW_t_, IW_m_)   \
+  static_assert(sizeof(IW_t_) == 2, "Mismatch IW_t_ size"); \
+  IW_t_ = 0; \
   memcpy(&(IW_t_), IW_ptr_, 2);  \
-  IW_t_ = IW_ITOHS(IW_t_);                \
-  IW_m_ = (IW_t_);                          \
+  IW_m_ = IW_ITOHS(IW_t_);  \
   IW_ptr_ += 2
 
 #define IW_READLV(IW_ptr_, IW_t_, IW_m_)   \
+  static_assert(sizeof(IW_t_) == 4, "Mismatch IW_t_ size"); \
+  IW_t_ = 0; \
   memcpy(&(IW_t_), IW_ptr_, 4);  \
-  IW_t_ = IW_ITOHL(IW_t_);                \
-  IW_m_ = (IW_t_);                          \
+  IW_m_ = IW_ITOHL(IW_t_);  \
   IW_ptr_ += 4
 
 #define IW_READLLV(IW_ptr_, IW_t_, IW_m_)  \
+  static_assert(sizeof(IW_t_) == 8, "Mismatch IW_t_ size"); \
+  IW_t_ = 0; \
   memcpy(&(IW_t_), IW_ptr_, 8);  \
-  IW_t_ = IW_ITOHLL(IW_t_);               \
-  IW_m_ = (IW_t_);                          \
+  IW_m_ = IW_ITOHLL(IW_t_); \
   IW_ptr_ += 8
 
 #ifndef SIZE_T_MAX

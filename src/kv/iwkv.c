@@ -1320,6 +1320,7 @@ static iwrc _sblk_create(IWLCTX *lx,
 static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sblk_flags_t flags, uint8_t *mm, SBLK **sblkp) {
   iwrc rc = 0;
   *sblkp = 0;
+  flags = lx->sblk_flags | flags;
   if (!(flags & SBLK_NO_LOCK)) {
     rc = _aln_acquire_read(lx->db, ADDR2BLK(addr));
     RCRET(rc);
@@ -1582,6 +1583,7 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
     }
     fsm->release_mmap(fsm);
   }
+  sblk->kvblkn = ADDR2BLK(kvblk->addr);
   sblk->pi[idx] = kvidx;
   sblk->pnum++;
   sblk->flags |= SBLK_DURTY;
@@ -1614,6 +1616,7 @@ IW_INLINE iwrc _sblk_addkv(SBLK *sblk,
     }
   }
   fsm->release_mmap(fsm);
+  sblk->kvblkn = ADDR2BLK(kvblk->addr);
   sblk->flags |= SBLK_DURTY;
   return 0;
 }
@@ -1627,6 +1630,7 @@ IW_INLINE iwrc _sblk_updatekv(SBLK *sblk,
   int8_t kvidx = sblk->pi[idx];
   iwrc rc = _kvblk_updatev(kvblk, &kvidx, key, val);
   RCRET(rc);
+  sblk->kvblkn = ADDR2BLK(kvblk->addr);
   sblk->pi[idx] = kvidx;
   sblk->flags |= SBLK_DURTY;
   return 0;
@@ -1641,6 +1645,7 @@ IW_INLINE iwrc _sblk_rmkv(SBLK *sblk,
   assert(kvblk && idx < sblk->pnum && sblk->pi[idx] < KVBLK_IDXNUM);
   iwrc rc = _kvblk_rmkv(kvblk, sblk->pi[idx], 0);
   RCRET(rc);
+  sblk->kvblkn = ADDR2BLK(kvblk->addr);
   sblk->pnum--;
   sblk->flags |= SBLK_DURTY;
   if (idx < sblk->pnum && sblk->pnum > 0) {
@@ -1740,13 +1745,13 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
       } else if (lx->plower[ulvl] && lx->plower[ulvl]->addr == blkaddr) {
         sblk = lx->plower[ulvl];
       } else {
-        rc = _sblk_at_mm(lx, blkaddr, lx->sblk_flags, mm, &sblk);
+        rc = _sblk_at_mm(lx, blkaddr, 0, mm, &sblk);
       }
     } else {
       if (lx->upper && lx->upper->addr == blkaddr) {
         break;
       } else {
-        rc = _sblk_at_mm(lx, blkaddr, lx->sblk_flags, mm, &sblk);
+        rc = _sblk_at_mm(lx, blkaddr, 0, mm, &sblk);
       }
     }
     RCRET(rc);
@@ -1774,7 +1779,7 @@ static iwrc _lx_find_bounds(IWLCTX *lx, bool key2upper) {
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   assert(!lx->lower);
-  rc = _sblk_at_mm(lx, lx->db->addr, lx->sblk_flags, mm, &lx->lower);
+  rc = _sblk_at_mm(lx, lx->db->addr, 0, mm, &lx->lower);
   RCGO(rc, finish);
   if (lx->nlvl > lx->lower->lvl) {
     memset(&lx->lower->n[lx->lower->lvl + 1], 0, lx->nlvl - lx->lower->lvl);
@@ -2149,6 +2154,7 @@ iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
       int8_t nlvl = lx->upper->lvl;
       _lx_release_mm(lx, 0);
       lx->nlvl = nlvl;
+      lx->sblk_flags |= SBLK_NO_LOCK;
       rc = _IWKV_ERROR_REQUIRE_WLOCK;
       goto finish;
     } else if (lx->nlvl != lx->upper->lvl) {
@@ -2184,6 +2190,7 @@ iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
       nb = db;
     }
     if (!nb) {
+      assert(!lx->nb);
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCGO(rc, finish);
       rc = _sblk_at_mm(lx, (lx->upper->n[0] ? BLK2ADDR(lx->upper->n[0]) : lx->db->addr), 0, mm, &nb);
