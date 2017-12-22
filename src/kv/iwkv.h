@@ -71,6 +71,8 @@ IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
 
 IW_EXPORT iwrc iwkv_del(IWDB db, const IWKV_val *key);
 
+IW_EXPORT void iwkv_val_dispose(IWKV_val *kval);
+
 IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
 
 // Do not print random levels of skiplist blocks

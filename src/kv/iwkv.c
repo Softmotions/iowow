@@ -446,6 +446,16 @@ IW_INLINE void _kv_dispose(IWKV_val *key,
   }
 }
 
+void iwkv_val_dispose(IWKV_val *v) {
+   if(v) {
+    if (v->data) {
+      free(v->data);
+    }
+    v->size = 0;
+    v->data = 0;
+  }
+}
+
 void iwkv_kv_dispose(IWKV_val *key,
                      IWKV_val *val) {
   _kv_dispose(key, val);
