@@ -142,7 +142,7 @@ struct IWDB {
   khash_t(ALN) *aln;          /**< Block id -> ALN node mapping */
 };
 
-/* Skiplist block: [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256  */
+/* Skiplist block: [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256  */
 typedef struct SBLK {
   // SBH
   IWDB db;                    /**< Database ref */
@@ -256,17 +256,17 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
 #define DB_SZ   137
 
 // SBLK
-// [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256
+// [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
 #define SOFF_FLAGS_U1     0
 #define SOFF_LKL_U1       (SOFF_FLAGS_U1 + 1)
 #define SOFF_LK_U61       (SOFF_LKL_U1 + 1)
 #define SOFF_LVL_U1       (SOFF_LK_U61 + SBLK_LKLEN)
 #define SOFF_P0_U4        (SOFF_LVL_U1 + 1)
-#define SOFF_N0_U4        (SOFF_P0_U4 + 4)
-#define SOFF_PNUM_U1      (SOFF_N0_U4 + 4 * SLEVELS)
+#define SOFF_PNUM_U1      (SOFF_P0_U4 + 4)
 #define SOFF_KBLK_U4      (SOFF_PNUM_U1 + 1)
 #define SOFF_PI0_U1       (SOFF_KBLK_U4 + 4)
-#define SOFF_END          (SOFF_PI0_U1 + 1 * KVBLK_IDXNUM)
+#define SOFF_N0_U4        (SOFF_PI0_U1 + 1 * KVBLK_IDXNUM)
+#define SOFF_END          (SOFF_N0_U4 + 4 * SLEVELS)
 
 // DB
 // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]
@@ -447,7 +447,7 @@ IW_INLINE void _kv_dispose(IWKV_val *key,
 }
 
 void iwkv_val_dispose(IWKV_val *v) {
-   if(v) {
+  if (v) {
     if (v->data) {
       free(v->data);
     }
@@ -1350,26 +1350,31 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sblk_flags_t flags, uint8_t *mm,
     IW_READLV(rp, lv, sblk->p0);
     for (int i = 0; i < SLEVELS; ++i) {
       IW_READLV(rp, lv, sblk->n[i]);
-      if (sblk->n[i]) ++sblk->lvl;
+      if (sblk->n[i]) {
+        ++sblk->lvl;
+      } else {
+        break;
+      }
     }
     if (sblk->lvl) --sblk->lvl;
   } else {
     sblk->db = lx->db;
     sblk->addr = addr;
-    // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256
+    // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
     memcpy(&sblk->flags, rp + SOFF_FLAGS_U1, 1);
     sblk->flags |= flags;
     rp += SOFF_LVL_U1;
     memcpy(&sblk->lvl, rp, 1);
     rp += 1;
     IW_READLV(rp, lv, sblk->p0);
-    for (int i = 0; i < SLEVELS; ++i) {
-      IW_READLV(rp, lv, sblk->n[i]);
-    }
     memcpy(&sblk->pnum, rp, 1);
     rp += 1;
     IW_READLV(rp, lv, sblk->kvblkn);
     memcpy(sblk->pi, rp, KVBLK_IDXNUM);
+    rp += KVBLK_IDXNUM;
+    for (int i = 0; i <= sblk->lvl; ++i) {
+      IW_READLV(rp, lv, sblk->n[i]);
+    }
   }
   AAPOS_INC(lx->saan);
   *sblkp = sblk;
@@ -1399,10 +1404,15 @@ IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     IW_READLV(rp, lv, sblk->p0);
     for (int i = 0; i < SLEVELS; ++i) {
       IW_READLV(rp, lv, sblk->n[i]);
-      if (sblk->n[i]) ++sblk->lvl;
+      if (sblk->n[i]) {
+        ++sblk->lvl;
+      } else {
+        break;
+      }
     }
+    if (sblk->lvl) --sblk->lvl;
   } else {
-    // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256
+    // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
     memcpy(&flags, rp + SOFF_FLAGS_U1, 1);
     sblk->flags &= ~SBLK_PERSISTENT_FLAGS;
     sblk->flags |= flags;
@@ -1410,13 +1420,14 @@ IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     memcpy(&sblk->lvl, rp, 1);
     rp += 1;
     IW_READLV(rp, lv, sblk->p0);
-    for (int i = 0; i < SLEVELS; ++i) {
-      IW_READLV(rp, lv, sblk->n[i]);
-    }
     memcpy(&sblk->pnum, rp, 1);
     rp += 1;
     IW_READLV(rp, lv, sblk->kvblkn);
     memcpy(sblk->pi, rp, KVBLK_IDXNUM);
+    rp += KVBLK_IDXNUM;
+    for (int i = 0; i <= sblk->lvl; ++i) {
+      IW_READLV(rp, lv, sblk->n[i]);
+    }
     if (sblk->kvblk && sblk->kvblk->addr != BLK2ADDR(sblk->kvblkn)) {
       // Re-read kvblk since it changed (reallocated)
       rc = _kvblk_at_mm(lx, BLK2ADDR(sblk->kvblkn), mm, sblk->kvblk, &sblk->kvblk);
@@ -1441,10 +1452,11 @@ IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
       IW_WRITELV(wp, lv, sblk->p0);
       for (int i = 0; i < SLEVELS; ++i) {
         IW_WRITELV(wp, lv, sblk->n[i]);
+        if (!sblk->n[i]) break;
       }
       return;
     } else {
-      // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256
+      // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
       wp += SOFF_FLAGS_U1;
       sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
       memcpy(wp, &flags, 1);
@@ -1452,13 +1464,14 @@ IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
       memcpy(wp, &sblk->lvl, 1);
       wp += 1;
       IW_WRITELV(wp, lv, sblk->p0);
-      for (int i = 0; i < SLEVELS; ++i) {
-        IW_WRITELV(wp, lv, sblk->n[i]);
-      }
       memcpy(wp, &sblk->pnum, 1);
       wp += 1;
       IW_WRITELV(wp, lv, sblk->kvblkn);
       memcpy(wp, sblk->pi, KVBLK_IDXNUM);
+      wp += KVBLK_IDXNUM;
+      for (int i = 0; i <= sblk->lvl; ++i) {
+        IW_WRITELV(wp, lv, sblk->n[i]);
+      }
     }
   }
   if (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY)) {
