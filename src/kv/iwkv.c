@@ -1918,7 +1918,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     
   } else if (idx == 0) {
     // Lowest side
-    // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,n0-n29:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62]]:u256
+    // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
     SBLK nbk, sbk;  // SBLK backup
     uint8_t lkl;    // Lower sblk key len backup
     memcpy(&nbk, nb, sizeof(*nb));
