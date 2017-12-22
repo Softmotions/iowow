@@ -331,9 +331,7 @@ static void iwkv_test1(void) {
 
   // force extra blocks
   // iwkv_next_level = 1;
-
-  iwkvd_db(stderr, db1, IWKVD_PRINT_VALS);
-
+  
   for (int i = 1; i < 63 * 2; i += 2) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
     snprintf(vbuf, VBUFSZ, "%03dval", i);
@@ -341,10 +339,10 @@ static void iwkv_test1(void) {
     key.size = strlen(key.data);
     val.data = vbuf;
     val.size = strlen(val.data);
-    if (i == 63) {
-      iwkvd_db(stderr, db1, IWKVD_PRINT_VALS);
-    }
     rc = iwkv_put(db1, &key, &val, 0);
+    //if (i == 1 || i == 61) {
+    //  iwkvd_db(stderr, db1, IWKVD_PRINT_VALS);
+    //}
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
 
@@ -364,7 +362,7 @@ static void iwkv_test1(void) {
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  logstage(f, "split SBLK[54]", db1);
+  logstage(f, "split SBLK[18]", db1);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -404,8 +402,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))) {
+  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) /*||
+      (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))*/) {
     CU_cleanup_registry();
     return CU_get_error();
   }
