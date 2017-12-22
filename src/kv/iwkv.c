@@ -2087,7 +2087,11 @@ start:
     }
     goto start;
   }
-  rc = _lx_release(lx);
+  if (rc) {
+    _lx_release_mm(lx, 0);
+  } else {
+    rc = _lx_release(lx);
+  }
   return rc;
 }
 
@@ -2110,7 +2114,7 @@ iwrc _lx_get_lr(IWLCTX *lx) {
     rc = IWKV_ERROR_NOTFOUND;
   }
 finish:
-  rc = fsm->release_mmap(fsm);
+   IWRC(fsm->release_mmap(fsm), rc);
   _lx_release_mm(lx, 0);
   return rc;
 }
@@ -2142,11 +2146,15 @@ iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   }
   if (lx->upper->pnum <= 1) {
     if (!dbwlocked) {
-      lx->nlvl = lx->upper->lvl;
+      int8_t nlvl = lx->upper->lvl;
+      _lx_release_mm(lx, 0);
+      lx->nlvl = nlvl;
       rc = _IWKV_ERROR_REQUIRE_WLOCK;
       goto finish;
     } else if (lx->nlvl != lx->upper->lvl) {
-      lx->nlvl = lx->upper->lvl;
+      int8_t nlvl = lx->upper->lvl;
+      _lx_release_mm(lx, 0);
+      lx->nlvl = nlvl;
       rc = _IWKV_ERROR_AGAIN;
       goto finish;
     }
@@ -2158,19 +2166,34 @@ iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   RCGO(rc, finish);
   if (lx->upper->pnum < 1) {
     assert(dbwlocked);
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCGO(rc, finish);
-    rc = _sblk_at_mm(lx, (lx->upper->n[0] ? BLK2ADDR(lx->upper->n[0]) : lx->db->addr), 0, mm, &lx->nb);
-    RCGO(rc, finish);
-    lx->nb->p0 = lx->upper->p0;
-    lx->nb->flags |= SBLK_DURTY;
+    SBLK *db = 0, *nb = 0;
     for (int i = 0; i <= lx->nlvl; ++i) {
       lx->plower[i]->n[i] = lx->upper->n[i];
       lx->plower[i]->flags |= SBLK_DURTY;
-      if ((lx->plower[i]->flags & SBLK_DB) && lx->plower[i]->n[i] == 0) {
-        lx->plower[i]->lvl--;
+      if (lx->plower[i]->flags & SBLK_DB) {
+        db = lx->plower[i];
+        if (!db->n[i]) {
+          db->lvl--;
+        }
+      }
+      if (lx->pupper[i] == lx->upper) {
+        lx->pupper[i] = 0;
       }
     }
+    if (!lx->upper->n[0]) {
+      nb = db;
+    }
+    if (!nb) {
+      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      RCGO(rc, finish);
+      rc = _sblk_at_mm(lx, (lx->upper->n[0] ? BLK2ADDR(lx->upper->n[0]) : lx->db->addr), 0, mm, &nb);
+      fsm->release_mmap(fsm);
+      mm = 0;
+      RCGO(rc, finish);
+    }
+    lx->nb = nb;
+    lx->nb->p0 = lx->upper->p0;
+    lx->nb->flags |= SBLK_DURTY;
     // Now destroy KV block
     rc = _sblk_destroy(lx, &lx->upper);
   }
@@ -2450,6 +2473,7 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
 start:
   rc = _lx_del_lr(&lx, wlocked);
   if (!wlocked && rc == _IWKV_ERROR_REQUIRE_WLOCK) {
+    rc = 0;
     API_DB_UNLOCK(db, rci, rc);
     RCRET(rc);
     API_DB_WLOCK(db, rci);
