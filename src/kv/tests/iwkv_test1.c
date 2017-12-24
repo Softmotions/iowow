@@ -15,8 +15,7 @@ extern int8_t iwkv_next_level;
 
 static int cmp_files(FILE *f1, FILE *f2) {
   // todo remove:
-  if (1) return 0;
-  
+  //if (1) return 0;
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
   char c1 = getc(f1);
@@ -72,7 +71,7 @@ static void iwkv_test2(void) {
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   
-  for (int i = 252; i >= 0; --i) {
+  for (int i = 252; i >= 0; --i) { // 189
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
     snprintf(vbuf, VBUFSZ, "%03dval", i);
     key.data = kbuf;
@@ -82,7 +81,6 @@ static void iwkv_test2(void) {
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  
   logstage(f, "desc sorted 253 keys inserted", db1);
   
   for (int i = 0; i <= 252; ++i) {
@@ -96,6 +94,7 @@ static void iwkv_test2(void) {
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     IW_CMP(cret, vbuf, vsize, val.data, val.size);
     CU_ASSERT_EQUAL_FATAL(cret, 0);
+    iwkv_kv_dispose(0, &val);
   }
   
   snprintf(kbuf, KBUFSZ, "%03dkkk", 64);
@@ -103,7 +102,6 @@ static void iwkv_test2(void) {
   key.size = strlen(key.data);
   rc = iwkv_del(db1, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
   logstage(f, "removed 064kkk", db1);
   
   // Now delete more than half of block records
@@ -120,7 +118,6 @@ static void iwkv_test2(void) {
     }
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  
   logstage(f, "removed 065kkk - 099kkk", db1); // 125
   
   for (int i = 100; i <= 126; ++i) {
@@ -130,8 +127,7 @@ static void iwkv_test2(void) {
     rc = iwkv_del(db1, &key);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  
-  logstage(f, "removed all keys in SBLK[58]", db1); // 125
+  logstage(f, "removed all keys in SBLK[54]", db1); // 125
   
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -271,6 +267,7 @@ static void iwkv_test1(void) {
   rc = iwkv_get(db1, &key, &val);
   CU_ASSERT_NSTRING_EQUAL(key.data, "foo", key.size);
   CU_ASSERT_NSTRING_EQUAL(val.data, "", val.size);
+  iwkv_kv_dispose(0, &val);
   
   logstage(f, "put foo:", db1);
   
@@ -418,8 +415,8 @@ int main() {
   }
   
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) /*||
-      (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))*/) {
+  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
+      (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

@@ -614,6 +614,17 @@ static iwrc _db_create_lw(IWKV iwkv,
   if (!db) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
+  rci = pthread_spin_init(&db->sl, 0);
+  if (rci) {
+    free(db);
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  rci = pthread_rwlock_init(&db->rwl, 0);
+  if (rci) {
+    pthread_spin_destroy(&db->sl);
+    free(db);
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
   rc = fsm->allocate(fsm, (1 << DB_SZPOW), &baddr, &blen,
                      IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
   if (rc) {
@@ -1895,7 +1906,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     // Good to place lv into the right(upper) block
     return _sblk_addkv(lx->upper, lx->key, lx->val);
   }
-  if (idx > 0 && idx < sblk->pnum) {
+  if (idx < sblk->pnum) {
     // Partial split required
     // Compute space required for the new sblk which stores kv pairs after pivot `idx`
     size_t sz = 0;
@@ -1915,45 +1926,6 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     // Upper side
     rc = _sblk_addkv(nb, lx->key, lx->val);
     RCGO(rc, finish);
-    
-  } else if (idx == 0) {
-    // Lowest side
-    // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
-    SBLK nbk, sbk;  // SBLK backup
-    uint8_t lkl;    // Lower sblk key len backup
-    memcpy(&nbk, nb, sizeof(*nb));
-    memcpy(&sbk, sblk, sizeof(*sblk));
-    memcpy(&lkl, mm + sblk->addr + SOFF_LKL_U1, 1);
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCGO(rc, finish);
-    // Move sblk keys to nb
-    nb->flags = sblk->flags | SBLK_DURTY;
-    nb->pnum = sblk->pnum;
-    nb->kvblk = sblk->kvblk;
-    nb->kvblkn = sblk->kvblkn;
-    memcpy(nb->pi, sblk->pi, sizeof(sblk->pi));
-    memcpy(mm + nbk.addr + SOFF_LKL_U1,
-           mm + sblk->addr + SOFF_LKL_U1,
-           1 + SBLK_LKLEN);
-    sblk->flags = nbk.flags;
-    sblk->pnum = nbk.pnum;
-    sblk->kvblk = nbk.kvblk;
-    sblk->kvblkn = nbk.kvblkn;
-    memset(sblk->pi, 0, sizeof(sblk->pi));
-    memset(mm + sblk->addr + SOFF_LKL_U1, 0, 1); // reset lkl
-    fsm->release_mmap(fsm);
-    rc = _sblk_addkv(sblk, lx->key, lx->val);
-    if (rc) {
-      // restore previous state
-      iwrc rc1 = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      RCGO(rc1, finish);
-      memcpy(sblk, &sbk, sizeof(*sblk));
-      memcpy(nb, &nbk, sizeof(*nb));
-      // restore LK data
-      memcpy(mm + sblk->addr + SOFF_LKL_U1, &lkl, 1);
-      fsm->release_mmap(fsm);
-      goto finish;
-    }
   } else {
     // We are in the middle
     // Do the partial split
