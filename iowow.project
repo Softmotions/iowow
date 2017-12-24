@@ -113,7 +113,6 @@
         </VirtualDirectory>
       </VirtualDirectory>
       <File Name="src/kv/README.md"/>
-      <File Name="src/kv/iwkv.txt"/>
       <File Name="src/kv/iwkv.c"/>
     </VirtualDirectory>
   </VirtualDirectory>
