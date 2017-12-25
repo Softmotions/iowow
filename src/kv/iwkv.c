@@ -565,6 +565,7 @@ static void _db_release_lw(IWDB *dbp) {
 typedef struct DISPOSE_DB_CTX {
   IWKV iwkv;
   blkn_t sbn; // First `SBLK` block in DB
+  pthread_t thr;
 } DISPOSE_DB_CTX;
 
 static void *_db_dispose_chain_thr(void *op) {
@@ -651,7 +652,6 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   // Cleanup DB
   if (first_sblkn) {
     do {
-      pthread_t thr;
       DISPOSE_DB_CTX *ddctx = malloc(sizeof(*ddctx));
       if (!ddctx) {
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -659,7 +659,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
       }
       ddctx->sbn = first_sblkn;
       ddctx->iwkv = db->iwkv;
-      rci = pthread_create(&thr, 0, _db_dispose_chain_thr, ddctx);
+      rci = pthread_create(&ddctx->thr, 0, _db_dispose_chain_thr, ddctx);
       if (rci) {
         rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
       }
