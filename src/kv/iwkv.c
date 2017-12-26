@@ -1431,6 +1431,7 @@ static uint8_t _sblk_genlevel() {
   if (iwkv_next_level >= 0) {
     lvl = iwkv_next_level;
     iwkv_next_level = -1;
+    assert(lvl >= 0 && lvl < SLEVELS);
     return lvl;
   }
   uint32_t r = iwu_rand_u32();

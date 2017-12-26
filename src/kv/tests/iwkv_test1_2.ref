@@ -397,3 +397,8 @@
  === SBLK[14]    [57,05] 247kkk:247val    [58,04] 248kkk:248val    [59,03] 249kkk:249val
  === SBLK[14]    [60,02] 250kkk:250val    [61,01] 251kkk:251val    [62,00] 252kkk:252val
 
+
+#### Stage: db1 destroyed
+
+
+== DB[1] lvl=-1, blk=6, dbflg=0, lsblk=0
