@@ -168,6 +168,9 @@ struct IWKV {
   IWDB last_db;               /**< Last database in chain */
   khash_t(DBS) *dbs;          /**< Database id -> IWDB mapping */
   iwkv_openflags oflags;      /**< Open flags */
+  pthread_cond_t wk_cond;     /**< Workers cond variable */
+  pthread_mutex_t wk_mtx;     /**< Workers cond mutext */
+  volatile int32_t wk_count;  /**< Number of active workers */
   bool open;                  /**< True if kvstore is in OPEN state */
 };
 
@@ -461,6 +464,55 @@ void iwkv_kv_dispose(IWKV_val *key,
   _kv_dispose(key, val);
 }
 
+//-------------------------- IWKV UTILS
+
+iwrc _iwkv_worker_inc(IWKV iwkv) {
+  int rci = pthread_mutex_lock(&iwkv->wk_mtx);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  if (!iwkv->open) {
+    pthread_mutex_unlock(&iwkv->wk_mtx);
+    return _IWKV_ERROR_ABORT;
+  }
+  iwkv->wk_count++;
+  pthread_cond_broadcast(&iwkv->wk_cond);
+  pthread_mutex_unlock(&iwkv->wk_mtx);
+  return 0;
+}
+
+iwrc _iwkv_worker_dec(IWKV iwkv) {
+  int rci = pthread_mutex_lock(&iwkv->wk_mtx);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  iwkv->wk_count--;
+  pthread_cond_broadcast(&iwkv->wk_cond);
+  pthread_mutex_unlock(&iwkv->wk_mtx);
+  return 0;
+}
+
+iwrc _iwkv_set_open_false(IWKV iwkv) {
+  iwkv->open = false;
+  return 0;
+}
+
+iwrc _iwkv_wait_no_workers_then_call(IWKV iwkv, iwrc(*iwkvfn)(IWKV)) {
+  iwrc rc = 0;
+  int rci = pthread_mutex_lock(&iwkv->wk_mtx);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  while (iwkv->wk_count > 0) {
+    rci = pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
+  }
+  if (iwkvfn) {
+    rc = iwkvfn(iwkv);
+  }
+  pthread_mutex_unlock(&iwkv->wk_mtx);
+  return rc;
+}
+
 //--------------------------  DB
 
 static iwrc _db_at(IWKV iwkv,
@@ -570,13 +622,15 @@ typedef struct DISPOSE_DB_CTX {
 
 static void *_db_dispose_chain_thr(void *op) {
   assert(op);
-  DISPOSE_DB_CTX *ddctx = op;
-  IWFS_FSM *fsm = &ddctx->iwkv->fsm;
-  blkn_t sbn = ddctx->sbn, kvblkn;
+  DISPOSE_DB_CTX *dctx = op;
+  pthread_detach(dctx->thr);
   uint8_t *mm, kvszpow;
-  int rci = pthread_rwlock_wrlock(&ddctx->iwkv->rwl);
+  IWFS_FSM *fsm = &dctx->iwkv->fsm;
+  blkn_t sbn = dctx->sbn, kvblkn;
+  int rci = pthread_rwlock_wrlock(&dctx->iwkv->rwl);
   if (rci) {
-    free(ddctx);
+    _iwkv_worker_dec(dctx->iwkv);
+    free(dctx);
     iwlog_ecode_error3(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci));
     return 0;
   }
@@ -607,10 +661,10 @@ static void *_db_dispose_chain_thr(void *op) {
         rc = 0;
       }
     }
-    break;
   }
-  pthread_rwlock_unlock(&ddctx->iwkv->rwl);
-  free(ddctx);
+  pthread_rwlock_unlock(&dctx->iwkv->rwl);
+  _iwkv_worker_dec(dctx->iwkv);
+  free(dctx);
   return 0;
 }
 
@@ -652,15 +706,27 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   // Cleanup DB
   if (first_sblkn) {
     do {
-      DISPOSE_DB_CTX *ddctx = malloc(sizeof(*ddctx));
-      if (!ddctx) {
+      DISPOSE_DB_CTX *dctx = malloc(sizeof(*dctx));
+      if (!dctx) {
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         break;
       }
-      ddctx->sbn = first_sblkn;
-      ddctx->iwkv = db->iwkv;
-      rci = pthread_create(&ddctx->thr, 0, _db_dispose_chain_thr, ddctx);
+      rc = _iwkv_worker_inc(db->iwkv);
+      if (rc) {
+        if (rc != _IWKV_ERROR_ABORT) {
+          iwlog_ecode_error3(rc);
+        } else {
+          rc = 0;
+        }
+        free(dctx);
+        break;
+      }
+      dctx->sbn = first_sblkn;
+      dctx->iwkv = db->iwkv;
+      rci = pthread_create(&dctx->thr, 0, _db_dispose_chain_thr, dctx);
       if (rci) {
+        free(dctx);
+        _iwkv_worker_dec(db->iwkv);
         rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
       }
     } while (0);
@@ -2335,6 +2401,7 @@ iwrc iwkv_init(void) {
 
 iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   assert(iwkvp && opts);
+  int rci;
   iwrc rc = 0;
   uint32_t lv;
   uint64_t llv;
@@ -2346,7 +2413,24 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
   IWKV iwkv = *iwkvp;
-  pthread_rwlock_init(&iwkv->rwl, 0);
+  rci = pthread_rwlock_init(&iwkv->rwl, 0);
+  if (rci) {
+    free(*iwkvp);
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  rci = pthread_mutex_init(&iwkv->wk_mtx, 0);
+  if (rci) {
+    pthread_rwlock_destroy(&iwkv->rwl);
+    free(*iwkvp);
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  rci = pthread_cond_init(&iwkv->wk_cond, 0);
+  if (rci) {
+    pthread_rwlock_destroy(&iwkv->rwl);
+    pthread_mutex_destroy(&iwkv->wk_mtx);
+    free(*iwkvp);
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
   iwkv_openflags oflags = opts->oflags;
   iwfs_omode omode = IWFS_OREAD;
   if (oflags & IWKV_TRUNC) {
@@ -2418,10 +2502,9 @@ finish:
 iwrc iwkv_close(IWKV *iwkvp) {
   ENSURE_OPEN((*iwkvp));
   int rci;
-  iwrc rc = 0;
   IWKV iwkv = *iwkvp;
+  iwrc rc = _iwkv_wait_no_workers_then_call(iwkv, _iwkv_set_open_false);
   API_WLOCK(iwkv, rci);
-  iwkv->open = false;
   IWDB db = iwkv->first_db;
   while (db) {
     IWDB ndb = db->next;
@@ -2435,6 +2518,8 @@ iwrc iwkv_close(IWKV *iwkvp) {
   }
   API_UNLOCK(iwkv, rci, rc);
   pthread_rwlock_destroy(&iwkv->rwl);
+  pthread_mutex_destroy(&iwkv->wk_mtx);
+  pthread_cond_destroy(&iwkv->wk_cond);
   free(iwkv);
   *iwkvp = 0;
   return rc;
