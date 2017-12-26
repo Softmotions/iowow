@@ -484,6 +484,7 @@ iwrc _iwkv_worker_inc(IWKV iwkv) {
 iwrc _iwkv_worker_dec(IWKV iwkv) {
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
+    iwkv->wk_count--;
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   iwkv->wk_count--;
