@@ -537,34 +537,33 @@ finish:
 
 iwrc _exfile_acquire_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
   assert(f && mm && off >= 0);
-  if (sp) {
-    *sp = 0;
-  }
-  *mm = 0;
   iwrc rc = _exfile_rlock(f);
-  RCRET(rc);
+  if (IW_UNLIKELY(rc)) {
+    *mm = 0;
+    if (sp) {
+      *sp = 0;
+    }
+    return rc;  
+  }
   MMAPSLOT *s = f->impl->mmslots;
   while (s) {
     if (s->off == off) {
-      if (!s->len) {
-        rc = IWFS_ERROR_NOT_MMAPED;
-        break;
-      }
-      *mm = s->mmap;
-      if (sp) {
-        *sp = s->len;
+      if (s->len) {
+        *mm = s->mmap;
+        if (sp) {
+          *sp = s->len;
+        }
+        return 0;
       }
       break;
     }
     s = s->next;
   }
-  if (!rc && !*mm) {
-    rc = IWFS_ERROR_NOT_MMAPED;
+  *mm = 0;
+  if (sp) {
+    *sp = 0;
   }
-  if (rc) {
-    _exfile_unlock(f);
-  }
-  return rc;
+  return IWFS_ERROR_NOT_MMAPED;
 }
 
 iwrc _exfile_probe_mmap(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp) {
