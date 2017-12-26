@@ -629,10 +629,8 @@ static void *_db_dispose_chain_thr(void *op) {
   blkn_t sbn = dctx->sbn, kvblkn;
   int rci = pthread_rwlock_wrlock(&dctx->iwkv->rwl);
   if (rci) {
-    _iwkv_worker_dec(dctx->iwkv);
-    free(dctx);
     iwlog_ecode_error3(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci));
-    return 0;
+    goto finish;
   }
   while (sbn) {
     off_t sba = BLK2ADDR(sbn);
@@ -663,6 +661,7 @@ static void *_db_dispose_chain_thr(void *op) {
     }
   }
   pthread_rwlock_unlock(&dctx->iwkv->rwl);
+finish:
   _iwkv_worker_dec(dctx->iwkv);
   free(dctx);
   return 0;
