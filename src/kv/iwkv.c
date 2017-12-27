@@ -1452,21 +1452,17 @@ static iwrc _kvblk_updatev(KVBLK *kb,
           // element is not found in array
           wp += sz * val->size;
           memcpy(wp, vbuf, val->size);
-          // Increment number of items
-          sz += 1;
-          sz = IW_HTOIL(sz);
-          memcpy(sp, &sz, 4);
         } else {
           goto finish;
         }
       } else {
         wp += sz * val->size;
         memcpy(wp, vbuf, val->size);
-        // Increment number of items
-        sz += 1;
-        sz = IW_HTOIL(sz);
-        memcpy(sp, &sz, 4);
       }
+      // Increment number of items
+      sz += 1;
+      sz = IW_HTOIL(sz);
+      memcpy(sp, &sz, 4);
     } else { // reallocate value buf
 
       // todo:
