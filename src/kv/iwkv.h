@@ -25,21 +25,21 @@ typedef enum {
 } iwkv_ecode;
 
 typedef enum {
-  IWKV_NOLOCKS  = 1,      /**< Do not use any threading locks */
-  IWKV_RDONLY   = 1 << 1, /**< Open storage in read-only mode */
-  IWKV_TRUNC    = 1 << 2  /**< Truncate database file on open */
+  IWKV_NOLOCKS  = 1U,      /**< Do not use any threading locks */
+  IWKV_RDONLY   = 1U << 1, /**< Open storage in read-only mode */
+  IWKV_TRUNC    = 1U << 2  /**< Truncate database file on open */
 } iwkv_openflags;
 
 typedef enum {
-  IWDB_DUP_INT32_VALS = 1,      /**< Duplicated uint32 values allowed */
-  IWDB_DUP_INT64_VALS = 1 << 1, /**< Duplicated uint64 values allowed */
-  IWDB_DUP_SORTED     = 1 << 2  /**< Sort duplicated values  */
+  IWDB_DUP_INT32_VALS = 1U,      /**< Duplicated uint32 values allowed */
+  IWDB_DUP_INT64_VALS = 1U << 1, /**< Duplicated uint64 values allowed */
+  IWDB_DUP_SORTED     = 1U << 2  /**< Sort duplicated values  */
 } iwdb_flags_t;
 
 typedef enum {
-  IWKV_NO_OVERWRITE = 1,       /**< Do not overwrite value for an existing key */
-  IWKV_DUP_REMOVE =   1 << 1   /**< Remove value from duplicated values array.
-                                    Usable only for IWDB_DUP_X DB flags */
+  IWKV_NO_OVERWRITE = 1U,       /**< Do not overwrite value for an existing key */
+  IWKV_DUP_REMOVE =   1U << 1   /**< Remove value from duplicated values array.
+                                     Usable only for IWDB_DUP_X DB flags */
 } iwkv_opflags;
 
 struct IWKV;
