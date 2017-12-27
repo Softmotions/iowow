@@ -140,6 +140,7 @@ struct IWDB {
   struct IWDB *next;          /**< Next IWDB meta */
   struct IWDB *prev;          /**< Prev IWDB meta */
   khash_t(ALN) *aln;          /**< Block id -> ALN node mapping */
+  volatile int32_t wk_count;  /**< Number of active database workers */
 };
 
 /* Skiplist block: [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256  */
@@ -464,9 +465,9 @@ void iwkv_kv_dispose(IWKV_val *key,
   _kv_dispose(key, val);
 }
 
-//-------------------------- IWKV UTILS
+//-------------------------- IWKV/IWDB WORKERS
 
-iwrc _iwkv_worker_inc(IWKV iwkv) {
+static iwrc _iwkv_worker_inc(IWKV iwkv) {
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -481,9 +482,10 @@ iwrc _iwkv_worker_inc(IWKV iwkv) {
   return 0;
 }
 
-iwrc _iwkv_worker_dec(IWKV iwkv) {
+static iwrc _iwkv_worker_dec(IWKV iwkv) {
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
+    // Last chanse to be safe
     iwkv->wk_count--;
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
@@ -493,12 +495,12 @@ iwrc _iwkv_worker_dec(IWKV iwkv) {
   return 0;
 }
 
-iwrc _iwkv_set_open_false(IWKV iwkv) {
+static iwrc _iwkv_set_open_false(IWKV iwkv) {
   iwkv->open = false;
   return 0;
 }
 
-iwrc _iwkv_wait_no_workers_then_call(IWKV iwkv, iwrc(*iwkvfn)(IWKV)) {
+static iwrc _iwkv_wait_no_workers_then_call(IWKV iwkv, iwrc(*iwkvfn)(IWKV)) {
   iwrc rc = 0;
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
@@ -509,6 +511,56 @@ iwrc _iwkv_wait_no_workers_then_call(IWKV iwkv, iwrc(*iwkvfn)(IWKV)) {
   }
   if (iwkvfn) {
     rc = iwkvfn(iwkv);
+  }
+  pthread_mutex_unlock(&iwkv->wk_mtx);
+  return rc;
+}
+
+static iwrc _db_worker_inc(IWDB db) {
+  IWKV iwkv = db->iwkv;
+  int rci = pthread_mutex_lock(&iwkv->wk_mtx);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  if (!iwkv->open) {
+    pthread_mutex_unlock(&iwkv->wk_mtx);
+    return _IWKV_ERROR_ABORT;
+  }
+  iwkv->wk_count++;
+  db->wk_count++;
+  pthread_cond_broadcast(&iwkv->wk_cond);
+  pthread_mutex_unlock(&iwkv->wk_mtx);
+  return 0;
+}
+
+static iwrc _db_worker_dec(IWDB db) {
+  IWKV iwkv = db->iwkv;
+  int rci = pthread_mutex_lock(&iwkv->wk_mtx);
+  if (rci) {
+    // Last chanse to be safe
+    iwkv->wk_count--;
+    db->wk_count--;
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  iwkv->wk_count--;
+  db->wk_count--;
+  pthread_cond_broadcast(&iwkv->wk_cond);
+  pthread_mutex_unlock(&iwkv->wk_mtx);
+  return 0;
+}
+
+static iwrc _iwkv_wait_no_dbworkers_then_call(IWDB db, iwrc(*iwkvfn)(IWDB)) {
+  iwrc rc = 0;
+  IWKV iwkv = db->iwkv;
+  int rci = pthread_mutex_lock(&iwkv->wk_mtx);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  while (db->wk_count > 0) {
+    rci = pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
+  }
+  if (iwkvfn) {
+    rc = iwkvfn(db);
   }
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return rc;
@@ -669,7 +721,6 @@ finish:
 }
 
 static iwrc _db_destroy_lw(IWDB *dbp) {
-  iwrc rc;
   int rci;
   uint8_t *mm;
   IWDB db = *dbp;
@@ -677,6 +728,9 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   IWDB next = db->next;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   uint32_t first_sblkn;
+
+  iwrc rc = _iwkv_wait_no_dbworkers_then_call(db, 0);
+  RCRET(rc);
 
   kh_del(DBS, db->iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
