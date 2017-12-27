@@ -116,10 +116,10 @@ typedef enum {
 
 /* Address lock node */
 typedef struct ALN {
-  pthread_rwlock_t rwl;       /**< RW lock */
-  int64_t refs;               /**< Number of active locks on this address */
-  bool write_pending;         /**< Pending write lock, lock will be write upgraded next time */
-  bool write_upgraded;        /**< Lock is write upgraded */
+  pthread_rwlock_t rwl;        /**< RW lock */
+  int64_t refs;                /**< Number of active locks on this address */
+  bool write_pending;          /**< Pending write lock, lock will be write upgraded next time */
+  bool write_upgraded;         /**< Lock is write upgraded */
 } ALN;
 
 KHASH_MAP_INIT_INT(ALN, ALN *)
@@ -142,6 +142,8 @@ struct IWDB {
   khash_t(ALN) *aln;          /**< Block id -> ALN node mapping */
   volatile int32_t wk_count;  /**< Number of active database workers */
 };
+
+#define IWDB_DUP_FLAGS (IWDB_DUP_INT32_VALS | IWDB_DUP_INT64_VALS | IWDB_DUP_SORTED)
 
 /* Skiplist block: [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256  */
 typedef struct SBLK {
@@ -1377,15 +1379,26 @@ static iwrc _kvblk_updatev(KVBLK *kb,
                            const IWKV_val *key,
                            const IWKV_val *val) {
   assert(*idxp < KVBLK_IDXNUM);
-  int32_t klen, i;
   size_t sz;
+  int32_t i;
+  uint32_t klen;
   int8_t idx = *idxp;
   uint8_t *mm = 0, *wp, *sp;
   KVP *kvp = &kb->pidx[idx];
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
-  size_t rsize = IW_VNUMSIZE(key->size) + key->size + val->size; // required size
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
+
+  if (kb->db->flags & IWDB_DUP_FLAGS) {
+    if (((kb->db->flags & IWDB_DUP_INT32_VALS) && val->size != 4) ||
+        ((kb->db->flags & IWDB_DUP_INT64_VALS) && val->size != 8)) {
+      return IWKV_ERROR_DUP_VALUE_SIZE;
+    }
+    uint8_t vbuf[8] = {0};
+    memcpy(vbuf, val->data, val->size);
+    _kvblk_peek_val(kb, idx, mm, &sp, &klen);
+    // todo:
+  }
   wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
   sp = wp;
   IW_READVNUMBUF(wp, klen, sz);
@@ -1395,6 +1408,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
     goto finish;
   }
   wp += klen;
+  size_t rsize = IW_VNUMSIZE(key->size) + key->size + val->size; // required size
   if (rsize <= kvp->len) {
     memcpy(wp, val->data, val->size);
     wp += val->size;
@@ -2436,6 +2450,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
       return "Database file size reached its maximal limit: 0x3fffffffc0 bytes (IWKV_ERROR_MAXDBSZ)";
     case IWKV_ERROR_CORRUPTED:
       return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
+    case IWKV_ERROR_DUP_VALUE_SIZE:
+      return "Value size is not compatible for insertion into duplicated key values array (IWKV_ERROR_DUP_VALUE_SIZE)";
   }
   return 0;
 }

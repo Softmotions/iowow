@@ -13,7 +13,9 @@ typedef enum {
   IWKV_ERROR_MAXKVSZ,         /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
   IWKV_ERROR_MAXDBSZ,         /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
   IWKV_ERROR_CORRUPTED,       /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
+  IWKV_ERROR_DUP_VALUE_SIZE,  /**< Value size is not compatible for insertion into duplicated key values array (IWKV_ERROR_DUP_VALUE_SIZE) */
   _IWKV_ERROR_END,
+  /* Internal error codes */
   _IWKV_ERROR_KVBLOCK_FULL,
   _IWKV_ERROR_REQUIRE_WL,
   _IWKV_ERROR_REQUIRE_NLEVEL,
@@ -23,19 +25,21 @@ typedef enum {
 } iwkv_ecode;
 
 typedef enum {
-  IWKV_NOLOCKS  = 0x01U,      /**< Do not use any threading locks */
-  IWKV_RDONLY   = 0x02U,      /**< Open storage in read-only mode */
-  IWKV_TRUNC    = 0x04U       /**< Truncate database file on open */
+  IWKV_NOLOCKS  = 1,      /**< Do not use any threading locks */
+  IWKV_RDONLY   = 1 << 1, /**< Open storage in read-only mode */
+  IWKV_TRUNC    = 1 << 2  /**< Truncate database file on open */
 } iwkv_openflags;
 
 typedef enum {
-  IWDB_DUP_INT32_VALS = 0x1,  /**< Duplicated uint32 values allowed */
-  IWDB_DUP_INT64_VALS = 0x2,  /**< Duplicated uint64 values allowed */
-  IWDB_DUP_SORTED = 0x4       /**< Sort duplicated values  */
+  IWDB_DUP_INT32_VALS = 1,      /**< Duplicated uint32 values allowed */
+  IWDB_DUP_INT64_VALS = 1 << 1, /**< Duplicated uint64 values allowed */
+  IWDB_DUP_SORTED     = 1 << 2  /**< Sort duplicated values  */
 } iwdb_flags_t;
 
 typedef enum {
-  IWKV_NO_OVERWRITE = 0x1     /**< Do not overwrite value for an existing key */
+  IWKV_NO_OVERWRITE = 1,       /**< Do not overwrite value for an existing key */
+  IWKV_DUP_REMOVE =   1 << 1   /**< Remove value from duplicated values array.
+                                    Usable only for IWDB_DUP_X DB flags */
 } iwkv_opflags;
 
 struct IWKV;
@@ -54,13 +58,29 @@ typedef struct IWKV_val {
   void  *data;
 } IWKV_val;
 
+struct IWKV_cursor;
+typedef struct IWKV_cursor *IWKV_cursor;
+
+typedef enum IWKV_cursor_op {
+  IWKV_FIRST,
+  IWKV_FIRST_DUP,
+  IWKV_LAST,
+  IWKV_LAST_DUP,
+  IWKV_NEXT,
+  IWKV_NEXT_DUP,
+  IWKV_PREV,
+  IWKV_PREV_DUP,
+  IWKV_SET_EQ,
+  IWKV_SET_GE
+} IWKV_cursor_op;
+
 IW_EXPORT WUR iwrc iwkv_init(void);
 
 IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
 
 IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp);
 
-IW_EXPORT iwrc iwkv_db_destroy(IWDB* dbp);
+IW_EXPORT iwrc iwkv_db_destroy(IWDB *dbp);
 
 IW_EXPORT iwrc iwkv_sync(IWKV iwkv);
 
