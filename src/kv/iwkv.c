@@ -434,25 +434,7 @@ finish:
   return rc;
 }
 
-IW_INLINE void _kv_dispose(IWKV_val *key,
-                           IWKV_val *val) {
-  if (key) {
-    if (key->data) {
-      free(key->data);
-    }
-    key->size = 0;
-    key->data = 0;
-  }
-  if (val) {
-    if (val->data) {
-      free(val->data);
-    }
-    val->size = 0;
-    val->data = 0;
-  }
-}
-
-void iwkv_val_dispose(IWKV_val *v) {
+IW_INLINE void _kv_val_dispose(IWKV_val *v) {
   if (v) {
     if (v->data) {
       free(v->data);
@@ -461,6 +443,17 @@ void iwkv_val_dispose(IWKV_val *v) {
     v->data = 0;
   }
 }
+
+void iwkv_val_dispose(IWKV_val *v) {
+  _kv_val_dispose(v);
+}
+
+IW_INLINE void _kv_dispose(IWKV_val *key,
+                           IWKV_val *val) {
+  _kv_val_dispose(key);
+  _kv_val_dispose(val);
+}
+
 
 void iwkv_kv_dispose(IWKV_val *key,
                      IWKV_val *val) {
@@ -520,7 +513,7 @@ static iwrc _iwkv_worker_inc(IWKV iwkv) {
 static iwrc _iwkv_worker_dec(IWKV iwkv) {
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
-    // Last chanse to be safe
+    // Last chanсe to be safe
     iwkv->wk_count--;
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
@@ -572,7 +565,7 @@ static iwrc _db_worker_dec(IWDB db) {
   IWKV iwkv = db->iwkv;
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
-    // Last chanse to be safe
+    // Last chanсe to be safe
     iwkv->wk_count--;
     db->wk_count--;
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -1367,7 +1360,7 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   // !DUP
   if (psz > IWKV_MAX_KVSZ) {
     if (uval != val) {
-      iwkv_val_dispose(uval);
+      _kv_val_dispose(uval);
     }
     return IWKV_ERROR_MAXKVSZ;
   }
@@ -1435,7 +1428,7 @@ start:
   
 finish:
   if (uval != val) {
-    iwkv_val_dispose(uval);
+    _kv_val_dispose(uval);
   }
   return rc;
 }
@@ -1566,7 +1559,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
   
 finish:
   if (uval != val) {
-    iwkv_val_dispose(uval);
+    _kv_val_dispose(uval);
   }
   if (mm) {
     IWRC(fsm->release_mmap(fsm), rc);
