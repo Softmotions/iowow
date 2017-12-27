@@ -26,14 +26,14 @@ void test_iwarr1(void) {
   int nc = 0;
   off_t idx;
   for (int i = 0; nc < DSIZE / 2; i += 2, nc++) {
-    idx = iwarr_sorted_insert(data, nc, sizeof(int), &i, icmp);
+    idx = iwarr_sorted_insert(data, nc, sizeof(int), &i, icmp, false);
   }
   CU_ASSERT_EQUAL_FATAL(idx, 10);
   for (int i = 0, j = 0; i < idx; j += 2, ++i) {
     CU_ASSERT_EQUAL_FATAL(data[i], j);
   }
   for (int i = 1; nc < DSIZE; i += 2, nc++) {
-    idx = iwarr_sorted_insert(data, nc, sizeof(int), &i, icmp);
+    idx = iwarr_sorted_insert(data, nc, sizeof(int), &i, icmp, false);
   }
   for (int i = 0; i < nc; ++i) {
     CU_ASSERT_EQUAL_FATAL(data[i], i);

@@ -467,6 +467,39 @@ void iwkv_kv_dispose(IWKV_val *key,
   _kv_dispose(key, val);
 }
 
+IW_INLINE void _num2LEbuf(uint8_t buf[static 8], void *numdata, int sz) {
+  assert(sz == 4 || sz == 8);
+  if (sz > 4) {
+    uint64_t llv;
+    memcpy(&llv, numdata, sizeof(llv));
+    llv = IW_HTOILL(llv);
+    memcpy(buf, &llv, sizeof(llv));
+  } else {
+    uint32_t lv;
+    memcpy(&lv, numdata, sizeof(lv));
+    lv = IW_HTOIL(lv);
+    memcpy(buf, &lv, sizeof(lv));
+  }
+}
+
+static int _u4cmp(const void *o1, const void *o2) {
+  uint32_t v1, v2;
+  memcpy(&v1, o1, sizeof(uint32_t));
+  memcpy(&v2, o2, sizeof(uint32_t));
+  v1 = IW_ITOHL(v1);
+  v2 = IW_ITOHL(v2);
+  return v1 > v2 ? 1 : v1 < v2 ? -1 : 0;
+}
+
+static int _u8cmp(const void *o1, const void *o2) {
+  uint64_t v1, v2;
+  memcpy(&v1, o1, sizeof(uint64_t));
+  memcpy(&v2, o2, sizeof(uint64_t));
+  v1 = IW_ITOHL(v1);
+  v2 = IW_ITOHL(v2);
+  return v1 > v2 ? 1 : v1 < v2 ? -1 : 0;
+}
+
 //-------------------------- IWKV/IWDB WORKERS
 
 static iwrc _iwkv_worker_inc(IWKV iwkv) {
@@ -1379,39 +1412,82 @@ static iwrc _kvblk_updatev(KVBLK *kb,
                            const IWKV_val *key,
                            const IWKV_val *val) {
   assert(*idxp < KVBLK_IDXNUM);
-  size_t sz;
   int32_t i;
-  uint32_t klen;
+  uint32_t len, sz, lv;
+  uint64_t llv;
   int8_t idx = *idxp;
   uint8_t *mm = 0, *wp, *sp;
+  IWKV_val *uval = (IWKV_val *)val;
   KVP *kvp = &kb->pidx[idx];
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
 
+  // DUP
   if (kb->db->flags & IWDB_DUP_FLAGS) {
     if (((kb->db->flags & IWDB_DUP_INT32_VALS) && val->size != 4) ||
         ((kb->db->flags & IWDB_DUP_INT64_VALS) && val->size != 8)) {
-      return IWKV_ERROR_DUP_VALUE_SIZE;
+      rc = IWKV_ERROR_DUP_VALUE_SIZE;
+      goto finish;
     }
-    uint8_t vbuf[8] = {0};
-    memcpy(vbuf, val->data, val->size);
-    _kvblk_peek_val(kb, idx, mm, &sp, &klen);
-    // todo:
+    _kvblk_peek_val(kb, idx, mm, &wp, &len);
+    if (len < 4) {
+      rc = IWKV_ERROR_CORRUPTED;
+      goto finish;
+    }
+    sp = wp;
+    memcpy(&sz, wp, 4); // number of elements
+    sz = IW_ITOHL(sz);
+    wp += 4;
+    if (len < 4 + sz * val->size) { // kv capacity lesser than reported number of items (sz)
+      rc = IWKV_ERROR_CORRUPTED;
+      goto finish;
+    }
+    uint8_t vbuf[8];
+    uint32_t avail = len - (4 + sz * val->size);
+    _num2LEbuf(vbuf, val->data, val->size);
+    if (avail >= val->size) { // we have enough room to store given number
+      if (kb->db->flags & IWDB_DUP_SORTED) {
+        if (iwarr_sorted_insert(wp, sz, val->size, vbuf, val->size > 4 ? _u8cmp : _u4cmp, true) != -1) {
+          // element is not found in array
+          wp += sz * val->size;
+          memcpy(wp, vbuf, val->size);
+          // Increment number of items
+          sz += 1;
+          sz = IW_HTOIL(sz);
+          memcpy(sp, &sz, 4);
+        } else {
+          goto finish;
+        }
+      } else {
+        wp += sz * val->size;
+        memcpy(wp, vbuf, val->size);
+        // Increment number of items
+        sz += 1;
+        sz = IW_HTOIL(sz);
+        memcpy(sp, &sz, 4);
+      }
+    } else { // reallocate value buf
+
+      // todo:
+
+    }
   }
+  // !DUP
+
   wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
   sp = wp;
-  IW_READVNUMBUF(wp, klen, sz);
+  IW_READVNUMBUF(wp, len, sz);
   wp += sz;
-  if (klen != key->size || memcmp(wp, key->data, key->size)) {
+  if (len != key->size || memcmp(wp, key->data, key->size)) {
     rc = IWKV_ERROR_CORRUPTED;
     goto finish;
   }
-  wp += klen;
-  size_t rsize = IW_VNUMSIZE(key->size) + key->size + val->size; // required size
+  wp += len;
+  size_t rsize = IW_VNUMSIZE(key->size) + key->size + uval->size; // required size
   if (rsize <= kvp->len) {
-    memcpy(wp, val->data, val->size);
-    wp += val->size;
+    memcpy(wp, uval->data, uval->size);
+    wp += uval->size;
     if ((wp - sp) != kvp->len) {
       kvp->len = wp - sp;
       kb->flags |= KVBLK_DURTY;
@@ -1425,21 +1501,25 @@ static iwrc _kvblk_updatev(KVBLK *kb,
     for (i = 0; i < KVBLK_IDXNUM; ++i) {
       if (tidx[i].off == koff) {
         if (koff - (i > 0 ? tidx[i - 1].off : 0) >= rsize) {
-          memcpy(wp, val->data, val->size);
-          wp += val->size;
+          memcpy(wp, uval->data, uval->size);
+          wp += uval->size;
           kvp->len = wp - sp;
         } else {
           fsm->release_mmap(fsm);
           mm = 0;
           rc = _kvblk_rmkv(kb, idx, RMKV_NO_RESIZE);
           RCGO(rc, finish);
-          rc = _kvblk_addkv(kb, key, val, idxp);
+          rc = _kvblk_addkv(kb, key, uval, idxp);
         }
         break;
       }
     }
   }
+
 finish:
+  if (uval != val) {
+    iwkv_val_dispose(uval);
+  }
   if (mm) {
     IWRC(fsm->release_mmap(fsm), rc);
   }

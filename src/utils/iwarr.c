@@ -13,7 +13,8 @@ off_t iwarr_sorted_insert(void *els,
                           size_t nels,
                           size_t elsize,
                           void *eptr,
-                          int (*cmp)(const void *, const void *)) {
+                          int (*cmp)(const void *, const void *),
+                          bool skipeq) {
 
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
@@ -31,6 +32,9 @@ off_t iwarr_sorted_insert(void *els,
     idx = (ub + lb) / 2;
     cr = cmp(EL(idx), eptr);
     if (!cr) {
+      if (skipeq) {
+        return -1;
+      }
       break;
     } else if (cr < 0) {
       lb = idx + 1;

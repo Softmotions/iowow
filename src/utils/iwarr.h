@@ -6,6 +6,7 @@
 IW_EXTERN_C_START
 
 #include <stdio.h>
+#include <stdbool.h>
 
 /**
  * @brief Insert new element into sorted array.
@@ -18,13 +19,15 @@ IW_EXTERN_C_START
  * @param elsize Size of every array element.
  * @param eptr Pointer to the new element to be inserted.
  * @param cmp Elements comparison function
+ * @param skipeq If true and `eptr` is found in array it will not be inserted and method will return -1
  * @return Index of inserted element
  */
 off_t iwarr_sorted_insert(void *els,
                           size_t nels,
                           size_t elsize,
                           void *eptr,
-                          int (*cmp)(const void *, const void *));
+                          int (*cmp)(const void *, const void *),
+                          bool skipeq);
 
 IW_EXTERN_C_END
 #endif
