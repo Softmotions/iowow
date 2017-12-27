@@ -292,9 +292,9 @@ IW_INLINE FSMBK *_fsm_get_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_bl
  * @return `0` if matching block is not found.
  */
 static FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
-                                            uint64_t offset_blk,
-                                            uint64_t length_blk,
-                                            iwfs_fsm_aflags opts) {
+                                           uint64_t offset_blk,
+                                           uint64_t length_blk,
+                                           iwfs_fsm_aflags opts) {
   FSMBK k;
   FSMBK *uk, *lk;
   iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
