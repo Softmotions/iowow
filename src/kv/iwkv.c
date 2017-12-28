@@ -488,8 +488,8 @@ static int _u8cmp(const void *o1, const void *o2) {
   uint64_t v1, v2;
   memcpy(&v1, o1, sizeof(uint64_t));
   memcpy(&v2, o2, sizeof(uint64_t));
-  v1 = IW_ITOHL(v1);
-  v2 = IW_ITOHL(v2);
+  v1 = IW_ITOHLL(v1);
+  v2 = IW_ITOHLL(v2);
   return v1 > v2 ? 1 : v1 < v2 ? -1 : 0;
 }
 
@@ -1340,12 +1340,12 @@ static iwrc _kvblk_addkv(KVBLK *kb,
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
   // DUP
-  if (!internal && (db->flags & IWDB_DUP_FLAGS)) {
+  if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
     if (op_flags & IWKV_DUP_REMOVE) {
       return IWKV_ERROR_NOTFOUND;
     }
-    if (((db->flags & IWDB_DUP_INT32_VALS) && val->size != 4) ||
-        ((db->flags & IWDB_DUP_INT64_VALS) && val->size != 8)) {
+    if (((db->dbflg & IWDB_DUP_INT32_VALS) && val->size != 4) ||
+        ((db->dbflg & IWDB_DUP_INT64_VALS) && val->size != 8)) {
       return IWKV_ERROR_DUP_VALUE_SIZE;
     }
     uint32_t lv = 1;
@@ -1456,9 +1456,9 @@ static iwrc _kvblk_updatev(KVBLK *kb,
   RCRET(rc);
 
   // DUP
-  if (!internal && (db->flags & IWDB_DUP_FLAGS)) {
-    if (((db->flags & IWDB_DUP_INT32_VALS) && val->size != 4) ||
-        ((db->flags & IWDB_DUP_INT64_VALS) && val->size != 8)) {
+  if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
+    if (((db->dbflg & IWDB_DUP_INT32_VALS) && val->size != 4) ||
+        ((db->dbflg & IWDB_DUP_INT64_VALS) && val->size != 8)) {
       rc = IWKV_ERROR_DUP_VALUE_SIZE;
       goto finish;
     }
@@ -1503,13 +1503,11 @@ static iwrc _kvblk_updatev(KVBLK *kb,
                               val->size > 4 ? _u8cmp : _u4cmp, true) == -1) {
         goto finish;
       }
-      // element is not found in array
-      wp += sz * val->size;
-      memcpy(wp, vbuf, val->size);
       // Increment number of items
       sz += 1;
       sz = IW_HTOIL(sz);
       memcpy(sp, &sz, 4);
+      goto finish;
     } else {
       // reallocate value buf
       uval = &sval;
@@ -1523,7 +1521,9 @@ static iwrc _kvblk_updatev(KVBLK *kb,
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         goto finish;
       }
-      uval->size = len;
+      // zero initialize extra bytes
+      memset((uint8_t *)uval->data + len, 0, nlen - len);
+      uval->size = nlen;
       memcpy(uval->data, sp, len);
       if (iwarr_sorted_insert((uint8_t *)uval->data + 4, sz, val->size, vbuf,
                               val->size > 4 ? _u8cmp : _u4cmp, true) == -1) {
@@ -2595,6 +2595,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
       return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
     case IWKV_ERROR_DUP_VALUE_SIZE:
       return "Value size is not compatible for insertion into duplicated key values array (IWKV_ERROR_DUP_VALUE_SIZE)";
+    case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
+      return "Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
   }
   return 0;
 }
@@ -2779,6 +2781,9 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp) {
     db = kh_value(iwkv->dbs, ki);
   }
   if (db) {
+    if (db->dbflg != flags) {
+      return IWKV_ERROR_INCOMPATIBLE_DB_MODE;
+    }
     *dbp = db;
   } else {
     rc = _db_create_lw(iwkv, dbid, flags, dbp);

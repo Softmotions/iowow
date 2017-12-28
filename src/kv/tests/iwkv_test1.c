@@ -16,6 +16,7 @@ extern int8_t iwkv_next_level;
 static int cmp_files(FILE *f1, FILE *f2) {
   // todo remove:
   //if (1) return 0;
+  CU_ASSERT_TRUE_FATAL(f1 && f2);
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
   char c1 = getc(f1);
@@ -57,6 +58,50 @@ int init_suite(void) {
 
 int clean_suite(void) {
   return 0;
+}
+
+
+// Test DUP
+static void iwkv_test4(void) {
+  iwrc rc;
+  IWKV_val key = {0};
+  IWKV_val val = {0};
+  IWKV iwkv;
+  IWDB db1;
+  uint32_t lv;
+  IWKV_OPTS opts = {
+    .path = "iwkv_test4.db",
+    .oflags = IWKV_TRUNC
+  };
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, IWDB_DUP_INT32_VALS, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  uint32_t nv = 10;
+  key.data = "d001";
+  key.size = strlen(key.data);
+  for (int32_t i = nv; i >= 0; --i) {
+    val.data = &i;
+    val.size = sizeof(i);
+    rc = iwkv_put(db1, &key, &val, 0);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(val.size, 64);
+  memcpy(&lv, val.data, 4);
+  lv = IW_ITOHL(lv);
+  CU_ASSERT_EQUAL(lv, 11);
+  for (int32_t i = 0; i <= 10; ++i) {
+    uint8_t *rp = val.data;
+    memcpy(&lv, rp + 4 + i * 4, 4);
+    lv = IW_ITOHL(lv);
+    CU_ASSERT_EQUAL(lv, i);
+  }
+  iwkv_val_dispose(&val);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 // Test Slides
@@ -494,7 +539,8 @@ int main() {
   /* Add the tests to the suite */
   if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
       (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3))
+      (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
+      (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4))
      )  {
     CU_cleanup_registry();
     return CU_get_error();

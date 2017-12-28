@@ -14,6 +14,7 @@ typedef enum {
   IWKV_ERROR_MAXDBSZ,         /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
   IWKV_ERROR_CORRUPTED,       /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
   IWKV_ERROR_DUP_VALUE_SIZE,  /**< Value size is not compatible for insertion into duplicated key values array (IWKV_ERROR_DUP_VALUE_SIZE) */
+  IWKV_ERROR_INCOMPATIBLE_DB_MODE, /**< Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE) */
   _IWKV_ERROR_END,
   /* Internal error codes */
   _IWKV_ERROR_KVBLOCK_FULL,
@@ -32,7 +33,7 @@ typedef enum {
 
 typedef enum {
   IWDB_DUP_INT32_VALS = 1U,      /**< Duplicated uint32 values allowed */
-  IWDB_DUP_INT64_VALS = 1U << 1 /**< Duplicated uint64 values allowed */
+  IWDB_DUP_INT64_VALS = 1U << 1  /**< Duplicated uint64 values allowed */
 } iwdb_flags_t;
 
 typedef enum {
