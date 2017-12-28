@@ -29,5 +29,22 @@ off_t iwarr_sorted_insert(void *els,
                           int (*cmp)(const void *, const void *),
                           bool skipeq);
 
+/**
+ * @brief Remove element from a sorteed array.
+ * Return true if element is found and removed.
+ *
+ * @param els Array pointer.
+ * @param nels Number of array elements.
+ * @param elsize Size of every array element.
+ * @param eptr Pointer to the element should to be removed.
+ * @param cmp Elements comparison function
+ * @return `true` if element found and removed.
+ */
+bool iwarr_sorted_remove(void *els,
+                         size_t nels,
+                         size_t elsize,
+                         void *eptr,
+                         int (*cmp)(const void *, const void *));
+
 IW_EXTERN_C_END
 #endif
