@@ -2755,7 +2755,7 @@ iwrc iwkv_sync(IWKV iwkv) {
   return rc;
 }
 
-iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp) {
+iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   ENSURE_OPEN(iwkv);
   int rci;
   iwrc rc = 0;
@@ -2769,6 +2769,9 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp) {
   API_UNLOCK(iwkv, rci, rc);
   RCRET(rc);
   if (db) {
+    if (db->dbflg != dbflg) {
+      return IWKV_ERROR_INCOMPATIBLE_DB_MODE;
+    }
     *dbp = db;
     return 0;
   }
@@ -2781,12 +2784,12 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp) {
     db = kh_value(iwkv->dbs, ki);
   }
   if (db) {
-    if (db->dbflg != flags) {
+    if (db->dbflg != dbflg) {
       return IWKV_ERROR_INCOMPATIBLE_DB_MODE;
     }
     *dbp = db;
   } else {
-    rc = _db_create_lw(iwkv, dbid, flags, dbp);
+    rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
   }
   API_UNLOCK(iwkv, rci, rc);
   return rc;

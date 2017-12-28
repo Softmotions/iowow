@@ -60,7 +60,6 @@ int clean_suite(void) {
   return 0;
 }
 
-
 // Test DUP
 static void iwkv_test4(void) {
   iwrc rc;
@@ -100,6 +99,46 @@ static void iwkv_test4(void) {
     CU_ASSERT_EQUAL(lv, i);
   }
   iwkv_val_dispose(&val);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Reopen DB with wrong flags
+  opts.oflags = 0;
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_INCOMPATIBLE_DB_MODE);
+  rc = iwkv_db(iwkv, 1, IWDB_DUP_INT32_VALS, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(val.size, 64);
+  memcpy(&lv, val.data, 4);
+  lv = IW_ITOHL(lv);
+  CU_ASSERT_EQUAL(lv, 11);
+  for (int32_t i = 0; i <= 10; ++i) {
+    uint8_t *rp = val.data;
+    memcpy(&lv, rp + 4 + i * 4, 4);
+    lv = IW_ITOHL(lv);
+    CU_ASSERT_EQUAL(lv, i);
+  }
+  iwkv_val_dispose(&val);
+
+  // Put already persisted dup value
+  lv = 1;
+  lv = IW_HTOIL(lv);
+  val.data = &lv;
+  val.size = sizeof(lv);
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  val.size = 1;
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_DUP_VALUE_SIZE);
+
+  // todo remove dup values
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
