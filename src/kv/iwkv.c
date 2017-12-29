@@ -1481,23 +1481,20 @@ static iwrc _kvblk_updatev(KVBLK *kb,
     _num2lebuf(vbuf, val->data, val->size);
 
     if (op_flags & IWKV_DUP_REMOVE) {
-      if (!sz) {
-        rc = IWKV_ERROR_CORRUPTED;
-        goto finish;
-      }
-      if (!iwarr_sorted_remove(wp, sz, val->size, vbuf,  val->size > 4 ? _u8cmp : _u4cmp)) {
+      if (!sz || !iwarr_sorted_remove(wp, sz, val->size, vbuf,  val->size > 4 ? _u8cmp : _u4cmp)) {
         rc = IWKV_ERROR_NOTFOUND;
         goto finish;
       }
       sz -= 1;
       sz = IW_HTOIL(sz);
       memcpy(sp, &sz, 4);
-      if (len > (4 + sz * val->size) * 2) {
+      if (len >= (4 + sz * val->size) * 2) {
         // Reduce size of kv value buffer
         kvp->len = kvp->len - len / 2;
         kb->flags |= KVBLK_DURTY;
-        goto finish;
       }
+      goto finish;
+
     } else if (avail >= val->size) { // we have enough room to store the given number
       if (iwarr_sorted_insert(wp, sz, val->size, vbuf,
                               val->size > 4 ? _u8cmp : _u4cmp, true) == -1) {

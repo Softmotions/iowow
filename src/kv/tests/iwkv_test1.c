@@ -137,8 +137,28 @@ static void iwkv_test4(void) {
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL(rc, IWKV_ERROR_DUP_VALUE_SIZE);
 
-  // todo remove dup values
-
+  // Remove all even numbers
+  for (int i = 0; i <= 10; i += 2) {
+    lv = i;
+    lv = IW_HTOIL(lv);
+    val.data = &lv;
+    val.size = sizeof(lv);
+    rc = iwkv_put(db1, &key, &val, IWKV_DUP_REMOVE);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(val.size, 32);
+  memcpy(&lv, val.data, 4);
+  lv = IW_ITOHL(lv);
+  CU_ASSERT_EQUAL(lv, 5);
+  for (int32_t i = 0, j = 1; j < 10 && i < 5; ++i, j += 2) {
+    uint8_t *rp = val.data;
+    memcpy(&lv, rp + 4 + i * 4, 4);
+    lv = IW_ITOHL(lv);
+    CU_ASSERT_EQUAL(lv, j);
+  }
+  iwkv_val_dispose(&val);
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
