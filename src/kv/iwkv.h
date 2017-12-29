@@ -99,7 +99,15 @@ IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor *cur, IWKV_cursor_op op);
 
 IW_EXPORT WUR iwrc iwkv_cursor_tokey(IWKV_cursor *cur, IWKV_cursor_op op, const IWKV_val *key);
 
+IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor *cur, IWKV_val *okey, IWKV_val *oval);
+
 IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor *cur, IWKV_val *oval);
+
+IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor *cur, IWKV_val *val);
+
+IW_EXPORT iwrc iwkv_cursor_dup_add(IWKV_cursor *cur, uint64_t dv);
+
+IW_EXPORT iwrc iwkv_cursor_dup_rm(IWKV_cursor *cur, uint64_t dv);
 
 IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor *cur, uint32_t *onum);
 
