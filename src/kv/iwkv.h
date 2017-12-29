@@ -97,7 +97,7 @@ IW_EXPORT WUR iwrc iwkv_cursor_open(IWDB db, IWKV_cursor *cur, IWKV_cursor_op op
 
 IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor *cur, IWKV_cursor_op op);
 
-IW_EXPORT WUR iwrc iwkv_cursor_tokey(IWKV_cursor *cur, IWKV_cursor_op op, const IWKV_val *key);
+IW_EXPORT WUR iwrc iwkv_cursor_key(IWKV_cursor *cur, IWKV_cursor_op op, const IWKV_val *key);
 
 IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor *cur, IWKV_val *okey, IWKV_val *oval);
 
