@@ -5,6 +5,7 @@
 #include "iowow.h"
 #include "iwfile.h"
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
@@ -63,15 +64,11 @@ typedef struct IWKV_cursor *IWKV_cursor;
 
 typedef enum IWKV_cursor_op {
   IWKV_FIRST,
-  IWKV_FIRST_DUP,
   IWKV_LAST,
-  IWKV_LAST_DUP,
   IWKV_NEXT,
-  IWKV_NEXT_DUP,
   IWKV_PREV,
-  IWKV_PREV_DUP,
-  IWKV_SET_EQ,
-  IWKV_SET_GE
+  IWKV_KEY_GE,
+  IWKV_KEY_EQ
 } IWKV_cursor_op;
 
 IW_EXPORT WUR iwrc iwkv_init(void);
@@ -95,6 +92,26 @@ IW_EXPORT iwrc iwkv_del(IWDB db, const IWKV_val *key);
 IW_EXPORT void iwkv_val_dispose(IWKV_val *kval);
 
 IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
+
+IW_EXPORT WUR iwrc iwkv_cursor_open(IWDB db, IWKV_cursor *cur, IWKV_cursor_op op, const IWKV_val *key);
+
+IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor *cur, IWKV_cursor_op op);
+
+IW_EXPORT WUR iwrc iwkv_cursor_tokey(IWKV_cursor *cur, IWKV_cursor_op op, const IWKV_val *key);
+
+IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor *cur, IWKV_val *oval);
+
+IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor *cur, uint32_t *onum);
+
+IW_EXPORT iwrc iwkv_cursor_dup_contains(IWKV_cursor *cur, uint64_t dv, bool *out);
+
+IW_EXPORT iwrc iwkv_cursor_dup_iter(IWKV_cursor *cur,
+                                    bool(*visitor)(uint64_t dv, void *opaq),
+                                    void *opaq,
+                                    uint64_t *start,
+                                    bool down);
+
+IW_EXPORT void iwkv_cursor_close(IWKV_cursor *cur);
 
 // Do not print random levels of skiplist blocks
 #define IWKVD_PRINT_NO_LEVEVELS 0x1

@@ -365,7 +365,7 @@ IW_INLINE iwrc _aln_acquire_read(IWDB db,
     pthread_rwlock_init(&aln->rwl, 0);
   } else {
     aln = kh_value(db->aln, k);
-    aln->refs++;
+    ++aln->refs;
   }
 finish:
   pthread_spin_unlock(&db->sl);
@@ -504,7 +504,7 @@ static iwrc _iwkv_worker_inc(IWKV iwkv) {
     pthread_mutex_unlock(&iwkv->wk_mtx);
     return _IWKV_ERROR_ABORT;
   }
-  iwkv->wk_count++;
+  ++iwkv->wk_count;
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -554,8 +554,8 @@ static iwrc _db_worker_inc(IWDB db) {
     pthread_mutex_unlock(&iwkv->wk_mtx);
     return _IWKV_ERROR_ABORT;
   }
-  iwkv->wk_count++;
-  db->wk_count++;
+  ++iwkv->wk_count;
+  ++db->wk_count;
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -1283,7 +1283,7 @@ iwrc _kvblk_rmkv(KVBLK *kb,
     sz = kbsz / 2;
     while ((kb->szpow - dpow) > KVBLK_INISZPOW && dsz < sz / 2) {
       sz = sz / 2;
-      dpow++;
+      ++dpow;
     }
     if ((kb->szpow - dpow) >= KVBLK_INISZPOW && dsz < kbsz / 2) { // We can shrink kvblock
       _kvblk_compact(kb, mm);
@@ -1896,7 +1896,7 @@ static int _sblk_insert_pi(SBLK *sblk,
       nels = sblk->pnum;
   if (nels < 1) {
     sblk->pi[0] = nidx;
-    sblk->pnum++;
+    ++sblk->pnum;
     return 0;
   }
   while (1) {
@@ -1911,13 +1911,13 @@ static int _sblk_insert_pi(SBLK *sblk,
       lb = idx + 1;
       if (lb > ub) {
         idx = lb;
-        sblk->pnum++;
+        ++sblk->pnum;
         break;
       }
     } else {
       ub = idx - 1;
       if (lb > ub) {
-        sblk->pnum++;
+        ++sblk->pnum;
         break;
       }
     }
@@ -1962,7 +1962,7 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
   }
   sblk->kvblkn = ADDR2BLK(kvblk->addr);
   sblk->pi[idx] = kvidx;
-  sblk->pnum++;
+  ++sblk->pnum;
   sblk->flags |= SBLK_DURTY;
   return 0;
 }

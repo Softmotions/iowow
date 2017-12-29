@@ -58,8 +58,9 @@ foreach(HF IN ITEMS stdlib stdint unistd dirent stddef)
     endif()
 endforeach(HF)
 
-add_definitions(-D_LARGEFILE_SOURCE)
 add_definitions(-D_GNU_SOURCE)
+add_definitions(-D_LARGEFILE_SOURCE)
+add_definitions(-D_FILE_OFFSET_BITS=64)
 
 list(APPEND ALL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/iowow.c)
 
@@ -114,7 +115,7 @@ endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
-if (ASAN) 
+if (ASAN)
   set(CMAKE_C_ASAN "-fsanitize=address -fno-omit-frame-pointer")
 endif()
 

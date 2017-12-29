@@ -291,10 +291,10 @@ IW_INLINE FSMBK *_fsm_get_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_bl
  * @param opts Allocation opts
  * @return `0` if matching block is not found.
  */
-static FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
-                                           uint64_t offset_blk,
-                                           uint64_t length_blk,
-                                           iwfs_fsm_aflags opts) {
+IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
+                                              uint64_t offset_blk,
+                                              uint64_t length_blk,
+                                              iwfs_fsm_aflags opts) {
   FSMBK k;
   FSMBK *uk, *lk;
   iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
@@ -332,15 +332,16 @@ static FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
  * @param bit_status  If `1` bits will be set to `1` otherwise `0`
  * @param opts        Operation options
  */
-static iwrc _fsm_set_bit_status_lw(FSM *impl,
-                                   uint64_t offset_bits,
-                                   int64_t length_bits,
-                                   int bit_status,
-                                   fsm_bmopts_t opts) {
+iwrc _fsm_set_bit_status_lw(FSM *impl,
+                            uint64_t offset_bits,
+                            int64_t length_bits,
+                            int bit_status,
+                            fsm_bmopts_t opts) {
   iwrc rc;
   uint8_t *mm;
   int set_bits;
-  uint64_t sp, *p, set_mask;
+  uint64_t sp, set_mask;
+  register uint64_t *p;
   uint64_t bend = offset_bits + length_bits;
 
   if (bend < offset_bits) { // overflow
@@ -389,7 +390,7 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
     length_bits -= set_bits;
     set_bits = 64;
     set_mask = ~((uint64_t) 0);
-    p++;
+    ++p;
   }
   if (length_bits) {
     set_mask &= (bend & (64 - 1)) ? ((((uint64_t) 1) << (bend & (64 - 1))) - 1) : ~((uint64_t) 0);
@@ -518,7 +519,7 @@ static void _fsm_load_fsm_lw(FSM *impl, uint8_t *bm, uint64_t len) {
   }
   impl->fsm = kb_init(fsm, KB_DEFAULT_SIZE);
   for (b = 0; b < len; ++b) {
-    uint8_t bb = bm[b];
+    register uint8_t bb = bm[b];
     if (bb == 0) {
       fbklength += 8;
       cbnum += 8;
@@ -538,7 +539,7 @@ static void _fsm_load_fsm_lw(FSM *impl, uint8_t *bm, uint64_t len) {
             fbklength = 0;
           }
         } else {
-          fbklength++;
+          ++fbklength;
         }
       }
     }
@@ -638,10 +639,13 @@ static iwrc _fsm_write_meta_lw(FSM *impl, int is_sync) {
  * @brief Search for the first next set bit position
  *        starting from the specified offset bit (INCLUDED).
  */
-static uint64_t _fsm_find_next_set_bit(const uint64_t *addr, uint64_t offset_bit, uint64_t max_offset_bit,
+static uint64_t _fsm_find_next_set_bit(const uint64_t *addr,
+                                       uint64_t offset_bit,
+                                       uint64_t max_offset_bit,
                                        int *found) {
   *found = 0;
-  uint64_t size, bit, tmp;
+  uint64_t size, bit;
+  uint64_t tmp;
   const uint64_t *p = addr + offset_bit / 64;
 
   if (offset_bit >= max_offset_bit) {
@@ -666,7 +670,7 @@ static uint64_t _fsm_find_next_set_bit(const uint64_t *addr, uint64_t offset_bit
     }
     offset_bit += 64;
     size -= 64;
-    p++;
+    ++p;
   }
   while (size & ~(64 - 1)) {
     if ((tmp = *(p++))) {
@@ -692,10 +696,13 @@ static uint64_t _fsm_find_next_set_bit(const uint64_t *addr, uint64_t offset_bit
  * @brief Search for the first previous set bit position
  *        starting from the specified offset_bit (EXCLUDED).
  */
-static uint64_t _fsm_find_prev_set_bit(const uint64_t *addr, uint64_t offset_bit, uint64_t min_offset_bit,
+static uint64_t _fsm_find_prev_set_bit(const uint64_t *addr,
+                                       uint64_t offset_bit,
+                                       uint64_t min_offset_bit,
                                        int *found) {
   const uint64_t *p;
-  uint64_t bit, tmp, size;
+  uint64_t bit, size;
+  uint64_t tmp;
   *found = 0;
   if (min_offset_bit >= offset_bit) {
     return 0;
@@ -1070,7 +1077,7 @@ start:
       impl->crzsum = 0;
       impl->crzvar = 0;
     }
-    impl->crznum++;
+    ++impl->crznum;
     impl->crzsum += length_blk;
     avg = (double_t) impl->crzsum / (double_t) impl->crznum; /* average */
     impl->crzvar +=
