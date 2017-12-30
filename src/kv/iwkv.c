@@ -417,7 +417,7 @@ IW_INLINE iwrc _aln_write_upgrade(IWDB db,
     aln = kh_value(db->aln, k);
     pthread_rwlock_unlock(&aln->rwl);
     assert(aln->refs > 0);
-    aln->refs--;
+    --aln->refs;
     aln->write_pending = true;
   }
 finish:
@@ -523,10 +523,10 @@ static iwrc _iwkv_worker_dec(IWKV iwkv) {
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     // Last chanсe to be safe
-    iwkv->wk_count--;
+    --iwkv->wk_count;
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  iwkv->wk_count--;
+  --iwkv->wk_count;
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -577,12 +577,12 @@ static iwrc _db_worker_dec(IWDB db) {
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     // Last chanсe to be safe
-    iwkv->wk_count--;
-    db->wk_count--;
+    --iwkv->wk_count;
+    --db->wk_count;
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  iwkv->wk_count--;
-  db->wk_count--;
+  --iwkv->wk_count;
+  --db->wk_count;
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -2040,7 +2040,7 @@ IW_INLINE iwrc _sblk_rmkv(SBLK *sblk,
   iwrc rc = _kvblk_rmkv(kvblk, sblk->pi[idx], 0);
   RCRET(rc);
   sblk->kvblkn = ADDR2BLK(kvblk->addr);
-  sblk->pnum--;
+  --sblk->pnum;
   sblk->flags |= SBLK_DURTY;
   if (idx < sblk->pnum && sblk->pnum > 0) {
     memmove(sblk->pi + idx, sblk->pi + idx + 1, sblk->pnum - idx);
@@ -2303,7 +2303,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
       RCBREAK(rc);
       sblk->kvblk->pidx[sblk->pi[i]].len = 0;
       sblk->kvblk->pidx[sblk->pi[i]].off = 0;
-      sblk->pnum--;
+      --sblk->pnum;
       if (i == pivot) {
         sblk->kvblk->zidx = sblk->pi[i];
       }
@@ -2547,7 +2547,7 @@ iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
       if (lx->plower[i]->flags & SBLK_DB) {
         db = lx->plower[i];
         if (!db->n[i]) {
-          db->lvl--;
+          --db->lvl;
         }
       }
       if (lx->pupper[i] == lx->upper) {
