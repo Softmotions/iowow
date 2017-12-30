@@ -232,7 +232,6 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
   if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_)
 
 #define API_DB_RLOCK(db_, rci_)                               \
-  ENSURE_OPEN((db_)->iwkv);                                   \
   do {                                                        \
     API_RLOCK((db_)->iwkv, rci_);                             \
     rci_ = pthread_rwlock_rdlock(&(db_)->rwl);                \
@@ -243,7 +242,6 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
   } while(0)
 
 #define API_DB_WLOCK(db_, rci_)                               \
-  ENSURE_OPEN((db_)->iwkv);                                   \
   do {                                                        \
     API_RLOCK((db_)->iwkv, rci_);                             \
     rci_ = pthread_rwlock_wrlock(&(db_)->rwl);                \
