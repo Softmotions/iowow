@@ -60,13 +60,13 @@ typedef struct IWKV_val {
 } IWKV_val;
 
 struct IWKV_cursor;
-typedef struct IWKV_cursor *IWKV_cursor;
+typedef struct IWKV_cursor IWKV_cursor;
 
 typedef enum IWKV_cursor_op {
+  IWKV_NEXT = 1,
+  IWKV_PREV,
   IWKV_FIRST,
   IWKV_LAST,
-  IWKV_NEXT,
-  IWKV_PREV,
   IWKV_KEY_GE,
   IWKV_KEY_EQ
 } IWKV_cursor_op;
@@ -119,7 +119,7 @@ IW_EXPORT iwrc iwkv_cursor_dup_iter(IWKV_cursor *cur,
                                     uint64_t *start,
                                     bool down);
 
-IW_EXPORT void iwkv_cursor_close(IWKV_cursor *cur);
+IW_EXPORT iwrc iwkv_cursor_close(IWKV_cursor *cur);
 
 // Do not print random levels of skiplist blocks
 #define IWKVD_PRINT_NO_LEVEVELS 0x1
