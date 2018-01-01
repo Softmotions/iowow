@@ -2,13 +2,13 @@
 #### Stage: desc sorted 253 keys inserted
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, lsblk=14
- === SBLK[160] lvl=-1, pnum=1, flg=41, kvzidx=1, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=14
+ === SBLK[160] lvl=-1, pnum=1, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[160] szpow=8, lkl=6, lk=000kkk
  === SBLK[160]    [00,00] 000kkk:000val
 
 
- === SBLK[58] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[58] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=160, db=1
  === SBLK[58] szpow=10, lkl=6, lk=001kkk
  === SBLK[58]    [00,62] 001kkk:001val    [01,61] 002kkk:002val    [02,60] 003kkk:003val
  === SBLK[58]    [03,59] 004kkk:004val    [04,58] 005kkk:005val    [05,57] 006kkk:006val
@@ -33,7 +33,7 @@
  === SBLK[58]    [60,02] 061kkk:061val    [61,01] 062kkk:062val    [62,00] 063kkk:063val
 
 
- === SBLK[54] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[54] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=58, db=1
  === SBLK[54] szpow=10, lkl=6, lk=064kkk
  === SBLK[54]    [00,62] 064kkk:064val    [01,61] 065kkk:065val    [02,60] 066kkk:066val
  === SBLK[54]    [03,59] 067kkk:067val    [04,58] 068kkk:068val    [05,57] 069kkk:069val
@@ -58,7 +58,7 @@
  === SBLK[54]    [60,02] 124kkk:124val    [61,01] 125kkk:125val    [62,00] 126kkk:126val
 
 
- === SBLK[34] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[34] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=54, db=1
  === SBLK[34] szpow=10, lkl=6, lk=127kkk
  === SBLK[34]    [00,62] 127kkk:127val    [01,61] 128kkk:128val    [02,60] 129kkk:129val
  === SBLK[34]    [03,59] 130kkk:130val    [04,58] 131kkk:131val    [05,57] 132kkk:132val
@@ -83,7 +83,7 @@
  === SBLK[34]    [60,02] 187kkk:187val    [61,01] 188kkk:188val    [62,00] 189kkk:189val
 
 
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=34, db=1
  === SBLK[14] szpow=10, lkl=6, lk=190kkk
  === SBLK[14]    [00,62] 190kkk:190val    [01,61] 191kkk:191val    [02,60] 192kkk:192val
  === SBLK[14]    [03,59] 193kkk:193val    [04,58] 194kkk:194val    [05,57] 195kkk:195val
@@ -111,13 +111,13 @@
 #### Stage: removed 064kkk
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, lsblk=14
- === SBLK[160] lvl=-1, pnum=1, flg=41, kvzidx=1, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=14
+ === SBLK[160] lvl=-1, pnum=1, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[160] szpow=8, lkl=6, lk=000kkk
  === SBLK[160]    [00,00] 000kkk:000val
 
 
- === SBLK[58] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[58] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=160, db=1
  === SBLK[58] szpow=10, lkl=6, lk=001kkk
  === SBLK[58]    [00,62] 001kkk:001val    [01,61] 002kkk:002val    [02,60] 003kkk:003val
  === SBLK[58]    [03,59] 004kkk:004val    [04,58] 005kkk:005val    [05,57] 006kkk:006val
@@ -142,7 +142,7 @@
  === SBLK[58]    [60,02] 061kkk:061val    [61,01] 062kkk:062val    [62,00] 063kkk:063val
 
 
- === SBLK[54] lvl=-1, pnum=62, flg=41, kvzidx=62, db=1
+ === SBLK[54] lvl=-1, pnum=62, flg=41, kvzidx=62, p0=58, db=1
  === SBLK[54] szpow=10, lkl=6, lk=065kkk
  === SBLK[54]    [00,61] 065kkk:065val    [01,60] 066kkk:066val    [02,59] 067kkk:067val
  === SBLK[54]    [03,58] 068kkk:068val    [04,57] 069kkk:069val    [05,56] 070kkk:070val
@@ -167,7 +167,7 @@
  === SBLK[54]    [60,01] 125kkk:125val    [61,00] 126kkk:126val
 
 
- === SBLK[34] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[34] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=54, db=1
  === SBLK[34] szpow=10, lkl=6, lk=127kkk
  === SBLK[34]    [00,62] 127kkk:127val    [01,61] 128kkk:128val    [02,60] 129kkk:129val
  === SBLK[34]    [03,59] 130kkk:130val    [04,58] 131kkk:131val    [05,57] 132kkk:132val
@@ -192,7 +192,7 @@
  === SBLK[34]    [60,02] 187kkk:187val    [61,01] 188kkk:188val    [62,00] 189kkk:189val
 
 
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=34, db=1
  === SBLK[14] szpow=10, lkl=6, lk=190kkk
  === SBLK[14]    [00,62] 190kkk:190val    [01,61] 191kkk:191val    [02,60] 192kkk:192val
  === SBLK[14]    [03,59] 193kkk:193val    [04,58] 194kkk:194val    [05,57] 195kkk:195val
@@ -220,13 +220,13 @@
 #### Stage: removed 065kkk - 099kkk
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, lsblk=14
- === SBLK[160] lvl=-1, pnum=1, flg=41, kvzidx=1, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=14
+ === SBLK[160] lvl=-1, pnum=1, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[160] szpow=8, lkl=6, lk=000kkk
  === SBLK[160]    [00,00] 000kkk:000val
 
 
- === SBLK[58] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[58] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=160, db=1
  === SBLK[58] szpow=10, lkl=6, lk=001kkk
  === SBLK[58]    [00,62] 001kkk:001val    [01,61] 002kkk:002val    [02,60] 003kkk:003val
  === SBLK[58]    [03,59] 004kkk:004val    [04,58] 005kkk:005val    [05,57] 006kkk:006val
@@ -251,7 +251,7 @@
  === SBLK[58]    [60,02] 061kkk:061val    [61,01] 062kkk:062val    [62,00] 063kkk:063val
 
 
- === SBLK[54] lvl=-1, pnum=27, flg=41, kvzidx=27, db=1
+ === SBLK[54] lvl=-1, pnum=27, flg=41, kvzidx=27, p0=58, db=1
  === SBLK[54] szpow=9, lkl=6, lk=100kkk
  === SBLK[54]    [00,26] 100kkk:100val    [01,25] 101kkk:101val    [02,24] 102kkk:102val
  === SBLK[54]    [03,23] 103kkk:103val    [04,22] 104kkk:104val    [05,21] 105kkk:105val
@@ -264,7 +264,7 @@
  === SBLK[54]    [24,02] 124kkk:124val    [25,01] 125kkk:125val    [26,00] 126kkk:126val
 
 
- === SBLK[34] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[34] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=54, db=1
  === SBLK[34] szpow=10, lkl=6, lk=127kkk
  === SBLK[34]    [00,62] 127kkk:127val    [01,61] 128kkk:128val    [02,60] 129kkk:129val
  === SBLK[34]    [03,59] 130kkk:130val    [04,58] 131kkk:131val    [05,57] 132kkk:132val
@@ -289,7 +289,7 @@
  === SBLK[34]    [60,02] 187kkk:187val    [61,01] 188kkk:188val    [62,00] 189kkk:189val
 
 
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=34, db=1
  === SBLK[14] szpow=10, lkl=6, lk=190kkk
  === SBLK[14]    [00,62] 190kkk:190val    [01,61] 191kkk:191val    [02,60] 192kkk:192val
  === SBLK[14]    [03,59] 193kkk:193val    [04,58] 194kkk:194val    [05,57] 195kkk:195val
@@ -317,13 +317,13 @@
 #### Stage: removed all keys in SBLK[54]
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, lsblk=14
- === SBLK[160] lvl=-1, pnum=1, flg=41, kvzidx=1, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=14
+ === SBLK[160] lvl=-1, pnum=1, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[160] szpow=8, lkl=6, lk=000kkk
  === SBLK[160]    [00,00] 000kkk:000val
 
 
- === SBLK[58] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[58] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=160, db=1
  === SBLK[58] szpow=10, lkl=6, lk=001kkk
  === SBLK[58]    [00,62] 001kkk:001val    [01,61] 002kkk:002val    [02,60] 003kkk:003val
  === SBLK[58]    [03,59] 004kkk:004val    [04,58] 005kkk:005val    [05,57] 006kkk:006val
@@ -348,7 +348,7 @@
  === SBLK[58]    [60,02] 061kkk:061val    [61,01] 062kkk:062val    [62,00] 063kkk:063val
 
 
- === SBLK[34] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[34] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=58, db=1
  === SBLK[34] szpow=10, lkl=6, lk=127kkk
  === SBLK[34]    [00,62] 127kkk:127val    [01,61] 128kkk:128val    [02,60] 129kkk:129val
  === SBLK[34]    [03,59] 130kkk:130val    [04,58] 131kkk:131val    [05,57] 132kkk:132val
@@ -373,7 +373,7 @@
  === SBLK[34]    [60,02] 187kkk:187val    [61,01] 188kkk:188val    [62,00] 189kkk:189val
 
 
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, db=1
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=34, db=1
  === SBLK[14] szpow=10, lkl=6, lk=190kkk
  === SBLK[14]    [00,62] 190kkk:190val    [01,61] 191kkk:191val    [02,60] 192kkk:192val
  === SBLK[14]    [03,59] 193kkk:193val    [04,58] 194kkk:194val    [05,57] 195kkk:195val
@@ -401,4 +401,4 @@
 #### Stage: db1 destroyed
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, lsblk=0
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=0

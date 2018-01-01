@@ -3175,10 +3175,12 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     memcpy(&lkl, mm + sb->addr + SOFF_LKL_U1, 1);
     memcpy(lkbuf, mm + sb->addr + SOFF_LK_U61, lkl);
   }
-  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, db=%d",
+  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, p0=%d, db=%d",
           blkn,
           ((IWKVD_PRINT_NO_LEVEVELS & flags) ? -1 : sb->lvl),
-          sb->pnum, sb->flags, sb->kvblk->zidx, sb->kvblk->db->id);
+          sb->pnum, sb->flags, sb->kvblk->zidx, 
+          sb->p0,
+          sb->kvblk->db->id);
   fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow, lkl, lkbuf);
   for (int i = 0, j = 0; i < sb->pnum; ++i, ++j) {
     if (j == 3) {
@@ -3218,7 +3220,7 @@ void iwkvd_db(FILE *f, IWDB db, int flags) {
     iwlog_ecode_error3(rc);
     return;
   }
-  fprintf(f, "\n\n== DB[%d] lvl=%d, blk=%u, dbflg=%x, lsblk=%d",
+  fprintf(f, "\n\n== DB[%d] lvl=%d, blk=%u, dbflg=%x, p0=%d",
           db->id,
           ((IWKVD_PRINT_NO_LEVEVELS & flags) ? -1 : sb->lvl),
           (unsigned int) ADDR2BLK(sb->addr),
