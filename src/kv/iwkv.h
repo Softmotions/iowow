@@ -63,12 +63,12 @@ struct IWKV_cursor;
 typedef struct IWKV_cursor IWKV_cursor;
 
 typedef enum IWKV_cursor_op {
-  IWKV_NEXT = 1,
-  IWKV_PREV,
-  IWKV_FIRST,
+  IWKV_FIRST = 1,
   IWKV_LAST,
-  IWKV_KEY_GE,
-  IWKV_KEY_EQ
+  IWKV_NEXT,
+  IWKV_PREV,
+  IWKV_KEY_EQ,
+  IWKV_KEY_LE
 } IWKV_cursor_op;
 
 IW_EXPORT WUR iwrc iwkv_init(void);
@@ -102,6 +102,8 @@ IW_EXPORT WUR iwrc iwkv_cursor_to_key(IWKV_cursor *cur, IWKV_cursor_op op, const
 IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor *cur, IWKV_val *okey, IWKV_val *oval);
 
 IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor *cur, IWKV_val *oval);
+
+IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor *cur, IWKV_val *okey);
 
 IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor *cur, IWKV_val *val);
 
