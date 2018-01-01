@@ -1264,7 +1264,7 @@ IW_INLINE off_t _kvblk_maxkvoff(KVBLK *kb) {
   return off;
 }
 
-iwrc _kvblk_rmkv(KVBLK *kb,
+static iwrc _kvblk_rmkv(KVBLK *kb,
                  uint8_t idx,
                  kvblk_rmkv_opts_t opts) {
   uint64_t sz;
@@ -1643,7 +1643,7 @@ IW_INLINE iwrc _sblk_destroy(IWLCTX *lx,
   return rc;
 }
 
-static uint8_t _sblk_genlevel() {
+IW_INLINE uint8_t _sblk_genlevel() {
   int8_t lvl;
   if (iwkv_next_level >= 0) {
     lvl = iwkv_next_level;
