@@ -105,7 +105,7 @@ IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor *cur, IWKV_val *oval);
 
 IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor *cur, IWKV_val *okey);
 
-IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor *cur, IWKV_val *val);
+IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor *cur, IWKV_val *val, iwkv_opflags op_flags);
 
 IW_EXPORT iwrc iwkv_cursor_dup_add(IWKV_cursor *cur, uint64_t dv);
 

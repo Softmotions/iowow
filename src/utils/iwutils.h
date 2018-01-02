@@ -266,6 +266,13 @@ IW_EXTERN_C_START
    (num_) < 0x100000000000000ULL ? 8 : \
    (num_) < 0x8000000000000000ULL ? 9 : 10)
 
+
+#define IW_VNUMSIZE32(num_) \
+  ((num_) < 0x80ULL ? 1 : \
+   (num_) < 0x4000ULL ? 2 : \
+   (num_) < 0x200000ULL ? 3 : \
+   (num_) < 0x10000000ULL ? 4 : 5)
+
 /* Lexicographic comparison of values */
 #define IW_CMP(rv_, vp1_, vp1sz_, vp2_, vp2sz_) \
   do { \
