@@ -1757,7 +1757,6 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, sblk_flags_t flags, uint8_t *mm,
   return 0;
 }
 
-
 IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   if (sblk->flags & (SBLK_WLOCKED | SBLK_NO_LOCK)) {
     return 0;
