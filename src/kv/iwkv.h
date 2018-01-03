@@ -60,15 +60,15 @@ typedef struct IWKV_val {
 } IWKV_val;
 
 struct IWKV_cursor;
-typedef struct IWKV_cursor IWKV_cursor;
+typedef struct IWKV_cursor *IWKV_cursor;
 
 typedef enum IWKV_cursor_op {
-  IWKV_FIRST = 1,
-  IWKV_LAST,
-  IWKV_NEXT,
-  IWKV_PREV,
-  IWKV_KEY_EQ,
-  IWKV_KEY_LE
+  IWKV_CURSOR_BEFORE_FIRST = 1,
+  IWKV_CURSOR_AFTER_LAST,
+  IWKV_CURSOR_NEXT,
+  IWKV_CURSOR_PREV,
+  IWKV_CURSOR_EQ,
+  IWKV_CURSOR_LE
 } IWKV_cursor_op;
 
 IW_EXPORT WUR iwrc iwkv_init(void);
@@ -95,27 +95,27 @@ IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
 
 IW_EXPORT WUR iwrc iwkv_cursor_open(IWDB db, IWKV_cursor *cur, IWKV_cursor_op op, const IWKV_val *key);
 
-IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor *cur, IWKV_cursor_op op);
+IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op);
 
-IW_EXPORT WUR iwrc iwkv_cursor_to_key(IWKV_cursor *cur, IWKV_cursor_op op, const IWKV_val *key);
+IW_EXPORT WUR iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key);
 
-IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor *cur, IWKV_val *okey, IWKV_val *oval);
+IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor cur, IWKV_val *okey, IWKV_val *oval);
 
-IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor *cur, IWKV_val *oval);
+IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor cur, IWKV_val *oval);
 
-IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor *cur, IWKV_val *okey);
+IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
 
-IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor *cur, IWKV_val *val, iwkv_opflags op_flags);
+IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags op_flags);
 
-IW_EXPORT iwrc iwkv_cursor_dup_add(IWKV_cursor *cur, uint64_t dv);
+IW_EXPORT iwrc iwkv_cursor_dup_add(IWKV_cursor cur, uint64_t dv);
 
-IW_EXPORT iwrc iwkv_cursor_dup_rm(IWKV_cursor *cur, uint64_t dv);
+IW_EXPORT iwrc iwkv_cursor_dup_rm(IWKV_cursor cur, uint64_t dv);
 
-IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor *cur, uint32_t *onum);
+IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor cur, uint32_t *onum);
 
-IW_EXPORT iwrc iwkv_cursor_dup_contains(IWKV_cursor *cur, uint64_t dv, bool *out);
+IW_EXPORT iwrc iwkv_cursor_dup_contains(IWKV_cursor cur, uint64_t dv, bool *out);
 
-IW_EXPORT iwrc iwkv_cursor_dup_iter(IWKV_cursor *cur,
+IW_EXPORT iwrc iwkv_cursor_dup_iter(IWKV_cursor cur,
                                     bool(*visitor)(uint64_t dv, void *opaq),
                                     void *opaq,
                                     uint64_t *start,

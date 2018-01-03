@@ -526,6 +526,21 @@ static void iwkv_test1(void) {
 
   logstage(f, "fill up second block", db1);
 
+  // Check cursor iteration
+  IWKV_cursor cur1;
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  while (!(rc = iwkv_cursor_to(cur1, IWKV_CURSOR_NEXT))) {
+    IWKV_val key;
+    IWKV_val val;
+    iwrc rc2 = iwkv_cursor_get(cur1, &key, &val);
+    CU_ASSERT_EQUAL(rc, 0);
+  }
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
+  rc = iwkv_cursor_close(&cur1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+
   // Extra lower
   snprintf(kbuf, KBUFSZ, "%03dccc", 0);    // 000ke < 000key
   snprintf(vbuf, VBUFSZ, "%sval", kbuf);  // 000keval
