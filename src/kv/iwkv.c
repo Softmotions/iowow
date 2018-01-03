@@ -2341,7 +2341,7 @@ finish:
   return rc;
 }
 
-iwrc _lx_lock_chute_mm(IWLCTX *lx, uint8_t *mm) {
+IW_INLINE iwrc _lx_lock_chute_mm(IWLCTX *lx, uint8_t *mm) {
   assert(lx->nlvl >= 0);
   iwrc rc = 0;
   SBLK *db = 0;
@@ -2520,7 +2520,7 @@ finish:
   return rc;
 }
 
-static iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
+IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   iwrc rc;
   int idx;
   bool found;
