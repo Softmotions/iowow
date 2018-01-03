@@ -5,7 +5,6 @@
 #include "iwfsmfile.h"
 #include "iwcfg.h"
 #include "khash.h"
-#include <stdbool.h>
 #include <pthread.h>
 
 // IWKV magic number
