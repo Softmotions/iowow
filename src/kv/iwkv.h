@@ -9,13 +9,14 @@
 
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
-  IWKV_ERROR_NOTFOUND,        /**< Key not found (IWKV_ERROR_NOTFOUND) */
-  IWKV_ERROR_KEY_EXISTS,      /**< Key already exists. (IWKV_ERROR_KEY_EXISTS) */
-  IWKV_ERROR_MAXKVSZ,         /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
-  IWKV_ERROR_MAXDBSZ,         /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
-  IWKV_ERROR_CORRUPTED,       /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
-  IWKV_ERROR_DUP_VALUE_SIZE,  /**< Value size is not compatible for insertion into duplicated key values array (IWKV_ERROR_DUP_VALUE_SIZE) */
+  IWKV_ERROR_NOTFOUND,             /**< Key not found (IWKV_ERROR_NOTFOUND) */
+  IWKV_ERROR_KEY_EXISTS,           /**< Key already exists. (IWKV_ERROR_KEY_EXISTS) */
+  IWKV_ERROR_MAXKVSZ,              /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
+  IWKV_ERROR_MAXDBSZ,              /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
+  IWKV_ERROR_CORRUPTED,            /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
+  IWKV_ERROR_DUP_VALUE_SIZE,       /**< Value size is not compatible for insertion into duplicated key values array (IWKV_ERROR_DUP_VALUE_SIZE) */
   IWKV_ERROR_INCOMPATIBLE_DB_MODE, /**< Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE) */
+  IWKV_ERROR_CURSOR_SEEK_AGAIN,    /**< Perform cursor seek operation again (IWKV_ERROR_CURSOR_SEEK_AGAIN) */
   _IWKV_ERROR_END,
   /* Internal error codes */
   _IWKV_ERROR_KVBLOCK_FULL,
@@ -107,11 +108,11 @@ IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
 
 IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags);
 
+IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor cur, uint32_t *onum);
+
 IW_EXPORT iwrc iwkv_cursor_dup_add(IWKV_cursor cur, uint64_t dv);
 
 IW_EXPORT iwrc iwkv_cursor_dup_rm(IWKV_cursor cur, uint64_t dv);
-
-IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor cur, uint32_t *onum);
 
 IW_EXPORT iwrc iwkv_cursor_dup_contains(IWKV_cursor cur, uint64_t dv, bool *out);
 
