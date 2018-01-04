@@ -108,15 +108,15 @@ IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
 
 IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags);
 
-IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor cur, uint32_t *onum);
+IW_EXPORT iwrc iwkv_cursor_dup_num(const IWKV_cursor cur, uint32_t *onum);
 
 IW_EXPORT iwrc iwkv_cursor_dup_add(IWKV_cursor cur, uint64_t dv);
 
 IW_EXPORT iwrc iwkv_cursor_dup_rm(IWKV_cursor cur, uint64_t dv);
 
-IW_EXPORT iwrc iwkv_cursor_dup_contains(IWKV_cursor cur, uint64_t dv, bool *out);
+IW_EXPORT iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool *out);
 
-IW_EXPORT iwrc iwkv_cursor_dup_iter(IWKV_cursor cur,
+IW_EXPORT iwrc iwkv_cursor_dup_iter(const IWKV_cursor cur,
                                     bool(*visitor)(uint64_t dv, void *opaq),
                                     void *opaq,
                                     uint64_t *start,
