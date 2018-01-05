@@ -643,8 +643,7 @@ static uint64_t _fsm_find_next_set_bit(const uint64_t *addr,
                                        const uint64_t max_offset_bit,
                                        int *found) {
   *found = 0;
-  register uint64_t tmp, bit;
-  register uint64_t size;
+  register uint64_t tmp, bit, size;
   register const uint64_t *p = addr + offset_bit / 64;
   if (offset_bit >= max_offset_bit) {
     return 0;
@@ -698,9 +697,8 @@ static uint64_t _fsm_find_prev_set_bit(const uint64_t *addr,
                                        register uint64_t offset_bit,
                                        const uint64_t min_offset_bit,
                                        int *found) {
-  register uint64_t tmp, bit;
-  register uint64_t size;
   register const uint64_t *p;
+  register uint64_t tmp, bit, size;
   *found = 0;
   if (min_offset_bit >= offset_bit) {
     return 0;
