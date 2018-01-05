@@ -219,15 +219,30 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
 #define ENSURE_OPEN(iwkv_) \
   if (!iwkv_ || !(iwkv_->open)) return IW_ERROR_INVALID_STATE
 
+#define ENSURE_OPEN_DB(db_) \
+  if (!(db_) || !(db_)->iwkv || || !(db_)->open || !((db_)->iwkv->open)) return IW_ERROR_INVALID_STATE
+
 #define API_RLOCK(iwkv_, rci_) \
   ENSURE_OPEN(iwkv_);  \
   rci_ = pthread_rwlock_rdlock(&(iwkv_)->rwl); \
   if (rci_) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_)
 
+IW_INLINE iwrc _api_rlock(IWKV iwkv)  {
+  int rci;
+  API_RLOCK(iwkv, rci);
+  return 0;
+}
+
 #define API_WLOCK(iwkv_, rci_) \
   ENSURE_OPEN(iwkv_);  \
   rci_ = pthread_rwlock_wrlock(&(iwkv_)->rwl); \
   if (rci_) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_)
+
+IW_INLINE iwrc _api_wlock(IWKV iwkv)  {
+  int rci;
+  API_WLOCK(iwkv, rci);
+  return 0;
+}
 
 #define API_UNLOCK(iwkv_, rci_, rc_)  \
   rci_ = pthread_rwlock_unlock(&(iwkv_)->rwl); \
@@ -243,6 +258,12 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
     }                                                         \
   } while(0)
 
+IW_INLINE iwrc _api_db_rlock(IWDB db)  {
+  int rci;
+  API_DB_RLOCK(db, rci);
+  return 0;
+}
+
 #define API_DB_WLOCK(db_, rci_)                               \
   do {                                                        \
     API_RLOCK((db_)->iwkv, rci_);                             \
@@ -252,6 +273,12 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
       return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_);  \
     }                                                         \
   } while(0)
+
+IW_INLINE iwrc _api_db_wlock(IWDB db)  {
+  int rci;
+  API_DB_WLOCK(db, rci);
+  return 0;
+}
 
 #define API_DB_UNLOCK(db_, rci_, rc_)                                     \
   do {                                                                    \
@@ -558,9 +585,9 @@ static int _u8cmp(const void *o1, const void *o2) {
 
 //-------------------------- IWKV/IWDB WORKERS
 
-static iwrc _iwkv_worker_inc(IWKV iwkv) {
-  if (!iwkv->open) {
-    return _IWKV_ERROR_ABORT;
+static iwrc _iwkv_worker_inc_nolk(IWKV iwkv) {
+  if (!iwkv || !iwkv->open) {
+    return IW_ERROR_INVALID_STATE;
   }
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
@@ -568,7 +595,7 @@ static iwrc _iwkv_worker_inc(IWKV iwkv) {
   }
   if (!iwkv->open) {
     pthread_mutex_unlock(&iwkv->wk_mtx);
-    return _IWKV_ERROR_ABORT;
+    return IW_ERROR_INVALID_STATE;
   }
   ++iwkv->wk_count;
   pthread_cond_broadcast(&iwkv->wk_cond);
@@ -576,7 +603,10 @@ static iwrc _iwkv_worker_inc(IWKV iwkv) {
   return 0;
 }
 
-static iwrc _iwkv_worker_dec(IWKV iwkv) {
+static iwrc _iwkv_worker_dec_nolk(IWKV iwkv) {
+  if (!iwkv) {
+    return IW_ERROR_INVALID_STATE;
+  }
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     // Last chanсe to be safe
@@ -589,18 +619,18 @@ static iwrc _iwkv_worker_dec(IWKV iwkv) {
   return 0;
 }
 
-static iwrc _db_worker_inc(IWDB db) {
-  IWKV iwkv = db->iwkv;
-  if (!iwkv->open || !db->open) {
-    return _IWKV_ERROR_ABORT;
+static iwrc _db_worker_inc_nolk(IWDB db) {
+  if (!db || !db->iwkv || !db->iwkv->open || !db->open) {
+    return IW_ERROR_INVALID_STATE;
   }
+  IWKV iwkv = db->iwkv;
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   if (!iwkv->open || !db->open) {
     pthread_mutex_unlock(&iwkv->wk_mtx);
-    return _IWKV_ERROR_ABORT;
+    return IW_ERROR_INVALID_STATE;
   }
   ++iwkv->wk_count;
   ++db->wk_count;
@@ -609,7 +639,10 @@ static iwrc _db_worker_inc(IWDB db) {
   return 0;
 }
 
-static iwrc _db_worker_dec(IWDB db) {
+static iwrc _db_worker_dec_nolk(IWDB db) {
+  if (!db || !db->iwkv) { // do not use ENSURE_OPEN_DB here
+    return IW_ERROR_INVALID_STATE;
+  }
   IWKV iwkv = db->iwkv;
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
@@ -643,11 +676,6 @@ static iwrc _wnw_db_wl(IWDB db) {
 
 static iwrc _wnw(IWKV iwkv, iwrc(*after)(IWKV iwkv)) {
   iwrc rc = 0;
-  if (after) {
-    rc = after(iwkv);
-    _wnw(iwkv, 0);
-    return rc;
-  }
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -655,9 +683,12 @@ static iwrc _wnw(IWKV iwkv, iwrc(*after)(IWKV iwkv)) {
   while (iwkv->wk_count > 0) {
     pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
   }
+  if (after) {
+    rc = after(iwkv);
+  }
   rci = pthread_mutex_unlock(&iwkv->wk_mtx);
   if (rci) {
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci), rc);
   }
   return rc;
 }
@@ -665,11 +696,6 @@ static iwrc _wnw(IWKV iwkv, iwrc(*after)(IWKV iwkv)) {
 static iwrc _wnw_db(IWDB db, iwrc(*after)(IWDB db)) {
   iwrc rc = 0;
   IWKV iwkv = db->iwkv;
-  if (after) {
-    rc = after(db);
-    _wnw_db(db, 0);
-    return rc;
-  }
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -677,9 +703,12 @@ static iwrc _wnw_db(IWDB db, iwrc(*after)(IWDB db)) {
   while (db->wk_count > 0) {
     pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
   }
+  if (after) {
+    rc = after(db);
+  }
   rci = pthread_mutex_unlock(&iwkv->wk_mtx);
   if (rci) {
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci), rc);
   }
   return rc;
 }
@@ -794,6 +823,7 @@ typedef struct DISPOSE_DB_CTX {
 
 static void *_db_dispose_chain_thr(void *op) {
   assert(op);
+  iwrc rc = 0;
   DISPOSE_DB_CTX *dctx = op;
   pthread_detach(dctx->thr);
   uint8_t *mm, kvszpow;
@@ -801,7 +831,7 @@ static void *_db_dispose_chain_thr(void *op) {
   blkn_t sbn = dctx->sbn, kvblkn;
   while (sbn) {
     off_t sba = BLK2ADDR(sbn);
-    iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCBREAK(rc);
     memcpy(&kvblkn, mm + sba + SOFF_KBLK_U4, 4);
     kvblkn = IW_ITOHL(kvblkn);
@@ -827,7 +857,10 @@ static void *_db_dispose_chain_thr(void *op) {
       }
     }
   }
-  _iwkv_worker_dec(dctx->iwkv);
+  rc = _iwkv_worker_dec_nolk(dctx->iwkv);
+  if (rc) {
+    iwlog_ecode_error3(rc);
+  }
   free(dctx);
   return 0;
 }
@@ -837,10 +870,12 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   iwrc rc;
   uint8_t *mm;
   IWDB db = *dbp;
+  IWKV iwkv = db->iwkv;
   IWDB prev = db->prev;
   IWDB next = db->next;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   uint32_t first_sblkn;
+  bool dec_worker = true;
 
   kh_del(DBS, db->iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -869,35 +904,27 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   }
   // Cleanup DB
   if (first_sblkn) {
-    do {
-      DISPOSE_DB_CTX *dctx = malloc(sizeof(*dctx));
-      if (!dctx) {
-        rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-        break;
-      }
-      rc = _iwkv_worker_inc(db->iwkv);
+    DISPOSE_DB_CTX *dctx = malloc(sizeof(*dctx));
+    if (dctx) {
       db->open = false;
-      if (rc) {
-        if (rc != _IWKV_ERROR_ABORT) {
-          iwlog_ecode_error3(rc);
-        } else {
-          rc = 0;
-        }
-        free(dctx);
-        break;
-      }
       dctx->sbn = first_sblkn;
       dctx->iwkv = db->iwkv;
       rci = pthread_create(&dctx->thr, 0, _db_dispose_chain_thr, dctx);
       if (rci) {
         free(dctx);
-        _iwkv_worker_dec(db->iwkv);
         rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+      } else {
+        dec_worker = false;
       }
-    } while (0);
+    } else {
+      rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
   }
   IWRC(fsm->deallocate(fsm, db->addr, (1 << DB_SZPOW)), rc);
   _db_release_lw(dbp);
+  if (dec_worker) {
+    _iwkv_worker_dec_nolk(iwkv);
+  }
   return rc;
 }
 
@@ -3024,7 +3051,10 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   }
   iwrc rc = _wnw(iwkv, _wnw_iwkw_wl);
   RCGO(rc, finish);
-  rc = _db_destroy_lw(dbp);
+  rc = _iwkv_worker_inc_nolk(iwkv);
+  if (!rc) {
+    rc = _db_destroy_lw(dbp);
+  }
   API_UNLOCK(iwkv, rci, rc);
 finish:
   return rc;
@@ -3106,6 +3136,24 @@ start:
   return rc;
 }
 
+IW_INLINE iwrc _cursor_close_lr(IWKV_cursor cur) {
+  if (!cur->cn) {
+    return 0;
+  }
+  if (IW_UNLIKELY((cur->cn->flags & SBLK_DURTY) || (cur->cn->kvblk && (cur->cn->kvblk->flags & KVBLK_DURTY)))) {
+    // Flush current node
+    IWFS_FSM *fsm = &cur->lx.db->iwkv->fsm;
+    uint8_t *mm;
+    iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCRET(rc);
+    _sblk_sync_and_release_mm(&cur->lx, &cur->cn, mm);
+    fsm->release_mmap(fsm);
+  } else {
+    _sblk_release(&cur->lx, &cur->cn);
+  }
+  return 0;
+}
+
 iwrc iwkv_cursor_open(IWDB db,
                       IWKV_cursor *curptr,
                       IWKV_cursor_op op,
@@ -3116,8 +3164,13 @@ iwrc iwkv_cursor_open(IWDB db,
     return IW_ERROR_INVALID_ARGS;
   }
   int rci;
-  API_DB_RLOCK(db, rci);
-  iwrc rc = _db_worker_inc(db);
+  iwrc rc = _db_worker_inc_nolk(db);
+  RCRET(rc);
+  rc = _api_db_rlock(db);
+  if (rc) {
+    _db_worker_dec_nolk(db);
+    return rc;
+  }
   RCRET(rc);
   *curptr = calloc(1, sizeof(**curptr));
   if (!curptr) {
@@ -3132,8 +3185,11 @@ iwrc iwkv_cursor_open(IWDB db,
   cur->lx.key = key;
   rc = _cursor_to_lr(cur, op);
 finish:
-  if (rc && rc != IWKV_ERROR_NOTFOUND) {
-    IWRC(_db_worker_dec(db), rc);
+  if (rc) {
+    if (cur) {
+      IWRC(_cursor_close_lr(cur), rc);
+    }
+    _db_worker_dec_nolk(db);
   }
   API_DB_UNLOCK(db, rci, rc);
   return rc;
@@ -3150,21 +3206,9 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
     return IW_ERROR_INVALID_STATE;
   }
   API_DB_RLOCK(cur->lx.db, rci);
-  if (cur->cn) {
-    if (IW_UNLIKELY((cur->cn->flags & SBLK_DURTY) || (cur->cn->kvblk && (cur->cn->kvblk->flags & KVBLK_DURTY)))) {
-      IWFS_FSM *fsm = &cur->lx.db->iwkv->fsm;
-      uint8_t *mm;
-      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      RCGO(rc, finish);
-      _sblk_sync_and_release_mm(&cur->lx, &cur->cn, mm);
-      fsm->release_mmap(fsm);
-    } else {
-      _sblk_release(&cur->lx, &cur->cn);
-    }
-  }
-finish:
-  IWRC(_db_worker_dec(cur->lx.db), rc);
+  rc = _cursor_close_lr(cur);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
+  IWRC(_db_worker_dec_nolk(cur->lx.db), rc);
   free(cur);
   *curp = 0;
   return rc;
