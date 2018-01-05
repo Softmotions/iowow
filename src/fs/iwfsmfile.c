@@ -152,7 +152,7 @@ IW_INLINE iwrc _fsm_ctrl_unlock(FSM *impl) {
   return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
 }
 
-static iwrc _fsm_bmptr(FSM *impl, uint64_t **bmptr) {
+IW_INLINE iwrc _fsm_bmptr(FSM *impl, uint64_t **bmptr) {
   size_t sp;
   uint8_t *mm;
   *bmptr = 0;
@@ -332,7 +332,7 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
  * @param bit_status  If `1` bits will be set to `1` otherwise `0`
  * @param opts        Operation options
  */
-iwrc _fsm_set_bit_status_lw(FSM *impl,
+static iwrc _fsm_set_bit_status_lw(FSM *impl,
                             register uint64_t offset_bits,
                             int64_t length_bits,
                             const int bit_status,
