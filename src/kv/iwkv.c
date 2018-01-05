@@ -209,6 +209,7 @@ struct IWKV_cursor {
   SBLK *cn;                  /**< Current `SBLK` node */
   off_t dbaddr;              /**< Database address used as `cn` */
   int8_t cnpos;              /**< Position in the current `SBLK` node */
+  bool closed;
   IWLCTX lx;                 /**< Lookup context */
 };
 
@@ -3137,19 +3138,19 @@ start:
 }
 
 IW_INLINE iwrc _cursor_close_lr(IWKV_cursor cur) {
-  if (!cur->cn) {
-    return 0;
-  }
-  if (IW_UNLIKELY((cur->cn->flags & SBLK_DURTY) || (cur->cn->kvblk && (cur->cn->kvblk->flags & KVBLK_DURTY)))) {
-    // Flush current node
-    IWFS_FSM *fsm = &cur->lx.db->iwkv->fsm;
-    uint8_t *mm;
-    iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCRET(rc);
-    _sblk_sync_and_release_mm(&cur->lx, &cur->cn, mm);
-    fsm->release_mmap(fsm);
-  } else {
-    _sblk_release(&cur->lx, &cur->cn);
+  cur->closed = true;
+  if (cur->cn) {
+    if (IW_UNLIKELY((cur->cn->flags & SBLK_DURTY) || (cur->cn->kvblk && (cur->cn->kvblk->flags & KVBLK_DURTY)))) {
+      // Flush current node
+      IWFS_FSM *fsm = &cur->lx.db->iwkv->fsm;
+      uint8_t *mm;
+      iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      RCRET(rc);
+      _sblk_sync_and_release_mm(&cur->lx, &cur->cn, mm);
+      fsm->release_mmap(fsm);
+    } else {
+      _sblk_release(&cur->lx, &cur->cn);
+    }
   }
   return 0;
 }
@@ -3185,13 +3186,13 @@ iwrc iwkv_cursor_open(IWDB db,
   cur->lx.key = key;
   rc = _cursor_to_lr(cur, op);
 finish:
-  if (rc) {
-    if (cur) {
-      IWRC(_cursor_close_lr(cur), rc);
-    }
-    _db_worker_dec_nolk(db);
+  if (rc && cur) {
+    IWRC(_cursor_close_lr(cur), rc);
   }
   API_DB_UNLOCK(db, rci, rc);
+  if (rc) {
+    _db_worker_dec_nolk(db);
+  }
   return rc;
 }
 
@@ -3202,7 +3203,7 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
     return IW_ERROR_INVALID_ARGS;
   }
   IWKV_cursor cur = *curp;
-  if (!cur->lx.db) {
+  if (!cur->lx.db || cur->closed) {
     return IW_ERROR_INVALID_STATE;
   }
   API_DB_RLOCK(cur->lx.db, rci);
