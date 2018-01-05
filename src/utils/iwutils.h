@@ -287,6 +287,8 @@ IW_EXTERN_C_START
     if ((rv_) == 0) (rv_) = (vp1sz_) - (vp2sz_); \
   } while(0)
 
+    
+
 
 /**
  * @brief Set seed to random generator

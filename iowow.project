@@ -92,6 +92,7 @@
       <File Name="src/utils/iwarr.c"/>
       <File Name="src/utils/mt19937ar.h"/>
       <File Name="src/utils/mt19937ar.c"/>
+      <File Name="src/utils/rwticket.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="tmpl">
       <File Name="src/tmpl/libiowow.pc.in"/>
