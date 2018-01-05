@@ -625,8 +625,29 @@ static iwrc _db_worker_dec(IWDB db) {
   return 0;
 }
 
+static iwrc _wnw_iwkw_wl(IWKV iwkv) {
+  int rci = pthread_rwlock_wrlock(&iwkv->rwl);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  return 0;
+}
 
-static iwrc _wnw(IWKV iwkv) {
+static iwrc _wnw_db_wl(IWDB db) {
+  int rci = pthread_rwlock_wrlock(&db->rwl);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  return 0;
+}
+
+static iwrc _wnw(IWKV iwkv, iwrc(*after)(IWKV iwkv)) {
+  iwrc rc = 0;
+  if (after) {
+    rc = after(iwkv);
+    _wnw(iwkv, 0);
+    return rc;
+  }
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -638,11 +659,17 @@ static iwrc _wnw(IWKV iwkv) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  return 0;
+  return rc;
 }
 
-static iwrc _wnw_db(IWDB db) {
+static iwrc _wnw_db(IWDB db, iwrc(*after)(IWDB db)) {
+  iwrc rc = 0;
   IWKV iwkv = db->iwkv;
+  if (after) {
+    rc = after(db);
+    _wnw_db(db, 0);
+    return rc;
+  }
   int rci = pthread_mutex_lock(&iwkv->wk_mtx);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -654,15 +681,7 @@ static iwrc _wnw_db(IWDB db) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  return 0;
-}
-
-static iwrc _db_get_dbwl(IWDB db) {
-  int rci = pthread_rwlock_wrlock(&db->rwl);
-  if (rci) {
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  }
-  return 0;
+  return rc;
 }
 
 //--------------------------  DB
@@ -2920,9 +2939,9 @@ iwrc iwkv_close(IWKV *iwkvp) {
   ENSURE_OPEN((*iwkvp));
   int rci;
   IWKV iwkv = *iwkvp;
-  API_WLOCK(iwkv, rci);
   iwkv->open = false;
-  iwrc rc = _wnw(iwkv);
+  iwrc rc = _wnw(iwkv, _wnw_iwkw_wl);
+  RCRET(rc);
   IWDB db = iwkv->first_db;
   while (db) {
     IWDB ndb = db->next;
@@ -3003,8 +3022,7 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
   }
-  API_WLOCK(iwkv, rci);
-  iwrc rc = _wnw(iwkv);
+  iwrc rc = _wnw(iwkv, _wnw_iwkw_wl);
   RCGO(rc, finish);
   rc = _db_destroy_lw(dbp);
   API_UNLOCK(iwkv, rci, rc);
@@ -3073,12 +3091,11 @@ start:
   if (!wlocked && rc == _IWKV_ERROR_REQUIRE_WLOCK) {
     // Unlock DB read lock but keep locking on iwkv API
     pthread_rwlock_unlock(&db->rwl);
-    rc = _db_get_dbwl(db);
+    rc = _wnw_db(db, _wnw_db_wl);
     if (rc) { // Failed to acquire write lock on DB
       pthread_rwlock_unlock(&db->iwkv->rwl);
       return rc;
     }
-    _wnw_db(db);
     wlocked = true;
     goto start;
   }
