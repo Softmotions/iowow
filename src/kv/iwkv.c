@@ -3204,7 +3204,10 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
     return IW_ERROR_INVALID_ARGS;
   }
   IWKV_cursor cur = *curp;
-  if (!cur->lx.db || cur->closed) {
+  if (cur->closed) {
+    return 0;
+  }
+  if (!cur->lx.db) {
     return IW_ERROR_INVALID_STATE;
   }
   API_DB_RLOCK(cur->lx.db, rci);
