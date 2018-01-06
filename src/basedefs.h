@@ -122,6 +122,8 @@ typedef int HANDLE;
 #define MAX(a_, b_) ((a_) > (b_) ? (a_) : (b_))
 #endif
 
+#define COMPILER_BARRIER() asm volatile("" ::: "memory")
+
 #include <stdint.h>
 #include <stddef.h>
 
