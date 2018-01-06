@@ -7,14 +7,17 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+/**
+ * @brief IWKV specific rrror codes.
+ */
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
   IWKV_ERROR_NOTFOUND,             /**< Key not found (IWKV_ERROR_NOTFOUND) */
-  IWKV_ERROR_KEY_EXISTS,           /**< Key already exists. (IWKV_ERROR_KEY_EXISTS) */
+  IWKV_ERROR_KEY_EXISTS,           /**< Key exists. (IWKV_ERROR_KEY_EXISTS) */
   IWKV_ERROR_MAXKVSZ,              /**< Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
   IWKV_ERROR_MAXDBSZ,              /**< Database file size reached its maximal limit: 0x3fffffffc0 (IWKV_ERROR_MAXDBSZ) */
   IWKV_ERROR_CORRUPTED,            /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
-  IWKV_ERROR_DUP_VALUE_SIZE,       /**< Value size is not compatible for insertion into duplicated key values array (IWKV_ERROR_DUP_VALUE_SIZE) */
+  IWKV_ERROR_DUP_VALUE_SIZE,       /**< Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE) */
   IWKV_ERROR_INCOMPATIBLE_DB_MODE, /**< Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE) */
   IWKV_ERROR_CURSOR_SEEK_AGAIN,    /**< Perform cursor seek operation again (IWKV_ERROR_CURSOR_SEEK_AGAIN) */
   _IWKV_ERROR_END,
@@ -26,21 +29,30 @@ typedef enum {
   _IWKV_ERROR_AGAIN,
 } iwkv_ecode;
 
+/**
+ * @brief Database file open modes.
+ */
 typedef enum {
   IWKV_NOLOCKS  = 0x1,      /**< Do not use any threading locks */
   IWKV_RDONLY   = 0x2,      /**< Open storage in read-only mode */
   IWKV_TRUNC    = 0x4       /**< Truncate database file on open */
 } iwkv_openflags;
 
+/**
+ * @brief Database creation modes.
+ */
 typedef enum {
-  IWDB_DUP_INT32_VALS = 0x1, /**< Duplicated uint32 values allowed */
-  IWDB_DUP_INT64_VALS = 0x2  /**< Duplicated uint64 values allowed */
+  IWDB_DUP_INT32_VALS = 0x1, /**< Array of sorted uint32 values stored as key value */
+  IWDB_DUP_INT64_VALS = 0x2  /**< Array of sorted uint64 values stored as key value */
 } iwdb_flags_t;
 
+/**
+ * @brief Value store modes used in `iwkv_put` and `iwkv_cursor_set` functions.
+ */
 typedef enum {
-  IWKV_NO_OVERWRITE = 0x1,       /**< Do not overwrite value for an existing key */
-  IWKV_DUP_REMOVE =   0x2         /**< Remove value from duplicated values array.
-                                       Usable only for IWDB_DUP_X DB flags */
+  IWKV_NO_OVERWRITE = 0x1,   /**< Do not overwrite value for an existing key */
+  IWKV_DUP_REMOVE =   0x2    /**< Remove value from duplicated values array.
+                                  Usable only for IWDB_DUP_X DB flags */
 } iwkv_opflags;
 
 struct IWKV;
@@ -49,16 +61,25 @@ typedef struct IWKV *IWKV;
 struct IWDB;
 typedef struct IWDB *IWDB;
 
+/**
+ * @brief IWKV open options.
+ */
 typedef struct IWKV_OPTS {
-  char *path;
-  iwkv_openflags oflags;
+  char *path;              /**< Path to database file */
+  iwkv_openflags oflags;   /**< Bitmask of db file open modes */
 } IWKV_OPTS;
 
+/**
+ * @brief Value data container.
+ */
 typedef struct IWKV_val {
-  size_t  size;
-  void  *data;
+  void  *data;            /**< Value buffer */
+  size_t  size;           /**< Value buffer size */
 } IWKV_val;
 
+/**
+ * @brief Cursor opaque handler.
+ */
 struct IWKV_cursor;
 typedef struct IWKV_cursor *IWKV_cursor;
 

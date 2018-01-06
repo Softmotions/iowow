@@ -2837,7 +2837,7 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
     case IWKV_ERROR_CORRUPTED:
       return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
     case IWKV_ERROR_DUP_VALUE_SIZE:
-      return "Value size is not compatible for insertion into duplicated key values array (IWKV_ERROR_DUP_VALUE_SIZE)";
+      return "Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE)";
     case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
       return "Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
     case IWKV_ERROR_CURSOR_SEEK_AGAIN:
