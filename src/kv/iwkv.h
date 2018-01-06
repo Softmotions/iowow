@@ -122,7 +122,7 @@ IW_EXPORT iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool
 IW_EXPORT iwrc iwkv_cursor_dup_iter(const IWKV_cursor cur,
                                     bool(*visitor)(uint64_t dv, void *opaq),
                                     void *opaq,
-                                    uint64_t *start,
+                                    const uint64_t *start,
                                     bool down);
 
 IW_EXPORT iwrc iwkv_cursor_close(IWKV_cursor *cur);

@@ -95,11 +95,11 @@ bool iwarr_sorted_remove(void *els,
 #undef EL
 }
 
-bool iwarr_sorted_find(void *els,
-                       size_t nels,
-                       size_t elsize,
-                       void *eptr,
-                       int (*cmp)(const void *, const void *)) {
+off_t iwarr_sorted_find(void *els,
+                        size_t nels,
+                        size_t elsize,
+                        void *eptr,
+                        int (*cmp)(const void *, const void *)) {
 
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
@@ -115,7 +115,7 @@ bool iwarr_sorted_find(void *els,
     idx = (ub + lb) / 2;
     cr = cmp(EL(idx), eptr);
     if (!cr) {
-      return true;
+      return idx;
     } else if (cr < 0) {
       lb = idx + 1;
       if (lb > ub) {
@@ -129,6 +129,6 @@ bool iwarr_sorted_find(void *els,
       }
     }
   }
-  return false;
+  return -1;
 #undef EL
 }

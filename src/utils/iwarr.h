@@ -47,11 +47,11 @@ bool iwarr_sorted_remove(void *els,
                          int (*cmp)(const void *, const void *));
 
 
-bool iwarr_sorted_find(void *els,
-                       size_t nels,
-                       size_t elsize,
-                       void *eptr,
-                       int (*cmp)(const void *, const void *));
+off_t iwarr_sorted_find(void *els,
+                        size_t nels,
+                        size_t elsize,
+                        void *eptr,
+                        int (*cmp)(const void *, const void *));
 
 
 IW_EXTERN_C_END

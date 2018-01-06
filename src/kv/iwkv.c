@@ -3414,8 +3414,6 @@ finish:
 }
 
 iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool *out) {
-  int rci;
-  iwrc rc;
   if (!cur || !out) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -3423,6 +3421,8 @@ iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool *out) {
   if (!cur->cn || !cur->lx.db || (cur->cn->flags & SBLK_DB) || !(cur->lx.db->dbflg & IWDB_DUP_FLAGS)) {
     return IW_ERROR_INVALID_STATE;
   }
+  int rci;
+  iwrc rc;
   API_DB_RLOCK(cur->lx.db, rci);
   uint32_t len, num;
   uint8_t *rp, *mm = 0;
@@ -3449,10 +3449,10 @@ iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool *out) {
   if (elsz < 8) {
     uint32_t lv = dv;
     lv = IW_HTOIL(lv);
-    *out = iwarr_sorted_find(rp, num, elsz, &lv, _u4cmp);
+    *out = (iwarr_sorted_find(rp, num, elsz, &lv, _u4cmp) != -1);
   } else {
     dv = IW_HTOILL(dv);
-    *out = iwarr_sorted_find(rp, num, elsz, &dv, _u8cmp);
+    *out = (iwarr_sorted_find(rp, num, elsz, &dv, _u8cmp) != -1);
   }
 finish:
   if (mm) {
@@ -3465,10 +3465,86 @@ finish:
 iwrc iwkv_cursor_dup_iter(const IWKV_cursor cur,
                           bool(*visitor)(uint64_t dv, void *opaq),
                           void *opaq,
-                          uint64_t *start,
+                          const uint64_t *start,
                           bool down) {
-  // todo
-  return IW_ERROR_NOT_IMPLEMENTED;
+  if (!cur || !visitor) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  if (!cur->cn || !cur->lx.db || (cur->cn->flags & SBLK_DB) || !(cur->lx.db->dbflg & IWDB_DUP_FLAGS)) {
+    return IW_ERROR_INVALID_STATE;
+  }
+  int rci;
+  iwrc rc;
+  API_DB_RLOCK(cur->lx.db, rci);
+  off_t sidx;
+  uint32_t num;
+  uint8_t *rp, *mm = 0;
+  int8_t idx = cur->cn->pi[cur->cnpos];
+  const int elsz = (cur->lx.db->dbflg & IWDB_DUP_INT32_VALS) ? 4 : 8;
+  IWFS_FSM *fsm = &cur->lx.db->iwkv->fsm;
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCGO(rc, finish);
+  if (!cur->cn->kvblk) {
+    rc = _sblk_loadkvblk_mm(&cur->lx, cur->cn, mm);
+    RCGO(rc, finish);
+  }
+  _kvblk_peek_val(cur->cn->kvblk, idx, mm, &rp, &num);
+  if (num < 4) {
+    rc = IWKV_ERROR_CORRUPTED;
+    goto finish;
+  }
+  memcpy(&num, rp, sizeof(num));
+  num = IW_ITOHL(num); // Number of items
+  if (!num) {
+    goto finish;
+  }
+  rp += 4;
+  if (start) {
+    if (elsz < 8) {
+      uint32_t lv = *start;
+      lv = IW_HTOIL(lv);
+      sidx = iwarr_sorted_find(rp, num, elsz, &lv, _u4cmp);
+    } else {
+      uint64_t llv = *start;
+      llv = IW_HTOILL(llv);
+      sidx = iwarr_sorted_find(rp, num, elsz, &llv, _u8cmp);
+    }
+    if (sidx < 0) {
+      rc = IWKV_ERROR_NOTFOUND;
+      goto finish;
+    }
+  } else {
+    sidx = down ? num - 1 : 0;
+  }
+#define _VBODY                    \
+  uint64_t dv;                    \
+  uint8_t *np = rp + sidx * elsz; \
+  if (elsz < 8) {                 \
+    uint32_t lv;                  \
+    memcpy(&lv, np, elsz);        \
+    dv = IW_ITOHL(lv);            \
+  } else {                        \
+    memcpy(&dv, np, elsz);        \
+    dv = IW_ITOHLL(dv);           \
+  }                               \
+  if (visitor(dv, opaq)) break;
+// !_VBODY
+  if (down) {
+    for (; sidx >= 0; --sidx) {
+      _VBODY
+    }
+  } else {
+    for (; sidx < num; ++sidx) {
+      _VBODY
+    }
+  }
+#undef _VBODY
+finish:
+  if (mm) {
+    fsm->release_mmap(fsm);
+  }
+  API_DB_UNLOCK(cur->lx.db, rci, rc);
+  return rc;
 }
 
 //--------------------------  DEBUG STAFF
