@@ -52,13 +52,24 @@ IW_EXTERN_C_START
   { IW_expr_; }
 #endif
 
+#if __GNUC__ >= 5
+#define IW_SWAB16(IW_num_) __builtin_bswap16(IW_num_)
+#else
 #define IW_SWAB16(IW_num_) \
   ((((IW_num_) & 0x00ffU) << 8) | (((IW_num_) & 0xff00U) >> 8))
+#endif
 
+#if __GNUC__ >= 4
+#define IW_SWAB32(IW_num_) __builtin_bswap32(IW_num_)
+#else
 #define IW_SWAB32(IW_num_)                                              \
   ((((IW_num_) & 0x000000ffUL) << 24) | (((IW_num_) & 0x0000ff00UL) << 8) | \
    (((IW_num_) & 0x00ff0000UL) >> 8) | (((IW_num_) & 0xff000000UL) >> 24))
+#endif
 
+#if __GNUC__ >= 4
+#define IW_SWAB64(IW_num_) __builtin_bswap64(IW_num_)
+#else 
 #define IW_SWAB64(IW_num_)                     \
   ((((IW_num_) & 0x00000000000000ffULL) << 56) | \
    (((IW_num_) & 0x000000000000ff00ULL) << 40) | \
@@ -68,6 +79,7 @@ IW_EXTERN_C_START
    (((IW_num_) & 0x0000ff0000000000ULL) >> 24) | \
    (((IW_num_) & 0x00ff000000000000ULL) >> 40) | \
    (((IW_num_) & 0xff00000000000000ULL) >> 56))
+#endif
 
 #if (IW_BIGENDIAN == 1) || defined(IW_FORCE_BIGENDIAN)
 #define IW_HTOIS(IW_num_) IW_SWAB16(IW_num_)

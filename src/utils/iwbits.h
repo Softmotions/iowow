@@ -47,6 +47,7 @@ IW_EXTERN_C_START
  * @brief Find the first set bit number. Undefined if @a x is zero.
  */
 IW_INLINE int iwbits_find_first_sbit64(uint64_t x) {
+  //return __builtin_ffsll(x) - 1;
   int ret = 0;
   if ((x & 0xffffffff) == 0) {
     ret += 32;
@@ -78,6 +79,7 @@ IW_INLINE int iwbits_find_first_sbit64(uint64_t x) {
  * @brief Find the last set bit number. Undefined if @a x is zero.
  */
 IW_INLINE int iwbits_find_last_sbit64(uint64_t x) {
+  //return 63 - __builtin_clzll(x);
   int num = 63;
   if ((x & 0xffffffff00000000ULL) == 0) {
     num -= 32;

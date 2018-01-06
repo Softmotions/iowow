@@ -66,7 +66,7 @@ struct IWDB;
 typedef uint32_t blkn_t;
 typedef uint32_t dbid_t;
 
-/* Key/Value pair */
+/* Key/Value pair stored in `KVBLK` */
 typedef struct KV {
   uint8_t *key;
   uint8_t *val;
@@ -74,7 +74,7 @@ typedef struct KV {
   size_t valsz;
 } KV;
 
-/* KV index: Offset and length. */
+/* Ket/Value (KV) index: Offset and length. */
 typedef struct KVP {
   uint32_t off;   /**< KV block offset relative to `end` of KVBLK */
   uint32_t len;   /**< Length of kv pair block */
