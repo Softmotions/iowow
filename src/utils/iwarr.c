@@ -9,10 +9,10 @@
 #define IWALIST_AUNIT 64
 #endif
 
-off_t iwarr_sorted_insert(void *els,
+off_t iwarr_sorted_insert(void * restrict els,
                           size_t nels,
                           size_t elsize,
-                          void *eptr,
+                          void * restrict eptr,
                           int (*cmp)(const void *, const void *),
                           bool skipeq) {
 
@@ -54,10 +54,10 @@ off_t iwarr_sorted_insert(void *els,
 #undef EL
 }
 
-bool iwarr_sorted_remove(void *els,
+bool iwarr_sorted_remove(void * restrict els,
                          size_t nels,
                          size_t elsize,
-                         void *eptr,
+                         void * restrict eptr,
                          int (*cmp)(const void *, const void *)) {
 
 #define EL(idx_) (elsptr + (idx_) * elsize)
@@ -95,10 +95,10 @@ bool iwarr_sorted_remove(void *els,
 #undef EL
 }
 
-off_t iwarr_sorted_find(void *els,
+off_t iwarr_sorted_find(void * restrict els,
                         size_t nels,
                         size_t elsize,
-                        void *eptr,
+                        void * restrict eptr,
                         int (*cmp)(const void *, const void *)) {
 
 #define EL(idx_) (elsptr + (idx_) * elsize)

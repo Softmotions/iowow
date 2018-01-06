@@ -6,6 +6,7 @@
 #include "iwcfg.h"
 #include "khash.h"
 #include <pthread.h>
+#include <stdatomic.h>
 
 // IWKV magic number
 #define IWKV_MAGIC 0x69776b76
@@ -141,7 +142,7 @@ struct IWDB {
   struct IWDB *prev;          /**< Prev IWDB meta */
   khash_t(ALN) *aln;          /**< Block id -> ALN node mapping */
   volatile int32_t wk_count;  /**< Number of active database workers */
-  volatile bool open;         /**< True if DB is in OPEN state */
+  volatile atomic_bool open;  /**< True if DB is in OPEN state */
 };
 
 #define IWDB_DUP_FLAGS (IWDB_DUP_INT32_VALS | IWDB_DUP_INT64_VALS )
@@ -175,7 +176,7 @@ struct IWKV {
   pthread_cond_t wk_cond;     /**< Workers cond variable */
   pthread_mutex_t wk_mtx;     /**< Workers cond mutext */
   volatile int32_t wk_count;  /**< Number of active workers */
-  volatile bool open;         /**< True if kvstore is in OPEN state */
+  volatile atomic_bool open;  /**< True if kvstore is in OPEN state */
 };
 
 typedef enum {
