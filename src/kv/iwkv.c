@@ -2966,7 +2966,6 @@ iwrc iwkv_close(IWKV *iwkvp) {
   int rci;
   IWKV iwkv = *iwkvp;
   iwkv->open = false;
-  COMPILER_BARRIER();
   iwrc rc = _wnw(iwkv, _wnw_iwkw_wl);
   RCRET(rc);
   IWDB db = iwkv->first_db;
