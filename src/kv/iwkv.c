@@ -747,7 +747,6 @@ static iwrc _db_at(IWKV iwkv,
   db->db = db;
   db->iwkv = iwkv;
   db->aln = kh_init(ALN);
-  db->open = true;
   rp = mm + addr;
   IW_READLV(rp, lv, lv);
   if (lv != IWDB_MAGIC) {
@@ -758,6 +757,7 @@ static iwrc _db_at(IWKV iwkv,
   IW_READLV(rp, lv, db->id);
   IW_READLV(rp, lv, db->next_db_addr);
   db->next_db_addr = BLK2ADDR(db->next_db_addr); // blknum -> addr
+  db->open = true;
   *dbp = db;
 finish:
   if (rc)  {
@@ -2966,6 +2966,7 @@ iwrc iwkv_close(IWKV *iwkvp) {
   int rci;
   IWKV iwkv = *iwkvp;
   iwkv->open = false;
+  asm volatile("" ::: "memory");
   iwrc rc = _wnw(iwkv, _wnw_iwkw_wl);
   RCRET(rc);
   IWDB db = iwkv->first_db;
