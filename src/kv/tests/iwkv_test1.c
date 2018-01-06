@@ -60,6 +60,34 @@ int clean_suite(void) {
   return 0;
 }
 
+
+// Test5 staff
+struct Test5DUP1 {
+  bool _mv;
+  bool _1v;
+  bool _10v;
+};
+
+static bool _test5dup5visitor(uint64_t dv, void *op) {
+  CU_ASSERT_PTR_NOT_NULL_FATAL(op);
+  struct Test5DUP1 *s = op;
+  switch (dv) {
+    case -1ULL:
+      s->_mv = true;
+      break;
+    case 1ULL:
+      s->_1v = true;
+      break;
+    case 10ULL:
+      s->_10v = true;
+      break;
+    default:
+      CU_FAIL("Invalid dup value");
+      break;
+  }
+  return false;
+}
+
 static void iwkv_test5(void) {
   iwrc rc;
   IWKV_val key = {0};
@@ -119,6 +147,29 @@ static void iwkv_test5(void) {
   rc = iwkv_cursor_dup_contains(cur1, llv, &ret);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_TRUE(ret);
+
+  struct Test5DUP1 d1 = {0};
+  rc = iwkv_cursor_dup_iter(cur1, _test5dup5visitor, &d1, 0, false);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_TRUE(d1._1v);
+  CU_ASSERT_TRUE(d1._10v);
+  CU_ASSERT_TRUE(d1._mv);
+
+  memset(&d1, 0, sizeof(d1));
+  llv = 10ULL;
+  rc = iwkv_cursor_dup_iter(cur1, _test5dup5visitor, &d1, &llv, false);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_FALSE(d1._1v);
+  CU_ASSERT_TRUE(d1._10v);
+  CU_ASSERT_TRUE(d1._mv);
+
+  memset(&d1, 0, sizeof(d1));
+  llv = 10ULL;
+  rc = iwkv_cursor_dup_iter(cur1, _test5dup5visitor, &d1, &llv, true);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_TRUE(d1._1v);
+  CU_ASSERT_TRUE(d1._10v);
+  CU_ASSERT_FALSE(d1._mv);
 
   rc = iwkv_cursor_close(&cur1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
