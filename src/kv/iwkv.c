@@ -209,7 +209,7 @@ struct IWKV_cursor {
   SBLK *cn;                  /**< Current `SBLK` node */
   off_t dbaddr;              /**< Database address used as `cn` */
   int8_t cnpos;              /**< Position in the current `SBLK` node */
-  bool closed;
+  bool closed;               /**< Cursor closed */
   IWLCTX lx;                 /**< Lookup context */
 };
 
