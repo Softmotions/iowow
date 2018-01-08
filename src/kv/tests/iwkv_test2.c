@@ -46,7 +46,7 @@ static void iwkv_test1(void) {
 
   rc = iwkv_db(iwkv, 1, IWDB_UINT32_KEYS, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  for (uint32_t i = 0; i < 10000; ++i) {
+  for (uint32_t i = 0; i < 1000000; ++i) {
     key.size = sizeof(uint32_t);
     key.data = &i;
     val.size = sizeof(uint32_t);
