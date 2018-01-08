@@ -1450,7 +1450,7 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   *oidx = -1;
 
   if (kb->zidx < 0) {
-    return _IWKV_ERROR_KVBLOCK_FULL;
+    return IWKV_ERROR_KVBLOCK_FULL;
   }
   // DUP
   if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
@@ -1737,7 +1737,7 @@ IW_INLINE iwrc _sblk_destroy(IWLCTX *lx,
     off_t kvb_addr = BLK2ADDR(sblk->kvblkn),
           sblk_addr = sblk->addr;
     if (!sblk->kvblk) {
-      //atomic_thread_fence(memory_order_acquire);
+      // Atomic_thread_fence(memory_order_acquire);
       // Read KVBLK size as power of two
       uint8_t *mm;
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -1928,9 +1928,7 @@ IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
 
 IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
   assert(sblk && sblk->addr);
-  //bool durty =  false;
   if (sblk->flags & SBLK_DURTY) {
-    //durty = true;
     uint32_t lv;
     uint8_t *wp = mm + sblk->addr;
     sblk->flags &= ~SBLK_DURTY;
@@ -1963,12 +1961,8 @@ IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
     }
   }
   if (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY)) {
-    //durty = true;
     _kvblk_sync_mm(sblk->kvblk, mm);
   }
-  //if (durty) {
-  //atomic_thread_fence(memory_order_release);
-  //}
 }
 
 IW_INLINE void _sblk_sync_and_release_mm(IWLCTX *lx, SBLK **sblkp, uint8_t *mm) {
@@ -2078,7 +2072,7 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
   if (sblk->pnum >= KVBLK_IDXNUM) {
-    return _IWKV_ERROR_KVBLOCK_FULL;
+    return IWKV_ERROR_KVBLOCK_FULL;
   }
   iwrc rc = _kvblk_addkv(kvblk, key, val, &kvidx, lx->opflags, false);
   RCRET(rc);
@@ -2116,7 +2110,7 @@ IW_INLINE iwrc _sblk_addkv(SBLK *sblk,
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
   if (sblk->pnum >= KVBLK_IDXNUM) {
-    return _IWKV_ERROR_KVBLOCK_FULL;
+    return IWKV_ERROR_KVBLOCK_FULL;
   }
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
     return IWKV_ERROR_NOTFOUND;
@@ -2384,7 +2378,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   uint8_t *mm;
   uint8_t kvbpow = 0;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  int pivot = (KVBLK_IDXNUM / 2) + 1; // 32
+  register int pivot = (KVBLK_IDXNUM / 2) + 1; // 32
   assert(sblk->flags & SBLK_WLOCKED);
 
   if (idx == sblk->pnum && lx->upper && lx->upper->pnum < KVBLK_IDXNUM) {
@@ -2429,12 +2423,10 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
       sblk->kvblk->pidx[sblk->pi[i]].len = 0;
       sblk->kvblk->pidx[sblk->pi[i]].off = 0;
       --sblk->pnum;
-      if (i == pivot) {
-        sblk->kvblk->zidx = sblk->pi[i];
-      }
     }
-    // sync maxoff
+    sblk->kvblk->zidx = sblk->pi[pivot];
     sblk->kvblk->maxoff = 0;
+    sblk->kvblk->flags |= KVBLK_DURTY;
     for (int i = 0; i < KVBLK_IDXNUM; ++i) {
       if (sblk->kvblk->pidx[i].off > sblk->kvblk->maxoff) {
         sblk->kvblk->maxoff = sblk->kvblk->pidx[i].off;
@@ -2577,8 +2569,7 @@ start:
   }
   rc = _lx_addkv(lx);
   if (rc == _IWKV_ERROR_AGAIN ||
-      rc == _IWKV_ERROR_REQUIRE_NLEVEL ||
-      rc == _IWKV_ERROR_KVBLOCK_FULL) {
+      rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
     _lx_release_mm(lx, 0);
     if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
       lx->nlvl = _sblk_genlevel();
@@ -2586,6 +2577,9 @@ start:
     goto start;
   }
   if (rc) {
+     if (rc == IWKV_ERROR_KVBLOCK_FULL) {
+
+     }
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
@@ -2852,6 +2846,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
       return "Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
     case IWKV_ERROR_CURSOR_SEEK_AGAIN:
       return "Perform cursor seek operation again (IWKV_ERROR_CURSOR_SEEK_AGAIN)";
+    case IWKV_ERROR_KVBLOCK_FULL:
+      return "IWKV_ERROR_KVBLOCK_FULL";
   }
   return 0;
 }
@@ -3629,7 +3625,11 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     _kvblk_peek_key(sb->kvblk, sb->pi[i], mm, &kbuf, &klen);
     if (flags & IWKVD_PRINT_VALS) {
       _kvblk_peek_val(sb->kvblk, sb->pi[i], mm, &vbuf, &vlen);
-      fprintf(f, "    [%02d,%02d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, vlen, vbuf);
+      //fprintf(f, "    [%02d,%02d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, vlen, vbuf);
+      uint32_t v1, v2;
+      memcpy(&v1, kbuf, sizeof(v1));
+      memcpy(&v2, vbuf, sizeof(v2));
+      fprintf(f, "    [%02d,%02d] %d:%d", i, sb->pi[i], v1, v2);
     } else {
       fprintf(f, "    [%02d,%02d] %.*s", i, sb->pi[i], klen, kbuf);
     }

@@ -112,6 +112,7 @@
           <File Name="src/kv/tests/iwkv_test1_1.ref"/>
           <File Name="src/kv/tests/iwkv_test1_2.ref"/>
         </VirtualDirectory>
+        <File Name="src/kv/tests/iwkv_test2.c"/>
       </VirtualDirectory>
       <File Name="src/kv/README.md"/>
       <File Name="src/kv/iwkv.c"/>
@@ -127,13 +128,13 @@
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug_Linux" CompilerType="" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug_Linux" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-Wall" C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="$(ProjectPath)/build/src/generated"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/iwkv_test1" IntermediateDirectory="$(ProjectPath)/build/src/kv/tests" Command="$(IntermediateDirectory)/iwkv_test1" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/iwkv_test2" IntermediateDirectory="$(ProjectPath)/build/src/kv/tests" Command="$(IntermediateDirectory)/iwkv_test2" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
