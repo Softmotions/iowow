@@ -334,7 +334,7 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 IW_INLINE int _cmp_key(iwdb_flags_t dbflg, void *v1, int v1len, void *v2, int v2len) {
   if (!dbflg) {
     int rv;
-    IW_CMP(rv, v1, v1len, v2, v2len);
+    IW_CMP(rv, v2, v2len, v1, v1len);
     return rv;
   } else if (dbflg & IWDB_UINT64_KEYS) {
     uint64_t n1, n2;
@@ -346,7 +346,7 @@ IW_INLINE int _cmp_key(iwdb_flags_t dbflg, void *v1, int v1len, void *v2, int v2
     n1 = IW_ITOHLL(n1);
     memcpy(&n2, v2, v2len);
     n2 = IW_ITOHLL(n2);
-    return n1 > n2 ? 1 : n1 < n2 ? -1 : 0;
+    return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
   } else if (dbflg & IWDB_UINT32_KEYS) {
     uint32_t n1, n2;
     if (v1len != 4 || v2len != 4) { // should never happen
@@ -357,10 +357,10 @@ IW_INLINE int _cmp_key(iwdb_flags_t dbflg, void *v1, int v1len, void *v2, int v2
     n1 = IW_ITOHL(n1);
     memcpy(&n2, v2, v2len);
     n2 = IW_ITOHL(n2);
-    return n1 > n2 ? 1 : n1 < n2 ? -1 : 0;
+    return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
   } else {
     int rv;
-    IW_CMP(rv, v1, v1len, v2, v2len);
+    IW_CMP(rv, v2, v2len, v1, v1len);
     return rv;
   }
 }

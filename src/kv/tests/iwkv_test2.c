@@ -44,12 +44,12 @@ static void iwkv_test1(void) {
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  rc = iwkv_db(iwkv, 1, IWDB_UINT32_KEYS, &db1);
+  rc = iwkv_db(iwkv, 1, IWDB_UINT64_KEYS, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  for (uint32_t i = 0; i < 1000000; ++i) {
-    key.size = sizeof(uint32_t);
+  for (uint64_t i = 0; i < 1000000; ++i) {
+    key.size = sizeof(uint64_t);
     key.data = &i;
-    val.size = sizeof(uint32_t);
+    val.size = sizeof(uint64_t);
     val.data = &i;
     rc = iwkv_put(db1, &key, &val, 0);
     if (rc) {
