@@ -104,7 +104,7 @@ static void iwkv_test5(void) {
   };
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  rc = iwkv_db(iwkv, 1, IWDB_DUP_INT64_VALS, &db1);
+  rc = iwkv_db(iwkv, 1, IWDB_DUP_UINT64_VALS, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   key.data = "r001";
@@ -192,7 +192,7 @@ static void iwkv_test4(void) {
   };
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  rc = iwkv_db(iwkv, 1, IWDB_DUP_INT32_VALS, &db1);
+  rc = iwkv_db(iwkv, 1, IWDB_DUP_UINT32_VALS, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   uint32_t nv = 10;
@@ -226,7 +226,7 @@ static void iwkv_test4(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL(rc, IWKV_ERROR_INCOMPATIBLE_DB_MODE);
-  rc = iwkv_db(iwkv, 1, IWDB_DUP_INT32_VALS, &db1);
+  rc = iwkv_db(iwkv, 1, IWDB_DUP_UINT32_VALS, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwkv_get(db1, &key, &val);

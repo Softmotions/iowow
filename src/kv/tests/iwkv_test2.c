@@ -15,6 +15,13 @@ int clean_suite(void) {
   return 0;
 }
 
+static int logstage(FILE *f, const char *name, IWDB db) {
+  int rci = fprintf(f, "\n#### Stage: %s\n", name);
+  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS);
+  fflush(f);
+  return rci < 0 ? rci : 0;
+}
+
 static int logstage2(FILE *f, const char *name, IWDB db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
   iwkvd_db(f, db, IWKVD_PRINT_VALS);
@@ -37,17 +44,20 @@ static void iwkv_test1(void) {
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  rc = iwkv_db(iwkv, 1, 0, &db1);
+  rc = iwkv_db(iwkv, 1, IWDB_UINT32_KEYS, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  for (int32_t i = 0; i < 10000; ++i) {
-    key.size = sizeof(int32_t);
+  for (uint32_t i = 0; i < 10000; ++i) {
+    key.size = sizeof(uint32_t);
     key.data = &i;
-    val.size = sizeof(int32_t);
+    val.size = sizeof(uint32_t);
     val.data = &i;
     rc = iwkv_put(db1, &key, &val, 0);
+    if (rc) {
+      iwlog_ecode_error3(rc);
+    }
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  logstage2(f, "first", db1);
+  //logstage(f, "first", db1);
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
