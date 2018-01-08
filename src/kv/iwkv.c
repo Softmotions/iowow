@@ -2424,9 +2424,9 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
       sblk->kvblk->pidx[sblk->pi[i]].off = 0;
       --sblk->pnum;
     }
+    sblk->kvblk->flags |= KVBLK_DURTY;
     sblk->kvblk->zidx = sblk->pi[pivot];
     sblk->kvblk->maxoff = 0;
-    sblk->kvblk->flags |= KVBLK_DURTY;
     for (int i = 0; i < KVBLK_IDXNUM; ++i) {
       if (sblk->kvblk->pidx[i].off > sblk->kvblk->maxoff) {
         sblk->kvblk->maxoff = sblk->kvblk->pidx[i].off;
