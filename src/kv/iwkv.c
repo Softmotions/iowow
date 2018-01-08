@@ -3625,11 +3625,11 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     _kvblk_peek_key(sb->kvblk, sb->pi[i], mm, &kbuf, &klen);
     if (flags & IWKVD_PRINT_VALS) {
       _kvblk_peek_val(sb->kvblk, sb->pi[i], mm, &vbuf, &vlen);
-      //fprintf(f, "    [%02d,%02d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, vlen, vbuf);
-      uint32_t v1, v2;
-      memcpy(&v1, kbuf, sizeof(v1));
-      memcpy(&v2, vbuf, sizeof(v2));
-      fprintf(f, "    [%02d,%02d] %d:%d", i, sb->pi[i], v1, v2);
+       fprintf(f, "    [%02d,%02d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, vlen, vbuf);
+//      uint32_t v1, v2;
+//      memcpy(&v1, kbuf, sizeof(v1));
+//      memcpy(&v2, vbuf, sizeof(v2));
+//      fprintf(f, "    [%02d,%02d] %d:%d", i, sb->pi[i], v1, v2);
     } else {
       fprintf(f, "    [%02d,%02d] %.*s", i, sb->pi[i], klen, kbuf);
     }
