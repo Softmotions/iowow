@@ -713,24 +713,27 @@ static void iwkv_test1(void) {
     CU_ASSERT_EQUAL(strncmp(val.data, vbuf, val.size), 0);
     iwkv_kv_dispose(&key, &val);
 
-    // Move to LE 150
-    snprintf(kbuf, KBUFSZ, "%03dkkk", 150);
-    snprintf(vbuf, VBUFSZ, "%03dval", 150);
+    // Move to GE 000
+    snprintf(kbuf, KBUFSZ, "%03d", 0);
+    snprintf(vbuf, VBUFSZ, "%03dval", 0);
     key.data = kbuf;
     key.size = strlen(kbuf);
-    rc2 = iwkv_cursor_to_key(cur1, IWKV_CURSOR_LE, &key);
+    rc2 = iwkv_cursor_to_key(cur1, IWKV_CURSOR_GE, &key);
+    if (rc2) {
+      iwlog_ecode_error3(rc2);
+    }
     CU_ASSERT_EQUAL_FATAL(rc2, 0);
     rc2 = iwkv_cursor_get(cur1, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc2, 0);
-    snprintf(kbuf, KBUFSZ, "%03dkkk", 125);
-    snprintf(vbuf, VBUFSZ, "%03dval", 125);
+    snprintf(kbuf, KBUFSZ, "%03dkkk", 0);
+    snprintf(vbuf, VBUFSZ, "%03dval", 0);
     CU_ASSERT_EQUAL(strncmp(key.data, kbuf, key.size), 0);
     CU_ASSERT_EQUAL(strncmp(val.data, vbuf, val.size), 0);
     iwkv_kv_dispose(&key, &val);
 
-    // Move to EQ 150
-    snprintf(kbuf, KBUFSZ, "%03dkkk", 150);
-    snprintf(vbuf, VBUFSZ, "%03dval", 150);
+    // Move to EQ 000
+    snprintf(kbuf, KBUFSZ, "%03d", 0);
+    snprintf(vbuf, VBUFSZ, "%03dval", 0);
     key.data = kbuf;
     key.size = strlen(kbuf);
     rc2 = iwkv_cursor_to_key(cur1, IWKV_CURSOR_EQ, &key);

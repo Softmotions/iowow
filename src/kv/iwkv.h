@@ -93,7 +93,7 @@ typedef enum IWKV_cursor_op {
   IWKV_CURSOR_NEXT,
   IWKV_CURSOR_PREV,
   IWKV_CURSOR_EQ,
-  IWKV_CURSOR_LE
+  IWKV_CURSOR_GE
 } IWKV_cursor_op;
 
 IW_EXPORT WUR iwrc iwkv_init(void);

@@ -2277,7 +2277,7 @@ IW_INLINE int _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   return _cmp_key(dbflg, k, kl, key->data, key->size);
 }
 
-static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
+static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm) {
   iwrc rc = 0;
   SBLK *sblk;
   blkn_t blkn;
@@ -2303,7 +2303,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
     }
     RCRET(rc);
     int cret = _lx_sblk_cmp_key(lx, sblk, mm);
-    if (key2upper ? cret >= 0 : cret > 0) { // upper >|>= key
+    if (cret > 0) { // upper > key
       if (lx->upper && !(lx->upper->flags & SBLK_PINNED)) {
         _sblk_release(lx, &lx->upper);
       }
@@ -2319,7 +2319,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t *mm, bool key2upper) {
   return 0;
 }
 
-static iwrc _lx_find_bounds(IWLCTX *lx, bool key2upper) {
+static iwrc _lx_find_bounds(IWLCTX *lx) {
   uint8_t *mm;
   IWFS_FSM *fsm  = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -2334,7 +2334,7 @@ static iwrc _lx_find_bounds(IWLCTX *lx, bool key2upper) {
   }
   for (int lvl = lx->lower->lvl; lvl >= 0;) {
     lx->lvl = lvl;
-    rc = _lx_roll_forward(lx, mm, key2upper);
+    rc = _lx_roll_forward(lx, mm);
     RCGO(rc, finish);
     blkn_t ub = lx->upper ? ADDR2BLK(lx->upper->addr) : 0;
     do {
@@ -2594,7 +2594,7 @@ finish:
 IW_INLINE iwrc _lx_put_lr(IWLCTX *lx) {
   iwrc rc;
 start:
-  rc = _lx_find_bounds(lx, false);
+  rc = _lx_find_bounds(lx);
   if (rc) {
     _lx_release_mm(lx, 0);
     return rc;
@@ -2621,7 +2621,7 @@ start:
 }
 
 IW_INLINE iwrc _lx_get_lr(IWLCTX *lx) {
-  iwrc rc = _lx_find_bounds(lx, false);
+  iwrc rc = _lx_find_bounds(lx);
   RCRET(rc);
   bool found;
   uint8_t *mm;
@@ -2644,6 +2644,7 @@ finish:
   return rc;
 }
 
+// TODO: !!!!
 IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   iwrc rc;
   int idx;
@@ -2651,7 +2652,7 @@ IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   uint8_t *mm = 0;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   
-  rc = _lx_find_bounds(lx, true);
+  rc = _lx_find_bounds(lx);
   if (!lx->upper) {
     rc = IWKV_ERROR_NOTFOUND;
     goto finish;
@@ -2739,7 +2740,7 @@ finish:
 //--------------------------  CURSOR
 
 IW_INLINE iwrc _cursor_get_le_idx(IWLCTX *lx, IWKV_cursor_op op, int8_t *oidx) {
-  iwrc rc = _lx_find_bounds(lx, false);
+  iwrc rc = _lx_find_bounds(lx);
   RCRET(rc);
   bool found;
   uint8_t *mm;
@@ -2833,7 +2834,7 @@ start:
         --cur->cnpos;
       }
     }
-  } else { // IWKV_CURSOR_EQ | IWKV_CURSOR_LE
+  } else { // IWKV_CURSOR_EQ | IWKV_CURSOR_GE
     if (!lx->key) {
       rc = IW_ERROR_INVALID_STATE;
       goto finish;
@@ -3275,7 +3276,7 @@ iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op) {
 
 iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key) {
   int rci;
-  if (!cur || (op != IWKV_CURSOR_EQ && op != IWKV_CURSOR_LE)) {
+  if (!cur || (op != IWKV_CURSOR_EQ && op != IWKV_CURSOR_GE)) {
     return IW_ERROR_INVALID_ARGS;
   }
   if (!cur->lx.db) {
