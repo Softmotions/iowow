@@ -15,7 +15,7 @@ extern int8_t iwkv_next_level;
 
 static int cmp_files(FILE *f1, FILE *f2) {
   // todo remove:
-  if (1) return 0;
+  //if (1) return 0;
   CU_ASSERT_TRUE_FATAL(f1 && f2);
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
@@ -390,6 +390,15 @@ static void iwkv_test2(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   logstage(f, "removed 064kkk", db1);
 
+
+  snprintf(kbuf, KBUFSZ, "%03dkkk", 126);
+  key.data = kbuf;
+  key.size = strlen(key.data);
+  rc = iwkv_del(db1, &key);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  logstage(f, "removed 126kkk", db1);
+
+
   // Now delete more than half of block records
   // 126
   for (int i = 64; i <= 99; ++i) {
@@ -406,7 +415,7 @@ static void iwkv_test2(void) {
   }
   logstage(f, "removed 065kkk - 099kkk", db1); // 125
 
-  for (int i = 100; i <= 126; ++i) {
+  for (int i = 100; i <= 125; ++i) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
     key.data = kbuf;
     key.size = strlen(key.data);
@@ -439,7 +448,6 @@ static void iwkv_test2(void) {
   fclose(f);
   fclose(r);
 }
-
 
 static void iwkv_test1(void) {
   FILE *f = fopen("iwkv_test1_1.log", "w+");

@@ -32,11 +32,11 @@ static int logstage2(FILE *f, const char *name, IWDB db) {
 static void iwkv_test1(void) {
   FILE *f = fopen("iwkv_test2_1.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
-
   IWKV_OPTS opts = {
     .path = "iwkv_test2_1.db",
     .oflags = IWKV_TRUNC
   };
+  const uint64_t numrec = 1000000; // 1M
   // Test open/close
   IWKV iwkv;
   IWDB db1;
@@ -46,7 +46,7 @@ static void iwkv_test1(void) {
 
   rc = iwkv_db(iwkv, 1, IWDB_UINT64_KEYS, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  for (uint64_t i = 0; i < 1000000; ++i) {
+  for (uint64_t i = 0; i < numrec; ++i) {
     key.size = sizeof(uint64_t);
     key.data = &i;
     val.size = sizeof(uint64_t);
@@ -57,6 +57,15 @@ static void iwkv_test1(void) {
     }
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
+
+//  for (uint64_t i = 0; i < 100000; ++i) {
+//    key.data = &v;
+//    key.size = sizeof(uint64_t);
+//    rc = iwkv_get(db1, &key, &val);
+//    CU_ASSERT_EQUAL_FATAL(rc, 0);
+//    iwkv_val_dispose(&val);
+//  }
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
@@ -90,4 +99,3 @@ int main() {
   CU_cleanup_registry();
   return ret;
 }
-
