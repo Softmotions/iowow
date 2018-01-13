@@ -192,6 +192,7 @@ typedef struct IWLCTX {
   SBLK *lower;                /**< Next to upper bound block */
   SBLK *upper;                /**< Upper bound block */
   SBLK *nb;                   /**< New block */
+  off_t upper_addr;           /**< Upper block address used in `_lx_del_lr()` */
   uint8_t saan;               /**< Position of next free `SBLK` element in the `saa` area */
   uint8_t kaan;               /**< Position of next free `KVBLK` element in the `kaa` area */
   int8_t lvl;                 /**< Current level */
@@ -2644,7 +2645,6 @@ finish:
   return rc;
 }
 
-// TODO: !!!!
 IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   iwrc rc;
   int idx;
@@ -2653,12 +2653,12 @@ IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   
   rc = _lx_find_bounds(lx);
-  if (!lx->upper) {
-    rc = IWKV_ERROR_NOTFOUND;
-    goto finish;
-  }
+  RCRET(rc);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
+    
+  
+  
   if (!dbwlocked) {
     rc = _sblk_write_upgrade_mm(lx, lx->upper, mm);
     RCGO(rc, finish);
