@@ -119,8 +119,6 @@ typedef enum {
 typedef struct ALN {
   pthread_rwlock_t rwl;        /**< RW lock */
   int64_t refs;                /**< Number of active locks on this address */
-  bool write_pending;          /**< Pending write lock, lock will be write upgraded next time */
-  bool write_upgraded;         /**< Lock is write upgraded */
 } ALN;
 
 KHASH_MAP_INIT_INT(ALN, ALN *)
@@ -404,7 +402,8 @@ IW_INLINE iwrc _aln_release(IWDB db,
     ALN *aln = kh_value(db->aln, k);
     assert(aln);
     pthread_rwlock_unlock(&aln->rwl);
-    if (--aln->refs < 1 && !aln->write_pending) {
+    assert(aln->refs >= 0);
+    if (--aln->refs < 1) {
       kh_del(ALN, db->aln, k);
       free(aln);
     }
@@ -436,8 +435,6 @@ IW_INLINE iwrc _aln_acquire_read(IWDB db,
       goto finish;
     }
     aln->refs = 1;
-    aln->write_pending = false;
-    aln->write_upgraded = false;
     pthread_rwlock_init(&aln->rwl, 0);
   } else {
     aln = kh_value(db->aln, k);
@@ -448,14 +445,9 @@ finish:
   if (!rc) {
     rci = pthread_rwlock_rdlock(&aln->rwl);
     if (rci) {
-      pthread_spin_lock(&db->sl);
-      --aln->refs;
-      if (aln->refs < 1) {
-        kh_del(ALN, db->aln, k);
-        free(aln);
-      }
-      pthread_spin_unlock(&db->sl);
-      return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+      rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    } else {
+      assert(aln->refs > 0);
     }
   }
   return rc;
@@ -485,8 +477,6 @@ IW_INLINE iwrc _aln_acquire_write(IWDB db,
       goto finish;
     }
     aln->refs = 1;
-    aln->write_pending = false;
-    aln->write_upgraded = false;
     pthread_rwlock_init(&aln->rwl, 0);
   } else {
     aln = kh_value(db->aln, k);
@@ -497,13 +487,9 @@ finish:
   if (!rc) {
     rci = pthread_rwlock_wrlock(&aln->rwl);
     if (rci) {
-      pthread_spin_lock(&db->sl);
-      --aln->refs;
-      assert(aln->refs < 1);
-      kh_del(ALN, db->aln, k);
-      free(aln);
-      pthread_spin_unlock(&db->sl);
-      return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+      rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    } else {
+      assert(aln->refs > 0);
     }
   }
   return rc;
@@ -532,32 +518,21 @@ IW_INLINE iwrc _aln_write_upgrade(IWDB db,
       goto finish;
     }
     aln->refs = 1;
-    aln->write_pending = true;
-    aln->write_upgraded = false;
     pthread_rwlock_init(&aln->rwl, 0);
   } else {
     aln = kh_value(db->aln, k);
     pthread_rwlock_unlock(&aln->rwl);
     assert(aln->refs > 0);
-    --aln->refs;
-    aln->write_pending = true;
   }
 finish:
   pthread_spin_unlock(&db->sl);
   if (!rc) {
     rci = pthread_rwlock_wrlock(&aln->rwl);
     if (rci) {
-      pthread_spin_lock(&db->sl);
-      if (aln->refs < 1) {
-        kh_del(ALN, db->aln, k);
-        free(aln);
-      }
-      pthread_spin_unlock(&db->sl);
-      return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+      rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    } else {
+      assert(aln->refs > 0);
     }
-    aln->refs = 1;
-    aln->write_pending = false;
-    aln->write_upgraded = true;
   }
   return rc;
 }
