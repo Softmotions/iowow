@@ -15,20 +15,6 @@ int clean_suite(void) {
   return 0;
 }
 
-static int logstage(FILE *f, const char *name, IWDB db) {
-  int rci = fprintf(f, "\n#### Stage: %s\n", name);
-  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS);
-  fflush(f);
-  return rci < 0 ? rci : 0;
-}
-
-static int logstage2(FILE *f, const char *name, IWDB db) {
-  int rci = fprintf(f, "\n#### Stage: %s\n", name);
-  iwkvd_db(f, db, IWKVD_PRINT_VALS);
-  fflush(f);
-  return rci < 0 ? rci : 0;
-}
-
 static void iwkv_test1(void) {
   FILE *f = fopen("iwkv_test2_1.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
@@ -52,20 +38,20 @@ static void iwkv_test1(void) {
     val.size = sizeof(uint64_t);
     val.data = &i;
     rc = iwkv_put(db1, &key, &val, 0);
-    if (rc) {
-      iwlog_ecode_error3(rc);
-    }
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
 
-//  for (uint64_t i = 0; i < 100000; ++i) {
-//    key.data = &v;
-//    key.size = sizeof(uint64_t);
-//    rc = iwkv_get(db1, &key, &val);
-//    CU_ASSERT_EQUAL_FATAL(rc, 0);
-//    iwkv_val_dispose(&val);
-//  }
-
+  for (uint64_t v = 0; v < numrec; ++v) {
+    uint64_t llv;
+    key.data = &v;
+    key.size = sizeof(uint64_t);
+    rc = iwkv_get(db1, &key, &val);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    memcpy(&llv, val.data, sizeof(llv));
+    CU_ASSERT_EQUAL_FATAL(llv, v);
+    iwkv_val_dispose(&val);
+  }
+  
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }

@@ -1492,7 +1492,7 @@ static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen) {
 }
 
 static iwrc _fsm_acquire_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
-  FSM_ENSURE_OPEN2(f);
+  //FSM_ENSURE_OPEN2(f);
   return f->impl->pool.acquire_mmap(&f->impl->pool, off, mm, sp);
 }
 
@@ -1731,7 +1731,7 @@ static iwrc _fsm_state(struct IWFS_FSM *f, IWFS_FSM_STATE *state) {
 iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   assert(f && opts);
   iwrc rc = 0;
-  IWFS_EXT_STATE fstate;
+  IWFS_EXT_STATE fstate = {0};
   const char *path = opts->exfile.file.path;
   
   memset(f, 0, sizeof(*f));
@@ -1780,7 +1780,6 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   rc = iwfs_exfile_open(&impl->pool, &rwl_opts);
   RCGO(rc, finish);
   
-  memset(&fstate, 0, sizeof(fstate));
   rc = impl->pool.state(&impl->pool, &fstate);
   RCGO(rc, finish);
   

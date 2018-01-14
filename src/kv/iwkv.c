@@ -1240,13 +1240,13 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   iwrc rc = 0;
   KVBLK *kb = kbp ? kbp : &lx->kaa[lx->kaan];
   memset(kb, 0, sizeof(*kb));
+  kb->db = lx->db;
+  kb->addr = addr;
+  kb->zidx = -1;
   
   *blkp = 0;
   rp = mm + addr;
-  kb->db = lx->db;
-  kb->addr = addr;
-  kb->maxoff = 0;
-  kb->zidx = -1;
+  
   IW_READBV(rp, kb->szpow, kb->szpow);
   IW_READSV(rp, sv, kb->idxsz);
   if (IW_UNLIKELY(kb->idxsz > 2 * 4 * KVBLK_IDXNUM)) {
@@ -1884,7 +1884,9 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, uint8_t *mm, SBLK **sblkp) {
     sblk->addr = addr;
     // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
     memcpy(&sblk->flags, rp + SOFF_FLAGS_U1, 1);
-    sblk->flags |= flags;
+    if (flags) {
+      sblk->flags |= flags;
+    }
     rp += SOFF_LVL_U1;
     memcpy(&sblk->lvl, rp, 1);
     rp += 1;

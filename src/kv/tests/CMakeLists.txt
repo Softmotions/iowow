@@ -9,7 +9,8 @@ configure_file(iwkv_test1_2.ref iwkv_test1_2.ref COPYONLY)
 configure_file(iwkv_test1_3.ref iwkv_test1_3.ref COPYONLY)
 
 foreach(TN IN ITEMS iwkv_test1
-                    iwkv_test2)
+                    iwkv_test2
+                    iwkv_test3)
     add_executable(${TN} ${TN}.c)
     set_target_properties(${TN} PROPERTIES
                           COMPILE_FLAGS "-DIW_STATIC")
