@@ -119,6 +119,7 @@ typedef enum {
 typedef struct ALN {
   pthread_rwlock_t rwl;        /**< RW lock */
   int64_t refs;                /**< Number of active locks on this address */
+  volatile bool wl;
 } ALN;
 
 KHASH_MAP_INIT_INT(ALN, ALN *)
@@ -217,6 +218,7 @@ struct IWKV_cursor {
 void iwkvd_kvblk(FILE *f, KVBLK *kb);
 void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
 void iwkvd_db(FILE *f, IWDB db, int flags);
+void iwkvd_aln(FILE *f, IWDB db);
 
 #define ENSURE_OPEN(iwkv_) \
   if (!iwkv_ || !(iwkv_->open)) return IW_ERROR_INVALID_STATE
@@ -406,6 +408,8 @@ IW_INLINE iwrc _aln_release(IWDB db,
     if (--aln->refs < 1) {
       kh_del(ALN, db->aln, k);
       free(aln);
+    } else {
+      aln->wl = false;
     }
   }
   pthread_spin_unlock(&db->sl);
@@ -490,6 +494,7 @@ finish:
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
     } else {
       assert(aln->refs > 0);
+      aln->wl = true;
     }
   }
   return rc;
@@ -532,6 +537,7 @@ finish:
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
     } else {
       assert(aln->refs > 0);
+      aln->wl = true;
     }
   }
   return rc;
@@ -2474,6 +2480,7 @@ IW_INLINE iwrc _lx_lock_chute_mm(IWLCTX *lx, uint8_t *mm) {
   iwrc rc = 0;
   SBLK *db = 0;
   blkn_t dblk = ADDR2BLK(lx->db->addr);
+  
   if (lx->plower[lx->nlvl] && (lx->plower[lx->nlvl]->flags & SBLK_DB)) {
     assert(lx->plower[lx->nlvl]->addr == BLK2ADDR(dblk));
     db = lx->plower[lx->nlvl];
@@ -2488,7 +2495,7 @@ IW_INLINE iwrc _lx_lock_chute_mm(IWLCTX *lx, uint8_t *mm) {
       lx->pupper[i] = db;
     }
   }
-  for (int i = 0; i <= lx->nlvl; ++i) {
+  for (int i = lx->nlvl; i >= 0; --i) {
     rc = _sblk_write_upgrade_mm(lx, lx->plower[i], mm);
     RCRET(rc);
     blkn_t bn = lx->plower[i]->n[i] ? lx->plower[i]->n[i] : dblk;
@@ -2517,12 +2524,18 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
+  
+  if (lx->nlvl < 0) {
+    rc = _sblk_write_upgrade_mm(lx, sblk, mm);
+    RCGO(rc, finish);
+  } else {
+    rc = _lx_lock_chute_mm(lx, mm);
+    RCGO(rc, finish);
+  }
   if (!sblk->kvblk) {
     rc = _sblk_loadkvblk_mm(lx, sblk, mm);
     RCGO(rc, finish);
   }
-  rc = _sblk_write_upgrade_mm(lx, sblk, mm);
-  RCGO(rc, finish);
   idx = _sblk_find_pi(sblk, lx->key, mm, &found);
   if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
     rc = IWKV_ERROR_KEY_EXISTS;
@@ -2550,9 +2563,6 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
       rc = _IWKV_ERROR_REQUIRE_NLEVEL;
       RCGO(rc, finish);
     }
-    // lock sblk body chute
-    rc = _lx_lock_chute_mm(lx, mm);
-    RCGO(rc, finish);
   }
   fsm->release_mmap(fsm);
   mm = 0;
@@ -3750,3 +3760,12 @@ void iwkvd_db(FILE *f, IWDB db, int flags) {
     _sblk_release(&lx, &sb);
   }
 }
+
+void iwkvd_aln(FILE *f, IWDB db) {
+  blkn_t blkn; 
+  ALN *aln;
+  kh_foreach(db->aln, blkn, aln, 
+    fprintf(f, "\nALN[%08u] refs=%04lu wl=%d", blkn, aln->refs, aln->wl);
+  );
+} 
+

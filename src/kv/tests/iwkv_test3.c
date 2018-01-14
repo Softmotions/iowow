@@ -7,6 +7,9 @@
 #include <locale.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <unistd.h>
+
+void iwkvd_aln(FILE *f, IWDB db);
 
 typedef struct VN {
   int kn; // key number
@@ -116,6 +119,8 @@ static void iwkv_test1_impl(int thrnum, int recth) {
     int rci = pthread_create(&tasks[i].thr, 0, iwkv_test1_worker, &tasks[i]);
     CU_ASSERT_EQUAL_FATAL(rci, 0);
   }
+  sleep(3);
+  iwkvd_aln(stderr, ctx.db);
   for (int i = 0; i < thrnum; ++i) {
     int rci = pthread_join(tasks[i].thr, 0);
     CU_ASSERT_EQUAL_FATAL(rci, 0);

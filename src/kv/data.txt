@@ -41,3 +41,10 @@ header:
 
 ------------------------------------------------------------
 
+ALN[00000014] refs=0002 wl=1  T2 R  T1 try R   // rDB -> rlock _lx_roll_forward  
+ALN[00000006] refs=0002 wl=0  T1 R  T2 try W	 // wlock pupper[0] (DB)
+
+T1: rDB -> r14?
+T2: w14 -> wDB?
+
+
