@@ -2084,6 +2084,7 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
   int8_t kvidx;
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
+  assert(sblk->flags & SBLK_WLOCKED);
   if (sblk->pnum >= KVBLK_IDXNUM) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
@@ -2516,12 +2517,12 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-  rc = _sblk_write_upgrade_mm(lx, sblk, mm);
-  RCGO(rc, finish);
   if (!sblk->kvblk) {
     rc = _sblk_loadkvblk_mm(lx, sblk, mm);
     RCGO(rc, finish);
   }
+  rc = _sblk_write_upgrade_mm(lx, sblk, mm);
+  RCGO(rc, finish);
   idx = _sblk_find_pi(sblk, lx->key, mm, &found);
   if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
     rc = IWKV_ERROR_KEY_EXISTS;
