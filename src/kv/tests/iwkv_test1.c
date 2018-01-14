@@ -654,6 +654,23 @@ static void iwkv_test1(void) {
 
   // Check basic cursor operations
   IWKV_cursor cur1;
+  
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0, false);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV);
+  CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
+  rc = iwkv_cursor_close(&cur1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0, false);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_cursor_get(cur1, &key, &val);
+  CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
+  rc = iwkv_cursor_to(cur1, IWKV_CURSOR_NEXT);
+  CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
+  rc = iwkv_cursor_close(&cur1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0, false);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   int i  = 0;
