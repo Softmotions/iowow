@@ -2,11 +2,11 @@
 #### Stage: empty db
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=0
+== DB[1] lvl=-1, blk=6, dbflg=0
 #### Stage: put foo:bar
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=18
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=1, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[18] szpow=8, lkl=3, lk=foo
  === SBLK[18]    [00,00] foo:bar
@@ -15,7 +15,7 @@
 #### Stage: put foo:bazz
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=18
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=1, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[18] szpow=8, lkl=3, lk=foo
  === SBLK[18]    [00,00] foo:bazzz
@@ -24,7 +24,7 @@
 #### Stage: put foo:
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=18
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=1, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[18] szpow=8, lkl=3, lk=foo
  === SBLK[18]    [00,00] foo:
@@ -33,7 +33,7 @@
 #### Stage: put foo:bar
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=18
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=1, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[18] szpow=8, lkl=3, lk=foo
  === SBLK[18]    [00,00] foo:bar
@@ -42,11 +42,11 @@
 #### Stage: remove foo:bar
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=0
+== DB[1] lvl=-1, blk=6, dbflg=0
 #### Stage: fill up first block
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=18
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=0, db=1
  === SBLK[18] szpow=10, lkl=6, lk=124kkk
  === SBLK[18]    [00,62] 124kkk:124val    [01,61] 122kkk:122val    [02,60] 120kkk:120val
@@ -75,7 +75,7 @@
 #### Stage: fill up second block
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=10
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=34, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[18] szpow=10, lkl=6, lk=125kkk
  === SBLK[18]    [00,00] 125kkk:125val    [01,62] 124kkk:124val    [02,15] 123kkk:123val
@@ -135,7 +135,7 @@
 #### Stage: extra lower
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=10
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=34, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[18] szpow=10, lkl=6, lk=125kkk
  === SBLK[18]    [00,00] 125kkk:125val    [01,62] 124kkk:124val    [02,15] 123kkk:123val
@@ -195,7 +195,7 @@
 #### Stage: split SBLK[18]
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=10
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=34, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[18] szpow=10, lkl=6, lk=125kkk
  === SBLK[18]    [00,00] 125kkk:125val    [01,62] 124kkk:124val    [02,15] 123kkk:123val
@@ -255,7 +255,7 @@
 #### Stage: state after reopen
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=10
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=34, flg=41, kvzidx=1, p0=0, db=1
  === SBLK[18] szpow=10, lkl=6, lk=125kkk
  === SBLK[18]    [00,00] 125kkk:125val    [01,62] 124kkk:124val    [02,15] 123kkk:123val
@@ -315,7 +315,7 @@
 #### Stage: a big key
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=10
+== DB[1] lvl=-1, blk=6, dbflg=0
  === SBLK[18] lvl=-1, pnum=35, flg=40, kvzidx=2, p0=0, db=1
  === SBLK[18] szpow=10, lkl=61, lk=abracadabrabracadabrabracadabrabracadabrabracadabrabracadabra
  === SBLK[18]    [00,01] abracadabrabracadabrabracadabrabracadabrabracadabrabracadabrabracadabr1:vabracadabrabracadabrabracadabrabracadabrabracadabrabracadabrabracadabr    [01,00] 125kkk:125val    [02,62] 124kkk:124val
