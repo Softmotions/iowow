@@ -2,8 +2,8 @@
 #### Stage: desc sorted 253 keys inserted
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=0, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=160
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=6, db=1
  === SBLK[14] szpow=10, lkl=6, lk=252kkk
  === SBLK[14]    [00,00] 252kkk:252val    [01,01] 251kkk:251val    [02,02] 250kkk:250val
  === SBLK[14]    [03,03] 249kkk:249val    [04,04] 248kkk:248val    [05,05] 247kkk:247val
@@ -111,8 +111,8 @@
 #### Stage: removed 064kkk
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=0, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=160
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=6, db=1
  === SBLK[14] szpow=10, lkl=6, lk=252kkk
  === SBLK[14]    [00,00] 252kkk:252val    [01,01] 251kkk:251val    [02,02] 250kkk:250val
  === SBLK[14]    [03,03] 249kkk:249val    [04,04] 248kkk:248val    [05,05] 247kkk:247val
@@ -220,8 +220,8 @@
 #### Stage: removed 126kkk
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=0, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=160
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=6, db=1
  === SBLK[14] szpow=10, lkl=6, lk=252kkk
  === SBLK[14]    [00,00] 252kkk:252val    [01,01] 251kkk:251val    [02,02] 250kkk:250val
  === SBLK[14]    [03,03] 249kkk:249val    [04,04] 248kkk:248val    [05,05] 247kkk:247val
@@ -329,8 +329,8 @@
 #### Stage: removed 065kkk - 099kkk
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=0, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=160
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=6, db=1
  === SBLK[14] szpow=10, lkl=6, lk=252kkk
  === SBLK[14]    [00,00] 252kkk:252val    [01,01] 251kkk:251val    [02,02] 250kkk:250val
  === SBLK[14]    [03,03] 249kkk:249val    [04,04] 248kkk:248val    [05,05] 247kkk:247val
@@ -426,8 +426,8 @@
 #### Stage: removed all keys in SBLK[54]
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0
- === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=0, db=1
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=160
+ === SBLK[14] lvl=-1, pnum=63, flg=41, kvzidx=-1, p0=6, db=1
  === SBLK[14] szpow=10, lkl=6, lk=252kkk
  === SBLK[14]    [00,00] 252kkk:252val    [01,01] 251kkk:251val    [02,02] 250kkk:250val
  === SBLK[14]    [03,03] 249kkk:249val    [04,04] 248kkk:248val    [05,05] 247kkk:247val
@@ -510,4 +510,4 @@
 #### Stage: db1 destroyed
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=6

@@ -14,8 +14,6 @@ char vbuf[VBUFSZ];
 extern int8_t iwkv_next_level;
 
 static int cmp_files(FILE *f1, FILE *f2) {
-  // todo remove:
-  if (1) return 0;
   CU_ASSERT_TRUE_FATAL(f1 && f2);
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
@@ -633,9 +631,6 @@ static void iwkv_test1(void) {
     iwkv_kv_dispose(0, &val);
   }
 
-  // force extra blocks
-  // iwkv_next_level = 1;
-
   for (int i = 1; i < 63 * 2; i += 2) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
     snprintf(vbuf, VBUFSZ, "%03dval", i);
@@ -644,9 +639,6 @@ static void iwkv_test1(void) {
     val.data = vbuf;
     val.size = strlen(val.data);
     rc = iwkv_put(db1, &key, &val, 0);
-    //if (i == 1 || i == 61) {
-    //  iwkvd_db(stderr, db1, IWKVD_PRINT_VALS);
-    //}
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
 
@@ -654,14 +646,14 @@ static void iwkv_test1(void) {
 
   // Check basic cursor operations
   IWKV_cursor cur1;
-  
+
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0, false);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV);
   CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
   rc = iwkv_cursor_close(&cur1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0, false);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_get(cur1, &key, &val);
@@ -670,7 +662,7 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
   rc = iwkv_cursor_close(&cur1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0, false);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   int i  = 0;
@@ -767,22 +759,6 @@ static void iwkv_test1(void) {
     rc = iwkv_cursor_close(&cur1);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   } while (0);
-
-  // Extra lower
-  snprintf(kbuf, KBUFSZ, "%03dccc", 0);    // 000ke < 000key
-  snprintf(vbuf, VBUFSZ, "%sval", kbuf);  // 000keval
-  rc = iwkv_put(db1, &key, &val, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-
-  logstage(f, "extra lower", db1);
-
-  // Fill middle split in the middle
-  snprintf(kbuf, KBUFSZ, "%03dbbb", 33);
-  snprintf(vbuf, VBUFSZ, "%sval", kbuf);
-  rc = iwkv_put(db1, &key, &val, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-
-  logstage(f, "split SBLK[18]", db1);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -883,11 +859,11 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1))  ||
-       (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) 
-//      (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
-//      (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5))
+  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
+      (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
+      (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
+      (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
+      (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5))
      )  {
     CU_cleanup_registry();
     return CU_get_error();
