@@ -126,7 +126,7 @@ static void iwkv_test5(void) {
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_EQ, &key, false);
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_EQ, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_dup_num(cur1, &lv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -647,14 +647,14 @@ static void iwkv_test1(void) {
   // Check basic cursor operations
   IWKV_cursor cur1;
 
-  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0, false);
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV);
   CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
   rc = iwkv_cursor_close(&cur1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0, false);
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_get(cur1, &key, &val);
   CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
@@ -663,7 +663,7 @@ static void iwkv_test1(void) {
   rc = iwkv_cursor_close(&cur1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0, false);
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   int i  = 0;
   while (!(rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV))) {
@@ -697,7 +697,7 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   --i;
-  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0, false);
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0);
   while (!(rc = iwkv_cursor_to(cur1, IWKV_CURSOR_NEXT))) {
     IWKV_val key;
     IWKV_val val;
@@ -722,7 +722,7 @@ static void iwkv_test1(void) {
     snprintf(vbuf, VBUFSZ, "%03dval", 30);
     key.data = kbuf;
     key.size = strlen(kbuf);
-    rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_EQ, &key, false);
+    rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_EQ, &key);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     iwrc rc2 = iwkv_cursor_get(cur1, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc2, 0);
@@ -796,7 +796,7 @@ static void iwkv_test1(void) {
   val.size = strlen(vbuf);
 
   // Cursor set
-  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_EQ, &key, false);
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_EQ, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_set(cur1, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -817,7 +817,7 @@ static void iwkv_test1(void) {
   key.size = strlen(kbuf);
   val.data = vbuf;
   val.size = strlen(vbuf);
-  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_EQ, &key, true);
+  rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_EQ, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_set(cur1, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
