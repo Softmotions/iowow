@@ -156,7 +156,9 @@ typedef struct SBLK {
   KVBLK *kvblk;               /**< Associated KVBLK */
   blkn_t kvblkn;              /**< Associated KVBLK block number */
   int8_t pnum;
+  int8_t lkl;                /**< Lower key length within a buffer */
   int8_t pi[KVBLK_IDXNUM];
+  uint8_t lk[SBLK_LKLEN];    /**< Lower key buffer */
 } SBLK;
 
 KHASH_MAP_INIT_INT(DBS, IWDB)
@@ -1745,15 +1747,19 @@ static iwrc _sblk_create(IWLCTX *lx,
   return rc;
 }
 
-static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, uint8_t *mm, sblk_flags_t flgs, SBLK **sblkp) {
-  iwrc rc = 0;
+static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
+  iwrc rc;
+  uint8_t *mm;
+  uint32_t lv;
   *sblkp = 0;
   sblk_flags_t flags = lx->sblk_flags | flgs;
+  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   if (!(flags & SBLK_NO_LOCK)) {
     rc = _aln_acquire(lx->db, ADDR2BLK(addr));
     RCRET(rc);
   }
-  uint32_t lv;
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCRET(rc);
   SBLK *sblk = &lx->saa[lx->saan];
   memset(sblk, 0, sizeof(*sblk));
   if (IW_UNLIKELY(addr == lx->db->addr)) {
@@ -1777,9 +1783,13 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, uint8_t *mm, sblk_flags_t flgs, 
     sblk->db = lx->db;
     sblk->addr = addr;
     // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
-    memcpy(&sblk->flags, rp + SOFF_FLAGS_U1, 1);
+    memcpy(&sblk->flags, rp, 1);
     sblk->flags |= flags;
-    rp += SOFF_LVL_U1;
+    rp += 1;
+    memcpy(&sblk->lkl, rp, 1);
+    rp += 1;
+    memcpy(sblk->lk, rp, SBLK_LKLEN);
+    rp += SBLK_LKLEN;
     memcpy(&sblk->lvl, rp, 1);
     rp += 1;
     IW_READLV(rp, lv, sblk->p0);
@@ -1801,37 +1811,34 @@ static iwrc _sblk_at_mm(IWLCTX *lx, off_t addr, uint8_t *mm, sblk_flags_t flgs, 
       sblk->p0 = ADDR2BLK(lx->db->addr);
     }
   }
+  fsm->release_mmap(fsm);
   AAPOS_INC(lx->saan);
   *sblkp = sblk;
   if (!(flags & SBLK_NO_LOCK)) {
     _aln_release(lx->db, ADDR2BLK(addr));
   }
-  return 0;
+  return rc;
 }
 
-IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
+IW_INLINE iwrc _sblk_write_upgrade(IWLCTX *lx, SBLK *sblk) {
   if (sblk->flags & (SBLK_WLOCKED | SBLK_NO_LOCK)) {
     return 0;
   }
+  uint8_t *mm;
   uint32_t lv;
-  uint8_t *mmp = mm;
   sblk_flags_t flags;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  iwrc rc;
-  
-  rc = _aln_acquire(sblk->db, ADDR2BLK(sblk->addr));
+  iwrc rc = _aln_acquire(sblk->db, ADDR2BLK(sblk->addr));
   RCRET(rc);
-  if (!mmp) {
-    rc = fsm->acquire_mmap(fsm, 0, &mmp, 0);
-    if (rc) {
-      _aln_release(sblk->db, ADDR2BLK(sblk->addr));
-      return rc;
-    }
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  if (rc) {
+    _aln_release(sblk->db, ADDR2BLK(sblk->addr));
+    return rc;
   }
   sblk->flags |= SBLK_WLOCKED;
   if (IW_UNLIKELY(sblk->addr == lx->db->addr)) {
-    uint8_t *rp = mmp + sblk->addr + DOFF_N0_U4;
     // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
+    uint8_t *rp = mm + sblk->addr + DOFF_N0_U4;
     sblk->lvl = 0;
     sblk->p0 = 0;
     for (int i = 0; i < SLEVELS; ++i) {
@@ -1844,12 +1851,15 @@ IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     }
     if (sblk->lvl) --sblk->lvl;
   } else if (sblk->addr) {
-    uint8_t *rp = mmp + sblk->addr;
     // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
-    memcpy(&flags, rp + SOFF_FLAGS_U1, 1);
-    sblk->flags &= ~SBLK_PERSISTENT_FLAGS;
+    uint8_t *rp = mm + sblk->addr;
+    memcpy(&sblk->flags, rp, 1);
     sblk->flags |= flags;
-    rp += SOFF_LVL_U1;
+    rp += 1;
+    memcpy(&sblk->lkl, rp, 1);
+    rp += 1;
+    memcpy(sblk->lk, rp, SBLK_LKLEN);
+    rp += SBLK_LKLEN;
     memcpy(&sblk->lvl, rp, 1);
     rp += 1;
     IW_READLV(rp, lv, sblk->p0);
@@ -1866,15 +1876,14 @@ IW_INLINE iwrc _sblk_write_upgrade_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       rc = _kvblk_at_mm(lx, BLK2ADDR(sblk->kvblkn), mm, sblk->kvblk, &sblk->kvblk);
     }
   } else { // Database tail
-    uint8_t *rp = mmp + lx->db->addr + DOFF_P0_U4;
+    uint8_t *rp = mm + lx->db->addr + DOFF_P0_U4;
     IW_READLV(rp, lv, sblk->p0);
     if (!sblk->p0) {
       sblk->p0 = ADDR2BLK(lx->db->addr);
     }
   }
-  if (mmp != mm) {
-    fsm->release_mmap(fsm);
-  }
+finish:
+  fsm->release_mmap(fsm);
   return rc;
 }
 
