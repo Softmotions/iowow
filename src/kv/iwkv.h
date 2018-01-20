@@ -96,6 +96,11 @@ typedef enum IWKV_cursor_op {
   IWKV_CURSOR_GE
 } IWKV_cursor_op;
 
+
+typedef enum IWKV_cursor_flags {
+  IWKV_CURSOR_FOR_UPDATE = 1,
+} IWKV_cursor_flags;
+
 IW_EXPORT WUR iwrc iwkv_init(void);
 
 IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
@@ -121,6 +126,7 @@ IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
 IW_EXPORT WUR iwrc iwkv_cursor_open(IWDB db,
                                     IWKV_cursor *cur,
                                     IWKV_cursor_op op,
+                                    IWKV_cursor_flags flags,    
                                     const IWKV_val *key);
 
 IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op);
