@@ -155,10 +155,10 @@ typedef struct SBLK {
   // !SBH
   KVBLK *kvblk;               /**< Associated KVBLK */
   blkn_t kvblkn;              /**< Associated KVBLK block number */
-  int8_t pnum;
-  int8_t lkl;                /**< Lower key length within a buffer */
-  int8_t pi[KVBLK_IDXNUM];
-  uint8_t lk[SBLK_LKLEN];    /**< Lower key buffer */
+  int8_t lkl;                 /**< Lower key length within a buffer */
+  int8_t pnum;                /**< Number of active kv indexes in `SBLK::pi` */
+  int8_t pi[KVBLK_IDXNUM];    /**< Sorted KV slots, value is an index of kv slot in `KVBLK` */
+  uint8_t lk[SBLK_LKLEN];     /**< Lower key buffer */
 } SBLK;
 
 KHASH_MAP_INIT_INT(DBS, IWDB)
@@ -1188,9 +1188,7 @@ finish:
   return rc;
 }
 
-IW_INLINE iwrc _kvblk_at(IWLCTX *lx,
-                         SBLK *sblk,
-                         KVBLK **blkp) {
+IW_INLINE iwrc _kvblk_at(IWLCTX *lx, SBLK *sblk, KVBLK **blkp) {
   if (sblk->kvblk) {
     *blkp = sblk->kvblk;
     return 0;
@@ -1206,8 +1204,7 @@ IW_INLINE iwrc _kvblk_at(IWLCTX *lx,
   return rc;
 }
 
-static void _kvblk_sync_mm(KVBLK *kb,
-                           uint8_t *mm) {
+static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   if (!(kb->flags & KVBLK_DURTY)) {
     return;
   }
@@ -1241,8 +1238,7 @@ IW_INLINE off_t _kvblk_compacted_offset(KVBLK *kb) {
   return coff;
 }
 
-static int _kvblk_sort_kv(const void *v1,
-                          const void *v2) {
+static int _kvblk_sort_kv(const void *v1, const void *v2) {
   uint32_t o1 = ((KVP *) v1)->off > 0 ? ((KVP *) v1)->off : -1UL;
   uint32_t o2 = ((KVP *) v2)->off > 0 ? ((KVP *) v2)->off : -1UL;
   if (o1 > o2) {
@@ -1254,8 +1250,7 @@ static int _kvblk_sort_kv(const void *v1,
   }
 }
 
-static void _kvblk_compact(KVBLK *kb,
-                           uint8_t *mm) {
+static void _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
   uint8_t i;
   off_t coff = _kvblk_compacted_offset(kb);
   if (coff == kb->maxoff) { // already compacted
@@ -1312,9 +1307,7 @@ IW_INLINE off_t _kvblk_maxkvoff(KVBLK *kb) {
   return off;
 }
 
-static iwrc _kvblk_rmkv(KVBLK *kb,
-                        uint8_t idx,
-                        kvblk_rmkv_opts_t opts) {
+static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
   uint64_t sz;
   iwrc rc = 0;
   uint8_t *mm = 0;
@@ -1345,7 +1338,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb,
       ++dpow;
     }
     if ((kb->szpow - dpow) >= KVBLK_INISZPOW && dsz < kbsz / 2) { // We can shrink kvblock
-      _kvblk_compact(kb, mm);
+      _kvblk_compact_mm(kb, mm);
       off_t naddr = kb->addr, nlen = kbsz;
       off_t maxoff = _kvblk_maxkvoff(kb);
       memmove(mm + kb->addr + sz - maxoff,
@@ -1435,7 +1428,7 @@ start:
     if (!compacted) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCGO(rc, finish);
-      _kvblk_compact(kb, mm);
+      _kvblk_compact_mm(kb, mm);
       compacted = true;
       fsm->release_mmap(fsm);
       goto start;
@@ -1672,8 +1665,7 @@ IW_INLINE iwrc _sblk_loadkvblk_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   }
 }
 
-IW_INLINE iwrc _sblk_destroy(IWLCTX *lx,
-                             SBLK **sblkp) {
+IW_INLINE iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
   assert(sblkp && *sblkp && (*sblkp)->addr);
   iwrc rc = 0;
   SBLK *sblk = *sblkp;
@@ -1857,21 +1849,21 @@ IW_INLINE iwrc _sblk_write_upgrade(IWLCTX *lx, SBLK *sblk) {
   } else if (sblk->addr) {
     uint8_t lkl = sblk->lkl;
     uint8_t lkbuf[SBLK_LKLEN];
-    sblk_flags_t flags = sblk->flags;
+    sblk_flags_t flags = sblk->flags & ~SBLK_PERSISTENT_FLAGS;
     // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
     uint8_t *rp = mm + sblk->addr;
     memcpy(&sblk->flags, rp, 1);
     sblk->flags |= flags;
     rp += 1;
     memcpy(&sblk->lkl, rp, 1);
-    if (sblk->lkl != lkl) {
+    if (sblk->lkl != lkl) { // Lower key len changed
       rc = _IWKV_ERROR_AGAIN;
       goto finish;
     }
     memcpy(lkbuf, sblk->lk, lkl);
     rp += 1;
     memcpy(sblk->lk, rp, lkl);
-    if (!memcmp(sblk->lk, lkbuf, lkl)) {
+    if (!memcmp(sblk->lk, lkbuf, lkl)) { // Lower key data changed 
       rc = _IWKV_ERROR_AGAIN;
       goto finish;
     }
@@ -1923,9 +1915,9 @@ IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
       return;
     } else {
       uint8_t *wp = mm + sblk->addr;
+      sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
       // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
       wp += SOFF_FLAGS_U1;
-      sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
       memcpy(wp, &flags, 1);
       wp = mm + sblk->addr + SOFF_LVL_U1;
       memcpy(wp, &sblk->lvl, 1);
@@ -2065,7 +2057,8 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
                             int8_t idx,
                             const IWKV_val *key,
                             const IWKV_val *val) {
-  assert(lx && sblk && key && key->size && key->data && val && idx >= 0 && sblk->kvblk && (sblk->flags & SBLK_WLOCKED));
+  assert(lx && sblk && key && key->size && key->data &&
+         val && idx >= 0 && sblk->kvblk && (sblk->flags & SBLK_WLOCKED));
   uint8_t *mm;
   int8_t kvidx;
   KVBLK *kvblk = sblk->kvblk;
@@ -2079,6 +2072,10 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
   if (sblk->pnum - idx > 0) {
     memmove(sblk->pi + idx + 1, sblk->pi + idx, sblk->pnum - idx);
   }
+  sblk->pi[idx] = kvidx;
+  sblk->kvblkn = ADDR2BLK(kvblk->addr);
+  ++sblk->pnum;
+  sblk->flags |= SBLK_DURTY;
   if (idx == 0) { // the lowest key inserted
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCRET(rc);
@@ -2092,10 +2089,6 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
     }
     fsm->release_mmap(fsm);
   }
-  sblk->kvblkn = ADDR2BLK(kvblk->addr);
-  sblk->pi[idx] = kvidx;
-  ++sblk->pnum;
-  sblk->flags |= SBLK_DURTY;
   return 0;
 }
 
@@ -2151,8 +2144,7 @@ IW_INLINE iwrc _sblk_updatekv(SBLK *sblk,
   return 0;
 }
 
-IW_INLINE iwrc _sblk_rmkv(SBLK *sblk,
-                          uint8_t idx) {
+IW_INLINE iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
                           
   assert(sblk && sblk->kvblk);
   KVBLK *kvblk = sblk->kvblk;
