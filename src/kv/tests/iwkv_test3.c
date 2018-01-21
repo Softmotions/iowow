@@ -134,10 +134,23 @@ static void iwkv_test1_impl(int thrnum, int recth) {
     int rci = pthread_join(tasks[i].thr, 0);
     CU_ASSERT_EQUAL_FATAL(rci, 0);
   }
-  fprintf(stderr, "\nCheking DB");
+  fprintf(stderr, "\nChecking DB....");
+  for (int i = 0; i < nrecs; ++i) {
+    uint64_t k = i, v;
+    key.data = &k;
+    key.size = sizeof(uint64_t);
+    rc = iwkv_get(ctx.db, &key, &val);
+    if (rc) {
+      fprintf(stderr, "\n!!! wk=%d", i);
+      logstage(f, "!!!!!!!", ctx.db);
+      break;
+    } else {
+      CU_ASSERT_EQUAL_FATAL(val.size, sizeof(uint64_t));
+      memcpy(&v, val.data, sizeof(uint64_t));
+      CU_ASSERT_EQUAL_FATAL(v, i);
+    }
+  }
   // logstage(f, "!!!!!!!", ctx.db);
-
-
   pthread_cond_destroy(&ctx.cond);
   pthread_mutex_destroy(&ctx.mtx);
   free(arr);
@@ -148,7 +161,7 @@ static void iwkv_test1_impl(int thrnum, int recth) {
 }
 
 static void iwkv_test1(void) {
-  iwkv_test1_impl(2, 100000);
+  iwkv_test1_impl(3, 10000);
 }
 
 int main() {

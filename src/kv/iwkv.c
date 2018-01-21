@@ -109,6 +109,7 @@ typedef enum {
   SBLK_WLOCKED    = 1UL << 4,  /**< ALN write lock acquired for `SNLK` */
   SBLK_NO_LOCK    = 1UL << 5,  /**< Do not use locks when accessing `SBH`(used in debug print routines) */
   SBLK_DURTY      = 1UL << 6,  /**< Block data changed, block marked as durty and needs to be persisted */
+  SBLK_NBLK       = 1UL << 7
 } sblk_flags_t;
 
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
@@ -1738,6 +1739,7 @@ static iwrc _sblk_create(IWLCTX *lx,
   sblk->kvblk = kvblk;
   sblk->kvblkn = ADDR2BLK(kvblk->addr);
   sblk->flags |= SBLK_DURTY;
+  sblk->flags |= SBLK_NBLK;
   *oblk = sblk;
   AAPOS_INC(lx->saan);
   return rc;
@@ -2089,7 +2091,7 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
   int8_t kvidx;
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
-  assert(sblk->flags & SBLK_WLOCKED);
+  assert(sblk->flags & (SBLK_WLOCKED | SBLK_NBLK));
   if (sblk->pnum >= KVBLK_IDXNUM) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
@@ -2133,6 +2135,7 @@ IW_INLINE iwrc _sblk_addkv(SBLK *sblk,
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
     return IWKV_ERROR_NOTFOUND;
   }
+  assert(sblk->flags & (SBLK_WLOCKED | SBLK_NBLK));
   iwrc rc = _kvblk_addkv(kvblk, key, val, &kvidx, opflags, internal);
   RCRET(rc);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
