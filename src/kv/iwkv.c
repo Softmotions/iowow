@@ -1673,7 +1673,6 @@ IW_INLINE iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
   iwrc rc = 0;
   SBLK *sblk = *sblkp;
   if (!(sblk->flags & SBLK_DB)) {
-    assert(sblk->flags & SBLK_WLOCKED);
     uint8_t kvb_szpow;
     IWFS_FSM *fsm = &lx->db->iwkv->fsm;
     off_t kvb_addr = BLK2ADDR(sblk->kvblkn),
@@ -1838,7 +1837,6 @@ IW_INLINE iwrc _sblk_write_upgrade(IWLCTX *lx, SBLK *sblk) {
     uint8_t *rp = mm + sblk->addr + DOFF_N0_U4;
     uint8_t old_lvl = sblk->lvl; // save old lvl
     sblk->lvl = 0;
-    sblk->p0 = 0;
     for (int i = 0; i < SLEVELS; ++i) {
       IW_READLV(rp, lv, sblk->n[i]);
       if (sblk->n[i]) {
@@ -1920,8 +1918,9 @@ IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
         assert(sblk->addr == sblk->db->addr);
         wp += DOFF_N0_U4;
         // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
-        for (int i = 0; i < SLEVELS && sblk->n[i]; ++i) {
+        for (int i = 0; i < SLEVELS; ++i) {
           IW_WRITELV(wp, lv, sblk->n[i]);
+          if (!sblk->n[i]) break;
         }
       } else { // Database tail
         wp += DOFF_P0_U4;
@@ -2640,7 +2639,6 @@ IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
 
   if (lx->upper->pnum < 1) {
     assert(dbwlocked && lx->upper->addr == lx->upper_addr);
-    lx->upper->flags |= SBLK_WLOCKED;
     for (int i = 0; i <= lx->nlvl; ++i) {
       lx->plower[i]->n[i] = lx->upper->n[i];
       lx->plower[i]->flags |= SBLK_DURTY;
