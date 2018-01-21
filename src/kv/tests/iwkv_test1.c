@@ -523,6 +523,7 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+  iwkv_next_level = 3;
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
