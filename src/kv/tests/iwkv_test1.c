@@ -37,7 +37,7 @@ static int cmp_files(FILE *f1, FILE *f2) {
 
 static int logstage(FILE *f, const char *name, IWDB db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
-  iwkvd_db(f, db, /*IWKVD_PRINT_NO_LEVEVELS |*/ IWKVD_PRINT_VALS);
+  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS);
   fflush(f);
   return rci < 0 ? rci : 0;
 }

@@ -51,7 +51,7 @@ static void iwkv_test1(void) {
     CU_ASSERT_EQUAL_FATAL(llv, v);
     iwkv_val_dispose(&val);
   }
-  
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
@@ -64,7 +64,7 @@ int main() {
   if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
   /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwfs_test1", init_suite, clean_suite);
+  pSuite = CU_add_suite("iwfs_test2", init_suite, clean_suite);
 
   if (NULL == pSuite) {
     CU_cleanup_registry();
