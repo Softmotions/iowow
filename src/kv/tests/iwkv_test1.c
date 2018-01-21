@@ -523,7 +523,7 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  iwkv_next_level = 3;
+  // iwkv_next_level = 3;
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -607,6 +607,7 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
 
   // iwkv_next_level = 0;
+
   for (int i = 0; i < 63 * 2; i += 2) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
     snprintf(vbuf, VBUFSZ, "%03dval", i);
@@ -639,8 +640,10 @@ static void iwkv_test1(void) {
     key.size = strlen(key.data);
     val.data = vbuf;
     val.size = strlen(val.data);
+    //logstage(stderr, "!!!!!!", db1);
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
+    //logstage(stderr, "??????", db1);
   }
 
   logstage(f, "fill up second block", db1);
