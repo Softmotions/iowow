@@ -28,7 +28,7 @@ typedef enum {
   _IWKV_ERROR_REQUIRE_WL,
   _IWKV_ERROR_REQUIRE_NLEVEL,
   _IWKV_ERROR_REQUIRE_WLOCK,
-  _IWKV_ERROR_AGAIN,
+  _IWKV_ERROR_AGAIN, // 16
 } iwkv_ecode;
 
 /**
@@ -45,7 +45,7 @@ typedef enum {
  */
 typedef enum {
   IWDB_UINT32_KEYS = 0x1,     /**< Database keys are 32bit unsigned integers */
-  IWDB_UINT64_KEYS = 0x2,     /**< Database keys are 64bit unsigned integers */        
+  IWDB_UINT64_KEYS = 0x2,     /**< Database keys are 64bit unsigned integers */
   IWDB_DUP_UINT32_VALS = 0x4, /**< Array of sorted uint32 values stored as key value */
   IWDB_DUP_UINT64_VALS = 0x8  /**< Array of sorted uint64 values stored as key value */
 } iwdb_flags_t;
@@ -126,7 +126,7 @@ IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
 IW_EXPORT WUR iwrc iwkv_cursor_open(IWDB db,
                                     IWKV_cursor *cur,
                                     IWKV_cursor_op op,
-                                    IWKV_cursor_flags flags,    
+                                    IWKV_cursor_flags flags,
                                     const IWKV_val *key);
 
 IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op);

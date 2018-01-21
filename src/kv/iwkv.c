@@ -2358,8 +2358,6 @@ static void _lx_release_mm(IWLCTX *lx, uint8_t *mm) {
         }
         lx->pupper[i] = 0;
       }
-    }
-    for (int i = 0; i <= lx->nlvl; ++i) {
       if (lx->plower[i]) {
         if (lx->plower[i] != lsb) {
           lsb = lx->plower[i];
@@ -2555,6 +2553,12 @@ start:
     _lx_release_mm(lx, 0);
     if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
       lx->nlvl = _sblk_genlevel();
+    }
+    if (lx->upper) {
+      _sblk_release(lx, &lx->upper);
+    }
+    if (lx->lower) {
+      _sblk_release(lx, &lx->lower);
     }
     goto start;
   }
