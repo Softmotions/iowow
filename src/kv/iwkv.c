@@ -29,7 +29,7 @@
 // Number of skip list levels
 #define SLEVELS 30
 
-#define AANUM (2 * SLEVELS + 2 /* (new block created) + (db block may updated) */)
+#define AANUM (2 * SLEVELS + 2 /* (new block created) + (db block may be updated) */)
 
 // Lower key length in SBLK
 #define SBLK_LKLEN 61
@@ -59,7 +59,9 @@
 
 #define BLK2ADDR(blk_) (((off_t) (blk_)) << IWKV_FSM_BPOW)
 
+#ifndef NDEBUG
 volatile int8_t iwkv_next_level = -1;
+#endif
 
 struct IWKV;
 struct IWDB;
@@ -360,6 +362,7 @@ IW_INLINE int _cmp_key(iwdb_flags_t dbflg, void *v1, int v1len, void *v2, int v2
     }
     memcpy(&n1, v1, v1len);
     n1 = IW_ITOHL(n1);
+    memcpy(&n2, v2, v2len);
     memcpy(&n2, v2, v2len);
     n2 = IW_ITOHL(n2);
     return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
@@ -1700,16 +1703,20 @@ IW_INLINE iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
 
 IW_INLINE uint8_t _sblk_genlevel() {
   int8_t lvl;
+#ifndef NDEBUG
   if (iwkv_next_level >= 0) {
     lvl = iwkv_next_level;
     iwkv_next_level = -1;
     assert(lvl >= 0 && lvl < SLEVELS);
     return lvl;
+  } else if (iwkv_next_level == -2) {
+    uint32_t r = random(); // up to 0x7fffffff (not 0xffffffff)
+    for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) r >>= 1;
+    return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;
   }
+#endif
   uint32_t r = iwu_rand_u32();
-  for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) {
-    r >>= 1;
-  }
+  for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) r >>= 1;
   return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;
 }
 
