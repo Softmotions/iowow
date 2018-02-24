@@ -20,15 +20,11 @@ typedef enum {
   IWKV_ERROR_DUP_VALUE_SIZE,       /**< Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE) */
   IWKV_ERROR_KEY_NUM_VALUE_SIZE,   /**< Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)  */
   IWKV_ERROR_INCOMPATIBLE_DB_MODE, /**< Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE) */
-  IWKV_ERROR_CURSOR_SEEK_AGAIN,    /**< Perform cursor seek operation again (IWKV_ERROR_CURSOR_SEEK_AGAIN) */
   IWKV_ERROR_KVBLOCK_FULL,         /**< IWKV_ERROR_KVBLOCK_FULL */
   _IWKV_ERROR_END,
   /* Internal error codes */
   _IWKV_ERROR_KVBLOCK_FULL,
-  _IWKV_ERROR_REQUIRE_WL,
   _IWKV_ERROR_REQUIRE_NLEVEL,
-  _IWKV_ERROR_REQUIRE_WLOCK,
-  _IWKV_ERROR_AGAIN, // 16
 } iwkv_ecode;
 
 /**

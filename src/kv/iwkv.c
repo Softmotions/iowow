@@ -108,10 +108,7 @@ typedef struct KVBLK {
 typedef enum {
   SBLK_FULL_LKEY  = 1UL,       /**< The lowest `SBLK` key is fully contained in `SBLK`. Persistent flag. */
   SBLK_DB         = 1UL << 3,  /**< This block is the start database block. */
-  SBLK_WLOCKED    = 1UL << 4,  /**< ALN write lock acquired for `SNLK` */
-  SBLK_NO_LOCK    = 1UL << 5,  /**< Do not use locks when accessing `SBH`(used in debug print routines) */
-  SBLK_DURTY      = 1UL << 6,  /**< Block data changed, block marked as durty and needs to be persisted */
-  SBLK_WLPASS       = 1UL << 7
+  SBLK_DURTY      = 1UL << 4,  /**< Block data changed, block marked as durty and needs to be persisted */
 } sblk_flags_t;
 
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
@@ -134,7 +131,6 @@ struct IWDB {
   IWKV iwkv;
   iwdb_flags_t dbflg;         /**< Database flags */
   pthread_rwlock_t rwl;       /**< Database API RW lock */
-  pthread_spinlock_t sl;      /**< Locking control spinlock */
   dbid_t id;                  /**< Database ID */
   uint64_t next_db_addr;      /**< Next IWDB addr */
   struct IWDB *next;          /**< Next IWDB meta */
@@ -229,7 +225,7 @@ void iwkvd_db(FILE *f, IWDB db, int flags);
   if (!iwkv_ || !(iwkv_->open)) return IW_ERROR_INVALID_STATE
 
 #define ENSURE_OPEN_DB(db_) \
-  if (!(db_) || !(db_)->iwkv || || !(db_)->open || !((db_)->iwkv->open)) return IW_ERROR_INVALID_STATE
+  if (!(db_) || !(db_)->iwkv || !(db_)->open || !((db_)->iwkv->open)) return IW_ERROR_INVALID_STATE
 
 #define API_RLOCK(iwkv_, rci_) \
   ENSURE_OPEN(iwkv_);  \
@@ -373,10 +369,6 @@ IW_INLINE int _cmp_key(iwdb_flags_t dbflg, void *v1, int v1len, void *v2, int v2
   }
 }
 
-#define _mm_u1(mm_, off_) (*((uint8_t*)((mm_) + (off_))))
-
-#define _mm_set_u1(mm_, off_, v_) (*((mm_) + (off_)) = (v_))
-
 IW_INLINE uint32_t _mm_u4(const uint8_t *mm, off_t off) {
   uint32_t lv;
   memcpy(&lv, mm + off, sizeof(lv));
@@ -397,68 +389,6 @@ IW_INLINE uint64_t _mm_u8(const uint8_t *mm, off_t off) {
 IW_INLINE void _mm_set_u8(uint8_t *mm, off_t off, uint64_t llv) {
   llv = IW_HTOILL(llv);
   memcpy(mm + off, &llv, sizeof(llv));
-}
-
-//--------------------------  ADDRESS LOCKING
-
-IW_INLINE void _aln_release(IWDB db, blkn_t blkn) {
-  int rci = pthread_spin_lock(&db->sl);
-  if (rci) {
-    iwlog_ecode_error3(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci));
-    return;
-  }
-  khiter_t k = kh_get(ALN, db->aln, blkn);
-  if (k != kh_end(db->aln)) {
-    ALN *aln = kh_value(db->aln, k);
-    assert(aln);
-    pthread_mutex_unlock(&aln->mtx);
-    assert(aln->refs >= 0);
-    if (--aln->refs < 1) {
-      kh_del(ALN, db->aln, k);
-      free(aln);
-    }
-  }
-  pthread_spin_unlock(&db->sl);
-}
-
-IW_INLINE iwrc _aln_acquire(IWDB db, blkn_t blkn) {
-  ALN *aln;
-  int rci;
-  iwrc rc = 0;
-  rci = pthread_spin_lock(&db->sl);
-  if (rci) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  khiter_t k = kh_get(ALN, db->aln, blkn);
-  if (k == kh_end(db->aln)) {
-    aln = malloc(sizeof(*aln));
-    if (!aln) {
-      rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-      goto finish;
-    }
-    k = kh_put(ALN, db->aln, blkn, &rci);
-    if (rci != -1) {
-      kh_value(db->aln, k) = aln;
-    } else {
-      rc = IW_ERROR_FAIL;
-      free(aln);
-      goto finish;
-    }
-    aln->refs = 1;
-    pthread_mutex_init(&aln->mtx, 0);
-  } else {
-    aln = kh_value(db->aln, k);
-    ++aln->refs;
-  }
-finish:
-  pthread_spin_unlock(&db->sl);
-  if (!rc) {
-    rci = pthread_mutex_lock(&aln->mtx);
-    if (rci) {
-      rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-    } else {
-      assert(aln->refs > 0);
-    }
-  }
-  return rc;
 }
 
 IW_INLINE void _kv_val_dispose(IWKV_val *v) {
@@ -677,14 +607,8 @@ static iwrc _db_at(IWKV iwkv,
   if (!db) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  rci = pthread_spin_init(&db->sl, 0);
-  if (rci) {
-    free(db);
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  }
   rci = pthread_rwlock_init(&db->rwl, 0);
   if (rci) {
-    pthread_spin_destroy(&db->sl);
     free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
@@ -709,7 +633,6 @@ static iwrc _db_at(IWKV iwkv,
 finish:
   if (rc)  {
     kh_destroy(ALN, (*dbp)->aln);
-    pthread_spin_destroy(&db->sl);
     pthread_rwlock_destroy(&db->rwl);
     free(db);
   }
@@ -757,7 +680,6 @@ static iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
 
 static void _db_release_lw(IWDB *dbp) {
   assert(dbp && *dbp);
-  pthread_spin_destroy(&(*dbp)->sl);
   pthread_rwlock_destroy(&(*dbp)->rwl);
   kh_destroy(ALN, (*dbp)->aln);
   free(*dbp);
@@ -891,14 +813,8 @@ static iwrc _db_create_lw(IWKV iwkv,
   if (!db) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  rci = pthread_spin_init(&db->sl, 0);
-  if (rci) {
-    free(db);
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  }
   rci = pthread_rwlock_init(&db->rwl, 0);
   if (rci) {
-    pthread_spin_destroy(&db->sl);
     free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
@@ -1657,9 +1573,6 @@ finish:
 IW_INLINE void _sblk_release(IWLCTX *lx, SBLK **sblkp) {
   assert(sblkp && *sblkp);
   SBLK *sblk = *sblkp;
-  if (sblk->flags & SBLK_WLOCKED) {
-    _aln_release(lx->db, ADDR2BLK(sblk->addr));
-  }
   sblk->flags = 0;
   sblk->kvblk = 0;
   *sblkp = 0;
@@ -1746,24 +1659,18 @@ static iwrc _sblk_create(IWLCTX *lx,
   sblk->kvblk = kvblk;
   sblk->kvblkn = ADDR2BLK(kvblk->addr);
   sblk->flags |= SBLK_DURTY;
-  sblk->flags |= SBLK_WLPASS;
   *oblk = sblk;
   AAPOS_INC(lx->saan);
   return rc;
 }
 
-static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, bool keepwl, SBLK **sblkp) {
-  iwrc rc;
+static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
   uint8_t *mm;
   uint32_t lv;
   *sblkp = 0;
   sblk_flags_t flags = lx->sblk_flags | flgs;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  if (!(flags & SBLK_NO_LOCK)) {
-    rc = _aln_acquire(lx->db, ADDR2BLK(addr));
-    RCRET(rc);
-  }
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   SBLK *sblk = &lx->saa[lx->saan];
   memset(sblk, 0, sizeof(*sblk));
@@ -1828,106 +1735,11 @@ finish:
   fsm->release_mmap(fsm);
   AAPOS_INC(lx->saan);
   *sblkp = sblk;
-  if (!(flags & SBLK_NO_LOCK) && !keepwl) {
-    _aln_release(lx->db, ADDR2BLK(addr));
-  }
-  return rc;
-}
-
-IW_INLINE iwrc _sblk_write_upgrade(IWLCTX *lx, SBLK *sblk) {
-  if (sblk->flags & (SBLK_WLOCKED | SBLK_NO_LOCK)) {
-    return 0;
-  }
-  uint8_t *mm;
-  uint32_t lv;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  iwrc rc = _aln_acquire(sblk->db, ADDR2BLK(sblk->addr));
-  RCRET(rc);
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  if (rc) {
-    _aln_release(sblk->db, ADDR2BLK(sblk->addr));
-    return rc;
-  }
-  // Now re-read `SBLK`
-  if (IW_UNLIKELY(sblk->addr == lx->db->addr)) {
-    // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
-    uint8_t *rp = mm + sblk->addr + DOFF_N0_U4;
-    uint8_t old_lvl = sblk->lvl; // save old lvl
-    sblk->lvl = 0;
-    for (int i = 0; i < SLEVELS; ++i) {
-      IW_READLV(rp, lv, sblk->n[i]);
-      if (sblk->n[i]) {
-        ++sblk->lvl;
-      } else {
-        break;
-      }
-    }
-    if (sblk->lvl) --sblk->lvl;
-    if (old_lvl != sblk->lvl) {
-      rc = _IWKV_ERROR_AGAIN;
-      goto finish;
-    }
-  } else if (sblk->addr) {
-    uint8_t lkl = sblk->lkl;
-    uint8_t lkbuf[SBLK_LKLEN];
-    sblk_flags_t oflags = sblk->flags & SBLK_PERSISTENT_FLAGS;
-    sblk_flags_t flags = sblk->flags & ~SBLK_PERSISTENT_FLAGS;
-    // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
-    uint8_t *rp = mm + sblk->addr;
-    memcpy(&sblk->flags, rp, 1);
-    if (oflags != sblk->flags) {
-      rc = _IWKV_ERROR_AGAIN;
-      goto finish;
-    }
-    sblk->flags |= flags;
-    rp += 1;
-    memcpy(&sblk->lkl, rp, 1);
-    if (sblk->lkl != lkl) { // Lower key len changed
-      rc = _IWKV_ERROR_AGAIN;
-      goto finish;
-    }
-    memcpy(lkbuf, sblk->lk, lkl);
-    rp += 1;
-    memcpy(sblk->lk, rp, lkl);
-    if (memcmp(sblk->lk, lkbuf, lkl)) { // Lower key data changed
-      rc = _IWKV_ERROR_AGAIN;
-      goto finish;
-    }
-    rp += SBLK_LKLEN;
-    memcpy(&sblk->lvl, rp, 1);
-    rp += 1;
-    IW_READLV(rp, lv, sblk->p0);
-    memcpy(&sblk->pnum, rp, 1);
-    rp += 1;
-    IW_READLV(rp, lv, sblk->kvblkn);
-    memcpy(sblk->pi, rp, KVBLK_IDXNUM);
-    rp += KVBLK_IDXNUM;
-    for (int i = 0; i <= sblk->lvl; ++i) {
-      IW_READLV(rp, lv, sblk->n[i]);
-    }
-    if (!sblk->kvblk || sblk->kvblk->addr != BLK2ADDR(sblk->kvblkn)) {
-      rc = _kvblk_at_mm(lx, BLK2ADDR(sblk->kvblkn), mm, sblk->kvblk, &sblk->kvblk);
-    }
-  } else { // Database tail
-    uint8_t *rp = mm + lx->db->addr + DOFF_P0_U4;
-    IW_READLV(rp, lv, sblk->p0);
-    if (!sblk->p0) {
-      sblk->p0 = ADDR2BLK(lx->db->addr);
-    }
-  }
-finish:
-  if (rc) {
-    _aln_release(sblk->db, ADDR2BLK(sblk->addr));
-  } else {
-    sblk->flags |= SBLK_WLOCKED;
-  }
-  fsm->release_mmap(fsm);
   return rc;
 }
 
 IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
   if (sblk->flags & SBLK_DURTY) {
-    assert(sblk->flags & (SBLK_WLOCKED | SBLK_WLPASS));
     sblk->flags &= ~SBLK_DURTY;
     uint32_t lv;
     if (IW_UNLIKELY(sblk->flags & SBLK_DB)) {
@@ -1971,7 +1783,6 @@ IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
     }
   }
   if (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY)) {
-    assert(sblk->flags & (SBLK_WLOCKED | SBLK_WLPASS));
     _kvblk_sync_mm(sblk->kvblk, mm);
   }
 }
@@ -2095,12 +1906,11 @@ IW_INLINE iwrc _sblk_addkv2(IWLCTX *lx,
                             const IWKV_val *key,
                             const IWKV_val *val) {
   assert(lx && sblk && key && key->size && key->data &&
-         val && idx >= 0 && sblk->kvblk && (sblk->flags & SBLK_WLOCKED));
+         val && idx >= 0 && sblk->kvblk);
   uint8_t *mm;
   int8_t kvidx;
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
-  assert(sblk->flags & (SBLK_WLOCKED | SBLK_WLPASS));
   if (sblk->pnum >= KVBLK_IDXNUM) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
@@ -2144,7 +1954,6 @@ IW_INLINE iwrc _sblk_addkv(SBLK *sblk,
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
     return IWKV_ERROR_NOTFOUND;
   }
-  assert(sblk->flags & (SBLK_WLOCKED | SBLK_WLPASS));
   iwrc rc = _kvblk_addkv(kvblk, key, val, &kvidx, opflags, internal);
   RCRET(rc);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -2169,7 +1978,7 @@ IW_INLINE iwrc _sblk_updatekv(SBLK *sblk,
                               const IWKV_val *key,
                               const IWKV_val *val,
                               iwkv_opflags opflags) {
-  assert(sblk && sblk->kvblk && idx >= 0 && idx < sblk->pnum && (sblk->flags & SBLK_WLOCKED));
+  assert(sblk && sblk->kvblk && idx >= 0 && idx < sblk->pnum);
   KVBLK *kvblk = sblk->kvblk;
   int8_t kvidx = sblk->pi[idx];
   iwrc rc = _kvblk_updatev(kvblk, &kvidx, key, val, opflags, false);
@@ -2291,13 +2100,13 @@ static iwrc _lx_roll_forward(IWLCTX *lx) {
       } else if (lx->plower[ulvl] && lx->plower[ulvl]->addr == blkaddr) {
         sblk = lx->plower[ulvl];
       } else {
-        rc = _sblk_at(lx, blkaddr, 0, false, &sblk);
+        rc = _sblk_at(lx, blkaddr, 0, &sblk);
       }
     } else {
       if (lx->upper && lx->upper->addr == blkaddr) {
         break;
       } else {
-        rc = _sblk_at(lx, blkaddr, 0, false, &sblk);
+        rc = _sblk_at(lx, blkaddr, 0, &sblk);
       }
     }
     RCRET(rc);
@@ -2319,16 +2128,10 @@ static iwrc _lx_roll_forward(IWLCTX *lx) {
 
 static iwrc _lx_find_bounds(IWLCTX *lx) {
   assert(!lx->lower);
-  iwrc rc = _sblk_at(lx, lx->db->addr, 0, false, &lx->lower);
+  iwrc rc = _sblk_at(lx, lx->db->addr, 0, &lx->lower);
   RCRET(rc);
   lx->dblk = lx->lower;
-start:
   if (lx->nlvl > lx->dblk->lvl) { // New level in DB
-    rc = _sblk_write_upgrade(lx, lx->dblk);
-    if (rc == _IWKV_ERROR_AGAIN) {
-      goto start;
-    }
-    RCRET(rc);
     memset(&lx->dblk->n[lx->dblk->lvl + 1], 0, lx->nlvl - lx->dblk->lvl);
     lx->dblk->lvl = lx->nlvl;
     lx->dblk->flags |= SBLK_DURTY;
@@ -2404,9 +2207,9 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   blkn_t nblk;
   uint8_t kvbpow = 0;
   register int pivot = (KVBLK_IDXNUM / 2) + 1; // 32
-  assert(sblk->flags & SBLK_WLOCKED);
   
   if (idx < sblk->pnum) {
+    assert(sblk->kvblk);
     // Partial split required
     // Compute space required for the new sblk which stores kv pairs after pivot `idx`
     size_t sz = 0;
@@ -2426,6 +2229,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     rc = _sblk_addkv(nb, lx->key, lx->val, lx->opflags, false);
     RCGO(rc, finish);
   } else {
+    assert(sblk->kvblk);
     // We are in the middle
     // Do the partial split
     // Move kv pairs into new `nb`
@@ -2464,12 +2268,10 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   // fix levels
   //  [ lb -> sblk -> ub ]
   //  [ lb -> sblk -> nb -> ub ]
-  assert(lx->pupper[0]->flags & SBLK_WLOCKED);
   lx->pupper[0]->p0 = nblk;
   lx->pupper[0]->flags |= SBLK_DURTY;
   nb->p0 = ADDR2BLK(lx->plower[0]->addr);
   for (int i = 0; i <= nb->lvl; ++i) {
-    assert(lx->pupper[i]->flags & SBLK_WLOCKED);
     lx->plower[i]->n[i] = nblk;
     lx->plower[i]->flags |= SBLK_DURTY;
     nb->n[i] = ADDR2BLK(lx->pupper[i]->addr);
@@ -2489,19 +2291,10 @@ IW_INLINE iwrc _lx_lock_chute(IWLCTX *lx) {
   iwrc rc = 0;
   if (!lx->pupper[lx->nlvl]) { // fix zero upper by dbtail
     SBLK *dbtail;
-    rc = _sblk_at(lx, 0, 0, false, &dbtail);
+    rc = _sblk_at(lx, 0, 0, &dbtail);
     RCRET(rc);
     for (int i = lx->nlvl; i >= 0 && !lx->pupper[i]; --i) {
       lx->pupper[i] = dbtail;
-    }
-  }
-  for (int i = lx->nlvl; i >= 0; --i) {
-    rc = _sblk_write_upgrade(lx, lx->plower[i]);
-    RCRET(rc);
-    rc = _sblk_write_upgrade(lx, lx->pupper[i]);
-    RCRET(rc);
-    if (lx->plower[i]->n[i] != ADDR2BLK(lx->pupper[i]->addr)) {
-      return _IWKV_ERROR_AGAIN;
     }
   }
   return 0;
@@ -2509,36 +2302,39 @@ IW_INLINE iwrc _lx_lock_chute(IWLCTX *lx) {
 
 IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
   iwrc rc;
-  bool found;
+  bool found, uadd;
   int idx;
   uint8_t *mm = 0;
   SBLK *sblk = lx->lower;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  
-  if (lx->nlvl < 0) {
-    rc = _sblk_write_upgrade(lx, sblk);
-    RCRET(rc);
-  } else {
+  if (lx->nlvl > -1) {
     rc = _lx_lock_chute(lx);
     RCRET(rc);
   }
-  
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
+  rc = _sblk_loadkvblk_mm(lx, sblk, mm);
+  if (rc) {
+    fsm->release_mmap(fsm);
+    return rc;
+  }
   idx = _sblk_find_pi_mm(sblk, lx->key, mm, &found);
   if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
     fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
   }
+  uadd = (!found && sblk->pnum >= KVBLK_IDXNUM &&
+          lx->nlvl < 0 && idx == sblk->pnum && lx->upper && lx->upper->pnum < KVBLK_IDXNUM);
+  if (uadd) {
+    rc = _sblk_loadkvblk_mm(lx, lx->upper, mm);
+    if (rc) {
+      fsm->release_mmap(fsm);
+      return rc;
+    }
+  }
   fsm->release_mmap(fsm);
-  
   if (!found && sblk->pnum >= KVBLK_IDXNUM) {
-    if (lx->nlvl < 0 && idx == sblk->pnum && lx->upper && lx->upper->pnum < KVBLK_IDXNUM) {
-      rc = _sblk_write_upgrade(lx, lx->upper);
-      RCRET(rc);
-      if (sblk->n[0] != ADDR2BLK(lx->upper->addr) || lx->upper->pnum == KVBLK_IDXNUM) {
-        return _IWKV_ERROR_AGAIN;
-      }
+    if (uadd) {
       return _sblk_addkv(lx->upper, lx->key, lx->val, lx->opflags, false);
     }
     if (lx->nlvl < 0) {
@@ -2556,7 +2352,7 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
   }
 }
 
-IW_INLINE iwrc _lx_put_lr(IWLCTX *lx) {
+IW_INLINE iwrc _lx_put(IWLCTX *lx) {
   iwrc rc;
 start:
   rc = _lx_find_bounds(lx);
@@ -2565,8 +2361,7 @@ start:
     return rc;
   }
   rc = _lx_addkv(lx);
-  if (rc == _IWKV_ERROR_AGAIN ||
-      rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
+  if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
     _lx_release_mm(lx, 0);
     if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
       lx->nlvl = _sblk_genlevel();
@@ -2585,7 +2380,7 @@ start:
   return rc;
 }
 
-IW_INLINE iwrc _lx_get_lr(IWLCTX *lx) {
+IW_INLINE iwrc _lx_get(IWLCTX *lx) {
   iwrc rc = _lx_find_bounds(lx);
   RCRET(rc);
   bool found;
@@ -2609,23 +2404,16 @@ finish:
   return rc;
 }
 
-IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
+IW_INLINE iwrc _lx_del(IWLCTX *lx) {
   iwrc rc;
   int idx;
   bool found;
-  SBLK *sblk;
   uint8_t *mm = 0;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  
+  SBLK *sblk;
   rc = _lx_find_bounds(lx);
   RCRET(rc);
-  sblk = dbwlocked ? lx->upper : lx->lower;
-  assert(sblk);
-  if (!dbwlocked) {
-    rc = _sblk_write_upgrade(lx, sblk);
-    RCGO(rc, finish);
-  }
-  
+  sblk = lx->lower;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   rc = _sblk_loadkvblk_mm(lx, sblk, mm);
@@ -2638,35 +2426,20 @@ IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
   fsm->release_mmap(fsm);
   mm = 0;
   
-  if (sblk->pnum <= 1) {
-    if (!dbwlocked) {
-      int8_t nlvl = sblk->lvl;
-      _lx_release_mm(lx, 0);
-      lx->nlvl = nlvl;
-      lx->upper_addr = sblk->addr;
-      lx->sblk_flags |= SBLK_NO_LOCK;
-      rc = _IWKV_ERROR_REQUIRE_WLOCK;
-      goto finish;
-    } else if (lx->nlvl != sblk->lvl || sblk->addr != lx->upper_addr) {
-      int8_t nlvl = sblk->lvl;
-      _lx_release_mm(lx, 0);
-      lx->nlvl = nlvl;
-      lx->upper_addr = sblk->addr;
-      rc = _IWKV_ERROR_AGAIN;
-      goto finish;
-    }
-  }
-  
-  // Remove KV
-  rc = _sblk_rmkv(sblk, idx);
-  RCGO(rc, finish);
-  
-  if (lx->upper->pnum < 1) {
-    assert(dbwlocked && lx->upper->addr == lx->upper_addr);
+  if (sblk->pnum == 1) { // last kv in block
+    KVBLK *kvblk = sblk->kvblk;
+    _lx_release_mm(lx, 0);
+    lx->nlvl = sblk->lvl;
+    lx->upper_addr = sblk->addr;
+    rc = _lx_find_bounds(lx);
+    RCRET(rc);
+    assert(lx->upper->pnum == 1 && lx->upper->addr == lx->upper_addr);
+    lx->upper->kvblk = kvblk;
+    rc = _sblk_rmkv(lx->upper, idx);
+    RCGO(rc, finish);
     for (int i = 0; i <= lx->nlvl; ++i) {
       lx->plower[i]->n[i] = lx->upper->n[i];
       lx->plower[i]->flags |= SBLK_DURTY;
-      lx->plower[i]->flags |= SBLK_WLPASS;
       if (lx->plower[i]->flags & SBLK_DB) {
         if (!lx->plower[i]->n[i]) {
           --lx->plower[i]->lvl;
@@ -2678,16 +2451,16 @@ IW_INLINE iwrc _lx_del_lr(IWLCTX *lx, bool dbwlocked) {
     }
     SBLK *nb;
     assert(!lx->nb);
-    rc = _sblk_at(lx, BLK2ADDR(lx->upper->n[0]), 0, false,  &nb);
+    rc = _sblk_at(lx, BLK2ADDR(lx->upper->n[0]), 0, &nb);
     RCGO(rc, finish);
     lx->nb = nb;
     lx->nb->p0 = lx->upper->p0;
     lx->nb->flags |= SBLK_DURTY;
-    lx->nb->flags |= SBLK_WLPASS;
-    // Now destroy KV block
     rc = _sblk_destroy(lx, &lx->upper);
+  } else {
+    rc = _sblk_rmkv(sblk, idx);
+    RCGO(rc, finish);
   }
-  
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -2727,7 +2500,7 @@ finish:
   return rc;
 }
 
-IW_INLINE iwrc _cursor_to_lr(IWKV_cursor cur, IWKV_cursor_op op) {
+IW_INLINE iwrc _cursor_to(IWKV_cursor cur, IWKV_cursor_op op) {
   iwrc rc = 0;
   IWDB db = cur->lx.db;
   IWLCTX *lx = &cur->lx;
@@ -2751,7 +2524,7 @@ start:
     blkn_t n = 0;
     if (!cur->cn) {
       if (cur->dbaddr) {
-        rc = _sblk_at(lx, (cur->dbaddr < 0 ? 0 : cur->dbaddr), 0, cur->update, &cur->cn);
+        rc = _sblk_at(lx, (cur->dbaddr < 0 ? 0 : cur->dbaddr), 0, &cur->cn);
         cur->dbaddr = 0;
         RCGO(rc, finish);
       } else {
@@ -2767,7 +2540,7 @@ start:
           goto finish;
         }
         _sblk_sync_and_release(lx, &cur->cn);
-        rc = _sblk_at(lx, BLK2ADDR(n), 0, cur->update, &cur->cn);
+        rc = _sblk_at(lx, BLK2ADDR(n), 0, &cur->cn);
         RCGO(rc, finish);
         cur->cnpos = 0;
         if (IW_UNLIKELY(!cur->cn->pnum)) {
@@ -2788,7 +2561,7 @@ start:
           goto finish;
         }
         _sblk_sync_and_release(lx, &cur->cn);
-        rc = _sblk_at(lx, BLK2ADDR(n), 0, cur->update, &cur->cn);
+        rc = _sblk_at(lx, BLK2ADDR(n), 0, &cur->cn);
         RCGO(rc, finish);
         if (IW_LIKELY(cur->cn->pnum)) {
           cur->cnpos = cur->cn->pnum - 1;
@@ -2811,14 +2584,6 @@ start:
     rc = _cursor_get_ge_idx(lx, op, &cur->cnpos);
     if (lx->upper) {
       _sblk_release(lx, &lx->upper);
-    }
-    if (cur->update) {
-      rc = _sblk_write_upgrade(lx, lx->lower);
-      if (rc == _IWKV_ERROR_AGAIN) {
-        rc = 0;
-        _lx_release_mm(lx, 0);
-        goto start;
-      }
     }
     if (!rc) {
       cur->cn = lx->lower;
@@ -2855,8 +2620,6 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
       return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
     case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
       return "Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
-    case IWKV_ERROR_CURSOR_SEEK_AGAIN:
-      return "Perform cursor seek operation again (IWKV_ERROR_CURSOR_SEEK_AGAIN)";
   }
   return 0;
 }
@@ -3095,8 +2858,8 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     .op = IWLCTX_PUT,
     .opflags = opflags
   };
-  API_DB_RLOCK(db, rci);
-  rc = _lx_put_lr(&lx);
+  API_DB_WLOCK(db, rci);
+  rc = _lx_put(&lx);
   API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
@@ -3115,7 +2878,7 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
   };
   oval->size = 0;
   API_DB_RLOCK(db, rci);
-  rc = _lx_get_lr(&lx);
+  rc = _lx_get(&lx);
   API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
@@ -3126,35 +2889,19 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
   }
   int rci;
   iwrc rc = 0;
-  bool wlocked = false;
   IWLCTX lx = {
     .db = db,
     .key = key,
     .nlvl = -1,
     .op = IWLCTX_DEL
   };
-lock:
-  if (wlocked) {
-    API_DB_WLOCK(db, rci);
-  } else {
-    API_DB_RLOCK(db, rci);
-  }
-start:
-  rc = _lx_del_lr(&lx, wlocked);
-  if (!wlocked && rc == _IWKV_ERROR_REQUIRE_WLOCK) {
-    rc = 0;
-    API_DB_UNLOCK(db, rci, rc);
-    wlocked = true;
-    goto lock;
-  }
-  if (rc == _IWKV_ERROR_AGAIN) {
-    goto start;
-  }
+  API_DB_WLOCK(db, rci);
+  rc = _lx_del(&lx);
   API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
 
-IW_INLINE iwrc _cursor_close_lr(IWKV_cursor cur) {
+IW_INLINE iwrc _cursor_close(IWKV_cursor cur) {
   cur->closed = true;
   if (cur->cn) {
     if (IW_UNLIKELY((cur->cn->flags & SBLK_DURTY) || (cur->cn->kvblk && (cur->cn->kvblk->flags & KVBLK_DURTY)))) {
@@ -3202,10 +2949,10 @@ iwrc iwkv_cursor_open(IWDB db,
   cur->lx.db = db;
   cur->lx.key = key;
   cur->lx.nlvl = -1;
-  rc = _cursor_to_lr(cur, op);
+  rc = _cursor_to(cur, op);
 finish:
   if (rc && cur) {
-    IWRC(_cursor_close_lr(cur), rc);
+    IWRC(_cursor_close(cur), rc);
   }
   API_DB_UNLOCK(db, rci, rc);
   if (rc) {
@@ -3228,7 +2975,7 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
     return IW_ERROR_INVALID_STATE;
   }
   API_DB_RLOCK(cur->lx.db, rci);
-  rc = _cursor_close_lr(cur);
+  rc = _cursor_close(cur);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   IWRC(_db_worker_dec_nolk(cur->lx.db), rc);
   free(cur);
@@ -3245,7 +2992,7 @@ iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op) {
     return IW_ERROR_INVALID_STATE;
   }
   API_DB_RLOCK(cur->lx.db, rci);
-  iwrc rc = _cursor_to_lr(cur, op);
+  iwrc rc = _cursor_to(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   return rc;
 }
@@ -3260,7 +3007,7 @@ iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key)
   }
   API_DB_RLOCK(cur->lx.db, rci);
   cur->lx.key = key;
-  iwrc rc = _cursor_to_lr(cur, op);
+  iwrc rc = _cursor_to(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   return rc;
 }
@@ -3309,11 +3056,11 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   if (!cur) {
     return IW_ERROR_INVALID_ARGS;
   }
-  if (!cur->cn || !cur->lx.db || (cur->cn->flags & SBLK_DB) || !(cur->cn->flags & SBLK_WLOCKED)) {
+  if (!cur->cn || !cur->lx.db || (cur->cn->flags & SBLK_DB)) {
     return IW_ERROR_INVALID_STATE;
   }
   IWDB db = cur->lx.db;
-  API_DB_RLOCK(db, rci);
+  API_DB_WLOCK(db, rci);
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val, opflags);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   return rc;
@@ -3653,13 +3400,12 @@ void iwkvd_db(FILE *f, IWDB db, int flags) {
     .db = db,
     .nlvl = -1
   };
-  lx.sblk_flags |= SBLK_NO_LOCK;
-  iwrc rc = _sblk_at(&lx, db->addr, 0, false, &sb);
+  iwrc rc = _sblk_at(&lx, db->addr, 0, &sb);
   if (rc) {
     iwlog_ecode_error3(rc);
     return;
   }
-  rc = _sblk_at(&lx, 0, 0, false, &tail);
+  rc = _sblk_at(&lx, 0, 0, &tail);
   if (rc) {
     iwlog_ecode_error3(rc);
     return;
@@ -3683,7 +3429,7 @@ void iwkvd_db(FILE *f, IWDB db, int flags) {
   }
   blkn_t blk = sb->n[0];
   while (blk) {
-    rc = _sblk_at(&lx, BLK2ADDR(blk), 0, false, &sb);
+    rc = _sblk_at(&lx, BLK2ADDR(blk), 0, &sb);
     if (rc) {
       iwlog_ecode_error3(rc);
       return;
