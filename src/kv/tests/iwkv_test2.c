@@ -16,8 +16,6 @@ int clean_suite(void) {
 }
 
 static void iwkv_test1(void) {
-  FILE *f = fopen("iwkv_test2_1.log", "w+");
-  CU_ASSERT_PTR_NOT_NULL(f);
   IWKV_OPTS opts = {
     .path = "iwkv_test2_1.db",
     .oflags = IWKV_TRUNC
@@ -64,7 +62,7 @@ int main() {
   if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
   /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwfs_test2", init_suite, clean_suite);
+  pSuite = CU_add_suite("iwkv_test2", init_suite, clean_suite);
 
   if (NULL == pSuite) {
     CU_cleanup_registry();

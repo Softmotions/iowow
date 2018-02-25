@@ -129,8 +129,6 @@ static void iwkv_test1_impl(int thrnum, int recth) {
     int rci = pthread_create(&tasks[i].thr, 0, iwkv_test1_worker, &tasks[i]);
     CU_ASSERT_EQUAL_FATAL(rci, 0);
   }
-  //sleep(3);
-  //iwkvd_aln(stderr, ctx.db);
   for (int i = 0; i < thrnum; ++i) {
     int rci = pthread_join(tasks[i].thr, 0);
     CU_ASSERT_EQUAL_FATAL(rci, 0);
@@ -143,7 +141,6 @@ static void iwkv_test1_impl(int thrnum, int recth) {
     rc = iwkv_get(ctx.db, &key, &val);
     if (rc) {
       fprintf(stderr, "\n!!! wk=%d", i);
-      logstage(f, "!!!!!!!", ctx.db);
       break;
     } else {
       CU_ASSERT_EQUAL_FATAL(val.size, sizeof(uint64_t));
@@ -151,7 +148,6 @@ static void iwkv_test1_impl(int thrnum, int recth) {
       CU_ASSERT_EQUAL_FATAL(v, i);
     }
   }
-  // logstage(f, "!!!!!!!", ctx.db);
   pthread_cond_destroy(&ctx.cond);
   pthread_mutex_destroy(&ctx.mtx);
   free(arr);
@@ -173,7 +169,7 @@ int main() {
   if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
   /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwfs_test1", init_suite, clean_suite);
+  pSuite = CU_add_suite("iwkv_test3", init_suite, clean_suite);
 
   if (NULL == pSuite) {
     CU_cleanup_registry();

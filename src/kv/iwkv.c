@@ -2352,7 +2352,7 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
   }
 }
 
-IW_INLINE iwrc _lx_put(IWLCTX *lx) {
+IW_INLINE iwrc _lx_put_lw(IWLCTX *lx) {
   iwrc rc;
 start:
   rc = _lx_find_bounds(lx);
@@ -2380,7 +2380,7 @@ start:
   return rc;
 }
 
-IW_INLINE iwrc _lx_get(IWLCTX *lx) {
+IW_INLINE iwrc _lx_get_lr(IWLCTX *lx) {
   iwrc rc = _lx_find_bounds(lx);
   RCRET(rc);
   bool found;
@@ -2404,7 +2404,7 @@ finish:
   return rc;
 }
 
-IW_INLINE iwrc _lx_del(IWLCTX *lx) {
+IW_INLINE iwrc _lx_del_lw(IWLCTX *lx) {
   iwrc rc;
   int idx;
   bool found;
@@ -2500,7 +2500,7 @@ finish:
   return rc;
 }
 
-IW_INLINE iwrc _cursor_to(IWKV_cursor cur, IWKV_cursor_op op) {
+IW_INLINE iwrc _cursor_to_lr(IWKV_cursor cur, IWKV_cursor_op op) {
   iwrc rc = 0;
   IWDB db = cur->lx.db;
   IWLCTX *lx = &cur->lx;
@@ -2859,7 +2859,7 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     .opflags = opflags
   };
   API_DB_WLOCK(db, rci);
-  rc = _lx_put(&lx);
+  rc = _lx_put_lw(&lx);
   API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
@@ -2878,7 +2878,7 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
   };
   oval->size = 0;
   API_DB_RLOCK(db, rci);
-  rc = _lx_get(&lx);
+  rc = _lx_get_lr(&lx);
   API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
@@ -2896,12 +2896,12 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
     .op = IWLCTX_DEL
   };
   API_DB_WLOCK(db, rci);
-  rc = _lx_del(&lx);
+  rc = _lx_del_lw(&lx);
   API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
 
-IW_INLINE iwrc _cursor_close(IWKV_cursor cur) {
+IW_INLINE iwrc _cursor_close_lw(IWKV_cursor cur) {
   cur->closed = true;
   if (cur->cn) {
     if (IW_UNLIKELY((cur->cn->flags & SBLK_DURTY) || (cur->cn->kvblk && (cur->cn->kvblk->flags & KVBLK_DURTY)))) {
@@ -2949,10 +2949,10 @@ iwrc iwkv_cursor_open(IWDB db,
   cur->lx.db = db;
   cur->lx.key = key;
   cur->lx.nlvl = -1;
-  rc = _cursor_to(cur, op);
+  rc = _cursor_to_lr(cur, op);
 finish:
   if (rc && cur) {
-    IWRC(_cursor_close(cur), rc);
+    IWRC(_cursor_close_lw(cur), rc);
   }
   API_DB_UNLOCK(db, rci, rc);
   if (rc) {
@@ -2974,8 +2974,8 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
   if (!cur->lx.db) {
     return IW_ERROR_INVALID_STATE;
   }
-  API_DB_RLOCK(cur->lx.db, rci);
-  rc = _cursor_close(cur);
+  API_DB_WLOCK(cur->lx.db, rci);
+  rc = _cursor_close_lw(cur);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   IWRC(_db_worker_dec_nolk(cur->lx.db), rc);
   free(cur);
@@ -2992,7 +2992,7 @@ iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op) {
     return IW_ERROR_INVALID_STATE;
   }
   API_DB_RLOCK(cur->lx.db, rci);
-  iwrc rc = _cursor_to(cur, op);
+  iwrc rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   return rc;
 }
@@ -3007,7 +3007,7 @@ iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key)
   }
   API_DB_RLOCK(cur->lx.db, rci);
   cur->lx.key = key;
-  iwrc rc = _cursor_to(cur, op);
+  iwrc rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   return rc;
 }
