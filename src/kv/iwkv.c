@@ -59,9 +59,9 @@
 
 #define BLK2ADDR(blk_) (((off_t) (blk_)) << IWKV_FSM_BPOW)
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
 volatile int8_t iwkv_next_level = -1;
-#endif
+//#endif
 
 struct IWKV;
 struct IWDB;
