@@ -34,9 +34,9 @@
  *  @author Anton Adamansky (adamansky@softmotions.com)
  * 
  * <strong>Features:<strong>
- * - Ability to store many key-value storages (databases) within a single file.
- * - Practically unlimited number of databases within a single file.
- * - Ultra-fast asc/desc traversal of database records
+ * - Ability to store many key-value databases within a single file.
+ * - Practically unlimited number of databases.
+ * - Ultra-fast asc/desc traversal of database records.
  * 
  * <strong>Limitations:<strong>
  * - Maximum number of databases is limited by `0x3ffffff0`
@@ -187,7 +187,7 @@ IW_EXPORT iwrc iwkv_sync(IWKV iwkv);
 /**
  * @brief Close iwkv store.
  * @note Upon successfull call of iwkv_close() 
- *       no farther operation on store or any of its databases allowed.
+ *       no farther operations on store or any of its databases allowed.
  * @param iwkvp
  */
 IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
