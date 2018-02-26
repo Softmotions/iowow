@@ -213,7 +213,6 @@ struct IWKV_cursor {
   off_t dbaddr;               /**< Database address used as `cn` */
   int8_t cnpos;               /**< Position in the current `SBLK` node */
   bool closed;                /**< Cursor closed */
-  bool update;                /**< Cursor opened for update */
   IWLCTX lx;                  /**< Lookup context */
 };
 
@@ -2103,11 +2102,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx) {
         rc = _sblk_at(lx, blkaddr, 0, &sblk);
       }
     } else {
-      if (lx->upper && lx->upper->addr == blkaddr) {
-        break;
-      } else {
-        rc = _sblk_at(lx, blkaddr, 0, &sblk);
-      }
+      rc = _sblk_at(lx, blkaddr, 0, &sblk);
     }
     RCRET(rc);
 #ifndef NDEBUG
@@ -2609,9 +2604,7 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
     case IWKV_ERROR_KEY_EXISTS:
       return "Key exists. (IWKV_ERROR_KEY_EXISTS)";
     case IWKV_ERROR_MAXKVSZ:
-      return "Size of Key+value must be lesser than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
-    case IWKV_ERROR_MAXDBSZ:
-      return "Database file size reached its maximal limit: 0x3fffffffc0 bytes (IWKV_ERROR_MAXDBSZ)";
+      return "Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
     case IWKV_ERROR_CORRUPTED:
       return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
     case IWKV_ERROR_DUP_VALUE_SIZE:
@@ -2688,13 +2681,13 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
         .omode      = omode,
         .lock_mode  = (oflags & IWKV_RDONLY) ? IWP_RLOCK : IWP_WLOCK
       },
-      .rspolicy     = iw_exfile_szpolicy_fibo
+      .rspolicy     = iw_exfile_szpolicy_fibo,
+      .maxoff       = IWKV_MAX_DBSZ
     },
     .bpow = IWKV_FSM_BPOW,      // 64 bytes block size
     .hdrlen = KVHDRSZ,          // Size of custom file header
     .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0),
-    .mmap_all = 1
-    //!!!! todo implement: .maxoff = IWKV_MAX_DBSZ
+    .mmap_all = true
   };
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
@@ -2922,7 +2915,6 @@ IW_INLINE iwrc _cursor_close_lw(IWKV_cursor cur) {
 iwrc iwkv_cursor_open(IWDB db,
                       IWKV_cursor *curptr,
                       IWKV_cursor_op op,
-                      IWKV_cursor_flags flags,
                       const IWKV_val *key) {
   if (!db || !db->iwkv || !curptr ||
       (key && op < IWKV_CURSOR_EQ) || op < IWKV_CURSOR_BEFORE_FIRST) {
@@ -2943,9 +2935,6 @@ iwrc iwkv_cursor_open(IWDB db,
     goto finish;
   }
   IWKV_cursor cur = *curptr;
-  if (flags & IWKV_CURSOR_FOR_UPDATE) {
-    cur->update = true;
-  }
   cur->lx.db = db;
   cur->lx.key = key;
   cur->lx.nlvl = -1;

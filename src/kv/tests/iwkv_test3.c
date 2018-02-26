@@ -9,8 +9,6 @@
 #include <stdatomic.h>
 #include <unistd.h>
 
-void iwkvd_aln(FILE *f, IWDB db);
-
 typedef struct VN {
   int kn; // key number
   int vs; // value seed

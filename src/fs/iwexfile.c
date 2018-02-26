@@ -3,7 +3,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2017 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2018 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,8 @@ typedef struct IWFS_EXT_IMPL {
   void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
   struct MMAPSLOT *mmslots;  /**< Memory mapping slots */
   int use_locks;             /**< Use rwlocks to guard method access */
+  off_t maxoff;              /**< Maximum allowed file offset. Unlimited if zero.
+                                  If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
   iwfs_omode omode;          /**< File open mode */
   HANDLE fh;                 /**< File handle */
 } EXF;
@@ -165,7 +167,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   EXF *impl = f->impl;
   iwfs_omode omode = impl->omode;
   off_t old_size = impl->fsize;
-
+  
   if (impl->fsize == size) {
     return 0;
   }
@@ -173,6 +175,9 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   if (old_size < size) {
     if (!(omode & IWFS_OWRITE)) {
       return IW_ERROR_READONLY;
+    }
+    if (impl->maxoff && size > impl->maxoff) {
+      return IWFS_ERROR_MAXOFF;
     }
     impl->fsize = size;
     rc = iwp_ftruncate(impl->fh, size);
@@ -189,7 +194,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
     RCGO(rc, truncfail);
   }
   return rc;
-
+  
 truncfail:
   // restore old size
   impl->fsize = old_size;
@@ -208,13 +213,19 @@ IW_INLINE iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
   if (nsz < sz || (nsz & (impl->psize - 1))) {
     return IWFS_ERROR_RESIZE_POLICY_FAIL;
   }
+  if (impl->maxoff && nsz > impl->maxoff) {
+    nsz = impl->maxoff;
+    if (nsz < sz) {
+      return IWFS_ERROR_MAXOFF;
+    }
+  }
   return _exfile_truncate_lw(f, nsz);
 }
 
 static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   iwrc rc = _exfile_rlock(f);
   RCRET(rc);
-
+  
   EXF *impl = f->impl;
   MMAPSLOT *s = impl->mmslots;
   while (s) {
@@ -237,18 +248,19 @@ static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
 static iwrc _exfile_write(struct IWFS_EXT *f,
                           off_t off, const void *buf, size_t siz, size_t *sp) {
   MMAPSLOT *s;
-  EXF *impl;
+  EXF *impl = f->impl;
   off_t end = off + siz;
   off_t wp = siz, len;
-
+  
   *sp = 0;
   if (off < 0 || end < 0) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
+  if (impl->maxoff && off + siz > impl->maxoff) {
+    return IWFS_ERROR_MAXOFF;
+  }
   iwrc rc = _exfile_rlock(f);
   RCRET(rc);
-
-  impl = f->impl;
   if (end > impl->fsize) {
     rc = _exfile_unlock2(impl);
     RCGO(rc, end);
@@ -448,11 +460,10 @@ static iwrc _exfile_truncate(struct IWFS_EXT *f, off_t sz) {
 
 static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
   assert(f && off >= 0);
-
   iwrc rc;
   size_t tmp;
   MMAPSLOT *ns = 0;
-
+  
   rc = _exfile_wlock(f);
   RCRET(rc);
   EXF *impl = f->impl;
@@ -724,19 +735,19 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   assert(opts);
   iwrc rc = 0;
   const char *path = opts->file.path;
-
+  
   memset(f, 0, sizeof(*f));
-
+  
   rc = iwfs_exfile_init();
   RCGO(rc, finish);
-
+  
   f->close = _exfile_close;
   f->read = _exfile_read;
   f->write = _exfile_write;
   f->sync = _exfile_sync;
   f->state = _exfile_state;
   f->copy =  _exfile_copy;
-
+  
   f->ensure_size = _exfile_ensure_size;
   f->truncate = _exfile_truncate;
   f->add_mmap = _exfile_add_mmap;
@@ -745,38 +756,40 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   f->release_mmap = _exfile_release_mmap;
   f->remove_mmap = _exfile_remove_mmap;
   f->sync_mmap = _exfile_sync_mmap;
-
+  
   if (!path) {
     return IW_ERROR_INVALID_ARGS;
   }
-
+  
   EXF *impl = f->impl = calloc(1, sizeof(EXF));
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-
+  
   impl->psize = iwp_page_size();
   impl->rspolicy = opts->rspolicy ? opts->rspolicy : _exfile_default_szpolicy;
   impl->rspolicy_ctx = opts->rspolicy_ctx;
   impl->use_locks = opts->use_locks;
-
+  if (opts->maxoff >= impl->psize) {
+    impl->maxoff = IW_ROUNDOWN(opts->maxoff, impl->psize);
+  }
   rc = _exfile_initlocks(f);
   RCGO(rc, finish);
-
+  
   rc = iwfs_file_open(&impl->file, &opts->file);
   RCGO(rc, finish);
-
+  
   IWP_FILE_STAT fstat;
   rc = iwp_fstat(path, &fstat);
   RCGO(rc, finish);
-
+  
   impl->fsize = fstat.size;
-
+  
   IWFS_FILE_STATE fstate;
   rc = impl->file.state(&impl->file, &fstate);
   impl->omode = fstate.opts.omode;
   impl->fh = fstate.fh;
-
+  
   if (impl->fsize < opts->initial_size) {
     rc = _exfile_truncate_lw(f, opts->initial_size);
   } else if (impl->fsize & (impl->psize - 1)) {  // not a page aligned
@@ -806,6 +819,8 @@ static const char *_exfile_ecodefn(locale_t locale, uint32_t ecode) {
     case IWFS_ERROR_RESIZE_POLICY_FAIL:
       return "Invalid result of resize policy function. "
              "(IWFS_ERROR_RESIZE_POLICY_FAIL)";
+    case IWFS_ERROR_MAXOFF:
+      return "Maximum file offset reached. (IWFS_ERROR_MAXOFF)";
   }
   return 0;
 }

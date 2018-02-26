@@ -7,7 +7,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2017 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2018 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -76,6 +76,7 @@
  */
 
 #include "iwexfile.h"
+#include <stdbool.h>
 #include <math.h>
 
 IW_EXTERN_C_START
@@ -157,8 +158,8 @@ typedef struct IWFS_FSM_OPTS {
   size_t bmlen;              /**< Initial size of free-space bitmap */
   size_t hdrlen;             /**< Length of custom file header.*/
   int sync_flags;            /**< Default msync flags for mmap_sync operations
-                                (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
-  int mmap_all;              /**< Mmap all file data */
+                                  (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
+  bool mmap_all;             /**< Mmap all file data */
 } IWFS_FSM_OPTS;
 
 /**

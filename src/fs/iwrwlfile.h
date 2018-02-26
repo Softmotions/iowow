@@ -8,7 +8,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2017 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2018 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -102,7 +102,7 @@ typedef struct IWFS_RWL {
    * @brief Try to acquire a lock over the address range specified by @a off and
    * @a len.
    *
-   * Lock type is specified by @ref `iwrl_lockflags` flags.
+   * Lock type is specified by @ref iwrl_lockflags flags.
    * If the given address range intersects with some other write locked range
    * owned by another thread
    * the call will fail with `IW_ERROR_FALSE` error code.

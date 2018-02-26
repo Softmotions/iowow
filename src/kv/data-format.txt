@@ -4,11 +4,12 @@ block size: u64
 max key+value size: 268435455 (~255Mb)
 max data file size: 255G
 
-levels:
+SKIPLIST:
+
   [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256  // SBLK Skip block
                                                   \
-                                  [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[_KV],...]] // KVBLK
-  KV: [klen:vn,key,value]
+                                  [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[KV],...]] // KVBLK
+  KV     - [klen:vn,key,value]
 
   flags  - Block flags
   lvl    - Skip list level for this block
@@ -22,7 +23,8 @@ levels:
   psN    - Key/Value pair block start on i-th place
   plN    - Key/Value pair block length on i-th place
 
-db:
+DB:
+
   [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
 
   magic       - DB magic number 0x69776462
@@ -32,7 +34,7 @@ db:
   p0          - Last database block
   n0-n29      - Skiplist next pointers to `SBLK`
 
-header:
+HEADER:
 
   [magic:u4,u8:fistdb_addr]
 
