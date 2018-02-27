@@ -25,7 +25,11 @@ include(TestBigEndian)
 
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 if (IS_BIG_ENDIAN EQUAL 1)
-add_definitions(-DIW_BIGENDIAN=1)
+  add_definitions(-DIW_BIGENDIAN=1)
+endif()
+
+if (BUILD_TESTS) 
+ add_definitions(-DIW_TESTS=1)
 endif()
 
 if (WIN32)

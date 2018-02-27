@@ -59,9 +59,9 @@
 
 #define BLK2ADDR(blk_) (((off_t) (blk_)) << IWKV_FSM_BPOW)
 
-//#ifndef NDEBUG
+#ifdef IW_TESTS
 volatile int8_t iwkv_next_level = -1;
-//#endif
+#endif
 
 struct IWKV;
 struct IWDB;
@@ -1615,7 +1615,7 @@ IW_INLINE iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
 
 IW_INLINE uint8_t _sblk_genlevel() {
   int8_t lvl;
-#ifndef NDEBUG
+#ifdef IW_TESTS
   if (iwkv_next_level >= 0) {
     lvl = iwkv_next_level;
     iwkv_next_level = -1;
