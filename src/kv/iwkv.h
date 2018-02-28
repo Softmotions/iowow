@@ -34,11 +34,11 @@
  *  @author Anton Adamansky (adamansky@softmotions.com)
  *
  * <strong>Features:<strong>
- * - Ability to store many key-value databases within a single file.
+ * - Ability to store multiple key-value databases in a single file.
  * - Practically unlimited number of databases.
  * - Ultra-fast asc/desc traversal of database records.
  * - Native support of 4/8 byte integer keys
- * - Support of values represented as sorted arrays of integers.
+ * - Support of key value represented as sorted array of integers.
  *
  * <strong>Limitations:<strong>
  * - Maximum number of databases is limited by `0x3ffffff0`
@@ -98,7 +98,7 @@ typedef enum {
 typedef enum {
   IWKV_NO_OVERWRITE = 0x1,   /**< Do not overwrite value for an existing key */
   IWKV_DUP_REMOVE =   0x2    /**< Remove value from duplicated values array.
-                                  Usable only for IWDB_DUP_X DB database modes */
+                                  Usable only for IWDB_DUP_XXX DB database modes */
 } iwkv_opflags;
 
 struct IWKV;
@@ -108,7 +108,7 @@ struct IWDB;
 typedef struct IWDB *IWDB;
 
 /**
- * @brief IWKV open options.
+ * @brief IWKV specific open options.
  */
 typedef struct IWKV_OPTS {
   char *path;              /**< Path to database file */
@@ -130,7 +130,7 @@ struct IWKV_cursor;
 typedef struct IWKV_cursor *IWKV_cursor;
 
 /**
- * @brief Database curso operations/position flags.
+ * @brief Database cursor operations/position flags.
  */
 typedef enum IWKV_cursor_op {
   IWKV_CURSOR_BEFORE_FIRST = 1, /**< Set cursor before first record */
@@ -143,6 +143,7 @@ typedef enum IWKV_cursor_op {
 
 /**
  * @brief Initialize iwkv storage.
+ * @details This method must be called before using of any iwkv api function.
  * @note iwkv implicitly initialized by iw_init()
  */
 IW_EXPORT WUR iwrc iwkv_init(void);
@@ -156,7 +157,7 @@ IW_EXPORT WUR iwrc iwkv_init(void);
  *  };
  *  iwrc rc = iwkv_open(&opts, &iwkv);
  * @endcode
- * @note After usage an opened store must be closed by iwkv_close()
+ * @note Any opened iwkv store must be closed by iwkv_close() after usage.
  * @param opts Database open options.
  * @param [out] iwkvp Pointer to @ref IWKV structure.
  */
@@ -164,8 +165,8 @@ IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
 
 /**
  * @brief Acquire iwkv database identified by `dbid`.
- *
- * In the case if no database matched `dbid` a new database will be created using passed `dbid` and `flags`.
+ * @details In the case if no database matched `dbid` 
+ *          a new database will be created using specified`dbid` and `flags`.
  * @note Database doesn't require to be explicitly closed.
  * @note Database `flags` argument must be same for all subsequent calls after first call
  *       otherwise `IWKV_ERROR_INCOMPATIBLE_DB_MODE` will be reported.
@@ -198,6 +199,8 @@ IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
 
 /**
  * @brief Store record in database identified by `db`.
+ * @details Behavior varies depending on `opflags` value:
+ *  - IWKV_NO_OVERWRITE If a key record already exists in database 
  *
  * @param db Database id
  * @param key Key data

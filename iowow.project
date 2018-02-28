@@ -70,6 +70,7 @@
       <File Name="src/platform/iwp.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="utils">
+      <File Name="src/utils/ksort.h"/>
       <VirtualDirectory Name="tests">
         <File Name="src/utils/tests/CMakeLists.txt"/>
         <File Name="src/utils/tests/iwrlock_test1.c"/>
