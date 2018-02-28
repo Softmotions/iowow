@@ -1491,19 +1491,17 @@ static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen) {
   return f->impl->pool.add_mmap(&f->impl->pool, off, maxlen);
 }
 
-static iwrc _fsm_acquire_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
-  //FSM_ENSURE_OPEN2(f);
+iwrc _fsm_acquire_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
   return f->impl->pool.acquire_mmap(&f->impl->pool, off, mm, sp);
+}
+
+iwrc _fsm_release_mmap(struct IWFS_FSM *f) {
+  return f->impl->pool.release_mmap(&f->impl->pool);
 }
 
 static iwrc _fsm_probe_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
   FSM_ENSURE_OPEN2(f);
   return f->impl->pool.probe_mmap(&f->impl->pool, off, mm, sp);
-}
-
-static iwrc _fsm_release_mmap(struct IWFS_FSM *f) {
-  FSM_ENSURE_OPEN2(f);
-  return f->impl->pool.release_mmap(&f->impl->pool);
 }
 
 static iwrc _fsm_remove_mmap(struct IWFS_FSM *f, off_t off) {

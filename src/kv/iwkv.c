@@ -102,8 +102,8 @@ typedef struct KVBLK {
   uint16_t idxsz;             /**< Size of KV pairs index in bytes */
   int8_t zidx;                /**< Index of first empty pair slot (zero index), or -1 */
   uint8_t szpow;              /**< Block size as power of 2 */
-  KVP pidx[KVBLK_IDXNUM];     /**< KV pairs index */
   kvblk_flags_t flags;        /**< Flags */
+  KVP pidx[KVBLK_IDXNUM];     /**< KV pairs index */
 } KVBLK;
 
 typedef enum {
@@ -1062,11 +1062,15 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   int step;
   iwrc rc = 0;
   KVBLK *kb = kbp ? kbp : &lx->kaa[lx->kaan];
-  memset(kb, 0, sizeof(*kb));
   kb->db = lx->db;
   kb->addr = addr;
+  kb->maxoff = 0;
+  kb->idxsz = 0;
   kb->zidx = -1;
-  
+  kb->szpow = 0;
+  kb->flags = 0;
+  memset(kb->pidx, 0, sizeof(kb->pidx));
+    
   *blkp = 0;
   rp = mm + addr;
   
@@ -1158,9 +1162,7 @@ IW_INLINE off_t _kvblk_compacted_offset(KVBLK *kb) {
 }
 
 IW_INLINE bool _kvblk_sort_kv_lt(const KVP v1, const KVP v2) {
-  uint32_t o1 = v1.off > 0 ? v1.off : -1UL;
-  uint32_t o2 = v2.off > 0 ? v2.off : -1UL;
-  return o1 < o2;
+  return (v1.off > 0 ? v1.off : -1UL) < (v2.off > 0 ? v2.off : -1UL);
 }
 
 KSORT_INIT(kvblk, KVP, _kvblk_sort_kv_lt)
@@ -1171,8 +1173,7 @@ static void _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
   if (coff == kb->maxoff) { // already compacted
     return;
   }
-  KVP tidx[KVBLK_IDXNUM];
-  KVP tidx_tmp[KVBLK_IDXNUM];
+  KVP tidx[KVBLK_IDXNUM], tidx_tmp[KVBLK_IDXNUM];
   uint8_t *wp = mm + kb->addr + (1ULL << kb->szpow);
   memcpy(tidx, kb->pidx, sizeof(tidx));
   ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp);
@@ -1520,8 +1521,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
       kb->flags |= KVBLK_DURTY;
     }
   } else {
-    KVP tidx[KVBLK_IDXNUM];
-    KVP tidx_tmp[KVBLK_IDXNUM];
+    KVP tidx[KVBLK_IDXNUM], tidx_tmp[KVBLK_IDXNUM];
     uint32_t koff = kb->pidx[idx].off;
     memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
     ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp);
@@ -1667,6 +1667,7 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
   RCRET(rc);
   SBLK *sblk = &lx->saa[lx->saan];
   memset(sblk, 0, sizeof(*sblk));
+  
   if (IW_UNLIKELY(addr == lx->db->addr)) {
     uint8_t *rp = mm + addr + DOFF_N0_U4;
     // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
