@@ -1074,7 +1074,8 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   *blkp = 0;
   rp = mm + addr;
   
-  IW_READBV(rp, kb->szpow, kb->szpow);
+  memcpy(&kb->szpow, rp, 1);
+  rp += 1;
   IW_READSV(rp, sv, kb->idxsz);
   if (IW_UNLIKELY(kb->idxsz > 2 * 4 * KVBLK_IDXNUM)) {
     rc = IWKV_ERROR_CORRUPTED;
