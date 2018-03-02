@@ -104,6 +104,10 @@
     <File Name="src/basedefs.h"/>
     <File Name="src/iowow.c"/>
     <VirtualDirectory Name="kv">
+      <VirtualDirectory Name="examples">
+        <File Name="src/kv/examples/CMakeLists.txt"/>
+        <File Name="src/kv/examples/example1.c"/>
+      </VirtualDirectory>
       <File Name="src/kv/data-format.txt"/>
       <File Name="src/kv/iwkv.h"/>
       <VirtualDirectory Name="tests">

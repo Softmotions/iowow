@@ -749,7 +749,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   if (next) {
     next->prev = prev;
     _db_save(next, mm);
-  }
+  }    
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
   memcpy(&first_sblkn, mm + db->addr + DOFF_N0_U4, 4);
   first_sblkn = IW_ITOHL(first_sblkn);
@@ -769,6 +769,8 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
     DISPOSE_DB_CTX *dctx = malloc(sizeof(*dctx));
     if (dctx) {
       db->open = false;
+      db->lp_addr = 0;
+      db->lg_addr = 0;
       dctx->sbn = first_sblkn;
       dctx->iwkv = db->iwkv;
       dctx->dbp = dbp;
@@ -2366,7 +2368,6 @@ start:
     if (lower->lvl >= lx->nlvl) {
       lx->lower = lower;
     }
-    assert(!(lx->dblk->flags & SBLK_DURTY));
     goto start;
   }
   if (rc) {

@@ -163,6 +163,9 @@ foreach(MODULE IN LISTS MODULES)
     endif()
     if (BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/tests/CMakeLists.txt)
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/tests)
+    endif()    
+    if (BUILD_EXAMPLES AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/examples/CMakeLists.txt)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/examples)
     endif()
 endforeach(MODULE)
 
@@ -249,7 +252,7 @@ message("\n${PROJECT_NAME} PUB_HDRS: ${PUB_HDRS}")
 message("\n${PROJECT_NAME} CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message("${PROJECT_NAME} BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 message("${PROJECT_NAME} BUILD_TESTS: ${BUILD_TESTS}")
-message("${PROJECT_NAME} BUILD_SAMPLES: ${BUILD_SAMPLES}")
+message("${PROJECT_NAME} BUILD_EXAMPLES: ${BUILD_EXAMPLES}")
 message("${PROJECT_NAME} BUILD_DOCUMENTATION: ${BUILD_DOCUMENTATION}")
 
 
