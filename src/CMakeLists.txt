@@ -23,6 +23,10 @@ include(CheckIncludeFiles)
 include(CheckLibraryExists)
 include(TestBigEndian)
 
+if ((CMAKE_BUILD_TYPE EQUAL Release) OR (CMAKE_BUILD_TYPE EQUAL RelWithDebInfo))
+  add_definition(-DIW_RELEASE=1)
+endif()
+
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 if (IS_BIG_ENDIAN EQUAL 1)
   add_definitions(-DIW_BIGENDIAN=1)

@@ -2716,7 +2716,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0),
     .mmap_all = true
   };
-#ifdef IW_TESTS
+#if defined(IW_TESTS) && !defined(IW_RELEASE)
   fsmopts.oflags |= IWFSM_STRICT;
 #endif
   
