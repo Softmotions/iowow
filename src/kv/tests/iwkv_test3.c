@@ -138,8 +138,9 @@ static void iwkv_test1_impl(int thrnum, int recth) {
     key.size = sizeof(uint64_t);
     rc = iwkv_get(ctx.db, &key, &val);
     if (rc) {
-      fprintf(stderr, "\n!!! wk=%d", i);
-      break;
+      fprintf(stderr, "\nwk=%d\n", i);
+      iwlog_ecode_error3(rc);
+      //break;
     } else {
       CU_ASSERT_EQUAL_FATAL(val.size, sizeof(uint64_t));
       memcpy(&v, val.data, sizeof(uint64_t));

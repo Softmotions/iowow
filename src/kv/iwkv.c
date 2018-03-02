@@ -134,6 +134,8 @@ struct IWDB {
   pthread_rwlock_t rwl;       /**< Database API RW lock */
   dbid_t id;                  /**< Database ID */
   uint64_t next_db_addr;      /**< Next IWDB addr */
+  off_t lg_addr;              /**< Lower SBLK address after last successfull get operation */
+  off_t lp_addr;              /**< Lower SBLK address after last successfull put operation */
   struct IWDB *next;          /**< Next IWDB meta */
   struct IWDB *prev;          /**< Prev IWDB meta */
   volatile int32_t wk_count;  /**< Number of active database workers */
@@ -1070,7 +1072,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   kb->szpow = 0;
   kb->flags = 0;
   memset(kb->pidx, 0, sizeof(kb->pidx));
-    
+  
   *blkp = 0;
   rp = mm + addr;
   
@@ -2117,12 +2119,28 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
 
 static iwrc _lx_find_bounds(IWLCTX *lx) {
   iwrc rc = 0;
-  if (!lx->lower && lx->dblk) {
-    lx->lower = lx->dblk;
-  } else {
-    rc = _sblk_at(lx, lx->db->addr, 0, &lx->lower);
+  if (!lx->dblk) {
+    rc = _sblk_at(lx, lx->db->addr, 0, &lx->dblk);
     RCRET(rc);
-    lx->dblk = lx->lower;
+  }
+  if (!lx->lower) {
+    if (lx->nlvl < 0) {
+      off_t lba = (lx->op & IWLCTX_PUT) ? lx->db->lp_addr : lx->db->lg_addr;
+      if (lba) {
+        int cret;
+        rc = _sblk_at(lx, lba, 0, &lx->lower);
+        RCRET(rc);
+        rc = _lx_sblk_cmp_key(lx, lx->lower, &cret);
+        RCRET(rc);
+        if (cret > 0) {
+          // last cached lower does't match key
+          lx->lower = 0;
+        }
+      }
+    }
+    if (!lx->lower) {
+      lx->lower = lx->dblk;
+    }
   }
   if (lx->nlvl > lx->dblk->lvl) { // New level in DB
     memset(&lx->dblk->n[lx->dblk->lvl + 1], 0, lx->nlvl - lx->dblk->lvl);
@@ -2368,6 +2386,9 @@ start:
     }
     _lx_release_mm(lx, 0);
   } else {
+    if (!(lx->lower->flags & SBLK_DB)) {
+      lx->db->lp_addr = lx->lower->addr;
+    }
     rc = _lx_release(lx);
   }
   return rc;
@@ -2393,6 +2414,9 @@ IW_INLINE iwrc _lx_get_lr(IWLCTX *lx) {
   }
 finish:
   IWRC(fsm->release_mmap(fsm), rc);
+  if (!rc && !(lx->lower->flags & SBLK_DB)) {
+    lx->db->lg_addr = lx->lower->addr;
+  }
   _lx_release_mm(lx, 0);
   return rc;
 }
@@ -2418,8 +2442,13 @@ IW_INLINE iwrc _lx_del_lw(IWLCTX *lx) {
   }
   fsm->release_mmap(fsm);
   mm = 0;
-  
   if (sblk->pnum == 1) { // last kv in block
+    if (lx->db->lg_addr == sblk->addr) {
+      lx->db->lg_addr = 0;
+    }
+    if (lx->db->lp_addr == sblk->addr) {
+      lx->db->lp_addr = 0;
+    }
     KVBLK *kvblk = sblk->kvblk;
     _lx_release_mm(lx, 0);
     lx->nlvl = sblk->lvl;
@@ -2687,6 +2716,10 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     .oflags = ((oflags & (IWKV_NOLOCKS | IWKV_RDONLY)) ? IWFSM_NOLOCKS : 0),
     .mmap_all = true
   };
+#ifdef IW_TESTS
+  fsmopts.oflags |= IWFSM_STRICT;
+#endif
+  
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
   IWFS_FSM *fsm  = &iwkv->fsm;
