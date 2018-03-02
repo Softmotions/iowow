@@ -36,7 +36,7 @@ int main() {
   rc = iwkv_put(mydb, &key, &val, 0);
   if (rc) {
     iwlog_ecode_error3(rc);
-    return 1;
+    return rc;
   }
   // Retrive value associated with `foo` key
   val.data = 0;
@@ -44,7 +44,7 @@ int main() {
   rc = iwkv_get(mydb, &key, &val);
   if (rc) {
     iwlog_ecode_error3(rc);
-    return 1;
+    return rc;
   }
   
   fprintf(stdout, "get: %.*s => %.*s\n",
