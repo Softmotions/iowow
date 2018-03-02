@@ -30,7 +30,7 @@
 // Number of skip list levels
 #define SLEVELS 30
 
-#define AANUM (2 * SLEVELS + 2 /* (new block created) + (db block may be updated) */)
+#define AANUM (2 * SLEVELS + 3 /* (new block created) + (db block may be updated) + (db block) */)
 
 // Lower key length in SBLK
 #define SBLK_LKLEN 61
@@ -113,14 +113,6 @@ typedef enum {
 } sblk_flags_t;
 
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
-
-/* Address lock node */
-typedef struct ALN {
-  pthread_mutex_t mtx;    /**< SBLK lock */
-  int refs;               /**< Number of refs */
-} ALN;
-
-KHASH_MAP_INIT_INT(ALN, ALN *)
 
 /* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137 */
 struct IWDB {
@@ -2119,10 +2111,8 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
 
 static iwrc _lx_find_bounds(IWLCTX *lx) {
   iwrc rc = 0;
-  if (!lx->dblk) {
-    rc = _sblk_at(lx, lx->db->addr, 0, &lx->dblk);
-    RCRET(rc);
-  }
+  rc = _sblk_at(lx, lx->db->addr, 0, &lx->dblk);
+  RCRET(rc);
   if (!lx->lower) {
     if (lx->nlvl < 0) {
       off_t lba = (lx->op & IWLCTX_PUT) ? lx->db->lp_addr : lx->db->lg_addr;
@@ -2370,12 +2360,13 @@ start:
   }
   rc = _lx_addkv(lx);
   SBLK *lower = lx->lower;
-  if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {    
+  if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
     _lx_release_mm(lx, 0);
     lx->nlvl = _sblk_genlevel();
     if (lower->lvl >= lx->nlvl) {
       lx->lower = lower;
     }
+    assert(!(lx->dblk->flags & SBLK_DURTY));
     goto start;
   }
   if (rc) {
