@@ -1259,7 +1259,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
     }
     if ((kb->szpow - dpow) >= KVBLK_INISZPOW && dsz < kbsz / 2) { // We can shrink kvblock
       _kvblk_compact_mm(kb, mm);
-      off_t naddr = kb->addr, nlen = kbsz;
+      off_t naddr = kb->addr, nlen = 1ULL << (kb->szpow - dpow);
       off_t maxoff = _kvblk_maxkvoff(kb);
       memmove(mm + kb->addr + sz - maxoff,
               mm + kb->addr + kbsz - maxoff,

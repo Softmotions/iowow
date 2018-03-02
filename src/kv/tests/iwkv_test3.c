@@ -132,12 +132,14 @@ static void iwkv_test1_impl(int thrnum, int recth) {
     CU_ASSERT_EQUAL_FATAL(rci, 0);
   }
   fprintf(stderr, "\nChecking DB....");
+  int ec = 0;
   for (int i = 0; i < nrecs; ++i) {
     uint64_t k = i, v;
     key.data = &k;
     key.size = sizeof(uint64_t);
     rc = iwkv_get(ctx.db, &key, &val);
     if (rc) {
+      ec++;
       fprintf(stderr, "\nwk=%d\n", i);
       iwlog_ecode_error3(rc);
       //break;
@@ -152,6 +154,7 @@ static void iwkv_test1_impl(int thrnum, int recth) {
   free(arr);
   free(tasks);
   rc = iwkv_close(&iwkv);
+  fprintf(stderr, "ec=%d\n", ec);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   fclose(f);
 }
