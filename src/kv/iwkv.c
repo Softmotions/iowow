@@ -2133,8 +2133,7 @@ static iwrc _lx_find_bounds(IWLCTX *lx) {
         rc = _lx_sblk_cmp_key(lx, lx->lower, &cret);
         RCRET(rc);
         if (cret > 0) {
-          // last cached lower does't match key
-          lx->lower = 0;
+          lx->lower = 0; // last cached lower doesn't match key
         }
       }
     }
@@ -2370,8 +2369,8 @@ start:
     return rc;
   }
   rc = _lx_addkv(lx);
-  if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
-    SBLK *lower = lx->lower;
+  SBLK *lower = lx->lower;
+  if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {    
     _lx_release_mm(lx, 0);
     lx->nlvl = _sblk_genlevel();
     if (lower->lvl >= lx->nlvl) {
@@ -2386,10 +2385,10 @@ start:
     }
     _lx_release_mm(lx, 0);
   } else {
-    if (!(lx->lower->flags & SBLK_DB)) {
-      lx->db->lp_addr = lx->lower->addr;
-    }
     rc = _lx_release(lx);
+    if (!rc && !(lower->flags & SBLK_DB)) {
+      lx->db->lp_addr = lower->addr;
+    }
   }
   return rc;
 }

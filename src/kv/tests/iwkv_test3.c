@@ -160,7 +160,7 @@ static void iwkv_test1_impl(int thrnum, int recth) {
 }
 
 static void iwkv_test1(void) {
-  iwkv_test1_impl(3, 10000);
+  iwkv_test1_impl(4, 30000);
 }
 
 int main() {
