@@ -2786,7 +2786,7 @@ iwrc iwkv_close(IWKV *iwkvp) {
   return rc;
 }
 
-iwrc iwkv_sync(IWKV iwkv) {
+iwrc iwkv_sync(IWKV iwkv, bool async) {
   ENSURE_OPEN(iwkv);
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
@@ -2795,7 +2795,11 @@ iwrc iwkv_sync(IWKV iwkv) {
   IWFS_FSM *fsm  = &iwkv->fsm;
   int rci = pthread_rwlock_rdlock(&iwkv->rwl);
   if (rci) rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  IWRC(fsm->sync(fsm, IWFS_FDATASYNC), rc);
+  iwfs_sync_flags flags = IWFS_FDATASYNC;
+  if (async) {
+    flags |= IWFS_NO_MMASYNC;
+  }
+  IWRC(fsm->sync(fsm, flags), rc);
   pthread_rwlock_unlock(&iwkv->rwl);
   return rc;
 }
