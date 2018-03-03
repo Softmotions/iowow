@@ -97,8 +97,9 @@ typedef enum {
  */
 typedef enum {
   IWKV_NO_OVERWRITE = 0x1,   /**< Do not overwrite value for an existing key */
-  IWKV_DUP_REMOVE =   0x2    /**< Remove value from duplicated values array.
+  IWKV_DUP_REMOVE =   0x2,   /**< Remove value from duplicated values array.
                                   Usable only for IWDB_DUP_XXX DB database modes */
+  IWKV_SYNC =         0x4    /**< Flush changes on disk after operation */                                
 } iwkv_opflags;
 
 struct IWKV;

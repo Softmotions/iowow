@@ -310,7 +310,7 @@ IW_EXPORT void iwu_rand_seed(uint32_t seed);
 IW_EXPORT uint32_t iwu_rand_u32();
 
 /**
- * @brief Create uniform distributed random number.
+ * @brief Create normal distributed random number.
  * @param avg Distribution pivot
  * @param sd Avg square deviation
  */

@@ -749,7 +749,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   if (next) {
     next->prev = prev;
     _db_save(next, mm);
-  }    
+  }
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
   memcpy(&first_sblkn, mm + db->addr + DOFF_N0_U4, 4);
   first_sblkn = IW_ITOHL(first_sblkn);
@@ -2378,8 +2378,14 @@ start:
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
-    if (!rc && !(lower->flags & SBLK_DB)) {
-      lx->db->lp_addr = lower->addr;
+    if (!rc) {
+      if (!(lower->flags & SBLK_DB)) {
+        lx->db->lp_addr = lower->addr;
+      }
+      if (lx->opflags & IWKV_SYNC) {
+        IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+        rc = fsm->sync(fsm, IWFS_NO_MMASYNC);
+      }
     }
   }
   return rc;
