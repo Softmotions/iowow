@@ -1,4 +1,5 @@
 .codelite/
+.cmaketools.json
 *.tags
 #iowow.project
 #iowow.workspace

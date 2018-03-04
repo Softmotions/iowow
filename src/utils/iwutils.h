@@ -69,7 +69,7 @@ IW_EXTERN_C_START
 
 #if __GNUC__ >= 4
 #define IW_SWAB64(IW_num_) __builtin_bswap64(IW_num_)
-#else 
+#else
 #define IW_SWAB64(IW_num_)                     \
   ((((IW_num_) & 0x00000000000000ffULL) << 56) | \
    (((IW_num_) & 0x000000000000ff00ULL) << 40) | \
@@ -234,11 +234,11 @@ IW_EXTERN_C_START
     int _base_ = 1; \
     int _i_ = 0; \
     while(1){ \
-      if(((signed char *)(buf_))[_i_] >= 0){ \
-        num_ += _base_ * ((signed char *)(buf_))[_i_]; \
+      if(((const signed char *)(buf_))[_i_] >= 0){ \
+        num_ += _base_ * ((const signed char *)(buf_))[_i_]; \
         break; \
       } \
-      num_ += _base_ * ~(((signed char *)(buf_))[_i_]); \
+      num_ += _base_ * ~(((const signed char *)(buf_))[_i_]); \
       _base_ <<= 7; \
       _i_++; \
     } \
@@ -252,11 +252,11 @@ IW_EXTERN_C_START
     long long int _base_ = 1; \
     int _i_ = 0; \
     while(1){ \
-      if(((signed char *)(buf_))[_i_] >= 0){ \
-        num_ += _base_ * ((signed char *)(buf_))[_i_]; \
+      if(((const signed char *)(buf_))[_i_] >= 0){ \
+        num_ += _base_ * ((const signed char *)(buf_))[_i_]; \
         break; \
       } \
-      num_ += _base_ * ~(((signed char *)(buf_))[_i_]); \
+      num_ += _base_ * ~(((const signed char *)(buf_))[_i_]); \
       _base_ <<= 7; \
       _i_++; \
     } \

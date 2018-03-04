@@ -32,7 +32,7 @@ if (IS_BIG_ENDIAN EQUAL 1)
   add_definitions(-DIW_BIGENDIAN=1)
 endif()
 
-if (BUILD_TESTS) 
+if (BUILD_TESTS)
  add_definitions(-DIW_TESTS=1)
 endif()
 
@@ -117,7 +117,7 @@ if (BUILD_SHARED_LIBS)
 endif()
 
 # -pg -no-pie
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers -Wno-missing-braces")
 if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
@@ -231,7 +231,7 @@ endif()
 if (CMAKE_VERSION VERSION_GREATER 3.0)
     export(EXPORT iowow-exports)
   if (BUILD_SHARED_LIBS)
-    export(EXPORT iowow-static-exports)      
+    export(EXPORT iowow-static-exports)
   endif(BUILD_SHARED_LIBS)
 else()
   export(TARGETS iowow FILE iowow-exports.cmake)

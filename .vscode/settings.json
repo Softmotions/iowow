@@ -4,12 +4,14 @@
     "-DBUILD_TESTS=ON",
     "-DCMAKE_C_COMPILER=clang",
     "-DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF",
-    "-DBUILD_SHARED_LIBS=ON"
+    "-DBUILD_SHARED_LIBS=ON",
+    "-DBUILD_EXAMPLES=ON",
+    "-DBUILD_BENCHMARKS=ON"
   ],
   "cmake.ctestArgs": [],
-  "C_Cpp.formatting": "disabled",
-  "C_Cpp.autocomplete": "Default",
-  "C_Cpp.addWorkspaceRootToIncludePath": false,
+  "C_Cpp.formatting": "Disabled",
+  "C_Cpp.autocomplete": "Disabled",
+  "C_Cpp.errorSquiggles": "Disabled",
   "astyle.astylerc": "${workspaceRoot}/.astylerc",
   "astyle.c.enable": true,
   "astyle.cpp.enable": true,
@@ -23,7 +25,18 @@
     "-Wcast-qual",
     "-Wunused",
     "-Wnonportable-system-include-path",
+    "-Wno-sign-compare",
+    "-Wno-unused-parameter",
+    "-Wno-unknown-pragmas",
+    "-Wno-unused-function",
+    "-Wno-missing-field-initializers",
+    "-Wno-missing-braces",
     "-I${workspaceRoot}/src",
+    "-I${workspaceRoot}/src/utils",
+    "-I${workspaceRoot}/src/kv",
+    "-I${workspaceRoot}/src/fs",
+    "-I${workspaceRoot}/src/log",
+    "-I${workspaceRoot}/src/platform",
     "-I${workspaceRoot}/build/src/generated"
   ],
   "clang.cxxflags": [
@@ -32,8 +45,22 @@
     "-Wcast-qual",
     "-Wunused",
     "-Wnonportable-system-include-path",
+    "-Wno-sign-compare",
+    "-Wno-unused-parameter",
+    "-Wno-unknown-pragmas",
+    "-Wno-unused-function",
+    "-Wno-missing-field-initializers",
+    "-Wno-missing-braces",
     "-I${workspaceRoot}/src",
+    "-I${workspaceRoot}/src/utils",
+    "-I${workspaceRoot}/src/kv",
+    "-I${workspaceRoot}/src/fs",
+    "-I${workspaceRoot}/src/log",
+    "-I${workspaceRoot}/src/platform",
     "-I${workspaceRoot}/build/src/generated"
-  ]
+  ],
+  "files.associations": {
+    "string.h": "c"
+  }
 }
 
