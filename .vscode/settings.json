@@ -59,7 +59,8 @@
     "-I${workspaceRoot}/src/kv"
   ],
   "files.associations": {
-    "string.h": "c"
+    "string.h": "c",
+    "iwutils.h": "c"
   }
 }
 
