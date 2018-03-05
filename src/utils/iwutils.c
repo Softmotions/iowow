@@ -49,13 +49,7 @@ double_t iwu_rand_dnorm(double_t avg, double_t sd) {
 }
 
 uint32_t iwu_rand_range(int range) {
-  int high, low;
-  if (range < 2)
-    return 0;
-  high = genrand_int31() >> 4;
-  low = range * (genrand_int31() / (INT_MAX + 1.0));
-  low &= INT_MAX >> 4;
-  return (high + low) % range;
+  return genrand_int31() % range;
 }
 
 uint32_t iwu_rand_inorm(int range) {
