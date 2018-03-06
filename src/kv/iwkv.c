@@ -1162,7 +1162,7 @@ IW_INLINE bool _kvblk_sort_kv_lt(const KVP v1, const KVP v2) {
 
 KSORT_INIT(kvblk, KVP, _kvblk_sort_kv_lt)
 
-static void _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
+static void _kvblk_compact_mm(KVBLK *kb, bool sync, uint8_t *mm) {
   uint8_t i;
   off_t coff = _kvblk_compacted_offset(kb);
   if (coff == kb->maxoff) { // already compacted
@@ -1199,7 +1199,9 @@ static void _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
     kb->zidx = -1;
   }
   kb->flags |= KVBLK_DURTY;
-  _kvblk_sync_mm(kb, mm);
+  if (sync) {
+    _kvblk_sync_mm(kb, mm);
+  }
 }
 
 IW_INLINE uint64_t _kvblk_datasize(KVBLK *kb) {
@@ -1251,7 +1253,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       ++dpow;
     }
     if ((kb->szpow - dpow) >= KVBLK_INISZPOW && dsz < kbsz / 2) { // We can shrink kvblock
-      _kvblk_compact_mm(kb, mm);
+      _kvblk_compact_mm(kb, false, mm);
       off_t naddr = kb->addr;
       off_t nlen = 1ULL << kb->szpow;
       off_t maxoff = _kvblk_maxkvoff(kb);
@@ -1261,6 +1263,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
               maxoff);
       fsm->release_mmap(fsm);
       mm = 0;
+
       rc = fsm->reallocate(fsm, sz, &naddr, &nlen,
                            IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
       RCGO(rc, finish);
@@ -1344,7 +1347,7 @@ start:
     if (!compacted) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCGO(rc, finish);
-      _kvblk_compact_mm(kb, mm);
+      _kvblk_compact_mm(kb, false, mm);
       compacted = true;
       fsm->release_mmap(fsm);
       goto start;
@@ -3397,6 +3400,10 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     }
   }
   fprintf(f, "\n\n");
+}
+
+IWFS_FSM *iwkvd_fsm(IWKV kv) {
+  return &kv->fsm;
 }
 
 void iwkvd_db(FILE *f, IWDB db, int flags) {
