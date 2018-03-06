@@ -9,6 +9,9 @@
     "-DBUILD_BENCHMARKS=ON"
   ],
   "cmake.ctestArgs": [],
+  "cmake.debugConfig": {
+    "cwd": "${workspaceRoot}/build/src/kv/tests"
+  },
   "C_Cpp.formatting": "Disabled",
   "C_Cpp.autocomplete": "Disabled",
   "C_Cpp.errorSquiggles": "Disabled",

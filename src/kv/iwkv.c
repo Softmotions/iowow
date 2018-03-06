@@ -1249,7 +1249,8 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
     }
     if ((kb->szpow - dpow) >= KVBLK_INISZPOW && dsz < kbsz / 2) { // We can shrink kvblock
       _kvblk_compact_mm(kb, mm);
-      off_t naddr = kb->addr, nlen = 1ULL << (kb->szpow - dpow);
+      off_t naddr = kb->addr;
+      off_t nlen = 1ULL << kb->szpow;
       off_t maxoff = _kvblk_maxkvoff(kb);
       memmove(mm + kb->addr + sz - maxoff,
               mm + kb->addr + kbsz - maxoff,
@@ -3290,6 +3291,8 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb) {
   fprintf(f, "\n");
 }
 
+#define IWKVD_MAX_VALSZ 96
+
 void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   assert(sb && sb->addr);
   int lkl = 0;
@@ -3353,14 +3356,14 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
         uint64_t k;
         memcpy(&k, kbuf, sizeof(k));
         k = IW_ITOHLL(k);
-        fprintf(f, "    [%02d,%02d] %lu:%.*s", i, sb->pi[i], k, vlen, vbuf);
+        fprintf(f, "    [%02d,%02d] %lu:%.*s", i, sb->pi[i], k, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
       } else if (sb->db->dbflg & IWDB_UINT32_KEYS) {
         uint32_t k;
         memcpy(&k, kbuf, sizeof(k));
         k = IW_ITOHL(k);
-        fprintf(f, "    [%02d,%02d] %u:%.*s", i, sb->pi[i], k, vlen, vbuf);
+        fprintf(f, "    [%02d,%02d] %u:%.*s", i, sb->pi[i], k, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
       } else {
-        fprintf(f, "    [%02d,%02d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, vlen, vbuf);
+        fprintf(f, "    [%02d,%02d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
       }
     } else {
       if (sb->db->dbflg & IWDB_UINT64_KEYS) {

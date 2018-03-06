@@ -70,18 +70,18 @@ static bool _test5dup5visitor(uint64_t dv, void *op) {
   CU_ASSERT_PTR_NOT_NULL_FATAL(op);
   struct Test5DUP1 *s = op;
   switch (dv) {
-    case -1ULL:
-      s->_mv = true;
-      break;
-    case 1ULL:
-      s->_1v = true;
-      break;
-    case 10ULL:
-      s->_10v = true;
-      break;
-    default:
-      CU_FAIL("Invalid dup value");
-      break;
+  case -1ULL:
+    s->_mv = true;
+    break;
+  case 1ULL:
+    s->_1v = true;
+    break;
+  case 10ULL:
+    s->_10v = true;
+    break;
+  default:
+    CU_FAIL("Invalid dup value");
+    break;
   }
   return false;
 }
@@ -847,6 +847,50 @@ static void iwkv_test1(void) {
   fclose(r);
 }
 
+static void iwkv_test6(void) {
+  FILE *f = fopen("iwkv_test1_6.log", "w+");
+  CU_ASSERT_PTR_NOT_NULL(f);
+  IWKV_OPTS opts = {
+    .path = "iwkv_test6.db",
+    .oflags = IWKV_TRUNC
+  };
+  // Test open/close
+  char kbuf[100];
+  char vbuf[100 * 1000];
+  IWKV iwkv;
+  IWDB db1;
+  IWKV_val key, val;
+
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  key.data = kbuf;
+  val.data = vbuf;
+  val.size = sizeof(vbuf);
+  for (int i = 0; i < 11; ++i) {
+    memset(vbuf, ' ' + i + 1, sizeof(vbuf));
+    vbuf[95] = '@';
+    snprintf(kbuf, sizeof(kbuf), "%016d", i);
+    key.size = strlen(kbuf);
+
+    if (i == 10) {
+      logstage2(stderr, "iwkv_test6", db1);
+    }
+
+    rc = iwkv_put(db1, &key, &val, 0);
+    if (rc) {
+      iwlog_ecode_error3(rc);
+    }
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  fclose(f);
+}
+
 int main() {
   setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
@@ -867,7 +911,8 @@ int main() {
       (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
       (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
       (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5))
+      (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) // ||
+      // (NULL == CU_add_test(pSuite, "iwkv_test6", iwkv_test6))
      )  {
     CU_cleanup_registry();
     return CU_get_error();
