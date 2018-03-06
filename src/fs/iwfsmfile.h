@@ -242,6 +242,13 @@ typedef struct IWFS_FSM {
    */
   iwrc(*deallocate)(struct IWFS_FSM *f, off_t addr, off_t len);
 
+
+  /**
+   * @brief Check allocation status of region specified by @a addr and @a len
+   * @return `0` on success or error code.
+   */
+  iwrc (*check_allocation_status)(struct IWFS_FSM *f, off_t addr, off_t len, bool allocated);
+
   /**
    * @brief Write a data to the custom file header.
    *

@@ -870,9 +870,10 @@ static iwrc _kvblk_create(IWLCTX *lx,
   iwrc rc = fsm->allocate(fsm, (1ULL << kvbpow), &baddr, &blen,
                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
   RCRET(rc);
+  assert((1ULL << kvbpow) == blen);
   kblk->db = lx->db;
   kblk->addr = baddr;
-  kblk->szpow = KVBLK_INISZPOW;
+  kblk->szpow = kvbpow;
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
   kblk->flags = KVBLK_DURTY;
   *oblk = kblk;
@@ -1065,7 +1066,6 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
 
   *blkp = 0;
   rp = mm + addr;
-
   memcpy(&kb->szpow, rp, 1);
   rp += 1;
   IW_READSV(rp, sv, kb->idxsz);
@@ -1097,6 +1097,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
     kb->pidx[i].ridx = i;
   }
   *blkp = kb;
+  assert(rp - (mm + addr) <= (1ULL << kb->szpow));
   if (!kbp) {
     AAPOS_INC(lx->kaan);
   }
@@ -1124,8 +1125,8 @@ static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   if (!(kb->flags & KVBLK_DURTY)) {
     return;
   }
-  uint8_t *szp;
   uint16_t sp;
+  uint8_t *szp;
   uint8_t *wp = mm + kb->addr;
   memcpy(wp, &kb->szpow, 1);
   wp += 1;
@@ -1142,6 +1143,7 @@ static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   kb->idxsz = sp;
   sp = IW_HTOIS(sp);
   memcpy(szp, &sp, sizeof(uint16_t));
+  assert(wp - (mm + kb->addr) <= (1ULL << kb->szpow));
   kb->flags &= ~KVBLK_DURTY;
 }
 
@@ -1180,6 +1182,7 @@ static void _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
     KVP *kvp = &kb->pidx[tidx[i].ridx];
     off_t noff = coff + kvp->len;
     if (kvp->off > noff) {
+      assert(noff <= (1ULL << kb->szpow) && kvp->len <= noff);
       memmove(wp - noff, wp - kvp->off, kvp->len);
       kvp->off = noff;
     }
@@ -1252,6 +1255,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       off_t naddr = kb->addr;
       off_t nlen = 1ULL << kb->szpow;
       off_t maxoff = _kvblk_maxkvoff(kb);
+      assert(sz >= maxoff && kbsz >= maxoff);
       memmove(mm + kb->addr + sz - maxoff,
               mm + kb->addr + kbsz - maxoff,
               maxoff);
@@ -1262,6 +1266,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       RCGO(rc, finish);
       kb->addr = naddr;
       kb->szpow = kb->szpow - dpow;
+      assert(nlen == (1ULL << kb->szpow));
       opts |= RMKV_SYNC;
     }
   }
@@ -1289,7 +1294,7 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   off_t msz;    // max available free space
   off_t rsz;    // required size to add new key/value pair
   off_t noff;   // offset of new kvpair from end of block
-  uint8_t *mm, *wp;
+  uint8_t *mm, *wp, *sptr;
   size_t i, sp;
   KVP *kvp;
   IWDB db = kb->db;
@@ -1357,6 +1362,7 @@ start:
       // [hdr..[pairs]] =reallocate=> [hdr..[pairs]_____] =memove=> [hdr.._____[pairs]]
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCGO(rc, finish);
+      assert(kb->maxoff <= nlen && kb->maxoff <= (1ULL << kb->szpow));
       memmove(mm + naddr + nlen - kb->maxoff,
               mm + naddr + (1ULL << kb->szpow) - kb->maxoff, kb->maxoff);
       fsm->release_mmap(fsm);
@@ -1383,15 +1389,22 @@ start:
   }
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
+  assert(kvp->off <= (1ULL << kb->szpow) && kvp->len <= kvp->off);
   wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
+#ifndef NDEBUG
+  sptr = wp;
+#endif
   // [klen:vn,key,value]
   IW_SETVNUMBUF(sp, wp, key->size);
   wp += sp;
   memcpy(wp, key->data, key->size);
   wp += key->size;
   memcpy(wp, uval->data, uval->size);
+  wp += uval->size;
+#ifndef NDEBUG
+  assert(wp - sptr == kvp->len);
+#endif
   fsm->release_mmap(fsm);
-
 finish:
   if (uval != val) {
     _kv_val_dispose(uval);
@@ -1744,6 +1757,7 @@ IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
         wp += DOFF_P0_U4;
         IW_WRITELV(wp, lv, sblk->p0);
       }
+      assert(wp - (mm + sblk->db->addr) <= (1ULL << SBLK_SZPOW));
       return;
     } else {
       uint8_t *wp = mm + sblk->addr;
@@ -1768,6 +1782,7 @@ IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
       for (int i = 0; i <= sblk->lvl; ++i) {
         IW_WRITELV(wp, lv, sblk->n[i]);
       }
+      assert(wp - (mm + sblk->addr) <= (1ULL << SBLK_SZPOW));
     }
   }
   if (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY)) {

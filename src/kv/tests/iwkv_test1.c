@@ -337,9 +337,6 @@ static void iwkv_test3(void) {
 }
 
 static void iwkv_test2(void) {
-  FILE *f = fopen("iwkv_test1_2.log", "w+");
-  CU_ASSERT_PTR_NOT_NULL(f);
-
   iwrc rc;
   IWKV_val key = {0};
   IWKV_val val = {0};
@@ -355,9 +352,9 @@ static void iwkv_test2(void) {
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  for (int i = 252; i >= 0; --i) { // 189
-    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
-    snprintf(vbuf, VBUFSZ, "%03dval", i);
+  for (int i = 65; i >= 0; --i) {
+    snprintf(kbuf, KBUFSZ, "%018dkkk", i);
+    snprintf(vbuf, VBUFSZ, "%018dval", i);
     key.data = kbuf;
     key.size = strlen(key.data);
     val.data = vbuf;
@@ -365,86 +362,17 @@ static void iwkv_test2(void) {
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  logstage(f, "desc sorted 253 keys inserted", db1);
 
-  for (int i = 0; i <= 252; ++i) {
-    int cret;
-    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
-    snprintf(vbuf, VBUFSZ, "%03dval", i);
-    int vsize = strlen(vbuf);
-    key.data = kbuf;
-    key.size = strlen(key.data);
-    rc = iwkv_get(db1, &key, &val);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
-    IW_CMP(cret, vbuf, vsize, val.data, val.size);
-    CU_ASSERT_EQUAL_FATAL(cret, 0);
-    iwkv_kv_dispose(0, &val);
-  }
-
-  snprintf(kbuf, KBUFSZ, "%03dkkk", 64);
-  key.data = kbuf;
-  key.size = strlen(key.data);
-  rc = iwkv_del(db1, &key);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  logstage(f, "removed 064kkk", db1);
-
-
-  snprintf(kbuf, KBUFSZ, "%03dkkk", 126);
-  key.data = kbuf;
-  key.size = strlen(key.data);
-  rc = iwkv_del(db1, &key);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  logstage(f, "removed 126kkk", db1);
-
-
-  // Now delete more than half of block records
-  // 126
-  for (int i = 64; i <= 99; ++i) {
-    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
-    key.data = kbuf;
-    key.size = strlen(key.data);
-    rc = iwkv_del(db1, &key);
-    if (i == 64) {
-      CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
-      rc = 0;
-      continue;
-    }
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
-  }
-  logstage(f, "removed 065kkk - 099kkk", db1); // 125
-
-  for (int i = 100; i <= 125; ++i) {
-    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
+  for (int i = 1; i <= 2; ++i) {
+    snprintf(kbuf, KBUFSZ, "%018dkkk", i);
     key.data = kbuf;
     key.size = strlen(key.data);
     rc = iwkv_del(db1, &key);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
-  logstage(f, "removed all keys in SBLK[54]", db1); // 125
-
-  rc = iwkv_db_destroy(&db1);      // Destroy DB and remove all db blocks
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-
-  // Reopen DB then check db1
-  rc = iwkv_open(&opts, &iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-
-  rc = iwkv_db(iwkv, 1, 0, &db1);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  logstage(f, "db1 destroyed", db1);
-  rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-
-  // Compare logs with referenced
-  FILE *r = fopen("iwkv_test1_2.ref", "r+");
-  CU_ASSERT_PTR_NOT_NULL(r);
-  int rci = cmp_files(r, f);
-  CU_ASSERT_EQUAL_FATAL(rci, 0);
-  fclose(f);
-  fclose(r);
 }
 
 static void iwkv_test1(void) {
@@ -907,11 +835,11 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) // ||
+  if (//(NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
+      (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))  // ||
+      // (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
+      // (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
+      // (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
       // (NULL == CU_add_test(pSuite, "iwkv_test6", iwkv_test6))
      )  {
     CU_cleanup_registry();

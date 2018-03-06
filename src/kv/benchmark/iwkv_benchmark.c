@@ -131,7 +131,7 @@ bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *foun
     iwlog_ecode_error2(rc, "db_cursor_to_key::iwkv_cursor_open failed");
     ret = false;
   }
-  return rc;
+  return ret;
 }
 
 int main(int argc, char *argv[]) {

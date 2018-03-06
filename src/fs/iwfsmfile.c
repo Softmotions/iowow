@@ -299,20 +299,20 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
   FSMBK *uk, *lk;
   iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
   if (rc) return 0;
-  
+
   kb_intervalp(fsm, impl->fsm, &k, &lk, &uk); /* Find best-fitted free-space block */
   if (!lk && !uk) {
     return 0;
   }
-  
+
   uint64_t lkdist = UINT64_MAX;
   uint64_t lkoffset = lk ? FSMBK_OFFSET(lk) : 0;
   uint64_t lklength = lk ? FSMBK_LENGTH(lk) : 0;
-  
+
   uint64_t ukdist = UINT64_MAX;
   uint64_t ukoffset = uk ? FSMBK_OFFSET(uk) : 0;
   uint64_t uklength = uk ? FSMBK_LENGTH(uk) : 0;
-  
+
   if (lk && lklength >= length_blk) {
     lkdist = (lkoffset >= offset_blk) ? (lkoffset - offset_blk) : (offset_blk - lkoffset);
   }
@@ -333,16 +333,16 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
  * @param opts        Operation options
  */
 static iwrc _fsm_set_bit_status_lw(FSM *impl,
-                            register uint64_t offset_bits,
-                            int64_t length_bits,
-                            const int bit_status,
-                            const fsm_bmopts_t opts) {
+                                   register uint64_t offset_bits,
+                                   int64_t length_bits,
+                                   const int bit_status,
+                                   const fsm_bmopts_t opts) {
   iwrc rc;
   uint8_t *mm;
   register uint64_t *p, set_mask;
   uint64_t bend = offset_bits + length_bits, sp;
   int set_bits;
-  
+
   if (bend < offset_bits) { // overflow
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -365,7 +365,7 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
       return IWFS_ERROR_NOT_MMAPED;
     }
   }
-  
+
   sp = impl->bmlen;
   p = ((uint64_t *) mm) + offset_bits / 64;
   set_bits = 64 - (offset_bits & (64 - 1));
@@ -433,14 +433,14 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
   FSMBK *nk;
   fsm_bmopts_t bopts = 0;
   off_t psize_blk = (impl->psize >> impl->bpow);
-  
+
   assert(impl && impl->fsm && length_blk > 0);
   if (impl->oflags & IWFSM_STRICT) {
     bopts |= FSM_BM_STRICT;
   }
   *olength_blk = 0;
   *offset_blk = 0;
-  
+
   /* First attempt */
   nk = _fsm_find_matching_fblock_lw(impl, 0, length_blk + psize_blk, opts);
   if (!nk) {
@@ -464,7 +464,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
     *olength_blk = length_blk;
     return _fsm_set_bit_status_lw(impl, akoff, length_blk, 1, bopts);
   }
-  
+
   aklen = 0;
   akoff = UINT64_MAX;
   /* full scan */
@@ -483,7 +483,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
   }
   __kb_traverse(FSMBK, impl->fsm, _fsm_traverse);
 #undef _fsm_traverse
-  
+
   if (akoff == UINT64_MAX) {
     return IWFS_ERROR_NO_FREE_SPACE;
   }
@@ -560,7 +560,7 @@ static iwrc _fsm_write_meta_lw(FSM *impl, int is_sync) {
   size_t wlen;
   uint32_t sp = 0, lv;
   uint8_t hdr[FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
-  
+
   /*
       [FSM_CTL_MAGICK u32][block pow u8]
       [bmoffset u64][bmlength u64]
@@ -568,64 +568,64 @@ static iwrc _fsm_write_meta_lw(FSM *impl, int is_sync) {
       [custom header size u32][custom header data...]
       [fsm data...]
   */
-  
+
   /* magic */
   lv = IW_HTOIL(FSM_MAGICK);
   assert(sp + sizeof(lv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &lv, sizeof(lv));
   sp += sizeof(lv);
-  
+
   /* block pow */
   assert(sizeof(impl->bpow) == 1);
   assert(sp + sizeof(impl->bpow) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &impl->bpow, sizeof(impl->bpow));
   sp += sizeof(impl->bpow);
-  
+
   /* fsm bitmap block offset */
   llv = impl->bmoff;
   llv = IW_HTOILL(llv);
   assert(sp + sizeof(llv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &llv, sizeof(llv));
   sp += sizeof(llv);
-  
+
   /* fsm bitmap block length */
   llv = impl->bmlen;
   llv = IW_HTOILL(llv);
   assert(sp + sizeof(llv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &llv, sizeof(llv));
   sp += sizeof(llv);
-  
+
   /* Cumulative sum of record sizes acquired by `allocate` */
   llv = impl->crzsum;
   llv = IW_HTOILL(llv);
   assert(sp + sizeof(llv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &llv, sizeof(llv));
   sp += sizeof(llv);
-  
+
   /* Cumulative number of records acquired by `allocated` */
   lv = impl->crznum;
   lv = IW_HTOIL(lv);
   assert(sp + sizeof(lv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &lv, sizeof(lv));
   sp += sizeof(lv);
-  
+
   /* Record sizes standard variance (deviation^2 * N) */
   llv = impl->crzvar;
   llv = IW_HTOILL(llv);
   assert(sp + sizeof(lv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &llv, sizeof(llv));
   sp += sizeof(llv);
-  
+
   /* Reserved */
   sp += 32;
-  
+
   /* Size of header */
   lv = impl->hdrlen;
   lv = IW_HTOIL(lv);
   assert(sp + sizeof(lv) <= FSM_CUSTOM_HDR_DATA_OFFSET);
   memcpy(hdr + sp, &lv, sizeof(lv));
   sp += sizeof(lv);
-  
+
   assert(sp == FSM_CUSTOM_HDR_DATA_OFFSET);
   iwrc rc = impl->pool.write(&impl->pool, 0, hdr, FSM_CUSTOM_HDR_DATA_OFFSET, &wlen);
   if (!rc && is_sync) {
@@ -764,7 +764,7 @@ static iwrc _fsm_blk_deallocate_lw(FSM *impl,
   uint64_t key_offset = offset_blk, key_length = length_blk;
   uint64_t rm_offset = 0, rm_length = 0;
   fsm_bmopts_t bopts = 0;
-  
+
   if (impl->oflags & IWFSM_STRICT) {
     bopts |= FSM_BM_STRICT;
   }
@@ -823,11 +823,11 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   uint64_t sp, sp2;
   uint64_t old_bmoff, old_bmlen;
   IWFS_EXT *pool = &impl->pool;
-  
+
   if ((bmlen & ((1 << impl->bpow) - 1)) || (bmoff & ((1 << impl->bpow) - 1)) || (bmoff & (impl->psize - 1))) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
   }
-  
+
   if (bmlen < impl->bmlen) {
     rc = IW_ERROR_INVALID_ARGS;
     iwlog_ecode_error(rc, "Length of the newly initiated bitmap area (bmlen): %" PRIu64
@@ -835,7 +835,7 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
                       bmlen, impl->bmlen);
     return rc;
   }
-  
+
   if (bmlen * 8 < ((bmoff + bmlen) >> impl->bpow) + 1) {
     rc = IW_ERROR_INVALID_ARGS;
     iwlog_ecode_error(rc, "Length of the newly initiated bitmap area (bmlen): %" PRIu64
@@ -897,13 +897,13 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   } else {
     memset(mm, 0, bmlen);
   }
-  
+
   /* Backup the previous bitmap range */
   old_bmlen = impl->bmlen;
   old_bmoff = impl->bmoff;
   impl->bmoff = bmoff;
   impl->bmlen = bmlen;
-  
+
   rc = _fsm_set_bit_status_lw(impl, (bmoff >> impl->bpow), (bmlen >> impl->bpow), 1, FSM_BM_NONE);
   RCGO(rc, rollback);
   if (!old_bmlen) { /* First time initialization */
@@ -911,18 +911,18 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     rc = _fsm_set_bit_status_lw(impl, 0, (impl->hdrlen >> impl->bpow), 1, FSM_BM_NONE);
     RCGO(rc, rollback);
   }
-  
+
   /* Reload the fsm tree */
   _fsm_load_fsm_lw(impl, mm, bmlen);
-  
+
   /* Sync fsm */
   rc = pool->sync_mmap(pool, impl->mmap_all ? 0 : bmoff, impl->sync_flags);
   RCGO(rc, rollback);
-  
+
   /* Flush new meta */
   rc = _fsm_write_meta_lw(impl, 1);
   RCGO(rc, rollback);
-  
+
   if (old_bmlen) {
     /* Now we are save to deallocate the old bitmap */
     rc = _fsm_blk_deallocate_lw(impl, (old_bmoff >> impl->bpow), (old_bmlen >> impl->bpow));
@@ -931,7 +931,7 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     }
   }
   return rc;
-  
+
 rollback: /* try to rollback bitmap state */
   impl->bmoff = old_bmoff;
   impl->bmlen = old_bmlen;
@@ -952,7 +952,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
   int64_t sp;
   uint64_t bmoffset = 0, bmlen;
   IWFS_EXT *pool = &impl->pool;
-  
+
   if (impl->bmlen >= size) {
     return 0;
   }
@@ -998,7 +998,7 @@ static iwrc _fsm_blk_allocate_lw(FSM *impl,
   iwrc rc;
   FSMBK *nk;
   fsm_bmopts_t bopts = 0;
-  
+
   if (opts & IWFSM_ALLOC_PAGE_ALIGNED) {
     while (1) {
       rc = _fsm_blk_allocate_aligned_lw(impl, length_blk, offset_blk, olength_blk, UINT64_MAX, opts);
@@ -1018,16 +1018,16 @@ static iwrc _fsm_blk_allocate_lw(FSM *impl,
       return rc;
     }
   }
-  
+
   *olength_blk = length_blk;
-  
+
 start:
   nk = _fsm_find_matching_fblock_lw(impl, *offset_blk, length_blk, opts);
   if (nk) { /* using existing free space block */
     uint64_t nlength = FSMBK_LENGTH(nk);
     *offset_blk = FSMBK_OFFSET(nk);
     assert(kb_get(fsm, impl->fsm, *nk));
-    
+
 #ifndef NDEBUG
     int s2, s1 = kb_size(impl->fsm);
 #endif
@@ -1059,7 +1059,7 @@ start:
     RCRET(rc);
     goto start;
   }
-  
+
   if (impl->oflags & IWFSM_STRICT) {
     bopts |= FSM_BM_STRICT;
   }
@@ -1096,7 +1096,7 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
   uint64_t *bmptr;
   IWFS_EXT_STATE pstate;
   uint64_t offset = 0, lastblk;
-  
+
   if (!(impl->omode & IWFS_OWRITE) || !impl->lfbkoff) {
     return 0;
   }
@@ -1104,7 +1104,7 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
   rc = _fsm_blk_allocate_aligned_lw(
          impl, (impl->bmlen >> impl->bpow), &offset, &length, (impl->bmoff >> impl->bpow),
          IWFSM_ALLOC_NO_EXTEND | IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_ALLOC_NO_STATS);
-         
+
   if (rc && rc != IWFS_ERROR_NO_FREE_SPACE) {
     return rc;
   }
@@ -1123,10 +1123,10 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
     rc = _fsm_blk_deallocate_lw(impl, offset, length);
     RCGO(rc, finish);
   }
-  
+
   rc = _fsm_bmptr(impl, &bmptr);
   RCGO(rc, finish);
-  
+
   lastblk = impl->lfbkoff;
   offset = _fsm_find_prev_set_bit(bmptr, impl->lfbkoff, 0, &hasleft);
   if (hasleft) {
@@ -1196,7 +1196,7 @@ static iwrc _fsm_read_meta_lr(FSM *impl) {
   uint64_t llv;
   size_t sp, rp = 0;
   uint8_t hdr[FSM_CUSTOM_HDR_DATA_OFFSET] = {0};
-  
+
   /*
       [FSM_CTL_MAGICK u32][block pow u8]
       [bmoffset u64][bmlength u64]
@@ -1204,13 +1204,13 @@ static iwrc _fsm_read_meta_lr(FSM *impl) {
       [custom header size u32][custom header data...]
       [fsm data...]
   */
-  
+
   rc = impl->pool.read(&impl->pool, 0, hdr, FSM_CUSTOM_HDR_DATA_OFFSET, &sp);
   if (rc) {
     iwlog_ecode_error3(rc);
     return rc;
   }
-  
+
   /* Magic */
   memcpy(&lv, hdr + rp, sizeof(lv));
   lv = IW_ITOHL(lv);
@@ -1220,12 +1220,12 @@ static iwrc _fsm_read_meta_lr(FSM *impl) {
     return rc;
   }
   rp += sizeof(lv);
-  
+
   /* Block pow */
   assert(sizeof(impl->bpow) == 1);
   memcpy(&impl->bpow, hdr + rp, sizeof(impl->bpow));
   rp += sizeof(impl->bpow);
-  
+
   if (impl->bpow > FSM_MAX_BLOCK_POW) {
     rc = IWFS_ERROR_INVALID_FILEMETA;
     iwlog_ecode_error(rc, "Invalid file blocks pow: %u", impl->bpow);
@@ -1236,13 +1236,13 @@ static iwrc _fsm_read_meta_lr(FSM *impl) {
     iwlog_ecode_error(rc, "Block size: %d must not be greater than the system page size: %d",
                       (int)(1 << impl->bpow), (int) impl->psize);
   }
-  
+
   /* Free-space bitmap offset */
   memcpy(&llv, hdr + rp, sizeof(llv));
   llv = IW_ITOHLL(llv);
   impl->bmoff = llv;
   rp += sizeof(llv);
-  
+
   /* Free-space bitmap length */
   memcpy(&llv, hdr + rp, sizeof(llv));
   llv = IW_ITOHLL(llv);
@@ -1252,34 +1252,34 @@ static iwrc _fsm_read_meta_lr(FSM *impl) {
     iwlog_ecode_error(rc, "Free-space bitmap length is not 64bit aligned: %" PRIuMAX "", impl->bmlen);
   }
   rp += sizeof(llv);
-  
+
   /* Cumulative sum of record sizes acquired by `allocate` */
   memcpy(&llv, hdr + rp, sizeof(llv));
   llv = IW_ITOHLL(llv);
   impl->crzsum = llv;
   rp += sizeof(llv);
-  
+
   /* Cumulative number of records acquired by `allocated` */
   memcpy(&lv, hdr + rp, sizeof(lv));
   lv = IW_ITOHL(lv);
   impl->crznum = lv;
   rp += sizeof(lv);
-  
+
   /* Record sizes standard variance (deviation^2 * N) */
   memcpy(&llv, hdr + rp, sizeof(llv));
   llv = IW_ITOHLL(llv);
   impl->crzvar = llv;
   rp += sizeof(llv);
-  
+
   /* Reserved */
   rp += 32;
-  
+
   /* Header size */
   memcpy(&lv, hdr + rp, sizeof(lv));
   lv = IW_ITOHL(lv);
   impl->hdrlen = lv;
   rp += sizeof(lv);
-  
+
   assert(rp == FSM_CUSTOM_HDR_DATA_OFFSET);
   return rc;
 }
@@ -1289,15 +1289,15 @@ static iwrc _fsm_init_new_lw(FSM *impl, const IWFS_FSM_OPTS *opts) {
   iwrc rc;
   uint64_t bmlen, bmoff;
   IWFS_EXT *pool = &impl->pool;
-  
+
   assert(impl->psize && impl->bpow);
-  
+
   impl->hdrlen = opts->hdrlen + FSM_CUSTOM_HDR_DATA_OFFSET;
   impl->hdrlen = IW_ROUNDUP(impl->hdrlen, 1 << impl->bpow);
-  
+
   bmlen = opts->bmlen > 0 ? IW_ROUNDUP(opts->bmlen, impl->psize) : impl->psize;
   bmoff = IW_ROUNDUP(impl->hdrlen, impl->psize);
-  
+
   if (impl->mmap_all) {
     /* mmap whole file */
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
@@ -1319,18 +1319,18 @@ static iwrc _fsm_init_existing_lw(FSM *impl) {
   size_t sp;
   uint8_t *mm;
   IWFS_EXT *pool = &impl->pool;
-  
+
   rc = _fsm_read_meta_lr(impl);
   RCGO(rc, finish);
-  
+
   if (impl->mmap_all) {
     /* mmap whole file */
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
     RCGO(rc, finish);
-    
+
     rc = pool->probe_mmap(pool, 0, &mm, &sp);
     RCGO(rc, finish);
-    
+
     if (sp < impl->bmoff + impl->bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
       goto finish;
@@ -1341,21 +1341,21 @@ static iwrc _fsm_init_existing_lw(FSM *impl) {
     /* mmap the header part of file */
     rc = pool->add_mmap(pool, 0, impl->hdrlen);
     RCGO(rc, finish);
-    
+
     /* mmap the fsm bitmap index */
     rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
     RCGO(rc, finish);
-    
+
     rc = pool->probe_mmap(pool, impl->bmoff, &mm, &sp);
     RCGO(rc, finish);
-    
+
     if (sp < impl->bmlen) {
       rc = IWFS_ERROR_NOT_MMAPED;
       goto finish;
     }
   }
   _fsm_load_fsm_lw(impl, mm, impl->bmlen);
-  
+
 finish:
   return rc;
 }
@@ -1520,7 +1520,7 @@ static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *ol
   int64_t nlen;
   uint64_t sbnum;
   FSM *impl = f->impl;
-  
+
   *olen = 0;
   if (!(impl->omode & IWFS_OWRITE)) {
     return IW_ERROR_READONLY;
@@ -1528,7 +1528,7 @@ static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *ol
   /* Required blocks number */
   sbnum = *oaddr >> impl->bpow;
   len = IW_ROUNDUP(len, 1 << impl->bpow);
-  
+
   rc = _fsm_ctrl_wlock(impl);
   RCRET(rc);
   rc = _fsm_blk_allocate_lw(f->impl, (len >> impl->bpow), &sbnum, &nlen, opts);
@@ -1547,7 +1547,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
   FSM_ENSURE_OPEN2(f);
   iwrc rc;
   FSM *impl = f->impl;
-  
+
   if (!(impl->omode & IWFS_OWRITE)) {
     return IW_ERROR_READONLY;
   }
@@ -1559,7 +1559,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
   uint64_t oaddr_blk = *oaddr >> impl->bpow;
   uint64_t naddr_blk = oaddr_blk;
   int64_t sp;
-  
+
   if (nlen_blk == olen_blk) {
     return 0;
   }
@@ -1584,7 +1584,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
       if (nkoffset == naddr_blk) { // we can easily extend end of block
         rc = _fsm_blk_allocate_lw(impl, nlen_blk - olen_blk, &naddr_blk, &sp, opts);
         RCGO(rc, finish);
-        
+
         if (naddr_blk == nkoffset) { // we using the same block
           *olen = (olen_blk + sp) << impl->bpow;
           goto finish;
@@ -1597,7 +1597,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
     naddr_blk = oaddr_blk;
     rc = _fsm_blk_allocate_lw(impl, nlen_blk, &naddr_blk, &sp, opts);
     RCGO(rc, finish);
-    
+
     if (naddr_blk != oaddr_blk) {
       // we need to copy data to the new place
       rc = impl->pool.copy(&impl->pool, *oaddr, *olen, naddr_blk << impl->bpow);
@@ -1605,7 +1605,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
     }
     rc = _fsm_blk_deallocate_lw(impl, oaddr_blk, olen_blk);
     RCGO(rc, finish);
-    
+
     *oaddr = naddr_blk << impl->bpow;
     *olen = sp << impl->bpow;
   }
@@ -1620,7 +1620,7 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
   FSM *impl = f->impl;
   off_t offset_blk = addr >> impl->bpow;
   off_t length_blk = len >> impl->bpow;
-  
+
   if (!(impl->omode & IWFS_OWRITE)) {
     return IW_ERROR_READONLY;
   }
@@ -1637,6 +1637,26 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
     return IWFS_ERROR_FSM_SEGMENTATION;
   }
   rc = _fsm_blk_deallocate_lw(impl, offset_blk, length_blk);
+  IWRC(_fsm_ctrl_unlock(impl), rc);
+  return rc;
+}
+
+static iwrc _fsm_check_allocation_status(struct IWFS_FSM *f, off_t addr, off_t len, bool allocated) {
+  FSM *impl = f->impl;
+  if ((addr & ((1 << impl->bpow) - 1)) || (len & ((1 << impl->bpow) - 1))) {
+    return IWFS_ERROR_RANGE_NOT_ALIGNED;
+  }
+  iwrc rc = _fsm_ctrl_rlock(impl);
+  RCRET(rc);
+  off_t offset_blk = addr >> impl->bpow;
+  off_t length_blk = len >> impl->bpow;
+  if (IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow)) ||
+      IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, (impl->bmoff >> impl->bpow),
+                        (impl->bmoff >> impl->bpow) + (impl->bmlen >> impl->bpow))) {
+    IWRC(_fsm_ctrl_unlock(impl), rc);
+    return IWFS_ERROR_FSM_SEGMENTATION;
+  }
+  rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, allocated ? 0 : 1, FSM_BM_DRY_RUN | FSM_BM_STRICT);
   IWRC(_fsm_ctrl_unlock(impl), rc);
   return rc;
 }
@@ -1731,17 +1751,17 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   iwrc rc = 0;
   IWFS_EXT_STATE fstate = {0};
   const char *path = opts->exfile.file.path;
-  
+
   memset(f, 0, sizeof(*f));
   rc = iwfs_fsmfile_init();
   RCGO(rc, finish);
-  
+
   f->write = _fsm_write;
   f->read = _fsm_read;
   f->close = _fsm_close;
   f->sync = _fsm_sync;
   f->state = _fsm_state;
-  
+
   f->ensure_size = _fsm_ensure_size;
   f->add_mmap = _fsm_add_mmap;
   f->acquire_mmap = _fsm_acquire_mmap;
@@ -1749,14 +1769,15 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   f->release_mmap = _fsm_release_mmap;
   f->remove_mmap = _fsm_remove_mmap;
   f->sync_mmap = _fsm_sync_mmap;
-  
+
   f->allocate = _fsm_allocate;
   f->reallocate = _fsm_reallocate;
   f->deallocate = _fsm_deallocate;
+  f->check_allocation_status = _fsm_check_allocation_status;
   f->writehdr = _fsm_writehdr;
   f->readhdr = _fsm_readhdr;
   f->clear = _fsm_clear;
-  
+
   if (!path) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -1765,30 +1786,30 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
   impl->f = f;
-  
+
   IWFS_EXT_OPTS rwl_opts = opts->exfile;
   rwl_opts.use_locks = !(opts->oflags & IWFSM_NOLOCKS);
-  
+
   rc = _fsm_init_impl(impl, opts);
   RCGO(rc, finish);
-  
+
   rc = _fsm_init_locks(impl, opts);
   RCGO(rc, finish);
-  
+
   rc = iwfs_exfile_open(&impl->pool, &rwl_opts);
   RCGO(rc, finish);
-  
+
   rc = impl->pool.state(&impl->pool, &fstate);
   RCGO(rc, finish);
-  
+
   impl->omode = fstate.file.opts.omode;
-  
+
   if (fstate.file.ostatus & IWFS_OPEN_NEW) {
     rc = _fsm_init_new_lw(impl, opts);
   } else {
     rc = _fsm_init_existing_lw(impl);
   }
-  
+
 finish:
   if (rc) {
     if (f->impl) {
@@ -1804,23 +1825,23 @@ static const char *_fsmfile_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-    case IWFS_ERROR_NO_FREE_SPACE:
-      return "No free space. (IWFS_ERROR_NO_FREE_SPACE)";
-    case IWFS_ERROR_INVALID_BLOCK_SIZE:
-      return "Invalid block size specified. (IWFS_ERROR_INVALID_BLOCK_SIZE)";
-    case IWFS_ERROR_RANGE_NOT_ALIGNED:
-      return "Specified range/offset is not aligned with page/block. "
-             "(IWFS_ERROR_RANGE_NOT_ALIGNED)";
-    case IWFS_ERROR_FSM_SEGMENTATION:
-      return "Free-space map segmentation error. (IWFS_ERROR_FSM_SEGMENTATION)";
-    case IWFS_ERROR_INVALID_FILEMETA:
-      return "Invalid file metadata. (IWFS_ERROR_INVALID_FILEMETA)";
-    case IWFS_ERROR_PLATFORM_PAGE:
-      return "The block size incompatible with platform page size, data "
-             "migration required. (IWFS_ERROR_PLATFORM_PAGE)";
-    case IWFS_ERROR_RESIZE_FAIL:
-      return "Failed to resize file, "
-             "conflicting with free-space map location (IWFS_ERROR_RESIZE_FAIL)";
+  case IWFS_ERROR_NO_FREE_SPACE:
+    return "No free space. (IWFS_ERROR_NO_FREE_SPACE)";
+  case IWFS_ERROR_INVALID_BLOCK_SIZE:
+    return "Invalid block size specified. (IWFS_ERROR_INVALID_BLOCK_SIZE)";
+  case IWFS_ERROR_RANGE_NOT_ALIGNED:
+    return "Specified range/offset is not aligned with page/block. "
+           "(IWFS_ERROR_RANGE_NOT_ALIGNED)";
+  case IWFS_ERROR_FSM_SEGMENTATION:
+    return "Free-space map segmentation error. (IWFS_ERROR_FSM_SEGMENTATION)";
+  case IWFS_ERROR_INVALID_FILEMETA:
+    return "Invalid file metadata. (IWFS_ERROR_INVALID_FILEMETA)";
+  case IWFS_ERROR_PLATFORM_PAGE:
+    return "The block size incompatible with platform page size, data "
+           "migration required. (IWFS_ERROR_PLATFORM_PAGE)";
+  case IWFS_ERROR_RESIZE_FAIL:
+    return "Failed to resize file, "
+           "conflicting with free-space map location (IWFS_ERROR_RESIZE_FAIL)";
   }
   return 0;
 }
