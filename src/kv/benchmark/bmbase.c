@@ -112,8 +112,8 @@ static void _bm_help() {
   fprintf(stderr, "  fillseq        write N values in sequential key order in async mode\n");
   fprintf(stderr, "  fillrandom     write N values in random key order in async mode\n");
   fprintf(stderr, "  overwrite      overwrite N values in random key order in async mode\n");
-  fprintf(stderr, "  fillsync       write N/100 values in random key order in sync mode\n");
-  fprintf(stderr, "  fill100K       write N/1000 100K values in random order in async mode\n");
+  fprintf(stderr, "  fillsync       write N/10 values in random key order in sync mode\n");
+  fprintf(stderr, "  fill100K       write N/100 100K values in random order in async mode\n");
   fprintf(stderr, "  deleteseq      delete N keys in sequential order\n");
   fprintf(stderr, "  deleterandom   delete N keys in random order\n");
   fprintf(stderr, "  readseq        read N times sequentially\n");
@@ -135,21 +135,19 @@ static bool _bm_init(int argc, char *argv[]) {
   bm.param_num = 1000000; // 1M records
   bm.param_num_reads = -1; // Same as param_num
   bm.param_value_size = 100; // 100 byte per value
-  // bm.param_benchmarks =  "fillrandom,"
-  //                        "fillsync,"
-  //                        "fillseq,"
-  //                        "overwrite,"
-  //                        "readrandom,"
-  //                        "readseq,"
-  //                        "readreverse,"
-  //                        "readhot,"
-  //                        "readmissing,"
-  //                        "deleteseq,"
-  //                        "fillseq,"
-  //                        "deleterandom,"
-  //                        "fill100K";
-  bm.param_benchmarks = "fill100K";
-
+  bm.param_benchmarks =  "fillrandom,"
+                         "fillsync,"
+                         "fillseq,"
+                         "overwrite,"
+                         "readrandom,"
+                         "readseq,"
+                         "readreverse,"
+                         "readhot,"
+                         "readmissing,"
+                         "deleteseq,"
+                         "fillseq,"
+                         "deleterandom,"
+                         "fill100K";
 
   bm.param_report = "report.csv";
 #ifndef NDEBUG
@@ -237,7 +235,7 @@ static void _bm_run(BMCTX *ctx) {
   ctx->end_ms = llv;
 }
 
-static bool _bm_write(BMCTX *ctx, bool seq, bool sync) {
+static bool _do_write(BMCTX *ctx, bool seq, bool sync) {
   char kbuf[100];
   IWKV_val key, val;
   key.data = kbuf;
@@ -254,7 +252,7 @@ static bool _bm_write(BMCTX *ctx, bool seq, bool sync) {
   return true;
 }
 
-static bool _bm_delete(BMCTX *ctx, bool seq) {
+static bool _do_delete(BMCTX *ctx, bool seq) {
   char kbuf[100];
   bool found;
   IWKV_val key;
@@ -270,15 +268,15 @@ static bool _bm_delete(BMCTX *ctx, bool seq) {
   return true;
 }
 
-static bool _bm_read_seq(BMCTX *ctx) {
+static bool _do_read_seq(BMCTX *ctx) {
   return bm.db_read_seq(ctx, false);
 }
 
-static bool _bm_read_reverse(BMCTX *ctx) {
+static bool _do_read_reverse(BMCTX *ctx) {
   return bm.db_read_seq(ctx, true);
 }
 
-static bool _bm_read_random(BMCTX *ctx) {
+static bool _do_read_random(BMCTX *ctx) {
   char kbuf[100];
   IWKV_val key, val;
   bool found;
@@ -298,7 +296,7 @@ static bool _bm_read_random(BMCTX *ctx) {
   return true;
 }
 
-static bool _bm_read_missing(BMCTX *ctx) {
+static bool _do_read_missing(BMCTX *ctx) {
   char kbuf[100];
   IWKV_val key, val;
   bool found;
@@ -321,7 +319,7 @@ static bool _bm_read_missing(BMCTX *ctx) {
   return true;
 }
 
-static bool _bm_read_hot(BMCTX *ctx) {
+static bool _do_read_hot(BMCTX *ctx) {
   char kbuf[100];
   IWKV_val key, val;
   bool found;
@@ -342,7 +340,7 @@ static bool _bm_read_hot(BMCTX *ctx) {
   return true;
 }
 
-static bool _bm_seek_random(BMCTX *ctx) {
+static bool _do_seek_random(BMCTX *ctx) {
   char kbuf[100];
   IWKV_val key, val;
   bool found;
@@ -363,70 +361,70 @@ static bool _bm_seek_random(BMCTX *ctx) {
 
 static bool _bm_fillseq(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
-  return _bm_write(ctx, true, false);
+  return _do_write(ctx, true, false);
 }
 
 static bool _bm_fillrandom(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
-  return _bm_write(ctx, false, false);
+  return _do_write(ctx, false, false);
 }
 
 static bool _bm_overwrite(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_write(ctx, false, false);
+  return _do_write(ctx, false, false);
 }
 
 static bool _bm_fillsync(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
-  ctx->num /= 1000;
-  return _bm_write(ctx, false, true);
+  ctx->num /= 10;
+  return _do_write(ctx, false, true);
 }
 
 static bool _bm_fill100K(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
-  ctx->num /= 1000;
+  ctx->num /= 100;
   ctx->value_size = 100 * 1000;
-  return _bm_write(ctx, false, false);
+  return _do_write(ctx, false, false);
 }
 
 static bool _bm_deleteseq(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_delete(ctx, true);
+  return _do_delete(ctx, true);
 }
 
 static bool _bm_deleterandom(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_delete(ctx, false);
+  return _do_delete(ctx, false);
 }
 
 static bool _bm_readseq(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_read_seq(ctx);
+  return _do_read_seq(ctx);
 }
 
 static bool _bm_readreverse(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_read_reverse(ctx);
+  return _do_read_reverse(ctx);
 }
 
 static bool _bm_readrandom(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_read_random(ctx);
+  return _do_read_random(ctx);
 }
 
 static bool _bm_readmissing(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_read_missing(ctx);
+  return _do_read_missing(ctx);
 }
 
 static bool _bm_readhot(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_read_hot(ctx);
+  return _do_read_hot(ctx);
 }
 
 static bool _bm_seekrandom(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _bm_seek_random(ctx);
+  return _do_seek_random(ctx);
 }
 
 static BMCTX *_bmctx_create(const char *name) {

@@ -58,17 +58,17 @@ IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fstat) {
   assert(fstat);
   iwrc rc = 0;
   struct stat st = {0};
-
+  
   memset(fstat, 0, sizeof(*fstat));
   if (stat(path, &st)) {
     return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
   }
-
+  
   fstat->atime = _IW_TIMESPEC2MS(st.st_atim);
   fstat->mtime = _IW_TIMESPEC2MS(st.st_mtim);
   fstat->ctime = _IW_TIMESPEC2MS(st.st_ctim);
   fstat->size = st.st_size;
-
+  
   if (S_ISREG(st.st_mode)) {
     fstat->ftype = IWP_TYPE_FILE;
   } else if (S_ISDIR(st.st_mode)) {
@@ -142,29 +142,34 @@ iwrc iwp_write(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
 
 iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
   int overlap = IW_RANGES_OVERLAP(off, off + siz, noff, noff + siz);
+  size_t sp, sp2;  
   iwrc rc = 0;
+  off_t pos = 0;
   uint8_t buf[4096];
-  off_t pos = off;
-  size_t sp, sp2;
-
   if (overlap && noff > off) {
     return IW_ERROR_OVERFLOW;
   }
-  posix_fadvise(fh, off, siz, POSIX_FADV_SEQUENTIAL);
-  while (pos < off + siz
-         && !(rc = iwp_read(fh, pos, buf, MIN(sizeof(buf), (siz + off - pos)), &sp))) {
-    pos += sp;
-    rc = iwp_write(fh, noff, buf, sp, &sp2);
-    if (rc) {
+  if (siz > sizeof(buf)) {
+    posix_fadvise(fh, off, siz, POSIX_FADV_SEQUENTIAL);  
+  }
+  while (pos < siz) {         
+    rc = iwp_read(fh, off + pos, buf, MIN(sizeof(buf), (siz - pos)), &sp);    
+    if (rc || !sp) {
       break;
+    } else {    
+      pos += sp;
+      rc = iwp_write(fh, noff, buf, sp, &sp2);
+      if (rc) {
+        break;
+      }
+      if (sp != sp2) {
+        rc = IW_ERROR_INVALID_STATE;
+        break;
+      }
     }
-    if (sp != sp2) {
-      rc = IW_ERROR_INVALID_STATE;
-      break;
-    }
-    if (sp == 0) {
-      break;
-    }
+  }
+  if (!rc && pos != siz) {
+    rc = IW_ERROR_INVALID_STATE;
   }
   return rc;
 }
@@ -213,7 +218,7 @@ iwrc iwp_exec_path(char *opath) {
   pid_t pid;
   char path[PATH_MAX];
   char epath[PATH_MAX];
-
+  
   memset(epath, 0, sizeof(epath));
   pid = getpid();
   sprintf(path, "/proc/%d/exe", pid);
