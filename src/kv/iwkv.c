@@ -1165,7 +1165,8 @@ static void _kvblk_compact_mm(KVBLK *kb, bool sync, uint8_t *mm) {
   if (coff == kb->maxoff) { // already compacted
     return;
   }
-  KVP tidx[KVBLK_IDXNUM], tidx_tmp[KVBLK_IDXNUM];
+  KVP tidx[KVBLK_IDXNUM];
+  KVP tidx_tmp[KVBLK_IDXNUM];
   uint8_t *wp = mm + kb->addr + (1ULL << kb->szpow);
   memcpy(tidx, kb->pidx, sizeof(tidx));
   ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp);
@@ -1532,7 +1533,8 @@ static iwrc _kvblk_updatev(KVBLK *kb,
       kb->flags |= KVBLK_DURTY;
     }
   } else {
-    KVP tidx[KVBLK_IDXNUM], tidx_tmp[KVBLK_IDXNUM];
+    KVP tidx[KVBLK_IDXNUM];
+    KVP tidx_tmp[KVBLK_IDXNUM];
     uint32_t koff = kb->pidx[idx].off;
     memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
     ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp);
