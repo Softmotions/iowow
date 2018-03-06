@@ -763,6 +763,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
     db->iwkv->last_db = prev;
   }
   // Cleanup DB
+  off_t db_addr = db->addr;
   if (first_sblkn) {
     DISPOSE_DB_CTX *dctx = malloc(sizeof(*dctx));
     if (dctx) {
@@ -781,7 +782,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
       rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     }
   }
-  IWRC(fsm->deallocate(fsm, db->addr, (1 << DB_SZPOW)), rc);
+  IWRC(fsm->deallocate(fsm, db_addr, (1 << DB_SZPOW)), rc);
   if (dec_worker) {
     _db_release_lw(dbp);
     _iwkv_worker_dec_nolk(iwkv);
@@ -1079,10 +1080,6 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
     rp += step;
     IW_READVNUMBUF(rp, kb->pidx[i].len, step);
     rp += step;
-    if (IW_UNLIKELY(rp - sp > kb->idxsz)) {
-      rc = IWKV_ERROR_CORRUPTED;
-      goto finish;
-    }
     if (kb->pidx[i].len) {
       if (IW_UNLIKELY(!kb->pidx[i].off)) {
         rc = IWKV_ERROR_CORRUPTED;
@@ -1679,16 +1676,22 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
+
   SBLK *sblk = &lx->saa[lx->saan];
-  memset(sblk, 0, sizeof(*sblk));
+  sblk->db = lx->db;
+  sblk->kvblk = 0;
 
   if (IW_UNLIKELY(addr == lx->db->addr)) {
     uint8_t *rp = mm + addr + DOFF_N0_U4;
     // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
     sblk->addr = addr;
     sblk->flags = SBLK_DB | flags;
-    sblk->db = lx->db;
+    sblk->lvl = 0;
+    sblk->p0 = 0;
+    sblk->kvblkn = 0;
+    sblk->lkl = 0;
     sblk->pnum = KVBLK_IDXNUM;
+    memset(sblk->pi, 0, sizeof(sblk->pi));
     for (int i = 0; i < SLEVELS; ++i) {
       IW_READLV(rp, lv, sblk->n[i]);
       if (sblk->n[i]) {
@@ -1700,7 +1703,6 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
     if (sblk->lvl) --sblk->lvl;
   } else if (addr) {
     uint8_t *rp = mm + addr;
-    sblk->db = lx->db;
     sblk->addr = addr;
     // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
     memcpy(&sblk->flags, rp, 1);
@@ -1731,9 +1733,13 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
     }
   } else { // Database tail
     uint8_t *rp = mm + lx->db->addr + DOFF_P0_U4;
-    sblk->db = lx->db;
+    sblk->addr = 0;
     sblk->flags = SBLK_DB | flags;
+    sblk->lvl = 0;
+    sblk->kvblkn = 0;
+    sblk->lkl = 0;
     sblk->pnum = KVBLK_IDXNUM;
+    memset(sblk->pi, 0, sizeof(sblk->pi));
     IW_READLV(rp, lv, sblk->p0);
     if (!sblk->p0) {
       sblk->p0 = ADDR2BLK(lx->db->addr);
@@ -1999,7 +2005,6 @@ IW_INLINE iwrc _sblk_updatekv(SBLK *sblk,
 }
 
 IW_INLINE iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
-
   assert(sblk && sblk->kvblk);
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
@@ -2096,9 +2101,11 @@ IW_INLINE iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *res) {
 
 static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
   iwrc rc = 0;
+  int cret;
   SBLK *sblk;
   blkn_t blkn;
   assert(lx->lower);
+
   while ((blkn = lx->lower->n[lvl])) {
     off_t blkaddr = BLK2ADDR(blkn);
     if (lx->nlvl > -1 && lvl < lx->nlvl) {
@@ -2117,7 +2124,6 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
 #ifndef NDEBUG
     ++lx->num_cmps;
 #endif
-    int cret;
     rc = _lx_sblk_cmp_key(lx, sblk, &cret);
     RCRET(rc);
     if (cret > 0 || lx->upper_addr == sblk->addr) { // upper > key
@@ -2132,6 +2138,8 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
 
 static iwrc _lx_find_bounds(IWLCTX *lx) {
   iwrc rc = 0;
+  int lvl;
+  blkn_t blkn;
   if (!lx->dblk) {
     rc = _sblk_at(lx, lx->db->addr, 0, &lx->dblk);
     RCRET(rc);
@@ -2143,16 +2151,21 @@ static iwrc _lx_find_bounds(IWLCTX *lx) {
     lx->dblk->lvl = lx->nlvl;
     lx->dblk->flags |= SBLK_DURTY;
   }
-  for (int lvl = lx->lower->lvl; lvl >= 0;) {
+  lvl = lx->lower->lvl;
+  while (lvl > -1) {
     rc = _lx_roll_forward(lx, lvl);
     RCRET(rc);
-    blkn_t ub = lx->upper ? ADDR2BLK(lx->upper->addr) : 0;
+    if (lx->upper) {
+      blkn = ADDR2BLK(lx->upper->addr);
+    } else {
+      blkn = 0;
+    }
     do {
       if (lx->nlvl >= lvl) {
         lx->plower[lvl] = lx->lower;
         lx->pupper[lvl] = lx->upper;
       }
-    } while (lvl-- > 0 && lx->lower->n[lvl] == ub);
+    } while (lvl-- && lx->lower->n[lvl] == blkn);
   }
   return 0;
 }

@@ -148,6 +148,7 @@ static void iwkv_test1_impl(int thrnum, int recth) {
       memcpy(&v, val.data, sizeof(uint64_t));
       CU_ASSERT_EQUAL_FATAL(v, i);
     }
+    iwkv_val_dispose(&val);
   }
   pthread_cond_destroy(&ctx.cond);
   pthread_mutex_destroy(&ctx.mtx);
