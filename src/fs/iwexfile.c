@@ -367,10 +367,17 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
 
 static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) {
   int rc = _exfile_rlock(f);
-  RCRET(rc);
+  RCRET(rc);  
   EXF *xf = f->impl;
-  IWRC(xf->file.copy(&xf->file, off, siz, noff), rc);
-  IWRC(_exfile_unlock(f), rc);
+  MMAPSLOT *s = xf->mmslots;
+  if (s && s->mmap && s->off == 0 && s->len >= noff + siz) { // fully mmaped file
+    rc = _exfile_ensure_size_lw(f, noff + siz);
+    RCRET(rc);
+    memmove(s->mmap + noff, s->mmap + off, siz);
+  } else {
+    IWRC(xf->file.copy(&xf->file, off, siz, noff), rc);    
+  }
+  IWRC(_exfile_unlock(f), rc);  
   return rc;
 }
 

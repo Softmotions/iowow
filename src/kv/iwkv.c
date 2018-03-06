@@ -2300,7 +2300,7 @@ IW_INLINE iwrc _lx_init_chute(IWLCTX *lx) {
   return 0;
 }
 
-IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
+static WUR iwrc _lx_addkv(IWLCTX *lx) {
   iwrc rc;
   bool found, uadd;
   int idx;

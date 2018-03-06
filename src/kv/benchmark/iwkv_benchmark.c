@@ -38,7 +38,7 @@ bool db_close(BMCTX *ctx) {
   iwrc rc = iwkv_close(&bmdb->iwkv);
   if (rc) {
     iwlog_ecode_error2(rc, "Failed to close iwkv file");
-    return false;
+    return false; 
   }
   free(bmdb);
   return true;

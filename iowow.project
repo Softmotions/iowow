@@ -145,7 +145,7 @@
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/iwkv_benchmark" IntermediateDirectory="$(ProjectPath)/build/src/kv/benchmark" Command="$(IntermediateDirectory)/iwkv_benchmark" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/tests" IntermediateDirectory="$(ProjectPath)/build/src/kv/tests" Command="$(IntermediateDirectory)/iwkv_test1" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
