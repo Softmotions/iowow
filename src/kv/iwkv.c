@@ -1746,7 +1746,7 @@ finish:
   return rc;
 }
 
-IW_INLINE void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
+static void _sblk_sync_mm(SBLK *sblk, uint8_t *mm) {
   if (sblk->flags & SBLK_DURTY) {
     sblk->flags &= ~SBLK_DURTY;
     uint32_t lv;
@@ -2132,13 +2132,14 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
 
 static iwrc _lx_find_bounds(IWLCTX *lx) {
   iwrc rc = 0;
-  rc = _sblk_at(lx, lx->db->addr, 0, &lx->dblk);
-  RCRET(rc);
+  if (!lx->dblk) {
+    rc = _sblk_at(lx, lx->db->addr, 0, &lx->dblk);
+    RCRET(rc);
+  }
   if (!lx->lower) {
     lx->lower = lx->dblk;
   }
   if (lx->nlvl > lx->dblk->lvl) { // New level in DB
-    memset(&lx->dblk->n[lx->dblk->lvl + 1], 0, lx->nlvl - lx->dblk->lvl);
     lx->dblk->lvl = lx->nlvl;
     lx->dblk->flags |= SBLK_DURTY;
   }
@@ -2184,15 +2185,15 @@ static void _lx_release_mm(IWLCTX *lx, uint8_t *mm) {
         lx->plower[i] = 0;
       }
     }
-    if (lx->dblk) {
-      _sblk_sync_and_release_mm(lx, &lx->dblk, mm);
-    }
   }
   if (lx->upper) {
     _sblk_sync_and_release_mm(lx, &lx->upper, mm);
   }
   if (lx->lower) {
     _sblk_sync_and_release_mm(lx, &lx->lower, mm);
+  }
+  if (lx->dblk && (lx->dblk->flags & SBLK_DURTY)) {
+    _sblk_sync_mm(lx->dblk, mm);
   }
 }
 
@@ -2365,8 +2366,8 @@ start:
     return rc;
   }
   rc = _lx_addkv(lx);
-  SBLK *lower = lx->lower;
   if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
+    SBLK *lower = lx->lower;
     _lx_release_mm(lx, 0);
     lx->nlvl = _sblk_genlevel();
     if (lower->lvl >= lx->nlvl) {
