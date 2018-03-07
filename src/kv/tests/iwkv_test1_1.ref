@@ -9,7 +9,7 @@
 == DB[1] lvl=-1, blk=6, dbflg=0, p0=18
  === SBLK[18] lvl=-1, pnum=1, flg=1, kvzidx=1, p0=6, db=1
  === SBLK[18] szpow=8, lkl=3, lk=foo
- === SBLK[18]    [00,00] foo:bar
+ === SBLK[18]    [000,000] foo:bar
 
 
 #### Stage: put foo:bazz
@@ -18,7 +18,7 @@
 == DB[1] lvl=-1, blk=6, dbflg=0, p0=18
  === SBLK[18] lvl=-1, pnum=1, flg=1, kvzidx=1, p0=6, db=1
  === SBLK[18] szpow=8, lkl=3, lk=foo
- === SBLK[18]    [00,00] foo:bazzz
+ === SBLK[18]    [000,000] foo:bazzz
 
 
 #### Stage: put foo:
@@ -27,7 +27,7 @@
 == DB[1] lvl=-1, blk=6, dbflg=0, p0=18
  === SBLK[18] lvl=-1, pnum=1, flg=1, kvzidx=1, p0=6, db=1
  === SBLK[18] szpow=8, lkl=3, lk=foo
- === SBLK[18]    [00,00] foo:
+ === SBLK[18]    [000,000] foo:
 
 
 #### Stage: put foo:bar
@@ -36,7 +36,7 @@
 == DB[1] lvl=-1, blk=6, dbflg=0, p0=18
  === SBLK[18] lvl=-1, pnum=1, flg=1, kvzidx=1, p0=6, db=1
  === SBLK[18] szpow=8, lkl=3, lk=foo
- === SBLK[18]    [00,00] foo:bar
+ === SBLK[18]    [000,000] foo:bar
 
 
 #### Stage: remove foo:bar
@@ -47,207 +47,667 @@
 
 
 == DB[1] lvl=-1, blk=6, dbflg=0, p0=18
- === SBLK[18] lvl=-1, pnum=63, flg=1, kvzidx=-1, p0=6, db=1
- === SBLK[18] szpow=10, lkl=6, lk=124kkk
- === SBLK[18]    [00,62] 124kkk:124val    [01,61] 122kkk:122val    [02,60] 120kkk:120val
- === SBLK[18]    [03,59] 118kkk:118val    [04,58] 116kkk:116val    [05,57] 114kkk:114val
- === SBLK[18]    [06,56] 112kkk:112val    [07,55] 110kkk:110val    [08,54] 108kkk:108val
- === SBLK[18]    [09,53] 106kkk:106val    [10,52] 104kkk:104val    [11,51] 102kkk:102val
- === SBLK[18]    [12,50] 100kkk:100val    [13,49] 098kkk:098val    [14,48] 096kkk:096val
- === SBLK[18]    [15,47] 094kkk:094val    [16,46] 092kkk:092val    [17,45] 090kkk:090val
- === SBLK[18]    [18,44] 088kkk:088val    [19,43] 086kkk:086val    [20,42] 084kkk:084val
- === SBLK[18]    [21,41] 082kkk:082val    [22,40] 080kkk:080val    [23,39] 078kkk:078val
- === SBLK[18]    [24,38] 076kkk:076val    [25,37] 074kkk:074val    [26,36] 072kkk:072val
- === SBLK[18]    [27,35] 070kkk:070val    [28,34] 068kkk:068val    [29,33] 066kkk:066val
- === SBLK[18]    [30,32] 064kkk:064val    [31,31] 062kkk:062val    [32,30] 060kkk:060val
- === SBLK[18]    [33,29] 058kkk:058val    [34,28] 056kkk:056val    [35,27] 054kkk:054val
- === SBLK[18]    [36,26] 052kkk:052val    [37,25] 050kkk:050val    [38,24] 048kkk:048val
- === SBLK[18]    [39,23] 046kkk:046val    [40,22] 044kkk:044val    [41,21] 042kkk:042val
- === SBLK[18]    [42,20] 040kkk:040val    [43,19] 038kkk:038val    [44,18] 036kkk:036val
- === SBLK[18]    [45,17] 034kkk:034val    [46,16] 032kkk:032val    [47,15] 030kkk:030val
- === SBLK[18]    [48,14] 028kkk:028val    [49,13] 026kkk:026val    [50,12] 024kkk:024val
- === SBLK[18]    [51,11] 022kkk:022val    [52,10] 020kkk:020val    [53,09] 018kkk:018val
- === SBLK[18]    [54,08] 016kkk:016val    [55,07] 014kkk:014val    [56,06] 012kkk:012val
- === SBLK[18]    [57,05] 010kkk:010val    [58,04] 008kkk:008val    [59,03] 006kkk:006val
- === SBLK[18]    [60,02] 004kkk:004val    [61,01] 002kkk:002val    [62,00] 000kkk:000val
+ === SBLK[132] lvl=-1, pnum=15, flg=1, kvzidx=15, p0=6, db=1
+ === SBLK[132] szpow=8, lkl=6, lk=252kkk
+ === SBLK[132]    [000,014] 252kkk:252val    [001,013] 250kkk:250val    [002,012] 248kkk:248val
+ === SBLK[132]    [003,011] 246kkk:246val    [004,010] 244kkk:244val    [005,009] 242kkk:242val
+ === SBLK[132]    [006,008] 240kkk:240val    [007,007] 238kkk:238val    [008,006] 236kkk:236val
+ === SBLK[132]    [009,005] 234kkk:234val    [010,004] 232kkk:232val    [011,003] 230kkk:230val
+ === SBLK[132]    [012,002] 228kkk:228val    [013,001] 226kkk:226val    [014,000] 224kkk:224val
+
+
+ === SBLK[60] lvl=-1, pnum=16, flg=1, kvzidx=-1, p0=132, db=1
+ === SBLK[60] szpow=8, lkl=6, lk=222kkk
+ === SBLK[60]    [000,015] 222kkk:222val    [001,014] 220kkk:220val    [002,013] 218kkk:218val
+ === SBLK[60]    [003,012] 216kkk:216val    [004,011] 214kkk:214val    [005,010] 212kkk:212val
+ === SBLK[60]    [006,009] 210kkk:210val    [007,008] 208kkk:208val    [008,007] 206kkk:206val
+ === SBLK[60]    [009,006] 204kkk:204val    [010,005] 202kkk:202val    [011,004] 200kkk:200val
+ === SBLK[60]    [012,003] 198kkk:198val    [013,002] 196kkk:196val    [014,001] 194kkk:194val
+ === SBLK[60]    [015,000] 192kkk:192val
+
+
+ === SBLK[53] lvl=-1, pnum=16, flg=1, kvzidx=-1, p0=60, db=1
+ === SBLK[53] szpow=8, lkl=6, lk=190kkk
+ === SBLK[53]    [000,015] 190kkk:190val    [001,014] 188kkk:188val    [002,013] 186kkk:186val
+ === SBLK[53]    [003,012] 184kkk:184val    [004,011] 182kkk:182val    [005,010] 180kkk:180val
+ === SBLK[53]    [006,009] 178kkk:178val    [007,008] 176kkk:176val    [008,007] 174kkk:174val
+ === SBLK[53]    [009,006] 172kkk:172val    [010,005] 170kkk:170val    [011,004] 168kkk:168val
+ === SBLK[53]    [012,003] 166kkk:166val    [013,002] 164kkk:164val    [014,001] 162kkk:162val
+ === SBLK[53]    [015,000] 160kkk:160val
+
+
+ === SBLK[46] lvl=-1, pnum=16, flg=1, kvzidx=-1, p0=53, db=1
+ === SBLK[46] szpow=8, lkl=6, lk=158kkk
+ === SBLK[46]    [000,015] 158kkk:158val    [001,014] 156kkk:156val    [002,013] 154kkk:154val
+ === SBLK[46]    [003,012] 152kkk:152val    [004,011] 150kkk:150val    [005,010] 148kkk:148val
+ === SBLK[46]    [006,009] 146kkk:146val    [007,008] 144kkk:144val    [008,007] 142kkk:142val
+ === SBLK[46]    [009,006] 140kkk:140val    [010,005] 138kkk:138val    [011,004] 136kkk:136val
+ === SBLK[46]    [012,003] 134kkk:134val    [013,002] 132kkk:132val    [014,001] 130kkk:130val
+ === SBLK[46]    [015,000] 128kkk:128val
+
+
+ === SBLK[39] lvl=-1, pnum=16, flg=1, kvzidx=-1, p0=46, db=1
+ === SBLK[39] szpow=8, lkl=6, lk=126kkk
+ === SBLK[39]    [000,015] 126kkk:126val    [001,014] 124kkk:124val    [002,013] 122kkk:122val
+ === SBLK[39]    [003,012] 120kkk:120val    [004,011] 118kkk:118val    [005,010] 116kkk:116val
+ === SBLK[39]    [006,009] 114kkk:114val    [007,008] 112kkk:112val    [008,007] 110kkk:110val
+ === SBLK[39]    [009,006] 108kkk:108val    [010,005] 106kkk:106val    [011,004] 104kkk:104val
+ === SBLK[39]    [012,003] 102kkk:102val    [013,002] 100kkk:100val    [014,001] 098kkk:098val
+ === SBLK[39]    [015,000] 096kkk:096val
+
+
+ === SBLK[32] lvl=-1, pnum=16, flg=1, kvzidx=-1, p0=39, db=1
+ === SBLK[32] szpow=8, lkl=6, lk=094kkk
+ === SBLK[32]    [000,015] 094kkk:094val    [001,014] 092kkk:092val    [002,013] 090kkk:090val
+ === SBLK[32]    [003,012] 088kkk:088val    [004,011] 086kkk:086val    [005,010] 084kkk:084val
+ === SBLK[32]    [006,009] 082kkk:082val    [007,008] 080kkk:080val    [008,007] 078kkk:078val
+ === SBLK[32]    [009,006] 076kkk:076val    [010,005] 074kkk:074val    [011,004] 072kkk:072val
+ === SBLK[32]    [012,003] 070kkk:070val    [013,002] 068kkk:068val    [014,001] 066kkk:066val
+ === SBLK[32]    [015,000] 064kkk:064val
+
+
+ === SBLK[25] lvl=-1, pnum=16, flg=1, kvzidx=-1, p0=32, db=1
+ === SBLK[25] szpow=8, lkl=6, lk=062kkk
+ === SBLK[25]    [000,015] 062kkk:062val    [001,014] 060kkk:060val    [002,013] 058kkk:058val
+ === SBLK[25]    [003,012] 056kkk:056val    [004,011] 054kkk:054val    [005,010] 052kkk:052val
+ === SBLK[25]    [006,009] 050kkk:050val    [007,008] 048kkk:048val    [008,007] 046kkk:046val
+ === SBLK[25]    [009,006] 044kkk:044val    [010,005] 042kkk:042val    [011,004] 040kkk:040val
+ === SBLK[25]    [012,003] 038kkk:038val    [013,002] 036kkk:036val    [014,001] 034kkk:034val
+ === SBLK[25]    [015,000] 032kkk:032val
+
+
+ === SBLK[18] lvl=-1, pnum=16, flg=1, kvzidx=-1, p0=25, db=1
+ === SBLK[18] szpow=8, lkl=6, lk=030kkk
+ === SBLK[18]    [000,015] 030kkk:030val    [001,014] 028kkk:028val    [002,013] 026kkk:026val
+ === SBLK[18]    [003,012] 024kkk:024val    [004,011] 022kkk:022val    [005,010] 020kkk:020val
+ === SBLK[18]    [006,009] 018kkk:018val    [007,008] 016kkk:016val    [008,007] 014kkk:014val
+ === SBLK[18]    [009,006] 012kkk:012val    [010,005] 010kkk:010val    [011,004] 008kkk:008val
+ === SBLK[18]    [012,003] 006kkk:006val    [013,002] 004kkk:004val    [014,001] 002kkk:002val
+ === SBLK[18]    [015,000] 000kkk:000val
 
 
 #### Stage: fill up second block
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=10
- === SBLK[18] lvl=-1, pnum=34, flg=1, kvzidx=1, p0=6, db=1
- === SBLK[18] szpow=10, lkl=6, lk=125kkk
- === SBLK[18]    [00,00] 125kkk:125val    [01,62] 124kkk:124val    [02,15] 123kkk:123val
- === SBLK[18]    [03,61] 122kkk:122val    [04,30] 121kkk:121val    [05,60] 120kkk:120val
- === SBLK[18]    [06,29] 119kkk:119val    [07,59] 118kkk:118val    [08,28] 117kkk:117val
- === SBLK[18]    [09,58] 116kkk:116val    [10,27] 115kkk:115val    [11,57] 114kkk:114val
- === SBLK[18]    [12,26] 113kkk:113val    [13,56] 112kkk:112val    [14,25] 111kkk:111val
- === SBLK[18]    [15,55] 110kkk:110val    [16,24] 109kkk:109val    [17,54] 108kkk:108val
- === SBLK[18]    [18,23] 107kkk:107val    [19,53] 106kkk:106val    [20,22] 105kkk:105val
- === SBLK[18]    [21,52] 104kkk:104val    [22,21] 103kkk:103val    [23,51] 102kkk:102val
- === SBLK[18]    [24,20] 101kkk:101val    [25,50] 100kkk:100val    [26,19] 099kkk:099val
- === SBLK[18]    [27,49] 098kkk:098val    [28,18] 097kkk:097val    [29,48] 096kkk:096val
- === SBLK[18]    [30,17] 095kkk:095val    [31,47] 094kkk:094val    [32,16] 093kkk:093val
- === SBLK[18]    [33,46] 092kkk:092val
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=139
+ === SBLK[132] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=6, db=1
+ === SBLK[132] szpow=8, lkl=6, lk=253kkk
+ === SBLK[132]    [000,002] 253kkk:253val    [001,014] 252kkk:252val    [002,001] 251kkk:251val
+ === SBLK[132]    [003,013] 250kkk:250val    [004,000] 249kkk:249val    [005,012] 248kkk:248val
+ === SBLK[132]    [006,015] 247kkk:247val    [007,011] 246kkk:246val    [008,005] 245kkk:245val
+ === SBLK[132]    [009,010] 244kkk:244val    [010,004] 243kkk:243val    [011,009] 242kkk:242val
 
 
- === SBLK[128] lvl=-1, pnum=31, flg=1, kvzidx=31, p0=18, db=1
- === SBLK[128] szpow=10, lkl=6, lk=091kkk
- === SBLK[128]    [00,00] 091kkk:091val    [01,01] 090kkk:090val    [02,02] 089kkk:089val
- === SBLK[128]    [03,03] 088kkk:088val    [04,04] 087kkk:087val    [05,05] 086kkk:086val
- === SBLK[128]    [06,06] 085kkk:085val    [07,07] 084kkk:084val    [08,08] 083kkk:083val
- === SBLK[128]    [09,09] 082kkk:082val    [10,10] 081kkk:081val    [11,11] 080kkk:080val
- === SBLK[128]    [12,12] 079kkk:079val    [13,13] 078kkk:078val    [14,14] 077kkk:077val
- === SBLK[128]    [15,15] 076kkk:076val    [16,16] 075kkk:075val    [17,17] 074kkk:074val
- === SBLK[128]    [18,18] 073kkk:073val    [19,19] 072kkk:072val    [20,20] 071kkk:071val
- === SBLK[128]    [21,21] 070kkk:070val    [22,22] 069kkk:069val    [23,23] 068kkk:068val
- === SBLK[128]    [24,24] 067kkk:067val    [25,25] 066kkk:066val    [26,26] 065kkk:065val
- === SBLK[128]    [27,27] 064kkk:064val    [28,28] 063kkk:063val    [29,29] 062kkk:062val
- === SBLK[128]    [30,30] 061kkk:061val
+ === SBLK[244] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=132, db=1
+ === SBLK[244] szpow=8, lkl=6, lk=241kkk
+ === SBLK[244]    [000,000] 241kkk:241val    [001,001] 240kkk:240val    [002,002] 239kkk:239val
+ === SBLK[244]    [003,003] 238kkk:238val    [004,004] 237kkk:237val    [005,005] 236kkk:236val
+ === SBLK[244]    [006,006] 235kkk:235val
 
 
- === SBLK[10] lvl=-1, pnum=61, flg=1, kvzidx=61, p0=128, db=1
- === SBLK[10] szpow=10, lkl=6, lk=060kkk
- === SBLK[10]    [00,00] 060kkk:060val    [01,60] 059kkk:059val    [02,01] 058kkk:058val
- === SBLK[10]    [03,59] 057kkk:057val    [04,02] 056kkk:056val    [05,58] 055kkk:055val
- === SBLK[10]    [06,03] 054kkk:054val    [07,57] 053kkk:053val    [08,04] 052kkk:052val
- === SBLK[10]    [09,56] 051kkk:051val    [10,05] 050kkk:050val    [11,55] 049kkk:049val
- === SBLK[10]    [12,06] 048kkk:048val    [13,54] 047kkk:047val    [14,07] 046kkk:046val
- === SBLK[10]    [15,53] 045kkk:045val    [16,08] 044kkk:044val    [17,52] 043kkk:043val
- === SBLK[10]    [18,09] 042kkk:042val    [19,51] 041kkk:041val    [20,10] 040kkk:040val
- === SBLK[10]    [21,50] 039kkk:039val    [22,11] 038kkk:038val    [23,49] 037kkk:037val
- === SBLK[10]    [24,12] 036kkk:036val    [25,48] 035kkk:035val    [26,13] 034kkk:034val
- === SBLK[10]    [27,47] 033kkk:033val    [28,14] 032kkk:032val    [29,46] 031kkk:031val
- === SBLK[10]    [30,15] 030kkk:030val    [31,45] 029kkk:029val    [32,16] 028kkk:028val
- === SBLK[10]    [33,44] 027kkk:027val    [34,17] 026kkk:026val    [35,43] 025kkk:025val
- === SBLK[10]    [36,18] 024kkk:024val    [37,42] 023kkk:023val    [38,19] 022kkk:022val
- === SBLK[10]    [39,41] 021kkk:021val    [40,20] 020kkk:020val    [41,40] 019kkk:019val
- === SBLK[10]    [42,21] 018kkk:018val    [43,39] 017kkk:017val    [44,22] 016kkk:016val
- === SBLK[10]    [45,38] 015kkk:015val    [46,23] 014kkk:014val    [47,37] 013kkk:013val
- === SBLK[10]    [48,24] 012kkk:012val    [49,36] 011kkk:011val    [50,25] 010kkk:010val
- === SBLK[10]    [51,35] 009kkk:009val    [52,26] 008kkk:008val    [53,34] 007kkk:007val
- === SBLK[10]    [54,27] 006kkk:006val    [55,33] 005kkk:005val    [56,28] 004kkk:004val
- === SBLK[10]    [57,32] 003kkk:003val    [58,29] 002kkk:002val    [59,31] 001kkk:001val
- === SBLK[10]    [60,30] 000kkk:000val
+ === SBLK[237] lvl=-1, pnum=12, flg=1, kvzidx=12, p0=244, db=1
+ === SBLK[237] szpow=8, lkl=6, lk=234kkk
+ === SBLK[237]    [000,000] 234kkk:234val    [001,011] 233kkk:233val    [002,001] 232kkk:232val
+ === SBLK[237]    [003,010] 231kkk:231val    [004,002] 230kkk:230val    [005,009] 229kkk:229val
+ === SBLK[237]    [006,003] 228kkk:228val    [007,008] 227kkk:227val    [008,004] 226kkk:226val
+ === SBLK[237]    [009,007] 225kkk:225val    [010,005] 224kkk:224val    [011,006] 223kkk:223val
+
+
+ === SBLK[60] lvl=-1, pnum=11, flg=1, kvzidx=2, p0=237, db=1
+ === SBLK[60] szpow=8, lkl=6, lk=222kkk
+ === SBLK[60]    [000,015] 222kkk:222val    [001,001] 221kkk:221val    [002,014] 220kkk:220val
+ === SBLK[60]    [003,000] 219kkk:219val    [004,013] 218kkk:218val    [005,006] 217kkk:217val
+ === SBLK[60]    [006,012] 216kkk:216val    [007,005] 215kkk:215val    [008,011] 214kkk:214val
+ === SBLK[60]    [009,004] 213kkk:213val    [010,010] 212kkk:212val
+
+
+ === SBLK[230] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=60, db=1
+ === SBLK[230] szpow=8, lkl=6, lk=211kkk
+ === SBLK[230]    [000,000] 211kkk:211val    [001,001] 210kkk:210val    [002,002] 209kkk:209val
+ === SBLK[230]    [003,003] 208kkk:208val    [004,004] 207kkk:207val    [005,005] 206kkk:206val
+ === SBLK[230]    [006,006] 205kkk:205val
+
+
+ === SBLK[223] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=230, db=1
+ === SBLK[223] szpow=8, lkl=6, lk=204kkk
+ === SBLK[223]    [000,000] 204kkk:204val    [001,012] 203kkk:203val    [002,001] 202kkk:202val
+ === SBLK[223]    [003,011] 201kkk:201val    [004,002] 200kkk:200val    [005,010] 199kkk:199val
+ === SBLK[223]    [006,003] 198kkk:198val    [007,009] 197kkk:197val    [008,004] 196kkk:196val
+ === SBLK[223]    [009,008] 195kkk:195val    [010,005] 194kkk:194val    [011,007] 193kkk:193val
+ === SBLK[223]    [012,006] 192kkk:192val
+
+
+ === SBLK[53] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=223, db=1
+ === SBLK[53] szpow=8, lkl=6, lk=191kkk
+ === SBLK[53]    [000,002] 191kkk:191val    [001,015] 190kkk:190val    [002,001] 189kkk:189val
+ === SBLK[53]    [003,014] 188kkk:188val    [004,000] 187kkk:187val    [005,013] 186kkk:186val
+ === SBLK[53]    [006,006] 185kkk:185val    [007,012] 184kkk:184val    [008,005] 183kkk:183val
+ === SBLK[53]    [009,011] 182kkk:182val    [010,004] 181kkk:181val    [011,010] 180kkk:180val
+
+
+ === SBLK[216] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=53, db=1
+ === SBLK[216] szpow=8, lkl=6, lk=179kkk
+ === SBLK[216]    [000,000] 179kkk:179val    [001,001] 178kkk:178val    [002,002] 177kkk:177val
+ === SBLK[216]    [003,003] 176kkk:176val    [004,004] 175kkk:175val    [005,005] 174kkk:174val
+ === SBLK[216]    [006,006] 173kkk:173val
+
+
+ === SBLK[209] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=216, db=1
+ === SBLK[209] szpow=8, lkl=6, lk=172kkk
+ === SBLK[209]    [000,000] 172kkk:172val    [001,012] 171kkk:171val    [002,001] 170kkk:170val
+ === SBLK[209]    [003,011] 169kkk:169val    [004,002] 168kkk:168val    [005,010] 167kkk:167val
+ === SBLK[209]    [006,003] 166kkk:166val    [007,009] 165kkk:165val    [008,004] 164kkk:164val
+ === SBLK[209]    [009,008] 163kkk:163val    [010,005] 162kkk:162val    [011,007] 161kkk:161val
+ === SBLK[209]    [012,006] 160kkk:160val
+
+
+ === SBLK[46] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=209, db=1
+ === SBLK[46] szpow=8, lkl=6, lk=159kkk
+ === SBLK[46]    [000,002] 159kkk:159val    [001,015] 158kkk:158val    [002,001] 157kkk:157val
+ === SBLK[46]    [003,014] 156kkk:156val    [004,000] 155kkk:155val    [005,013] 154kkk:154val
+ === SBLK[46]    [006,006] 153kkk:153val    [007,012] 152kkk:152val    [008,005] 151kkk:151val
+ === SBLK[46]    [009,011] 150kkk:150val    [010,004] 149kkk:149val    [011,010] 148kkk:148val
+
+
+ === SBLK[202] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=46, db=1
+ === SBLK[202] szpow=8, lkl=6, lk=147kkk
+ === SBLK[202]    [000,000] 147kkk:147val    [001,001] 146kkk:146val    [002,002] 145kkk:145val
+ === SBLK[202]    [003,003] 144kkk:144val    [004,004] 143kkk:143val    [005,005] 142kkk:142val
+ === SBLK[202]    [006,006] 141kkk:141val
+
+
+ === SBLK[195] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=202, db=1
+ === SBLK[195] szpow=8, lkl=6, lk=140kkk
+ === SBLK[195]    [000,000] 140kkk:140val    [001,012] 139kkk:139val    [002,001] 138kkk:138val
+ === SBLK[195]    [003,011] 137kkk:137val    [004,002] 136kkk:136val    [005,010] 135kkk:135val
+ === SBLK[195]    [006,003] 134kkk:134val    [007,009] 133kkk:133val    [008,004] 132kkk:132val
+ === SBLK[195]    [009,008] 131kkk:131val    [010,005] 130kkk:130val    [011,007] 129kkk:129val
+ === SBLK[195]    [012,006] 128kkk:128val
+
+
+ === SBLK[39] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=195, db=1
+ === SBLK[39] szpow=8, lkl=6, lk=127kkk
+ === SBLK[39]    [000,002] 127kkk:127val    [001,015] 126kkk:126val    [002,001] 125kkk:125val
+ === SBLK[39]    [003,014] 124kkk:124val    [004,000] 123kkk:123val    [005,013] 122kkk:122val
+ === SBLK[39]    [006,006] 121kkk:121val    [007,012] 120kkk:120val    [008,005] 119kkk:119val
+ === SBLK[39]    [009,011] 118kkk:118val    [010,004] 117kkk:117val    [011,010] 116kkk:116val
+
+
+ === SBLK[188] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=39, db=1
+ === SBLK[188] szpow=8, lkl=6, lk=115kkk
+ === SBLK[188]    [000,000] 115kkk:115val    [001,001] 114kkk:114val    [002,002] 113kkk:113val
+ === SBLK[188]    [003,003] 112kkk:112val    [004,004] 111kkk:111val    [005,005] 110kkk:110val
+ === SBLK[188]    [006,006] 109kkk:109val
+
+
+ === SBLK[181] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=188, db=1
+ === SBLK[181] szpow=8, lkl=6, lk=108kkk
+ === SBLK[181]    [000,000] 108kkk:108val    [001,012] 107kkk:107val    [002,001] 106kkk:106val
+ === SBLK[181]    [003,011] 105kkk:105val    [004,002] 104kkk:104val    [005,010] 103kkk:103val
+ === SBLK[181]    [006,003] 102kkk:102val    [007,009] 101kkk:101val    [008,004] 100kkk:100val
+ === SBLK[181]    [009,008] 099kkk:099val    [010,005] 098kkk:098val    [011,007] 097kkk:097val
+ === SBLK[181]    [012,006] 096kkk:096val
+
+
+ === SBLK[32] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=181, db=1
+ === SBLK[32] szpow=8, lkl=6, lk=095kkk
+ === SBLK[32]    [000,002] 095kkk:095val    [001,015] 094kkk:094val    [002,001] 093kkk:093val
+ === SBLK[32]    [003,014] 092kkk:092val    [004,000] 091kkk:091val    [005,013] 090kkk:090val
+ === SBLK[32]    [006,006] 089kkk:089val    [007,012] 088kkk:088val    [008,005] 087kkk:087val
+ === SBLK[32]    [009,011] 086kkk:086val    [010,004] 085kkk:085val    [011,010] 084kkk:084val
+
+
+ === SBLK[174] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=32, db=1
+ === SBLK[174] szpow=8, lkl=6, lk=083kkk
+ === SBLK[174]    [000,000] 083kkk:083val    [001,001] 082kkk:082val    [002,002] 081kkk:081val
+ === SBLK[174]    [003,003] 080kkk:080val    [004,004] 079kkk:079val    [005,005] 078kkk:078val
+ === SBLK[174]    [006,006] 077kkk:077val
+
+
+ === SBLK[167] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=174, db=1
+ === SBLK[167] szpow=8, lkl=6, lk=076kkk
+ === SBLK[167]    [000,000] 076kkk:076val    [001,012] 075kkk:075val    [002,001] 074kkk:074val
+ === SBLK[167]    [003,011] 073kkk:073val    [004,002] 072kkk:072val    [005,010] 071kkk:071val
+ === SBLK[167]    [006,003] 070kkk:070val    [007,009] 069kkk:069val    [008,004] 068kkk:068val
+ === SBLK[167]    [009,008] 067kkk:067val    [010,005] 066kkk:066val    [011,007] 065kkk:065val
+ === SBLK[167]    [012,006] 064kkk:064val
+
+
+ === SBLK[25] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=167, db=1
+ === SBLK[25] szpow=8, lkl=6, lk=063kkk
+ === SBLK[25]    [000,002] 063kkk:063val    [001,015] 062kkk:062val    [002,001] 061kkk:061val
+ === SBLK[25]    [003,014] 060kkk:060val    [004,000] 059kkk:059val    [005,013] 058kkk:058val
+ === SBLK[25]    [006,006] 057kkk:057val    [007,012] 056kkk:056val    [008,005] 055kkk:055val
+ === SBLK[25]    [009,011] 054kkk:054val    [010,004] 053kkk:053val    [011,010] 052kkk:052val
+
+
+ === SBLK[160] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=25, db=1
+ === SBLK[160] szpow=8, lkl=6, lk=051kkk
+ === SBLK[160]    [000,000] 051kkk:051val    [001,001] 050kkk:050val    [002,002] 049kkk:049val
+ === SBLK[160]    [003,003] 048kkk:048val    [004,004] 047kkk:047val    [005,005] 046kkk:046val
+ === SBLK[160]    [006,006] 045kkk:045val
+
+
+ === SBLK[153] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=160, db=1
+ === SBLK[153] szpow=8, lkl=6, lk=044kkk
+ === SBLK[153]    [000,000] 044kkk:044val    [001,012] 043kkk:043val    [002,001] 042kkk:042val
+ === SBLK[153]    [003,011] 041kkk:041val    [004,002] 040kkk:040val    [005,010] 039kkk:039val
+ === SBLK[153]    [006,003] 038kkk:038val    [007,009] 037kkk:037val    [008,004] 036kkk:036val
+ === SBLK[153]    [009,008] 035kkk:035val    [010,005] 034kkk:034val    [011,007] 033kkk:033val
+ === SBLK[153]    [012,006] 032kkk:032val
+
+
+ === SBLK[18] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=153, db=1
+ === SBLK[18] szpow=8, lkl=6, lk=031kkk
+ === SBLK[18]    [000,002] 031kkk:031val    [001,015] 030kkk:030val    [002,001] 029kkk:029val
+ === SBLK[18]    [003,014] 028kkk:028val    [004,000] 027kkk:027val    [005,013] 026kkk:026val
+ === SBLK[18]    [006,006] 025kkk:025val    [007,012] 024kkk:024val    [008,005] 023kkk:023val
+ === SBLK[18]    [009,011] 022kkk:022val    [010,004] 021kkk:021val    [011,010] 020kkk:020val
+
+
+ === SBLK[146] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=18, db=1
+ === SBLK[146] szpow=8, lkl=6, lk=019kkk
+ === SBLK[146]    [000,000] 019kkk:019val    [001,001] 018kkk:018val    [002,002] 017kkk:017val
+ === SBLK[146]    [003,003] 016kkk:016val    [004,004] 015kkk:015val    [005,005] 014kkk:014val
+ === SBLK[146]    [006,006] 013kkk:013val
+
+
+ === SBLK[139] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=146, db=1
+ === SBLK[139] szpow=8, lkl=6, lk=012kkk
+ === SBLK[139]    [000,000] 012kkk:012val    [001,012] 011kkk:011val    [002,001] 010kkk:010val
+ === SBLK[139]    [003,011] 009kkk:009val    [004,002] 008kkk:008val    [005,010] 007kkk:007val
+ === SBLK[139]    [006,003] 006kkk:006val    [007,009] 005kkk:005val    [008,004] 004kkk:004val
+ === SBLK[139]    [009,008] 003kkk:003val    [010,005] 002kkk:002val    [011,007] 001kkk:001val
+ === SBLK[139]    [012,006] 000kkk:000val
 
 
 #### Stage: state after reopen
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=10
- === SBLK[18] lvl=-1, pnum=34, flg=1, kvzidx=1, p0=6, db=1
- === SBLK[18] szpow=10, lkl=6, lk=125kkk
- === SBLK[18]    [00,00] 125kkk:125val    [01,62] 124kkk:124val    [02,15] 123kkk:123val
- === SBLK[18]    [03,61] 122kkk:122val    [04,30] 121kkk:121val    [05,60] 120kkk:120val
- === SBLK[18]    [06,29] 119kkk:119val    [07,59] 118kkk:118val    [08,28] 117kkk:117val
- === SBLK[18]    [09,58] 116kkk:116val    [10,27] 115kkk:115val    [11,57] 114kkk:114val
- === SBLK[18]    [12,26] 113kkk:113val    [13,56] 112kkk:112val    [14,25] 111kkk:111val
- === SBLK[18]    [15,55] 110kkk:110val    [16,24] 109kkk:109val    [17,54] 108kkk:108val
- === SBLK[18]    [18,23] 107kkk:107val    [19,53] 106kkk:106val    [20,22] 105kkk:105val
- === SBLK[18]    [21,52] 104kkk:104val    [22,21] 103kkk:103val    [23,51] 102kkk:102val
- === SBLK[18]    [24,20] 101kkk:101val    [25,50] 100kkk:100val    [26,19] 099kkk:099val
- === SBLK[18]    [27,49] 098kkk:098val    [28,18] 097kkk:097val    [29,48] 096kkk:096val
- === SBLK[18]    [30,17] 095kkk:095val    [31,47] 094kkk:094val    [32,16] 093kkk:093val
- === SBLK[18]    [33,46] 092kkk:092val
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=139
+ === SBLK[132] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=6, db=1
+ === SBLK[132] szpow=8, lkl=6, lk=253kkk
+ === SBLK[132]    [000,002] 253kkk:253val    [001,014] 252kkk:252val    [002,001] 251kkk:251val
+ === SBLK[132]    [003,013] 250kkk:250val    [004,000] 249kkk:249val    [005,012] 248kkk:248val
+ === SBLK[132]    [006,015] 247kkk:247val    [007,011] 246kkk:246val    [008,005] 245kkk:245val
+ === SBLK[132]    [009,010] 244kkk:244val    [010,004] 243kkk:243val    [011,009] 242kkk:242val
 
 
- === SBLK[128] lvl=-1, pnum=31, flg=1, kvzidx=31, p0=18, db=1
- === SBLK[128] szpow=10, lkl=6, lk=091kkk
- === SBLK[128]    [00,00] 091kkk:091val    [01,01] 090kkk:090val    [02,02] 089kkk:089val
- === SBLK[128]    [03,03] 088kkk:088val    [04,04] 087kkk:087val    [05,05] 086kkk:086val
- === SBLK[128]    [06,06] 085kkk:085val    [07,07] 084kkk:084val    [08,08] 083kkk:083val
- === SBLK[128]    [09,09] 082kkk:082val    [10,10] 081kkk:081val    [11,11] 080kkk:080val
- === SBLK[128]    [12,12] 079kkk:079val    [13,13] 078kkk:078val    [14,14] 077kkk:077val
- === SBLK[128]    [15,15] 076kkk:076val    [16,16] 075kkk:075val    [17,17] 074kkk:074val
- === SBLK[128]    [18,18] 073kkk:073val    [19,19] 072kkk:072val    [20,20] 071kkk:071val
- === SBLK[128]    [21,21] 070kkk:070val    [22,22] 069kkk:069val    [23,23] 068kkk:068val
- === SBLK[128]    [24,24] 067kkk:067val    [25,25] 066kkk:066val    [26,26] 065kkk:065val
- === SBLK[128]    [27,27] 064kkk:064val    [28,28] 063kkk:063val    [29,29] 062kkk:062val
- === SBLK[128]    [30,30] 061kkk:061val
+ === SBLK[244] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=132, db=1
+ === SBLK[244] szpow=8, lkl=6, lk=241kkk
+ === SBLK[244]    [000,000] 241kkk:241val    [001,001] 240kkk:240val    [002,002] 239kkk:239val
+ === SBLK[244]    [003,003] 238kkk:238val    [004,004] 237kkk:237val    [005,005] 236kkk:236val
+ === SBLK[244]    [006,006] 235kkk:235val
 
 
- === SBLK[10] lvl=-1, pnum=61, flg=1, kvzidx=61, p0=128, db=1
- === SBLK[10] szpow=10, lkl=6, lk=060kkk
- === SBLK[10]    [00,00] 060kkk:060val    [01,60] 059kkk:059val    [02,01] 058kkk:058val
- === SBLK[10]    [03,59] 057kkk:057val    [04,02] 056kkk:056val    [05,58] 055kkk:055val
- === SBLK[10]    [06,03] 054kkk:054val    [07,57] 053kkk:053val    [08,04] 052kkk:052val
- === SBLK[10]    [09,56] 051kkk:051val    [10,05] 050kkk:050val    [11,55] 049kkk:049val
- === SBLK[10]    [12,06] 048kkk:048val    [13,54] 047kkk:047val    [14,07] 046kkk:046val
- === SBLK[10]    [15,53] 045kkk:045val    [16,08] 044kkk:044val    [17,52] 043kkk:043val
- === SBLK[10]    [18,09] 042kkk:042val    [19,51] 041kkk:041val    [20,10] 040kkk:040val
- === SBLK[10]    [21,50] 039kkk:039val    [22,11] 038kkk:038val    [23,49] 037kkk:037val
- === SBLK[10]    [24,12] 036kkk:036val    [25,48] 035kkk:035val    [26,13] 034kkk:034val
- === SBLK[10]    [27,47] 033kkk:033val    [28,14] 032kkk:032val    [29,46] 031kkk:031val
- === SBLK[10]    [30,15] 030kkk:030val    [31,45] 029kkk:029val    [32,16] 028kkk:028val
- === SBLK[10]    [33,44] 027kkk:027val    [34,17] 026kkk:026val    [35,43] 025kkk:025val
- === SBLK[10]    [36,18] 024kkk:024val    [37,42] 023kkk:023val    [38,19] 022kkk:022val
- === SBLK[10]    [39,41] 021kkk:021val    [40,20] 020kkk:020val    [41,40] 019kkk:019val
- === SBLK[10]    [42,21] 018kkk:018val    [43,39] 017kkk:017val    [44,22] 016kkk:016val
- === SBLK[10]    [45,38] 015kkk:015val    [46,23] 014kkk:014val    [47,37] 013kkk:013val
- === SBLK[10]    [48,24] 012kkk:012val    [49,36] 011kkk:011val    [50,25] 010kkk:010val
- === SBLK[10]    [51,35] 009kkk:009val    [52,26] 008kkk:008val    [53,34] 007kkk:007val
- === SBLK[10]    [54,27] 006kkk:006val    [55,33] 005kkk:005val    [56,28] 004kkk:004val
- === SBLK[10]    [57,32] 003kkk:003val    [58,29] 002kkk:002val    [59,31] 001kkk:001val
- === SBLK[10]    [60,30] 000kkk:000val
+ === SBLK[237] lvl=-1, pnum=12, flg=1, kvzidx=12, p0=244, db=1
+ === SBLK[237] szpow=8, lkl=6, lk=234kkk
+ === SBLK[237]    [000,000] 234kkk:234val    [001,011] 233kkk:233val    [002,001] 232kkk:232val
+ === SBLK[237]    [003,010] 231kkk:231val    [004,002] 230kkk:230val    [005,009] 229kkk:229val
+ === SBLK[237]    [006,003] 228kkk:228val    [007,008] 227kkk:227val    [008,004] 226kkk:226val
+ === SBLK[237]    [009,007] 225kkk:225val    [010,005] 224kkk:224val    [011,006] 223kkk:223val
+
+
+ === SBLK[60] lvl=-1, pnum=11, flg=1, kvzidx=2, p0=237, db=1
+ === SBLK[60] szpow=8, lkl=6, lk=222kkk
+ === SBLK[60]    [000,015] 222kkk:222val    [001,001] 221kkk:221val    [002,014] 220kkk:220val
+ === SBLK[60]    [003,000] 219kkk:219val    [004,013] 218kkk:218val    [005,006] 217kkk:217val
+ === SBLK[60]    [006,012] 216kkk:216val    [007,005] 215kkk:215val    [008,011] 214kkk:214val
+ === SBLK[60]    [009,004] 213kkk:213val    [010,010] 212kkk:212val
+
+
+ === SBLK[230] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=60, db=1
+ === SBLK[230] szpow=8, lkl=6, lk=211kkk
+ === SBLK[230]    [000,000] 211kkk:211val    [001,001] 210kkk:210val    [002,002] 209kkk:209val
+ === SBLK[230]    [003,003] 208kkk:208val    [004,004] 207kkk:207val    [005,005] 206kkk:206val
+ === SBLK[230]    [006,006] 205kkk:205val
+
+
+ === SBLK[223] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=230, db=1
+ === SBLK[223] szpow=8, lkl=6, lk=204kkk
+ === SBLK[223]    [000,000] 204kkk:204val    [001,012] 203kkk:203val    [002,001] 202kkk:202val
+ === SBLK[223]    [003,011] 201kkk:201val    [004,002] 200kkk:200val    [005,010] 199kkk:199val
+ === SBLK[223]    [006,003] 198kkk:198val    [007,009] 197kkk:197val    [008,004] 196kkk:196val
+ === SBLK[223]    [009,008] 195kkk:195val    [010,005] 194kkk:194val    [011,007] 193kkk:193val
+ === SBLK[223]    [012,006] 192kkk:192val
+
+
+ === SBLK[53] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=223, db=1
+ === SBLK[53] szpow=8, lkl=6, lk=191kkk
+ === SBLK[53]    [000,002] 191kkk:191val    [001,015] 190kkk:190val    [002,001] 189kkk:189val
+ === SBLK[53]    [003,014] 188kkk:188val    [004,000] 187kkk:187val    [005,013] 186kkk:186val
+ === SBLK[53]    [006,006] 185kkk:185val    [007,012] 184kkk:184val    [008,005] 183kkk:183val
+ === SBLK[53]    [009,011] 182kkk:182val    [010,004] 181kkk:181val    [011,010] 180kkk:180val
+
+
+ === SBLK[216] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=53, db=1
+ === SBLK[216] szpow=8, lkl=6, lk=179kkk
+ === SBLK[216]    [000,000] 179kkk:179val    [001,001] 178kkk:178val    [002,002] 177kkk:177val
+ === SBLK[216]    [003,003] 176kkk:176val    [004,004] 175kkk:175val    [005,005] 174kkk:174val
+ === SBLK[216]    [006,006] 173kkk:173val
+
+
+ === SBLK[209] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=216, db=1
+ === SBLK[209] szpow=8, lkl=6, lk=172kkk
+ === SBLK[209]    [000,000] 172kkk:172val    [001,012] 171kkk:171val    [002,001] 170kkk:170val
+ === SBLK[209]    [003,011] 169kkk:169val    [004,002] 168kkk:168val    [005,010] 167kkk:167val
+ === SBLK[209]    [006,003] 166kkk:166val    [007,009] 165kkk:165val    [008,004] 164kkk:164val
+ === SBLK[209]    [009,008] 163kkk:163val    [010,005] 162kkk:162val    [011,007] 161kkk:161val
+ === SBLK[209]    [012,006] 160kkk:160val
+
+
+ === SBLK[46] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=209, db=1
+ === SBLK[46] szpow=8, lkl=6, lk=159kkk
+ === SBLK[46]    [000,002] 159kkk:159val    [001,015] 158kkk:158val    [002,001] 157kkk:157val
+ === SBLK[46]    [003,014] 156kkk:156val    [004,000] 155kkk:155val    [005,013] 154kkk:154val
+ === SBLK[46]    [006,006] 153kkk:153val    [007,012] 152kkk:152val    [008,005] 151kkk:151val
+ === SBLK[46]    [009,011] 150kkk:150val    [010,004] 149kkk:149val    [011,010] 148kkk:148val
+
+
+ === SBLK[202] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=46, db=1
+ === SBLK[202] szpow=8, lkl=6, lk=147kkk
+ === SBLK[202]    [000,000] 147kkk:147val    [001,001] 146kkk:146val    [002,002] 145kkk:145val
+ === SBLK[202]    [003,003] 144kkk:144val    [004,004] 143kkk:143val    [005,005] 142kkk:142val
+ === SBLK[202]    [006,006] 141kkk:141val
+
+
+ === SBLK[195] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=202, db=1
+ === SBLK[195] szpow=8, lkl=6, lk=140kkk
+ === SBLK[195]    [000,000] 140kkk:140val    [001,012] 139kkk:139val    [002,001] 138kkk:138val
+ === SBLK[195]    [003,011] 137kkk:137val    [004,002] 136kkk:136val    [005,010] 135kkk:135val
+ === SBLK[195]    [006,003] 134kkk:134val    [007,009] 133kkk:133val    [008,004] 132kkk:132val
+ === SBLK[195]    [009,008] 131kkk:131val    [010,005] 130kkk:130val    [011,007] 129kkk:129val
+ === SBLK[195]    [012,006] 128kkk:128val
+
+
+ === SBLK[39] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=195, db=1
+ === SBLK[39] szpow=8, lkl=6, lk=127kkk
+ === SBLK[39]    [000,002] 127kkk:127val    [001,015] 126kkk:126val    [002,001] 125kkk:125val
+ === SBLK[39]    [003,014] 124kkk:124val    [004,000] 123kkk:123val    [005,013] 122kkk:122val
+ === SBLK[39]    [006,006] 121kkk:121val    [007,012] 120kkk:120val    [008,005] 119kkk:119val
+ === SBLK[39]    [009,011] 118kkk:118val    [010,004] 117kkk:117val    [011,010] 116kkk:116val
+
+
+ === SBLK[188] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=39, db=1
+ === SBLK[188] szpow=8, lkl=6, lk=115kkk
+ === SBLK[188]    [000,000] 115kkk:115val    [001,001] 114kkk:114val    [002,002] 113kkk:113val
+ === SBLK[188]    [003,003] 112kkk:112val    [004,004] 111kkk:111val    [005,005] 110kkk:110val
+ === SBLK[188]    [006,006] 109kkk:109val
+
+
+ === SBLK[181] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=188, db=1
+ === SBLK[181] szpow=8, lkl=6, lk=108kkk
+ === SBLK[181]    [000,000] 108kkk:108val    [001,012] 107kkk:107val    [002,001] 106kkk:106val
+ === SBLK[181]    [003,011] 105kkk:105val    [004,002] 104kkk:104val    [005,010] 103kkk:103val
+ === SBLK[181]    [006,003] 102kkk:102val    [007,009] 101kkk:101val    [008,004] 100kkk:100val
+ === SBLK[181]    [009,008] 099kkk:099val    [010,005] 098kkk:098val    [011,007] 097kkk:097val
+ === SBLK[181]    [012,006] 096kkk:096val
+
+
+ === SBLK[32] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=181, db=1
+ === SBLK[32] szpow=8, lkl=6, lk=095kkk
+ === SBLK[32]    [000,002] 095kkk:095val    [001,015] 094kkk:094val    [002,001] 093kkk:093val
+ === SBLK[32]    [003,014] 092kkk:092val    [004,000] 091kkk:091val    [005,013] 090kkk:090val
+ === SBLK[32]    [006,006] 089kkk:089val    [007,012] 088kkk:088val    [008,005] 087kkk:087val
+ === SBLK[32]    [009,011] 086kkk:086val    [010,004] 085kkk:085val    [011,010] 084kkk:084val
+
+
+ === SBLK[174] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=32, db=1
+ === SBLK[174] szpow=8, lkl=6, lk=083kkk
+ === SBLK[174]    [000,000] 083kkk:083val    [001,001] 082kkk:082val    [002,002] 081kkk:081val
+ === SBLK[174]    [003,003] 080kkk:080val    [004,004] 079kkk:079val    [005,005] 078kkk:078val
+ === SBLK[174]    [006,006] 077kkk:077val
+
+
+ === SBLK[167] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=174, db=1
+ === SBLK[167] szpow=8, lkl=6, lk=076kkk
+ === SBLK[167]    [000,000] 076kkk:076val    [001,012] 075kkk:075val    [002,001] 074kkk:074val
+ === SBLK[167]    [003,011] 073kkk:073val    [004,002] 072kkk:072val    [005,010] 071kkk:071val
+ === SBLK[167]    [006,003] 070kkk:070val    [007,009] 069kkk:069val    [008,004] 068kkk:068val
+ === SBLK[167]    [009,008] 067kkk:067val    [010,005] 066kkk:066val    [011,007] 065kkk:065val
+ === SBLK[167]    [012,006] 064kkk:064val
+
+
+ === SBLK[25] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=167, db=1
+ === SBLK[25] szpow=8, lkl=6, lk=063kkk
+ === SBLK[25]    [000,002] 063kkk:063val    [001,015] 062kkk:062val    [002,001] 061kkk:061val
+ === SBLK[25]    [003,014] 060kkk:060val    [004,000] 059kkk:059val    [005,013] 058kkk:058val
+ === SBLK[25]    [006,006] 057kkk:057val    [007,012] 056kkk:056val    [008,005] 055kkk:055val
+ === SBLK[25]    [009,011] 054kkk:054val    [010,004] 053kkk:053val    [011,010] 052kkk:052val
+
+
+ === SBLK[160] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=25, db=1
+ === SBLK[160] szpow=8, lkl=6, lk=051kkk
+ === SBLK[160]    [000,000] 051kkk:051val    [001,001] 050kkk:050val    [002,002] 049kkk:049val
+ === SBLK[160]    [003,003] 048kkk:048val    [004,004] 047kkk:047val    [005,005] 046kkk:046val
+ === SBLK[160]    [006,006] 045kkk:045val
+
+
+ === SBLK[153] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=160, db=1
+ === SBLK[153] szpow=8, lkl=6, lk=044kkk
+ === SBLK[153]    [000,000] 044kkk:044val    [001,012] 043kkk:043val    [002,001] 042kkk:042val
+ === SBLK[153]    [003,011] 041kkk:041val    [004,002] 040kkk:040val    [005,010] 039kkk:039val
+ === SBLK[153]    [006,003] 038kkk:038val    [007,009] 037kkk:037val    [008,004] 036kkk:036val
+ === SBLK[153]    [009,008] 035kkk:035val    [010,005] 034kkk:034val    [011,007] 033kkk:033val
+ === SBLK[153]    [012,006] 032kkk:032val
+
+
+ === SBLK[18] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=153, db=1
+ === SBLK[18] szpow=8, lkl=6, lk=031kkk
+ === SBLK[18]    [000,002] 031kkk:031val    [001,015] 030kkk:030val    [002,001] 029kkk:029val
+ === SBLK[18]    [003,014] 028kkk:028val    [004,000] 027kkk:027val    [005,013] 026kkk:026val
+ === SBLK[18]    [006,006] 025kkk:025val    [007,012] 024kkk:024val    [008,005] 023kkk:023val
+ === SBLK[18]    [009,011] 022kkk:022val    [010,004] 021kkk:021val    [011,010] 020kkk:020val
+
+
+ === SBLK[146] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=18, db=1
+ === SBLK[146] szpow=8, lkl=6, lk=019kkk
+ === SBLK[146]    [000,000] 019kkk:019val    [001,001] 018kkk:018val    [002,002] 017kkk:017val
+ === SBLK[146]    [003,003] 016kkk:016val    [004,004] 015kkk:015val    [005,005] 014kkk:014val
+ === SBLK[146]    [006,006] 013kkk:013val
+
+
+ === SBLK[139] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=146, db=1
+ === SBLK[139] szpow=8, lkl=6, lk=012kkk
+ === SBLK[139]    [000,000] 012kkk:012val    [001,012] 011kkk:011val    [002,001] 010kkk:010val
+ === SBLK[139]    [003,011] 009kkk:009val    [004,002] 008kkk:008val    [005,010] 007kkk:007val
+ === SBLK[139]    [006,003] 006kkk:006val    [007,009] 005kkk:005val    [008,004] 004kkk:004val
+ === SBLK[139]    [009,008] 003kkk:003val    [010,005] 002kkk:002val    [011,007] 001kkk:001val
+ === SBLK[139]    [012,006] 000kkk:000val
 
 
 #### Stage: a big key
 
 
-== DB[1] lvl=-1, blk=6, dbflg=0, p0=10
- === SBLK[18] lvl=-1, pnum=35, flg=0, kvzidx=2, p0=6, db=1
- === SBLK[18] szpow=10, lkl=61, lk=abracadabrabracadabrabracadabrabracadabrabracadabrabracadabra
- === SBLK[18]    [00,01] abracadabrabracadabrabracadabrabracadabrabracadabrabracadabrabracadabr1:vabracadabrabracadabrabracadabrabracadabrabracadabrabracadabrabracadabr    [01,00] 125kkk:125val    [02,62] 124kkk:124val
- === SBLK[18]    [03,15] 123kkk:123val    [04,61] 122kkk:122val    [05,30] 121kkk:121val
- === SBLK[18]    [06,60] 120kkk:120val    [07,29] 119kkk:119val    [08,59] 118kkk:118val
- === SBLK[18]    [09,28] 117kkk:117val    [10,58] 116kkk:116val    [11,27] 115kkk:115val
- === SBLK[18]    [12,57] 114kkk:114val    [13,26] 113kkk:113val    [14,56] 112kkk:112val
- === SBLK[18]    [15,25] 111kkk:111val    [16,55] 110kkk:110val    [17,24] 109kkk:109val
- === SBLK[18]    [18,54] 108kkk:108val    [19,23] 107kkk:107val    [20,53] 106kkk:106val
- === SBLK[18]    [21,22] 105kkk:105val    [22,52] 104kkk:104val    [23,21] 103kkk:103val
- === SBLK[18]    [24,51] 102kkk:102val    [25,20] 101kkk:101val    [26,50] 100kkk:100val
- === SBLK[18]    [27,19] 099kkk:099val    [28,49] 098kkk:098val    [29,18] 097kkk:097val
- === SBLK[18]    [30,48] 096kkk:096val    [31,17] 095kkk:095val    [32,47] 094kkk:094val
- === SBLK[18]    [33,16] 093kkk:093val    [34,46] 092kkk:092val
+== DB[1] lvl=-1, blk=6, dbflg=0, p0=139
+ === SBLK[132] lvl=-1, pnum=13, flg=0, kvzidx=6, p0=6, db=1
+ === SBLK[132] szpow=9, lkl=44, lk=abracadabrabracadabrabracadabrabracadabrabra
+ === SBLK[132]    [000,003] abracadabrabracadabrabracadabrabracadabrabracadabrabracadabrabracadabr1:vabracadabrabracadabrabracadabrabracadabrabracadabrabracadabrabracadabr    [001,002] 253kkk:253val    [002,014] 252kkk:252val
+ === SBLK[132]    [003,001] 251kkk:251val    [004,013] 250kkk:250val    [005,000] 249kkk:249val
+ === SBLK[132]    [006,012] 248kkk:248val    [007,015] 247kkk:247val    [008,011] 246kkk:246val
+ === SBLK[132]    [009,005] 245kkk:245val    [010,010] 244kkk:244val    [011,004] 243kkk:243val
+ === SBLK[132]    [012,009] 242kkk:242val
 
 
- === SBLK[128] lvl=-1, pnum=31, flg=1, kvzidx=31, p0=18, db=1
- === SBLK[128] szpow=10, lkl=6, lk=091kkk
- === SBLK[128]    [00,00] 091kkk:091val    [01,01] 090kkk:090val    [02,02] 089kkk:089val
- === SBLK[128]    [03,03] 088kkk:088val    [04,04] 087kkk:087val    [05,05] 086kkk:086val
- === SBLK[128]    [06,06] 085kkk:085val    [07,07] 084kkk:084val    [08,08] 083kkk:083val
- === SBLK[128]    [09,09] 082kkk:082val    [10,10] 081kkk:081val    [11,11] 080kkk:080val
- === SBLK[128]    [12,12] 079kkk:079val    [13,13] 078kkk:078val    [14,14] 077kkk:077val
- === SBLK[128]    [15,15] 076kkk:076val    [16,16] 075kkk:075val    [17,17] 074kkk:074val
- === SBLK[128]    [18,18] 073kkk:073val    [19,19] 072kkk:072val    [20,20] 071kkk:071val
- === SBLK[128]    [21,21] 070kkk:070val    [22,22] 069kkk:069val    [23,23] 068kkk:068val
- === SBLK[128]    [24,24] 067kkk:067val    [25,25] 066kkk:066val    [26,26] 065kkk:065val
- === SBLK[128]    [27,27] 064kkk:064val    [28,28] 063kkk:063val    [29,29] 062kkk:062val
- === SBLK[128]    [30,30] 061kkk:061val
+ === SBLK[244] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=132, db=1
+ === SBLK[244] szpow=8, lkl=6, lk=241kkk
+ === SBLK[244]    [000,000] 241kkk:241val    [001,001] 240kkk:240val    [002,002] 239kkk:239val
+ === SBLK[244]    [003,003] 238kkk:238val    [004,004] 237kkk:237val    [005,005] 236kkk:236val
+ === SBLK[244]    [006,006] 235kkk:235val
 
 
- === SBLK[10] lvl=-1, pnum=61, flg=1, kvzidx=61, p0=128, db=1
- === SBLK[10] szpow=10, lkl=6, lk=060kkk
- === SBLK[10]    [00,00] 060kkk:060val    [01,60] 059kkk:059val    [02,01] 058kkk:058val
- === SBLK[10]    [03,59] 057kkk:057val    [04,02] 056kkk:056val    [05,58] 055kkk:055val
- === SBLK[10]    [06,03] 054kkk:054val    [07,57] 053kkk:053val    [08,04] 052kkk:052val
- === SBLK[10]    [09,56] 051kkk:051val    [10,05] 050kkk:050val    [11,55] 049kkk:049val
- === SBLK[10]    [12,06] 048kkk:048val    [13,54] 047kkk:047val    [14,07] 046kkk:046val
- === SBLK[10]    [15,53] 045kkk:045val    [16,08] 044kkk:044val    [17,52] 043kkk:043val
- === SBLK[10]    [18,09] 042kkk:042val    [19,51] 041kkk:041val    [20,10] 040kkk:040val
- === SBLK[10]    [21,50] 039kkk:039val    [22,11] 038kkk:038val    [23,49] 037kkk:037val
- === SBLK[10]    [24,12] 036kkk:036val    [25,48] 035kkk:035val    [26,13] 034kkk:034val
- === SBLK[10]    [27,47] 033kkk:033val    [28,14] 032kkk:032val    [29,46] 031kkk:031val
- === SBLK[10]    [30,15] 030kkk:030val    [31,45] 029kkk:029val    [32,16] 028kkk:028val
- === SBLK[10]    [33,44] 027kkk:027val    [34,17] 026kkk:026val    [35,43] 025kkk:025val
- === SBLK[10]    [36,18] 024kkk:024val    [37,42] 023kkk:023val    [38,19] 022kkk:022val
- === SBLK[10]    [39,41] 021kkk:021val    [40,20] 020kkk:020val    [41,40] 019kkk:019val
- === SBLK[10]    [42,21] 018kkk:018val    [43,39] 017kkk:017val    [44,22] 016kkk:016val
- === SBLK[10]    [45,38] 015kkk:015val    [46,23] 014kkk:014val    [47,37] 013kkk:013val
- === SBLK[10]    [48,24] 012kkk:012val    [49,36] 011kkk:011val    [50,25] 010kkk:010val
- === SBLK[10]    [51,35] 009kkk:009val    [52,26] 008kkk:008val    [53,34] 007kkk:007val
- === SBLK[10]    [54,27] 006kkk:006val    [55,33] 005kkk:005val    [56,28] 004kkk:004val
- === SBLK[10]    [57,32] 003kkk:003val    [58,29] 002kkk:002val    [59,31] 001kkk:001val
- === SBLK[10]    [60,30] 000kkk:000val
+ === SBLK[237] lvl=-1, pnum=12, flg=1, kvzidx=12, p0=244, db=1
+ === SBLK[237] szpow=8, lkl=6, lk=234kkk
+ === SBLK[237]    [000,000] 234kkk:234val    [001,011] 233kkk:233val    [002,001] 232kkk:232val
+ === SBLK[237]    [003,010] 231kkk:231val    [004,002] 230kkk:230val    [005,009] 229kkk:229val
+ === SBLK[237]    [006,003] 228kkk:228val    [007,008] 227kkk:227val    [008,004] 226kkk:226val
+ === SBLK[237]    [009,007] 225kkk:225val    [010,005] 224kkk:224val    [011,006] 223kkk:223val
+
+
+ === SBLK[60] lvl=-1, pnum=11, flg=1, kvzidx=2, p0=237, db=1
+ === SBLK[60] szpow=8, lkl=6, lk=222kkk
+ === SBLK[60]    [000,015] 222kkk:222val    [001,001] 221kkk:221val    [002,014] 220kkk:220val
+ === SBLK[60]    [003,000] 219kkk:219val    [004,013] 218kkk:218val    [005,006] 217kkk:217val
+ === SBLK[60]    [006,012] 216kkk:216val    [007,005] 215kkk:215val    [008,011] 214kkk:214val
+ === SBLK[60]    [009,004] 213kkk:213val    [010,010] 212kkk:212val
+
+
+ === SBLK[230] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=60, db=1
+ === SBLK[230] szpow=8, lkl=6, lk=211kkk
+ === SBLK[230]    [000,000] 211kkk:211val    [001,001] 210kkk:210val    [002,002] 209kkk:209val
+ === SBLK[230]    [003,003] 208kkk:208val    [004,004] 207kkk:207val    [005,005] 206kkk:206val
+ === SBLK[230]    [006,006] 205kkk:205val
+
+
+ === SBLK[223] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=230, db=1
+ === SBLK[223] szpow=8, lkl=6, lk=204kkk
+ === SBLK[223]    [000,000] 204kkk:204val    [001,012] 203kkk:203val    [002,001] 202kkk:202val
+ === SBLK[223]    [003,011] 201kkk:201val    [004,002] 200kkk:200val    [005,010] 199kkk:199val
+ === SBLK[223]    [006,003] 198kkk:198val    [007,009] 197kkk:197val    [008,004] 196kkk:196val
+ === SBLK[223]    [009,008] 195kkk:195val    [010,005] 194kkk:194val    [011,007] 193kkk:193val
+ === SBLK[223]    [012,006] 192kkk:192val
+
+
+ === SBLK[53] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=223, db=1
+ === SBLK[53] szpow=8, lkl=6, lk=191kkk
+ === SBLK[53]    [000,002] 191kkk:191val    [001,015] 190kkk:190val    [002,001] 189kkk:189val
+ === SBLK[53]    [003,014] 188kkk:188val    [004,000] 187kkk:187val    [005,013] 186kkk:186val
+ === SBLK[53]    [006,006] 185kkk:185val    [007,012] 184kkk:184val    [008,005] 183kkk:183val
+ === SBLK[53]    [009,011] 182kkk:182val    [010,004] 181kkk:181val    [011,010] 180kkk:180val
+
+
+ === SBLK[216] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=53, db=1
+ === SBLK[216] szpow=8, lkl=6, lk=179kkk
+ === SBLK[216]    [000,000] 179kkk:179val    [001,001] 178kkk:178val    [002,002] 177kkk:177val
+ === SBLK[216]    [003,003] 176kkk:176val    [004,004] 175kkk:175val    [005,005] 174kkk:174val
+ === SBLK[216]    [006,006] 173kkk:173val
+
+
+ === SBLK[209] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=216, db=1
+ === SBLK[209] szpow=8, lkl=6, lk=172kkk
+ === SBLK[209]    [000,000] 172kkk:172val    [001,012] 171kkk:171val    [002,001] 170kkk:170val
+ === SBLK[209]    [003,011] 169kkk:169val    [004,002] 168kkk:168val    [005,010] 167kkk:167val
+ === SBLK[209]    [006,003] 166kkk:166val    [007,009] 165kkk:165val    [008,004] 164kkk:164val
+ === SBLK[209]    [009,008] 163kkk:163val    [010,005] 162kkk:162val    [011,007] 161kkk:161val
+ === SBLK[209]    [012,006] 160kkk:160val
+
+
+ === SBLK[46] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=209, db=1
+ === SBLK[46] szpow=8, lkl=6, lk=159kkk
+ === SBLK[46]    [000,002] 159kkk:159val    [001,015] 158kkk:158val    [002,001] 157kkk:157val
+ === SBLK[46]    [003,014] 156kkk:156val    [004,000] 155kkk:155val    [005,013] 154kkk:154val
+ === SBLK[46]    [006,006] 153kkk:153val    [007,012] 152kkk:152val    [008,005] 151kkk:151val
+ === SBLK[46]    [009,011] 150kkk:150val    [010,004] 149kkk:149val    [011,010] 148kkk:148val
+
+
+ === SBLK[202] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=46, db=1
+ === SBLK[202] szpow=8, lkl=6, lk=147kkk
+ === SBLK[202]    [000,000] 147kkk:147val    [001,001] 146kkk:146val    [002,002] 145kkk:145val
+ === SBLK[202]    [003,003] 144kkk:144val    [004,004] 143kkk:143val    [005,005] 142kkk:142val
+ === SBLK[202]    [006,006] 141kkk:141val
+
+
+ === SBLK[195] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=202, db=1
+ === SBLK[195] szpow=8, lkl=6, lk=140kkk
+ === SBLK[195]    [000,000] 140kkk:140val    [001,012] 139kkk:139val    [002,001] 138kkk:138val
+ === SBLK[195]    [003,011] 137kkk:137val    [004,002] 136kkk:136val    [005,010] 135kkk:135val
+ === SBLK[195]    [006,003] 134kkk:134val    [007,009] 133kkk:133val    [008,004] 132kkk:132val
+ === SBLK[195]    [009,008] 131kkk:131val    [010,005] 130kkk:130val    [011,007] 129kkk:129val
+ === SBLK[195]    [012,006] 128kkk:128val
+
+
+ === SBLK[39] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=195, db=1
+ === SBLK[39] szpow=8, lkl=6, lk=127kkk
+ === SBLK[39]    [000,002] 127kkk:127val    [001,015] 126kkk:126val    [002,001] 125kkk:125val
+ === SBLK[39]    [003,014] 124kkk:124val    [004,000] 123kkk:123val    [005,013] 122kkk:122val
+ === SBLK[39]    [006,006] 121kkk:121val    [007,012] 120kkk:120val    [008,005] 119kkk:119val
+ === SBLK[39]    [009,011] 118kkk:118val    [010,004] 117kkk:117val    [011,010] 116kkk:116val
+
+
+ === SBLK[188] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=39, db=1
+ === SBLK[188] szpow=8, lkl=6, lk=115kkk
+ === SBLK[188]    [000,000] 115kkk:115val    [001,001] 114kkk:114val    [002,002] 113kkk:113val
+ === SBLK[188]    [003,003] 112kkk:112val    [004,004] 111kkk:111val    [005,005] 110kkk:110val
+ === SBLK[188]    [006,006] 109kkk:109val
+
+
+ === SBLK[181] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=188, db=1
+ === SBLK[181] szpow=8, lkl=6, lk=108kkk
+ === SBLK[181]    [000,000] 108kkk:108val    [001,012] 107kkk:107val    [002,001] 106kkk:106val
+ === SBLK[181]    [003,011] 105kkk:105val    [004,002] 104kkk:104val    [005,010] 103kkk:103val
+ === SBLK[181]    [006,003] 102kkk:102val    [007,009] 101kkk:101val    [008,004] 100kkk:100val
+ === SBLK[181]    [009,008] 099kkk:099val    [010,005] 098kkk:098val    [011,007] 097kkk:097val
+ === SBLK[181]    [012,006] 096kkk:096val
+
+
+ === SBLK[32] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=181, db=1
+ === SBLK[32] szpow=8, lkl=6, lk=095kkk
+ === SBLK[32]    [000,002] 095kkk:095val    [001,015] 094kkk:094val    [002,001] 093kkk:093val
+ === SBLK[32]    [003,014] 092kkk:092val    [004,000] 091kkk:091val    [005,013] 090kkk:090val
+ === SBLK[32]    [006,006] 089kkk:089val    [007,012] 088kkk:088val    [008,005] 087kkk:087val
+ === SBLK[32]    [009,011] 086kkk:086val    [010,004] 085kkk:085val    [011,010] 084kkk:084val
+
+
+ === SBLK[174] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=32, db=1
+ === SBLK[174] szpow=8, lkl=6, lk=083kkk
+ === SBLK[174]    [000,000] 083kkk:083val    [001,001] 082kkk:082val    [002,002] 081kkk:081val
+ === SBLK[174]    [003,003] 080kkk:080val    [004,004] 079kkk:079val    [005,005] 078kkk:078val
+ === SBLK[174]    [006,006] 077kkk:077val
+
+
+ === SBLK[167] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=174, db=1
+ === SBLK[167] szpow=8, lkl=6, lk=076kkk
+ === SBLK[167]    [000,000] 076kkk:076val    [001,012] 075kkk:075val    [002,001] 074kkk:074val
+ === SBLK[167]    [003,011] 073kkk:073val    [004,002] 072kkk:072val    [005,010] 071kkk:071val
+ === SBLK[167]    [006,003] 070kkk:070val    [007,009] 069kkk:069val    [008,004] 068kkk:068val
+ === SBLK[167]    [009,008] 067kkk:067val    [010,005] 066kkk:066val    [011,007] 065kkk:065val
+ === SBLK[167]    [012,006] 064kkk:064val
+
+
+ === SBLK[25] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=167, db=1
+ === SBLK[25] szpow=8, lkl=6, lk=063kkk
+ === SBLK[25]    [000,002] 063kkk:063val    [001,015] 062kkk:062val    [002,001] 061kkk:061val
+ === SBLK[25]    [003,014] 060kkk:060val    [004,000] 059kkk:059val    [005,013] 058kkk:058val
+ === SBLK[25]    [006,006] 057kkk:057val    [007,012] 056kkk:056val    [008,005] 055kkk:055val
+ === SBLK[25]    [009,011] 054kkk:054val    [010,004] 053kkk:053val    [011,010] 052kkk:052val
+
+
+ === SBLK[160] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=25, db=1
+ === SBLK[160] szpow=8, lkl=6, lk=051kkk
+ === SBLK[160]    [000,000] 051kkk:051val    [001,001] 050kkk:050val    [002,002] 049kkk:049val
+ === SBLK[160]    [003,003] 048kkk:048val    [004,004] 047kkk:047val    [005,005] 046kkk:046val
+ === SBLK[160]    [006,006] 045kkk:045val
+
+
+ === SBLK[153] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=160, db=1
+ === SBLK[153] szpow=8, lkl=6, lk=044kkk
+ === SBLK[153]    [000,000] 044kkk:044val    [001,012] 043kkk:043val    [002,001] 042kkk:042val
+ === SBLK[153]    [003,011] 041kkk:041val    [004,002] 040kkk:040val    [005,010] 039kkk:039val
+ === SBLK[153]    [006,003] 038kkk:038val    [007,009] 037kkk:037val    [008,004] 036kkk:036val
+ === SBLK[153]    [009,008] 035kkk:035val    [010,005] 034kkk:034val    [011,007] 033kkk:033val
+ === SBLK[153]    [012,006] 032kkk:032val
+
+
+ === SBLK[18] lvl=-1, pnum=12, flg=1, kvzidx=3, p0=153, db=1
+ === SBLK[18] szpow=8, lkl=6, lk=031kkk
+ === SBLK[18]    [000,002] 031kkk:031val    [001,015] 030kkk:030val    [002,001] 029kkk:029val
+ === SBLK[18]    [003,014] 028kkk:028val    [004,000] 027kkk:027val    [005,013] 026kkk:026val
+ === SBLK[18]    [006,006] 025kkk:025val    [007,012] 024kkk:024val    [008,005] 023kkk:023val
+ === SBLK[18]    [009,011] 022kkk:022val    [010,004] 021kkk:021val    [011,010] 020kkk:020val
+
+
+ === SBLK[146] lvl=-1, pnum=7, flg=1, kvzidx=7, p0=18, db=1
+ === SBLK[146] szpow=8, lkl=6, lk=019kkk
+ === SBLK[146]    [000,000] 019kkk:019val    [001,001] 018kkk:018val    [002,002] 017kkk:017val
+ === SBLK[146]    [003,003] 016kkk:016val    [004,004] 015kkk:015val    [005,005] 014kkk:014val
+ === SBLK[146]    [006,006] 013kkk:013val
+
+
+ === SBLK[139] lvl=-1, pnum=13, flg=1, kvzidx=13, p0=146, db=1
+ === SBLK[139] szpow=8, lkl=6, lk=012kkk
+ === SBLK[139]    [000,000] 012kkk:012val    [001,012] 011kkk:011val    [002,001] 010kkk:010val
+ === SBLK[139]    [003,011] 009kkk:009val    [004,002] 008kkk:008val    [005,010] 007kkk:007val
+ === SBLK[139]    [006,003] 006kkk:006val    [007,009] 005kkk:005val    [008,004] 004kkk:004val
+ === SBLK[139]    [009,008] 003kkk:003val    [010,005] 002kkk:002val    [011,007] 001kkk:001val
+ === SBLK[139]    [012,006] 000kkk:000val
 

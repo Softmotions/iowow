@@ -47,7 +47,7 @@
  *  - `0x3ffffff000` for 4K os page size
  *  - `0x3fffffe000` for 8K os page size
  * - Total size of a single key+value record must be not greater
- *   than `0xfffffff` bytes (~255Mb)
+ *   than `0xfffffff` bytes (255Mb)
  */
 
 #include "iowow.h"
@@ -99,7 +99,7 @@ typedef enum {
   IWKV_NO_OVERWRITE = 0x1,   /**< Do not overwrite value for an existing key */
   IWKV_DUP_REMOVE =   0x2,   /**< Remove value from duplicated values array.
                                   Usable only for IWDB_DUP_XXX DB database modes */
-  IWKV_SYNC =         0x4    /**< Flush changes on disk after operation */                                
+  IWKV_SYNC =         0x4    /**< Flush changes on disk after operation */
 } iwkv_opflags;
 
 struct IWKV;
@@ -166,7 +166,7 @@ IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
 
 /**
  * @brief Acquire iwkv database identified by `dbid`.
- * @details In the case if no database matched `dbid` 
+ * @details In the case if no database matched `dbid`
  *          a new database will be created using specified`dbid` and `flags`.
  * @note Database doesn't require to be explicitly closed.
  * @note Database `flags` argument must be same for all subsequent calls after first call
@@ -202,7 +202,7 @@ IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
 /**
  * @brief Store record in database identified by `db`.
  * @details Behavior varies depending on `opflags` value:
- *  - IWKV_NO_OVERWRITE If a key record already exists in database 
+ *  - IWKV_NO_OVERWRITE If a key record already exists in database
  *
  * @param db Database id
  * @param key Key data
@@ -279,14 +279,14 @@ IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor cur, IWKV_val *okey, IWKV_val *oval);
 /**
  * @brief Get value at current cursor position.
  * @param cur Opened cursor object
- * @param oval Value holder to be initialized by value at current position 
+ * @param oval Value holder to be initialized by value at current position
  */
 IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor cur, IWKV_val *oval);
 
 /**
  * @brief Get key at current cursor position.
  * @param cur Opened cursor object
- * @param oval Key holder to be initialized by key at current position 
+ * @param oval Key holder to be initialized by key at current position
  */
 IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
 
@@ -300,7 +300,7 @@ IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opfl
 
 /**
  * @brief Get length of value array at current cursor position.
- * @note Usable only for `IWDB_DUP_UINT32_VALS` and `IWDB_DUP_UINT64_VALS` database modes. 
+ * @note Usable only for `IWDB_DUP_UINT32_VALS` and `IWDB_DUP_UINT64_VALS` database modes.
  * @param cur Opened cursor object
  * @param [out] onum Output number
  */
@@ -324,14 +324,14 @@ IW_EXPORT iwrc iwkv_cursor_dup_rm(IWKV_cursor cur, uint64_t dv);
  * @brief Test if given number contains in value array at current cursor position.
  * @param cur Opened cursor object
  * @param dv Value to test
- * @param [out] out Boolean result 
+ * @param [out] out Boolean result
  */
 IW_EXPORT iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool *out);
 
 /**
- * @brief Iterate over all elements in array of numbers at current cursor position.  
- * @param cur Opened cursor 
- * @param visitor Elements visitor function 
+ * @brief Iterate over all elements in array of numbers at current cursor position.
+ * @param cur Opened cursor
+ * @param visitor Elements visitor function
  * @param opaq Opaque data passed to visitor function
  * @param start Optional pointer to number iteration will start from
  * @param down Iteration direction
