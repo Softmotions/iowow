@@ -1060,7 +1060,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
                          uint8_t *mm,
                          KVBLK *kbp,
                          KVBLK **blkp) {
-  uint8_t *rp, *sp;
+  uint8_t *rp;
   uint16_t sv;
   int step;
   iwrc rc = 0;
@@ -1083,7 +1083,6 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
     rc = IWKV_ERROR_CORRUPTED;
     goto finish;
   }
-  sp = rp;
   for (int i = 0; i < KVBLK_IDXNUM; ++i) {
     IW_READVNUMBUF64(rp, kb->pidx[i].off, step);
     rp += step;

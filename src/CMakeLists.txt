@@ -101,7 +101,6 @@ list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)
 list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
 include_directories(${PROJECT_INCLUDE_DIRS})
 
-
 if (NOT BUILD_SHARED_LIBS)
     add_definitions(-DIW_NODLL)
     add_library(iowow STATIC ${ALL_SRC})

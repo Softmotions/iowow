@@ -3,7 +3,8 @@
   "cmake.configureArgs": [
     "-DBUILD_TESTS=ON",
     "-DCMAKE_C_COMPILER=clang",
-    "-DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF",
+    "-DCMAKE_CXX_COMPILER=clang++",
+    "-DCMAKE_VERBOSE_MAKEFILE=OFF",
     "-DBUILD_SHARED_LIBS=ON",
     "-DBUILD_EXAMPLES=ON",
     "-DBUILD_BENCHMARKS=ON"
@@ -35,6 +36,7 @@
     "-Wno-missing-field-initializers",
     "-Wno-missing-braces",
     "-I${workspaceRoot}/build/src/generated",
+    "-I${workspaceRoot}/build/src/extern_leveldb/include",
     "-I${workspaceRoot}/src",
     "-I${workspaceRoot}/src/log",
     "-I${workspaceRoot}/src/utils",
@@ -54,6 +56,7 @@
     "-Wno-unused-function",
     "-Wno-missing-field-initializers",
     "-I${workspaceRoot}/build/src/generated",
+    "-I${workspaceRoot}/build/src/extern_leveldb/include",
     "-I${workspaceRoot}/src",
     "-I${workspaceRoot}/src/log",
     "-I${workspaceRoot}/src/utils",
@@ -63,7 +66,8 @@
   ],
   "files.associations": {
     "string.h": "c",
-    "iwutils.h": "c"
+    "iwutils.h": "c",
+    "c.h": "c"
   }
 }
 
