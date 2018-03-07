@@ -35,8 +35,10 @@
 // Lower key length in SBLK
 #define SBLK_LKLEN 61
 
-// Size of `SBLK` as power of 2
-#define SBLK_SZPOW 8
+// Size of `SBLK`
+#define SBLK_SZ (5 * (1 << IWKV_FSM_BPOW))
+
+#define DB_SZ   137
 
 // Size of `IWDB` as power of 2
 #define DB_SZPOW 8
@@ -80,7 +82,7 @@ typedef struct KV {
 
 /* Ket/Value (KV) index: Offset and length. */
 typedef struct KVP {
-  uint32_t off;   /**< KV block offset relative to `end` of KVBLK */
+  uint64_t off;   /**< KV block offset relative to `end` of KVBLK */
   uint32_t len;   /**< Length of kv pair block */
   uint8_t  ridx;  /**< Position of the auctually persisted slot in `KVBLK` */
 } KVP;
@@ -98,7 +100,7 @@ typedef enum {
 typedef struct KVBLK {
   IWDB db;
   off_t addr;                 /**< Block address */
-  uint32_t maxoff;            /**< Max pair offset */
+  uint64_t maxoff;            /**< Max pair offset */
   uint16_t idxsz;             /**< Size of KV pairs index in bytes */
   int8_t zidx;                /**< Index of first empty pair slot (zero index), or -1 */
   uint8_t szpow;              /**< Block size as power of 2 */
@@ -291,8 +293,6 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
     }                           \
   } while(0)
 
-#define SBLK_SZ 256
-#define DB_SZ   137
 
 // SBLK
 // [u1:flags,lkl:u1,lk:u61,lvl:u1,p0:u4,pnum:u1,kblk:u4,[pi0:u1,...pi62],n0-n29:u4]:u256
@@ -1070,13 +1070,14 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   memcpy(&kb->szpow, rp, 1);
   rp += 1;
   IW_READSV(rp, sv, kb->idxsz);
-  if (IW_UNLIKELY(kb->idxsz > 2 * 4 * KVBLK_IDXNUM)) {
+  if (IW_UNLIKELY(kb->idxsz >
+                  (sizeof(kb->pidx[0].off) + sizeof(kb->pidx[0].len)) * KVBLK_IDXNUM)) {
     rc = IWKV_ERROR_CORRUPTED;
     goto finish;
   }
   sp = rp;
   for (int i = 0; i < KVBLK_IDXNUM; ++i) {
-    IW_READVNUMBUF(rp, kb->pidx[i].off, step);
+    IW_READVNUMBUF64(rp, kb->pidx[i].off, step);
     rp += step;
     IW_READVNUMBUF(rp, kb->pidx[i].len, step);
     rp += step;
@@ -1131,7 +1132,7 @@ static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   wp += sizeof(uint16_t);
   for (int i = 0; i < KVBLK_IDXNUM; ++i) {
     KVP *kvp = &kb->pidx[i];
-    IW_SETVNUMBUF(sp, wp, kvp->off);
+    IW_SETVNUMBUF64(sp, wp, kvp->off);
     wp += sp;
     IW_SETVNUMBUF(sp, wp, kvp->len);
     wp += sp;
@@ -3310,7 +3311,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb) {
   uint32_t klen, vlen;
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(kb->addr);
-  fprintf(f, "\n === KVBLK[%u] maxoff=%u, zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
+  fprintf(f, "\n === KVBLK[%u] maxoff=%lu, zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
           blkn, kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
 
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
@@ -3322,7 +3323,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb) {
     KVP *kvp = &kb->pidx[i];
     _kvblk_peek_key(kb, i, mm, &kbuf, &klen);
     _kvblk_peek_val(kb, i, mm, &vbuf, &vlen);
-    fprintf(f, "\n    %02d: [%04d, %02d, %02d]: %.*s:%.*s",
+    fprintf(f, "\n    %02d: [%04lu, %02u, %02d]: %.*s:%.*s",
             i, kvp->off, kvp->len, kvp->ridx,
             klen, kbuf, vlen, vbuf);
   }
