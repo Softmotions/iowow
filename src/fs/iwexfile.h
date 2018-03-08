@@ -152,7 +152,7 @@ typedef struct IWFS_EXT_STATE {
  */
 typedef struct IWFS_EXT {
   struct IWFS_EXT_IMPL *impl;
-  
+
   /**
    * @brief Ensures that a file's physical address space contains a given offset
    * @a off
@@ -171,12 +171,12 @@ typedef struct IWFS_EXT {
    * *f, void **ctx)
    */
   iwrc(*ensure_size)(struct IWFS_EXT *f, off_t off);
-  
+
   /**
    * @brief Set the end of this file to the specified offset @a off exactly.
    */
   iwrc(*truncate)(struct IWFS_EXT *f, off_t off);
-  
+
   /**
    * @brief Register an address space specified by @a off and @a len as memory
    * mmaped region
@@ -204,7 +204,7 @@ typedef struct IWFS_EXT {
    * @return `0` on success or error code.
    */
   iwrc(*add_mmap)(struct IWFS_EXT *f, off_t off, size_t len);
-  
+
   /**
    * @brief Retrieve mmaped region by its offset @a off and keep file as read locked.
    *
@@ -223,17 +223,17 @@ typedef struct IWFS_EXT {
    * @return `0` on success or error code.
    */
   iwrc(*acquire_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
-  
+
   /**
    * @brief Retrieve mmaped region by its offset @a off
    */
   iwrc(*probe_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
-  
+
   /**
    * @brief Release the lock acquired by successfull call of `acquire_mmap()`
    */
   iwrc(*release_mmap)(struct IWFS_EXT *f);
-  
+
   /**
    * @brief Unmap mmaped region identified by @a off
    *
@@ -245,7 +245,7 @@ typedef struct IWFS_EXT {
    * @return `0` on success or error code.
    */
   iwrc(*remove_mmap)(struct IWFS_EXT *f, off_t off);
-  
+
   /**
    * @brief Synchronize a file with a mmaped region identified by @a off offset.
    *
@@ -258,30 +258,30 @@ typedef struct IWFS_EXT {
    * `msync`
    * @return `0` on success or error code.
    */
-  iwrc(*sync_mmap)(struct IWFS_EXT *f, off_t off, int flags);
-  
+  iwrc(*sync_mmap)(struct IWFS_EXT *f, off_t off, iwfs_sync_flags flags);
+
   /* See iwfile.h */
-  
+
   /**  @see IWFS_FILE::write */
   iwrc(*write)(struct IWFS_EXT *f, off_t off, const void *buf, size_t siz,
                size_t *sp);
-               
+
   /**  @see IWFS_FILE::read */
   iwrc(*read)(struct IWFS_EXT *f, off_t off, void *buf, size_t siz,
               size_t *sp);
-              
+
   /** @see IWFS_FILE::close */
   iwrc(*close)(struct IWFS_EXT *f);
-  
+
   /**  @see IWFS_FILE::sync */
   iwrc(*sync)(struct IWFS_EXT *f, iwfs_sync_flags flags);
-  
+
   /**  @see IWFS_FILE::state */
   iwrc(*state)(struct IWFS_EXT *f, IWFS_EXT_STATE *state);
-  
+
   /**  @see IWFS_FILE::copy */
   iwrc(*copy)(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff);
-  
+
 } IWFS_EXT;
 
 /**

@@ -18,6 +18,7 @@ struct BM {
   bool initiated;
   int argc;
   char **argv;
+  char *param_db;
   int param_num;
   int param_num_reads;
   int param_value_size;
@@ -107,6 +108,7 @@ static void _bm_help() {
   fprintf(stderr, "  -r <num> Number of records to read (equals to number of stored records if not specified )\n");
   fprintf(stderr, "  -vz <size> Size of a single record value in bytes\n");
   fprintf(stderr, "  -b <comma separated benchmarks to run>\n\n");
+  fprintf(stderr, "  -db <file/directory> Database file/directory\n\n");
   fprintf(stderr, "  -r <CSV report file> Default: report.csv\n\n");
   fprintf(stderr, "Available benchmarks:\n");
   fprintf(stderr, "  fillseq        write N values in sequential key order in async mode\n");
@@ -196,6 +198,12 @@ static bool _bm_init(int argc, char *argv[]) {
         return false;
       }
       bm.param_report = argv[i];
+    } else if (!strcmp(argv[i], "-db")) {
+      if (++i >= argc) {
+        fprintf(stderr, "'-db <db file>' options has no value\n");
+        return false;
+      }
+      bm.param_db = argv[i];
     }
   }
   if (bm.param_num_reads < 0) {

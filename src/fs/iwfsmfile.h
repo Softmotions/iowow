@@ -157,8 +157,6 @@ typedef struct IWFS_FSM_OPTS {
   uint8_t bpow;              /**< Block size power for 2 */
   size_t bmlen;              /**< Initial size of free-space bitmap */
   size_t hdrlen;             /**< Length of custom file header.*/
-  int sync_flags;            /**< Default msync flags for mmap_sync operations
-                                  (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
   bool mmap_all;             /**< Mmap all file data */
 } IWFS_FSM_OPTS;
 

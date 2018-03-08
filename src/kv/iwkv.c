@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 
-// Current requirements:
+// Hardcoded requirements:
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 
 // IWKV magic number
@@ -33,7 +33,7 @@ static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 // Number of skip list levels
 #define SLEVELS 30
 
-#define AANUM (2 * SLEVELS + 3 /* (new block created) + (db block may be updated) + (db block) */)
+#define AANUM (2 * SLEVELS + 3 /* (new block created) + (db block may be updated) + (first db block) */)
 
 // Lower key length in SBLK
 #define SBLK_LKLEN 44
@@ -459,6 +459,17 @@ static int _u8cmp(const void *o1, const void *o2) {
   } else {
     return 0;
   }
+}
+
+iwrc _iwkv_sync(IWKV iwkv, bool async) {
+  iwrc rc = 0;
+  IWFS_FSM *fsm  = &iwkv->fsm;
+  iwfs_sync_flags flags = IWFS_FDATASYNC;
+  if (async) {
+    flags |= IWFS_NO_MMASYNC;
+  }
+  IWRC(fsm->sync(fsm, flags), rc);
+  return rc;
 }
 
 //-------------------------- IWKV/IWDB WORKERS
@@ -2407,8 +2418,7 @@ start:
   } else {
     rc = _lx_release(lx);
     if (!rc && (lx->opflags & IWKV_SYNC)) {
-      IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-      rc = fsm->sync(fsm, IWFS_NO_MMASYNC);
+      rc = _iwkv_sync(lx->db->iwkv, false);
     }
   }
   return rc;
@@ -2500,10 +2510,13 @@ finish:
   }
   if (rc) {
     _lx_release_mm(lx, 0);
-    return rc;
   } else {
-    return _lx_release(lx);
+    rc = _lx_release(lx);
+    if (!rc && (lx->opflags & IWKV_SYNC)) {
+      rc = _iwkv_sync(lx->db->iwkv, false);
+    }
   }
+  return rc;
 }
 
 //--------------------------  CURSOR
@@ -2650,7 +2663,7 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
   case IWKV_ERROR_KEY_NUM_VALUE_SIZE:
     return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
   case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
-    return "Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
+    return "Incompatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
   }
   return 0;
 }
@@ -2806,14 +2819,8 @@ iwrc iwkv_sync(IWKV iwkv, bool async) {
     return IW_ERROR_READONLY;
   }
   iwrc rc = 0;
-  IWFS_FSM *fsm  = &iwkv->fsm;
-  int rci = pthread_rwlock_rdlock(&iwkv->rwl);
-  if (rci) rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  iwfs_sync_flags flags = IWFS_FDATASYNC;
-  if (async) {
-    flags |= IWFS_NO_MMASYNC;
-  }
-  IWRC(fsm->sync(fsm, flags), rc);
+  pthread_rwlock_rdlock(&iwkv->rwl);
+  rc = _iwkv_sync(iwkv, async);
   pthread_rwlock_unlock(&iwkv->rwl);
   return rc;
 }

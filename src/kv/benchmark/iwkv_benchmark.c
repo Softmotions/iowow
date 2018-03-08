@@ -5,14 +5,25 @@ typedef struct BM_IWKVDB {
   IWDB db;
 } BM_IWKVDB;
 
-void env_setup() {
+static void env_setup() {
+  iwrc rc = iwkv_init();
+  if (rc) {
+    iwlog_ecode_error2(rc, "Failed to init iwkv: iwkv_init()");
+    exit(1);
+  }
   printf("IWKV\n");
 }
 
-void *db_open(BMCTX *ctx) {
-  IWKV_OPTS opts = {
-    .path = "iwkv_bench.db"
-  };
+static void *db_open(BMCTX *ctx) {
+  if (ctx->db) {
+    return 0; // db is not closed properly
+  }
+  IWKV_OPTS opts = {0};
+  if (bm.param_db) {
+    opts.path = bm.param_db;
+  } else {
+    opts.path = "iwkv_bench.db";
+  }
   if (ctx->freshdb) {
     opts.oflags = IWKV_TRUNC;
   }
@@ -30,7 +41,7 @@ void *db_open(BMCTX *ctx) {
   return bmdb;
 }
 
-bool db_close(BMCTX *ctx) {
+static bool db_close(BMCTX *ctx) {
   if (!ctx->db) {
     return false;
   }
@@ -38,13 +49,13 @@ bool db_close(BMCTX *ctx) {
   iwrc rc = iwkv_close(&bmdb->iwkv);
   if (rc) {
     iwlog_ecode_error2(rc, "Failed to close iwkv file");
-    return false; 
+    return false;
   }
   free(bmdb);
   return true;
 }
 
-bool db_put(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync) {
+static bool db_put(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync) {
   BM_IWKVDB *bmdb = ctx->db;
   iwrc rc = iwkv_put(bmdb->db, key, val, sync ? IWKV_SYNC : 0);
   if (rc) {
@@ -54,7 +65,7 @@ bool db_put(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync) {
   return true;
 }
 
-bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
+static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
   BM_IWKVDB *bmdb = ctx->db;
   *found = true;
   iwrc rc = iwkv_get(bmdb->db, key, val);
@@ -69,7 +80,7 @@ bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
   return true;
 }
 
-bool db_del(BMCTX *ctx, const IWKV_val *key, bool *found) {
+static bool db_del(BMCTX *ctx, const IWKV_val *key, bool *found) {
   BM_IWKVDB *bmdb = ctx->db;
   *found = true;
   iwrc rc = iwkv_del(bmdb->db, key);
@@ -84,7 +95,7 @@ bool db_del(BMCTX *ctx, const IWKV_val *key, bool *found) {
   return true;
 }
 
-bool db_read_seq(BMCTX *ctx, bool reverse) {
+static bool db_read_seq(BMCTX *ctx, bool reverse) {
   BM_IWKVDB *bmdb = ctx->db;
   bool ret = true;
   IWKV_cursor cur;
@@ -112,7 +123,7 @@ bool db_read_seq(BMCTX *ctx, bool reverse) {
   return ret;
 }
 
-bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
+static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
   BM_IWKVDB *bmdb = ctx->db;
   bool ret = true;
   IWKV_cursor cur;

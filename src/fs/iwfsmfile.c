@@ -115,8 +115,6 @@ struct IWFS_FSM_IMPL {
   iwfs_fsm_openflags oflags; /**< Operation mode flags. */
   iwfs_omode omode;          /**< Open mode. */
   uint8_t bpow;              /**< Block size power for 2 */
-  int sync_flags;            /**< Default msync flags for mmap_sync operations
-                                  (MS_ASYNC,MS_SYNC,MS_INVALIDATE) */
   int mmap_all;              /**< Mmap all file data */
 };
 
@@ -555,7 +553,7 @@ static void _fsm_load_fsm_lw(FSM *impl, uint8_t *bm, uint64_t len) {
  * @param is_sync If `1` perform mmap sync.
  * @return
  */
-static iwrc _fsm_write_meta_lw(FSM *impl, int is_sync) {
+static iwrc _fsm_write_meta_lw(FSM *impl) {
   uint64_t llv;
   size_t wlen;
   uint32_t sp = 0, lv;
@@ -627,11 +625,7 @@ static iwrc _fsm_write_meta_lw(FSM *impl, int is_sync) {
   sp += sizeof(lv);
 
   assert(sp == FSM_CUSTOM_HDR_DATA_OFFSET);
-  iwrc rc = impl->pool.write(&impl->pool, 0, hdr, FSM_CUSTOM_HDR_DATA_OFFSET, &wlen);
-  if (!rc && is_sync) {
-    rc = impl->pool.sync_mmap(&impl->pool, 0, impl->sync_flags);
-  }
-  return rc;
+  return impl->pool.write(&impl->pool, 0, hdr, FSM_CUSTOM_HDR_DATA_OFFSET, &wlen);
 }
 
 /**
@@ -915,12 +909,11 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   /* Reload the fsm tree */
   _fsm_load_fsm_lw(impl, mm, bmlen);
 
-  /* Sync fsm */
-  rc = pool->sync_mmap(pool, impl->mmap_all ? 0 : bmoff, impl->sync_flags);
+  /* Flush new meta */
+  rc = _fsm_write_meta_lw(impl);
   RCGO(rc, rollback);
 
-  /* Flush new meta */
-  rc = _fsm_write_meta_lw(impl, 1);
+  rc = pool->sync(pool, IWFS_NO_MMASYNC | IWFS_FDATASYNC);
   RCGO(rc, rollback);
 
   if (old_bmlen) {
@@ -932,13 +925,13 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   }
   return rc;
 
-rollback: /* try to rollback bitmap state */
+rollback: /* try to rollback previous bitmap state */
   impl->bmoff = old_bmoff;
   impl->bmlen = old_bmlen;
   if (old_bmlen > 0) {
     _fsm_load_fsm_lw(impl, mm2, old_bmlen);
-    pool->sync_mmap(pool, impl->mmap_all ? 0 : impl->bmoff, impl->sync_flags);
   }
+  pool->sync(pool, IWFS_NO_MMASYNC | IWFS_FDATASYNC);
   return rc;
 }
 
@@ -1144,7 +1137,6 @@ static iwrc _fsm_init_impl(FSM *impl, const IWFS_FSM_OPTS *opts) {
   impl->oflags = opts->oflags;
   impl->psize = iwp_page_size();
   impl->bpow = opts->bpow;
-  impl->sync_flags = opts->sync_flags;
   impl->mmap_all = opts->mmap_all;
   if (!impl->bpow) {
     impl->bpow = 6;  // 64bit block
@@ -1436,6 +1428,16 @@ static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size
   return rc;
 }
 
+static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
+  FSM_ENSURE_OPEN2(f);
+  iwrc rc = _fsm_ctrl_rlock(f->impl);
+  RCRET(rc);
+  IWRC(_fsm_write_meta_lw(f->impl), rc);
+  IWRC(f->impl->pool.sync(&f->impl->pool, flags), rc);
+  IWRC(_fsm_ctrl_unlock(f->impl), rc);
+  return rc;
+}
+
 static iwrc _fsm_close(struct IWFS_FSM *f) {
   if (!f || !f->impl) {
     return 0;
@@ -1445,7 +1447,8 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
   IWRC(_fsm_ctrl_wlock(impl), rc);
   if (impl->omode & IWFS_OWRITE) {
     IWRC(_fsm_trim_tail_lw(impl), rc);
-    IWRC(_fsm_write_meta_lw(impl, 1), rc);
+    IWRC(_fsm_write_meta_lw(impl), rc);
+    IWRC(impl->pool.sync(&impl->pool, IWFS_NO_MMASYNC), rc);
   }
   IWRC(impl->pool.close(&impl->pool), rc);
   if (impl->fsm) {
@@ -1456,15 +1459,6 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
   impl->f->impl = 0;
   impl->f = 0;
   free(impl);
-  return rc;
-}
-
-static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
-  FSM_ENSURE_OPEN2(f);
-  iwrc rc = _fsm_ctrl_rlock(f->impl);
-  RCRET(rc);
-  IWRC(_fsm_write_meta_lw(f->impl, 1), rc);
-  IWRC(_fsm_ctrl_unlock(f->impl), rc);
   return rc;
 }
 

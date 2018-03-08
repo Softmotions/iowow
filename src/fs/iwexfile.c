@@ -167,7 +167,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   EXF *impl = f->impl;
   iwfs_omode omode = impl->omode;
   off_t old_size = impl->fsize;
-  
+
   if (impl->fsize == size) {
     return 0;
   }
@@ -194,7 +194,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
     RCGO(rc, truncfail);
   }
   return rc;
-  
+
 truncfail:
   // restore old size
   impl->fsize = old_size;
@@ -225,17 +225,13 @@ IW_INLINE iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
 static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   iwrc rc = _exfile_rlock(f);
   RCRET(rc);
-  
   EXF *impl = f->impl;
+  int mflags = (flags & IWFS_NO_MMASYNC) ? MS_SYNC : MS_ASYNC;
   MMAPSLOT *s = impl->mmslots;
   while (s) {
     if (s->mmap && s->mmap != MAP_FAILED) {
-      int mflags = 0;
-      if (!(flags & IWFS_NO_MMASYNC)) {
-        mflags |= MS_ASYNC;
-      }
       if (msync(s->mmap, s->len, mflags)) {
-        rc = iwrc_set_errno(rc, errno);
+        rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
       }
     }
     s = s->next;
@@ -251,7 +247,7 @@ static iwrc _exfile_write(struct IWFS_EXT *f,
   EXF *impl = f->impl;
   off_t end = off + siz;
   off_t wp = siz, len;
-  
+
   *sp = 0;
   if (off < 0 || end < 0) {
     return IW_ERROR_OUT_OF_BOUNDS;
@@ -367,7 +363,7 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
 
 static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) {
   int rc = _exfile_rlock(f);
-  RCRET(rc);  
+  RCRET(rc);
   EXF *xf = f->impl;
   MMAPSLOT *s = xf->mmslots;
   if (s && s->mmap && s->off == 0 && s->len >= noff + siz) { // fully mmaped file
@@ -375,9 +371,9 @@ static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) 
     RCRET(rc);
     memmove(s->mmap + noff, s->mmap + off, siz);
   } else {
-    IWRC(xf->file.copy(&xf->file, off, siz, noff), rc);    
+    IWRC(xf->file.copy(&xf->file, off, siz, noff), rc);
   }
-  IWRC(_exfile_unlock(f), rc);  
+  IWRC(_exfile_unlock(f), rc);
   return rc;
 }
 
@@ -470,7 +466,7 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
   iwrc rc;
   size_t tmp;
   MMAPSLOT *ns = 0;
-  
+
   rc = _exfile_wlock(f);
   RCRET(rc);
   EXF *impl = f->impl;
@@ -630,11 +626,12 @@ static iwrc _exfile_remove_mmap(struct IWFS_EXT *f, off_t off) {
   return rc;
 }
 
-static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, int _flags) {
+static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, iwfs_sync_flags flags) {
   assert(f && off >= 0);
   iwrc rc = _exfile_rlock(f);
   RCRET(rc);
   EXF *impl = f->impl;
+  int mflags = (flags & IWFS_NO_MMASYNC) ? MS_SYNC : MS_ASYNC;
   MMAPSLOT *s = impl->mmslots;
   while (s) {
     if (s->off == off) {
@@ -643,11 +640,7 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, int _flags) {
         break;
       }
       if (s->mmap && s->mmap != MAP_FAILED) {
-        int flags = _flags;
-        if (!flags) {
-          flags = MS_ASYNC;
-        }
-        if (msync(s->mmap, s->len, flags)) {
+        if (msync(s->mmap, s->len, mflags)) {
           rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
         }
         break;
@@ -742,19 +735,19 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   assert(opts);
   iwrc rc = 0;
   const char *path = opts->file.path;
-  
+
   memset(f, 0, sizeof(*f));
-  
+
   rc = iwfs_exfile_init();
   RCGO(rc, finish);
-  
+
   f->close = _exfile_close;
   f->read = _exfile_read;
   f->write = _exfile_write;
   f->sync = _exfile_sync;
   f->state = _exfile_state;
   f->copy =  _exfile_copy;
-  
+
   f->ensure_size = _exfile_ensure_size;
   f->truncate = _exfile_truncate;
   f->add_mmap = _exfile_add_mmap;
@@ -763,16 +756,16 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   f->release_mmap = _exfile_release_mmap;
   f->remove_mmap = _exfile_remove_mmap;
   f->sync_mmap = _exfile_sync_mmap;
-  
+
   if (!path) {
     return IW_ERROR_INVALID_ARGS;
   }
-  
+
   EXF *impl = f->impl = calloc(1, sizeof(EXF));
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  
+
   impl->psize = iwp_page_size();
   impl->rspolicy = opts->rspolicy ? opts->rspolicy : _exfile_default_szpolicy;
   impl->rspolicy_ctx = opts->rspolicy_ctx;
@@ -782,21 +775,21 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   }
   rc = _exfile_initlocks(f);
   RCGO(rc, finish);
-  
+
   rc = iwfs_file_open(&impl->file, &opts->file);
   RCGO(rc, finish);
-  
+
   IWP_FILE_STAT fstat;
   rc = iwp_fstat(path, &fstat);
   RCGO(rc, finish);
-  
+
   impl->fsize = fstat.size;
-  
+
   IWFS_FILE_STATE fstate;
   rc = impl->file.state(&impl->file, &fstate);
   impl->omode = fstate.opts.omode;
   impl->fh = fstate.fh;
-  
+
   if (impl->fsize < opts->initial_size) {
     rc = _exfile_truncate_lw(f, opts->initial_size);
   } else if (impl->fsize & (impl->psize - 1)) {  // not a page aligned
@@ -818,16 +811,16 @@ static const char *_exfile_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-    case IWFS_ERROR_MMAP_OVERLAP:
-      return "Region is mmaped already, mmaping overlaps. "
-             "(IWFS_ERROR_MMAP_OVERLAP)";
-    case IWFS_ERROR_NOT_MMAPED:
-      return "Region is not mmaped. (IWFS_ERROR_NOT_MMAPED)";
-    case IWFS_ERROR_RESIZE_POLICY_FAIL:
-      return "Invalid result of resize policy function. "
-             "(IWFS_ERROR_RESIZE_POLICY_FAIL)";
-    case IWFS_ERROR_MAXOFF:
-      return "Maximum file offset reached. (IWFS_ERROR_MAXOFF)";
+  case IWFS_ERROR_MMAP_OVERLAP:
+    return "Region is mmaped already, mmaping overlaps. "
+           "(IWFS_ERROR_MMAP_OVERLAP)";
+  case IWFS_ERROR_NOT_MMAPED:
+    return "Region is not mmaped. (IWFS_ERROR_NOT_MMAPED)";
+  case IWFS_ERROR_RESIZE_POLICY_FAIL:
+    return "Invalid result of resize policy function. "
+           "(IWFS_ERROR_RESIZE_POLICY_FAIL)";
+  case IWFS_ERROR_MAXOFF:
+    return "Maximum file offset reached. (IWFS_ERROR_MAXOFF)";
   }
   return 0;
 }
