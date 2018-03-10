@@ -607,7 +607,7 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
 
   // iwkv_next_level = 0;
-
+  
   for (int i = 0; i < 127 * 2; i += 2) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
     snprintf(vbuf, VBUFSZ, "%03dval", i);

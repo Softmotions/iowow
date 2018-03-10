@@ -2246,7 +2246,8 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   blkn_t nblk;
   uint8_t kvbpow = 0;
   register int pivot = (KVBLK_IDXNUM / 2) + 1; // 32
-
+  
+  assert(idx > 0);
   if (idx < sblk->pnum) {
     assert(sblk->kvblk);
     // Partial split required
@@ -2263,11 +2264,10 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   rc = _sblk_create(lx, lx->nlvl, kvbpow, &nb);
   RCRET(rc);
   nblk = ADDR2BLK(nb->addr);
-  if (idx == sblk->pnum) {
-    // Upper side
+  if (idx == sblk->pnum) { // Upper side
     rc = _sblk_addkv(nb, lx->key, lx->val, lx->opflags, false);
     RCGO(rc, finish);
-  } else {
+  } else { // New key is somewere in a middle of sblk->kvblk
     assert(sblk->kvblk);
     // We are in the middle
     // Do the partial split
