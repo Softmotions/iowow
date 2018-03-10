@@ -102,7 +102,7 @@ static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found) {
   }
   leveldb_delete(bmdb->db, wopt, key->data, key->size, &err);
   if (err) {
-    fprintf(stderr, "ERROR db_get: %s\n", err);
+    fprintf(stderr, "ERROR db_del: %s\n", err);
     leveldb_free(err);
     ret = false;
   }
