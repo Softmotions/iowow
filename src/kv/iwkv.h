@@ -187,9 +187,9 @@ IW_EXPORT iwrc iwkv_db_destroy(IWDB *dbp);
 /**
  * @brief Sync iwkv store state with disk.
  * @param iwkv Pointer to iwkv store.
- * @param async If `true` do not wait for sync completion.
+ * @param flags Sync flags.
  */
-IW_EXPORT iwrc iwkv_sync(IWKV iwkv, bool async);
+IW_EXPORT iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags flags);
 
 /**
  * @brief Close iwkv store.

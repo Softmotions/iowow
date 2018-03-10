@@ -30,7 +30,7 @@ struct BM {
   bool (*db_put)(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync);
   bool (*db_get)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
   bool (*db_cursor_to_key)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
-  bool (*db_del)(BMCTX *ctx, const IWKV_val *key, bool *found);
+  bool (*db_del)(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found);
   bool (*db_read_seq)(BMCTX *ctx, bool reverse);
 } bm;
 
@@ -260,7 +260,7 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync) {
   return true;
 }
 
-static bool _do_delete(BMCTX *ctx, bool seq) {
+static bool _do_delete(BMCTX *ctx, bool sync, bool seq) {
   char kbuf[100];
   bool found;
   IWKV_val key;
@@ -269,7 +269,7 @@ static bool _do_delete(BMCTX *ctx, bool seq) {
     const int k = seq ? i : iwu_rand_range(bm.param_num);
     snprintf(key.data, sizeof(kbuf), "%016d", k);
     key.size = strlen(key.data);
-    if (!bm.db_del(ctx, &key, &found)) {
+    if (!bm.db_del(ctx, &key, sync, &found)) {
       return false;
     }
   }
@@ -384,7 +384,7 @@ static bool _bm_overwrite(BMCTX *ctx) {
 
 static bool _bm_fillsync(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
-  ctx->num /= 10;
+  ctx->num /= 1000;
   return _do_write(ctx, false, true);
 }
 
@@ -397,12 +397,12 @@ static bool _bm_fill100K(BMCTX *ctx) {
 
 static bool _bm_deleteseq(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _do_delete(ctx, true);
+  return _do_delete(ctx, false, true);
 }
 
 static bool _bm_deleterandom(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _do_delete(ctx, false);
+  return _do_delete(ctx, false, false);
 }
 
 static bool _bm_readseq(BMCTX *ctx) {

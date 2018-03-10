@@ -461,17 +461,6 @@ static int _u8cmp(const void *o1, const void *o2) {
   }
 }
 
-iwrc _iwkv_sync(IWKV iwkv, bool async) {
-  iwrc rc = 0;
-  IWFS_FSM *fsm  = &iwkv->fsm;
-  iwfs_sync_flags flags = IWFS_FDATASYNC;
-  if (async) {
-    flags |= IWFS_NO_MMASYNC;
-  }
-  IWRC(fsm->sync(fsm, flags), rc);
-  return rc;
-}
-
 //-------------------------- IWKV/IWDB WORKERS
 
 static iwrc _iwkv_worker_inc_nolk(IWKV iwkv) {
@@ -756,7 +745,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
   IWFS_FSM *fsm = &db->iwkv->fsm;
   uint32_t first_sblkn;
   bool dec_worker = true;
-
+  
   kh_del(DBS, db->iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
@@ -1084,7 +1073,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx,
   kb->szpow = 0;
   kb->flags = 0;
   memset(kb->pidx, 0, sizeof(kb->pidx));
-
+  
   *blkp = 0;
   rp = mm + addr;
   memcpy(&kb->szpow, rp, 1);
@@ -1280,7 +1269,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
               maxoff);
       fsm->release_mmap(fsm);
       mm = 0;
-
+      
       rc = fsm->reallocate(fsm, sz, &naddr, &nlen,
                            IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
       RCGO(rc, finish);
@@ -1323,11 +1312,11 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   off_t psz = (key->size + uval->size) + IW_VNUMSIZE(key->size); // required size
   bool compacted = false;
   *oidx = -1;
-
+  
 #ifndef NDEBUG
   uint8_t *sptr;
 #endif
-
+  
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
@@ -1359,7 +1348,7 @@ static iwrc _kvblk_addkv(KVBLK *kb,
     }
     return IWKV_ERROR_MAXKVSZ;
   }
-
+  
 start:
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
@@ -1455,7 +1444,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
   IWFS_FSM *fsm = &db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-
+  
   // DUP
   if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
     if (((db->dbflg & IWDB_DUP_UINT32_VALS) && val->size != 4) ||
@@ -1480,7 +1469,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
     uint8_t vbuf[8];
     uint32_t avail = len - (4 /* num items */ + sz * val->size);
     _num2lebuf(vbuf, val->data, val->size);
-
+    
     if (opflags & IWKV_DUP_REMOVE) {
       if (!sz || !iwarr_sorted_remove(wp, sz, val->size, vbuf,  val->size > 4 ? _u8cmp : _u4cmp)) {
         rc = IWKV_ERROR_NOTFOUND;
@@ -1495,7 +1484,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
         kb->flags |= KVBLK_DURTY;
       }
       goto finish;
-
+      
     } else if (avail >= val->size) { // we have enough room to store the given number
       if (iwarr_sorted_insert(wp, sz, val->size, vbuf,
                               val->size > 4 ? _u8cmp : _u4cmp, true) == -1) {
@@ -1533,7 +1522,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
     }
   }
   // !DUP
-
+  
   wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
   sp = wp;
   IW_READVNUMBUF(wp, len, sz);
@@ -1581,7 +1570,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
       }
     }
   }
-
+  
 finish:
   if (uval != val) {
     _kv_val_dispose(uval);
@@ -1697,11 +1686,11 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-
+  
   SBLK *sblk = &lx->saa[lx->saan];
   sblk->db = lx->db;
   sblk->kvblk = 0;
-
+  
   if (IW_UNLIKELY(addr == lx->db->addr)) {
     uint8_t *rp = mm + addr + DOFF_N0_U4;
     // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]:u137
@@ -2126,7 +2115,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
   SBLK *sblk;
   blkn_t blkn;
   assert(lx->lower);
-
+  
   while ((blkn = lx->lower->n[lvl])) {
     off_t blkaddr = BLK2ADDR(blkn);
     if (lx->nlvl > -1 && lvl < lx->nlvl) {
@@ -2417,9 +2406,6 @@ start:
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
-    if (!rc && (lx->opflags & IWKV_SYNC)) {
-      rc = _iwkv_sync(lx->db->iwkv, false);
-    }
   }
   return rc;
 }
@@ -2512,9 +2498,6 @@ finish:
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
-    if (!rc && (lx->opflags & IWKV_SYNC)) {
-      rc = _iwkv_sync(lx->db->iwkv, false);
-    }
   }
   return rc;
 }
@@ -2650,20 +2633,20 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-  case IWKV_ERROR_NOTFOUND:
-    return "Key not found. (IWKV_ERROR_NOTFOUND)";
-  case IWKV_ERROR_KEY_EXISTS:
-    return "Key exists. (IWKV_ERROR_KEY_EXISTS)";
-  case IWKV_ERROR_MAXKVSZ:
-    return "Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
-  case IWKV_ERROR_CORRUPTED:
-    return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
-  case IWKV_ERROR_DUP_VALUE_SIZE:
-    return "Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE)";
-  case IWKV_ERROR_KEY_NUM_VALUE_SIZE:
-    return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
-  case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
-    return "Incompatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
+    case IWKV_ERROR_NOTFOUND:
+      return "Key not found. (IWKV_ERROR_NOTFOUND)";
+    case IWKV_ERROR_KEY_EXISTS:
+      return "Key exists. (IWKV_ERROR_KEY_EXISTS)";
+    case IWKV_ERROR_MAXKVSZ:
+      return "Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
+    case IWKV_ERROR_CORRUPTED:
+      return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
+    case IWKV_ERROR_DUP_VALUE_SIZE:
+      return "Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE)";
+    case IWKV_ERROR_KEY_NUM_VALUE_SIZE:
+      return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
+    case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
+      return "Incompatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
   }
   return 0;
 }
@@ -2743,14 +2726,14 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
 #if defined(IW_TESTS) && !defined(IW_RELEASE)
   fsmopts.oflags |= IWFSM_STRICT;
 #endif
-
+  
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
   IWFS_FSM *fsm  = &iwkv->fsm;
   iwkv->dbs = kh_init(DBS);
   rc = fsm->state(fsm, &fsmstate);
   RCGO(rc, finish);
-
+  
   if (fsmstate.exfile.file.ostatus & IWFS_OPEN_NEW) {
     // Write magic number
     lv = IWKV_MAGIC;
@@ -2813,14 +2796,16 @@ iwrc iwkv_close(IWKV *iwkvp) {
   return rc;
 }
 
-iwrc iwkv_sync(IWKV iwkv, bool async) {
+iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
   ENSURE_OPEN(iwkv);
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
   }
   iwrc rc = 0;
+  IWFS_FSM *fsm  = &iwkv->fsm;
   pthread_rwlock_rdlock(&iwkv->rwl);
-  rc = _iwkv_sync(iwkv, async);
+  iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
+  IWRC(fsm->sync(fsm, flags), rc);
   pthread_rwlock_unlock(&iwkv->rwl);
   return rc;
 }
@@ -2907,6 +2892,9 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
   API_DB_WLOCK(db, rci);
   rc = _lx_put_lw(&lx);
   API_DB_UNLOCK(db, rci, rc);
+  if (!rc && (lx.opflags & IWKV_SYNC)) {
+    rc = iwkv_sync(lx.db->iwkv, IWFS_NO_MMASYNC);
+  }
   return rc;
 }
 
@@ -2944,6 +2932,9 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
   API_DB_WLOCK(db, rci);
   rc = _lx_del_lw(&lx);
   API_DB_UNLOCK(db, rci, rc);
+  if (!rc && (lx.opflags & IWKV_SYNC)) {
+    rc = iwkv_sync(lx.db->iwkv, IWFS_NO_MMASYNC);
+  }
   return rc;
 }
 
@@ -3327,7 +3318,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb) {
   blkn_t blkn = ADDR2BLK(kb->addr);
   fprintf(f, "\n === KVBLK[%u] maxoff=%lu, zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
           blkn, kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
-
+          
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
   if (rc) {
     iwlog_ecode_error3(rc);
@@ -3378,8 +3369,8 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
           sb->pnum, sb->flags, sb->kvblk->zidx,
           sb->p0,
           sb->kvblk->db->id);
-
-
+          
+          
   if (sb->db->dbflg & IWDB_UINT64_KEYS) {
     uint64_t k;
     memcpy(&k, lkbuf, sizeof(k));
@@ -3393,7 +3384,7 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   } else {
     fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow, lkl, lkbuf);
   }
-
+  
   for (int i = 0, j = 0; i < sb->pnum; ++i, ++j) {
     if (j == 3) {
       fputc('\n', f);

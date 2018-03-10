@@ -6,7 +6,6 @@ typedef struct BM_LEVELDB {
   leveldb_options_t *options;
 } BM_LEVELDB;
 
-
 static void env_setup() {
   printf("LevelDB %d.%d\n", leveldb_major_version(), leveldb_minor_version());
 }
@@ -35,7 +34,7 @@ static void *db_open(BMCTX *ctx) {
   bmdb->db = leveldb_open(bmdb->options, path, &err);
   if (err) {
     leveldb_options_destroy(bmdb->options);
-    fprintf(stderr, "Failed to open db: %s\n", err);
+    fprintf(stderr, "ERROR db_open: %s\n", err);
     leveldb_free(err);
     free(bmdb);
     return 0;
@@ -50,23 +49,67 @@ static bool db_close(BMCTX *ctx) {
   BM_LEVELDB *bmdb = ctx->db;
   leveldb_close(bmdb->db);
   leveldb_options_destroy(bmdb->options);
+  free(bmdb);
   return true;
 }
 
 static bool db_put(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync) {
   BM_LEVELDB *bmdb = ctx->db;
-  return true;
+  char *err = 0;
+  bool ret = true;
+  leveldb_writeoptions_t *wopt = leveldb_writeoptions_create();
+  if (sync) {
+    leveldb_writeoptions_set_sync(wopt, 1);
+  }
+  leveldb_put(bmdb->db, wopt, key->data, key->size, val->data, val->size, &err);
+  if (err) {
+    fprintf(stderr, "ERROR db_put: %s\n", err);
+    leveldb_free(err);
+    ret = false;
+  }
+  leveldb_writeoptions_destroy(wopt);
+  return ret;
 }
 
 static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
   BM_LEVELDB *bmdb = ctx->db;
-  return true;
+  size_t sz;
+  char *data = 0;
+  char *err = 0;
+  bool ret = true;
+  leveldb_readoptions_t *ropt = leveldb_readoptions_create();
+  data = leveldb_get(bmdb->db, ropt, key->data, key->size, &sz, &err);
+  *found = (data != 0);
+  if (err) {
+    fprintf(stderr, "ERROR db_get: %s\n", err);
+    leveldb_free(err);
+    ret = false;
+  } else {
+    val->data = data;
+    val->size = sz;
+  }
+  leveldb_readoptions_destroy(ropt);
+  return ret;
 }
 
-static bool db_del(BMCTX *ctx, const IWKV_val *key, bool *found) {
+static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found) {
   BM_LEVELDB *bmdb = ctx->db;
-  return true;
+  char *err = 0;
+  bool ret = true;
+  leveldb_writeoptions_t *wopt = leveldb_writeoptions_create();
+  if (sync) {
+    leveldb_writeoptions_set_sync(wopt, 1);
+  }
+  leveldb_delete(bmdb->db, wopt, key->data, key->size, &err);
+  if (err) {
+    fprintf(stderr, "ERROR db_get: %s\n", err);
+    leveldb_free(err);
+    ret = false;
+  }
+  return ret;
 }
+
+// todo
 
 int main(int argc, char **argv) {
   setlocale(LC_ALL, "en_US.UTF-8");
