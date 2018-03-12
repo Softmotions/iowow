@@ -109,7 +109,13 @@ static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found) {
   return ret;
 }
 
-// todo
+static bool db_read_seq(BMCTX *ctx, bool reverse) {
+  return true;
+}
+
+static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
+  return true;
+}
 
 int main(int argc, char **argv) {
   setlocale(LC_ALL, "en_US.UTF-8");
