@@ -80,12 +80,10 @@ static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) 
   return true;
 }
 
-static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found) {
+static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync) {
   BM_IWKVDB *bmdb = ctx->db;
-  *found = true;
   iwrc rc = iwkv_del(bmdb->db, key);
-  if (rc == IWKV_ERROR_NOTFOUND) {
-    *found = false;
+  if (rc == IWKV_ERROR_NOTFOUND) {    
     rc = 0;
   }
   if (rc) {

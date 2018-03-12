@@ -101,7 +101,7 @@ static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) 
   return ret;
 }
 
-static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found) {
+static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync) {
   BM_LEVELDB *bmdb = ctx->db;
   char *err = 0;
   bool ret = true;

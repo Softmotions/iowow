@@ -29,7 +29,7 @@ struct BM {
   bool (*db_put)(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync);
   bool (*db_get)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
   bool (*db_cursor_to_key)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
-  bool (*db_del)(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found);
+  bool (*db_del)(BMCTX *ctx, const IWKV_val *key, bool sync);
   bool (*db_read_seq)(BMCTX *ctx, bool reverse);
 } bm;
 
@@ -252,14 +252,13 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync) {
 
 static bool _do_delete(BMCTX *ctx, bool sync, bool seq) {
   char kbuf[100];
-  bool found;
   IWKV_val key;
   key.data = kbuf;
   for (int i = 0; i < ctx->num; ++i) {
     const int k = seq ? i : iwu_rand_range(bm.param_num);
     snprintf(key.data, sizeof(kbuf), "%016d", k);
     key.size = strlen(key.data);
-    if (!bm.db_del(ctx, &key, sync, &found)) {
+    if (!bm.db_del(ctx, &key, sync)) {
       return false;
     }
   }
