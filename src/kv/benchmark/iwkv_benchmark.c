@@ -48,7 +48,7 @@ static bool db_close(BMCTX *ctx) {
   BM_IWKVDB *bmdb = ctx->db;
   iwrc rc = iwkv_close(&bmdb->iwkv);
   if (rc) {
-    iwlog_ecode_error2(rc, "Failed to close iwkv file");
+    iwlog_ecode_error2(rc, "db_close");
     return false;
   }
   free(bmdb);
@@ -59,7 +59,7 @@ static bool db_put(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sy
   BM_IWKVDB *bmdb = ctx->db;
   iwrc rc = iwkv_put(bmdb->db, key, val, sync ? IWKV_SYNC : 0);
   if (rc) {
-    iwlog_ecode_error2(rc, "iwkv_put failed");
+    iwlog_ecode_error2(rc, "db_put");
     return false;
   }
   return true;
@@ -74,7 +74,7 @@ static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) 
     rc = 0;
   }
   if (rc) {
-    iwlog_ecode_error2(rc, "iwkv_get failed");
+    iwlog_ecode_error2(rc, "db_get");
     return false;
   }
   return true;
@@ -89,7 +89,7 @@ static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found) {
     rc = 0;
   }
   if (rc) {
-    iwlog_ecode_error2(rc, "iwkv_del failed");
+    iwlog_ecode_error2(rc, "db_del");
     return false;
   }
   return true;
