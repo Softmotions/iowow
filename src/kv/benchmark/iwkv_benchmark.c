@@ -106,6 +106,7 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
     return false;
   }
   for (int i = 0; i < bm.param_num_reads; ++i) {
+    IWKV_val k = {0}, v = {0};
     rc = iwkv_cursor_to(cur, reverse ? IWKV_CURSOR_PREV : IWKV_CURSOR_NEXT);
     if (rc) {
       ret = (rc == IWKV_ERROR_NOTFOUND);
@@ -114,11 +115,16 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
       }
       break;
     }
+    rc = iwkv_cursor_get(cur, &k, &v);
+    iwkv_kv_dispose(&k, &v);
+    if (rc) {
+      break;
+    }
   }
-  rc = iwkv_cursor_close(&cur);
+  iwkv_cursor_close(&cur);
   if (rc) {
     ret = false;
-    iwlog_ecode_error2(rc, "db_read_seq::iwkv_cursor_close failed");
+    iwlog_ecode_error2(rc, "db_read_seq");
   }
   return ret;
 }

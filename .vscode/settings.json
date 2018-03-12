@@ -68,7 +68,8 @@
     "string.h": "c",
     "iwutils.h": "c",
     "c.h": "c",
-    "streambuf": "c"
+    "streambuf": "c",
+    "system_error": "cpp"
   }
 }
 

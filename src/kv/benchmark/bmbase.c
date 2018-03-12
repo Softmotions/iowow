@@ -23,7 +23,6 @@ struct BM {
   int param_num_reads;
   int param_value_size;
   char *param_benchmarks;
-  char *param_report;
   void (*env_setup)(void);
   void *(*db_open)(BMCTX *ctx);
   bool (*db_close)(BMCTX *ctx);
@@ -109,7 +108,6 @@ static void _bm_help() {
   fprintf(stderr, "  -vz <size> Size of a single record value in bytes\n");
   fprintf(stderr, "  -b <comma separated benchmarks to run>\n\n");
   fprintf(stderr, "  -db <file/directory> Database file/directory\n\n");
-  fprintf(stderr, "  -r <CSV report file> Default: report.csv\n\n");
   fprintf(stderr, "Available benchmarks:\n");
   fprintf(stderr, "  fillseq        write N values in sequential key order in async mode\n");
   fprintf(stderr, "  fillrandom     write N values in random key order in async mode\n");
@@ -150,8 +148,6 @@ static bool _bm_init(int argc, char *argv[]) {
                          "fillseq,"
                          "deleterandom,"
                          "fill100K";
-
-  bm.param_report = "report.csv";
 #ifndef NDEBUG
   fprintf(stdout, "WARNING: Assertions are enabled, benchmarks can be slow\n");
 #endif
@@ -192,12 +188,6 @@ static bool _bm_init(int argc, char *argv[]) {
         return false;
       }
       bm.param_benchmarks = argv[i];
-    } else if (!strcmp(argv[i], "-r")) {
-      if (++i >= argc) {
-        fprintf(stderr, "'-r <CSV report file>' options has no value\n");
-        return false;
-      }
-      bm.param_report = argv[i];
     } else if (!strcmp(argv[i], "-db")) {
       if (++i >= argc) {
         fprintf(stderr, "'-db <db file>' options has no value\n");
@@ -215,8 +205,8 @@ static bool _bm_init(int argc, char *argv[]) {
   }
 
   fprintf(stderr,
-          "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n report: %s\n\n",
-          bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks, bm.param_report);
+          "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n\n",
+          bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
 
   // Fill up random data array
   for (int i = 0; i < RND_DATA_SZ; ++i) {

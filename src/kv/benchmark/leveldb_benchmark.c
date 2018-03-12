@@ -1,6 +1,8 @@
 #include "bmbase.c"
 #include <leveldb/c.h>
 
+#define DBDIR "leveldb_bench.db"
+
 typedef struct BM_LEVELDB {
   leveldb_t *db;
   leveldb_options_t *options;
@@ -8,6 +10,13 @@ typedef struct BM_LEVELDB {
 
 static void env_setup() {
   printf("LevelDB %d.%d\n", leveldb_major_version(), leveldb_minor_version());
+  const char *path;
+  if (bm.param_db) {
+    path = bm.param_db;
+  } else {
+    path = DBDIR;
+  }
+  iwp_removedir(path);
 }
 
 static void *db_open(BMCTX *ctx) {
@@ -19,7 +28,7 @@ static void *db_open(BMCTX *ctx) {
   if (bm.param_db) {
     path = bm.param_db;
   } else {
-    path = "leveldb_bench.db";
+    path = DBDIR;
   }
   BM_LEVELDB *bmdb = malloc(sizeof(*bmdb));
   bmdb->options = leveldb_options_create();
@@ -106,15 +115,51 @@ static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync, bool *found) {
     leveldb_free(err);
     ret = false;
   }
+  leveldb_writeoptions_destroy(wopt);
   return ret;
 }
 
 static bool db_read_seq(BMCTX *ctx, bool reverse) {
-  return true;
+  BM_LEVELDB *bmdb = ctx->db;
+  bool ret = true;
+  leveldb_readoptions_t *ropt = leveldb_readoptions_create();
+  leveldb_iterator_t *it = leveldb_create_iterator(bmdb->db, ropt);
+  if (reverse) {
+    leveldb_iter_seek_to_last(it);
+  } else {
+    leveldb_iter_seek_to_first(it);
+  }
+  for (int i = 0; i < bm.param_num_reads && leveldb_iter_valid(it); ++i) {
+    size_t vlen, klen;
+    leveldb_iter_value(it, &vlen);
+    leveldb_iter_key(it, &klen);
+    if (reverse) {
+      leveldb_iter_prev(it);
+    } else {
+      leveldb_iter_next(it);
+    }
+  }
+  leveldb_iter_destroy(it);
+  leveldb_readoptions_destroy(ropt);
+  return ret;
 }
 
 static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
-  return true;
+  BM_LEVELDB *bmdb = ctx->db;  
+  bool ret = true;  
+  leveldb_readoptions_t *ropt = leveldb_readoptions_create();
+  leveldb_iterator_t *it = leveldb_create_iterator(bmdb->db, ropt);
+  leveldb_iter_seek(it, key->data, key->size);
+  *found = leveldb_iter_valid(it);
+  if (*found) {
+    size_t vlen;
+    const char *v = leveldb_iter_value(it, &vlen);    
+    val->data = malloc(vlen);
+    memcpy(val->data, v, vlen);
+  }
+  leveldb_iter_destroy(it);
+  leveldb_readoptions_destroy(ropt);
+  return ret;
 }
 
 int main(int argc, char **argv) {
@@ -127,7 +172,11 @@ int main(int argc, char **argv) {
   bm.db_put = db_put;
   bm.db_get = db_get;
   bm.db_del = db_del;
-
+  bm.db_read_seq = db_read_seq;
+  bm.db_cursor_to_key = db_cursor_to_key;
+  if (!bm_bench_run(argc, argv)) {
+    return 1;
+  }
   return 0;
 }
 
