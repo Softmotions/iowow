@@ -867,20 +867,13 @@ finish:
 
 //--------------------------  KVBLK
 
-static iwrc _kvblk_create(IWLCTX *lx,
-                          int8_t kvbpow,
-                          KVBLK **oblk) {
-  KVBLK *kblk;
-  off_t baddr = 0, blen;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  if (kvbpow < KVBLK_INISZPOW) {
-    kvbpow = KVBLK_INISZPOW;
-  }
-  kblk = &lx->kaa[lx->kaan];
+IW_INLINE void _kvblk_create(IWLCTX *lx,
+                             off_t baddr,
+                             off_t blen,
+                             uint8_t kvbpow,
+                             KVBLK **oblk) {
+  KVBLK *kblk = &lx->kaa[lx->kaan];
   memset(lx->kaa, 0, sizeof(lx->kaa[0]));
-  iwrc rc = fsm->allocate(fsm, (1ULL << kvbpow), &baddr, &blen,
-                          IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
-  RCRET(rc);
   assert((1ULL << kvbpow) == blen);
   kblk->db = lx->db;
   kblk->addr = baddr;
@@ -889,7 +882,6 @@ static iwrc _kvblk_create(IWLCTX *lx,
   kblk->flags = KVBLK_DURTY;
   *oblk = kblk;
   AAPOS_INC(lx->kaan);
-  return rc;
 }
 
 IW_INLINE iwrc _kvblk_destroy(KVBLK **kbp) {
@@ -1657,15 +1649,19 @@ static iwrc _sblk_create(IWLCTX *lx,
   KVBLK *kvblk;
   off_t baddr = 0, blen;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  *oblk = 0;
-  rc = _kvblk_create(lx, kvbpow, &kvblk);
-  RCRET(rc);
-  rc = fsm->allocate(fsm, SBLK_SZ, &baddr, &blen,
-                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
-  if (IW_UNLIKELY(rc)) {
-    IWRC(_kvblk_destroy(&kvblk), rc);
-    return rc;
+  if (kvbpow < KVBLK_INISZPOW) {
+    kvbpow = KVBLK_INISZPOW;
   }
+  off_t kvblksz = 1ULL << kvbpow;
+  *oblk = 0;
+  rc = fsm->allocate(fsm, SBLK_SZ + kvblksz, &baddr, &blen,
+                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+  RCRET(rc);
+  
+  assert(blen - SBLK_SZ == kvblksz);
+  _kvblk_create(lx, baddr + SBLK_SZ, kvblksz, kvbpow, &kvblk);
+  RCRET(rc);
+  
   sblk = &lx->saa[lx->saan];
   memset(sblk, 0, sizeof(*sblk));
   sblk->db = lx->db;
@@ -2909,7 +2905,7 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     .db = db,
     .key = key,
     .val = oval,
-    .nlvl = -1    
+    .nlvl = -1
   };
   oval->size = 0;
   API_DB_RLOCK(db, rci);
@@ -2979,10 +2975,10 @@ iwrc iwkv_cursor_open(IWDB db,
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     goto finish;
   }
-  IWKV_cursor cur = *curptr;  
+  IWKV_cursor cur = *curptr;
   cur->lx.db = db;
   cur->lx.key = key;
-  cur->lx.nlvl = -1;  
+  cur->lx.nlvl = -1;
   rc = _cursor_to_lr(cur, op);
 finish:
   if (rc && cur) {

@@ -134,9 +134,11 @@ static bool _bm_init(int argc, char *argv[]) {
   bm.argv = argv;
   bm.param_num = 1000000; // 1M records
   bm.param_num_reads = -1; // Same as param_num
-  bm.param_value_size = 100; // 100 byte per value
+  bm.param_value_size = 128; // 128 byte per value
   bm.param_benchmarks =  "fillrandom,"
-                         "fillsync,"
+                         "deleterandom,"
+                         "fillseq,"
+                         "deleteseq,"
                          "fillseq,"
                          "overwrite,"
                          "readrandom,"
@@ -145,8 +147,6 @@ static bool _bm_init(int argc, char *argv[]) {
                          "readhot,"
                          "readmissing,"
                          "deleteseq,"
-                         "fillseq,"
-                         "deleterandom,"
                          "fill100K";
 #ifndef NDEBUG
   fprintf(stdout, "WARNING: Assertions are enabled, benchmarks can be slow\n");
