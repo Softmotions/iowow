@@ -43,4 +43,10 @@
 #include <string.h>
 #include <errno.h>
 
+#define IOWOW_VERSION "@iowow_VERSION@"
+#define IOWOW_VERSION_MAJOR @iowow_VERSION_MAJOR@
+#define IOWOW_VERSION_MINOR @iowow_VERSION_MINOR@
+#define IOWOW_VERSION_PATCH @iowow_VERSION_PATCH@
+
+
 #endif

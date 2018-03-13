@@ -44,5 +44,14 @@ IW_EXTERN_C_START
  */
 IW_EXPORT WUR iwrc iw_init(void);
 
+const char* iowow_version_full(void);
+
+unsigned int iwow_version_major(void);
+
+unsigned int iwow_version_minor(void);
+
+unsigned int iwow_version_patch(void);
+
+
 IW_EXTERN_C_END
 #endif

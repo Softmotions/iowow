@@ -56,6 +56,22 @@ finish:
   return rc;
 }
 
+const char* iowow_version_full(void) {
+  return IOWOW_VERSION;
+}
+
+unsigned int iwow_version_major(void) {
+  return IOWOW_VERSION_MAJOR;
+}
+
+unsigned int iwow_version_minor(void) {
+  return IOWOW_VERSION_MINOR;
+}
+
+unsigned int iwow_version_patch(void) {
+  return IOWOW_VERSION_PATCH;
+}
+
 //__attribute__((constructor))
 //void lock_constructor() {
 //  iwrc rc = iw_init();
