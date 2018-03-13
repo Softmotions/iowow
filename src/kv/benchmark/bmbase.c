@@ -112,7 +112,7 @@ static void _bm_help() {
   fprintf(stderr, "  fillseq        write N values in sequential key order in async mode\n");
   fprintf(stderr, "  fillrandom     write N values in random key order in async mode\n");
   fprintf(stderr, "  overwrite      overwrite N values in random key order in async mode\n");
-  fprintf(stderr, "  fillsync       write N/10 values in random key order in sync mode\n");
+  fprintf(stderr, "  fillsync       write N/100 values in random key order in sync mode\n");
   fprintf(stderr, "  fill100K       write N/100 100K values in random order in async mode\n");
   fprintf(stderr, "  deleteseq      delete N keys in sequential order\n");
   fprintf(stderr, "  deleterandom   delete N keys in random order\n");
@@ -340,11 +340,12 @@ static bool _do_read_hot(BMCTX *ctx) {
 static bool _do_seek_random(BMCTX *ctx) {
   char kbuf[100];
   IWKV_val key, val;
-  bool found;
+  bool found;  
   key.data = kbuf;
   for (int i = 0; i < bm.param_num_reads; ++i) {
     const int k = iwu_rand_range(bm.param_num);
     snprintf(key.data, sizeof(kbuf), "%016d", k);
+    key.size = strlen(key.data);
     val.data = 0;
     val.size = 0;
     if (!bm.db_cursor_to_key(ctx, &key, &val, &found)) {
@@ -373,14 +374,16 @@ static bool _bm_overwrite(BMCTX *ctx) {
 
 static bool _bm_fillsync(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
-  ctx->num /= 1000;
+  ctx->num /= 100;
+  fprintf(stderr, "\tfillsync num records: %d\n", ctx->num);
   return _do_write(ctx, false, true);
 }
 
 static bool _bm_fill100K(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
   ctx->num /= 100;
-  ctx->value_size = 100 * 1000;
+  fprintf(stderr, "\tfill100K num records: %d\n", ctx->num);
+  ctx->value_size = 100 * 1000;  
   return _do_write(ctx, false, false);
 }
 

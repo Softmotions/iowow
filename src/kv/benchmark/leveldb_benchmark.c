@@ -151,6 +151,8 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
   leveldb_iterator_t *it = leveldb_create_iterator(bmdb->db, ropt);
   leveldb_iter_seek(it, key->data, key->size);
   *found = leveldb_iter_valid(it);
+  val->data = 0;
+  val->size = 0;
   if (*found) {
     size_t vlen;
     const char *v = leveldb_iter_value(it, &vlen);    

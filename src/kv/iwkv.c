@@ -11,6 +11,7 @@
 
 // Hardcoded requirements:
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
+static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
 // IWKV magic number
 #define IWKV_MAGIC 0x69776b76
@@ -2908,7 +2909,7 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     .db = db,
     .key = key,
     .val = oval,
-    .nlvl = -1
+    .nlvl = -1    
   };
   oval->size = 0;
   API_DB_RLOCK(db, rci);
@@ -2978,10 +2979,10 @@ iwrc iwkv_cursor_open(IWDB db,
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     goto finish;
   }
-  IWKV_cursor cur = *curptr;
+  IWKV_cursor cur = *curptr;  
   cur->lx.db = db;
   cur->lx.key = key;
-  cur->lx.nlvl = -1;
+  cur->lx.nlvl = -1;  
   rc = _cursor_to_lr(cur, op);
 finish:
   if (rc && cur) {
@@ -3002,6 +3003,7 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
   }
   IWKV_cursor cur = *curp;
   if (cur->closed) {
+    free(cur);
     return 0;
   }
   if (!cur->lx.db) {

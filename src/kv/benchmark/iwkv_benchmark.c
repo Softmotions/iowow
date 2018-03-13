@@ -96,30 +96,20 @@ static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync) {
 static bool db_read_seq(BMCTX *ctx, bool reverse) {
   BM_IWKVDB *bmdb = ctx->db;
   bool ret = true;
-  IWKV_cursor cur;
+  IWKV_cursor cur;  
   iwrc rc = iwkv_cursor_open(bmdb->db, &cur,
                              (reverse ? IWKV_CURSOR_AFTER_LAST : IWKV_CURSOR_BEFORE_FIRST), 0);
   if (rc) {
     iwlog_ecode_error2(rc, "db_read_seq::iwkv_cursor_open failed");
     return false;
   }
-  for (int i = 0; i < bm.param_num_reads; ++i) {
-    IWKV_val k = {0}, v = {0};
-    rc = iwkv_cursor_to(cur, reverse ? IWKV_CURSOR_PREV : IWKV_CURSOR_NEXT);
-    if (rc) {
-      ret = (rc == IWKV_ERROR_NOTFOUND);
-      if (!ret) {
-        iwlog_ecode_error2(rc, "db_read_seq::iwkv_cursor_to failed");
-      }
-      break;
-    }
-    rc = iwkv_cursor_get(cur, &k, &v);
-    iwkv_kv_dispose(&k, &v);
-    if (rc) {
-      break;
-    }
+  for (int i = 0; i < bm.param_num_reads && !rc; ++i) {    
+    rc = iwkv_cursor_to(cur, reverse ? IWKV_CURSOR_PREV : IWKV_CURSOR_NEXT);    
   }
   iwkv_cursor_close(&cur);
+  if (rc == IWKV_ERROR_NOTFOUND) {
+    rc = 0;
+  }
   if (rc) {
     ret = false;
     iwlog_ecode_error2(rc, "db_read_seq");
@@ -142,6 +132,7 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
     iwkv_cursor_close(&cur);
   } else if (rc == IWKV_ERROR_NOTFOUND) {
     *found = false;
+    iwkv_cursor_close(&cur); 
   } else {
     iwlog_ecode_error2(rc, "db_cursor_to_key::iwkv_cursor_open failed");
     ret = false;
