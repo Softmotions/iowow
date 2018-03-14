@@ -1313,7 +1313,8 @@ static iwrc _kvblk_addkv(KVBLK *kb,
 #endif
   
   if (kb->zidx < 0) {
-    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL, "kb->addr=%d, kb->zidx=%d, db->addr=%d",
+    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL,
+                      "kb->addr=%d, kb->zidx=%d, db->addr=%d",
                       kb->addr, kb->zidx, db->addr);
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
@@ -1638,10 +1639,10 @@ IW_INLINE uint8_t _sblk_genlevel() {
     for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) r >>= 1;
     return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;
   }
-#endif
-  uint32_t r = iwu_rand_u32();
+#endif  
+  uint32_t r = iwu_rand_u32();  
   for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) r >>= 1;
-  return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;  
+  return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;
 }
 
 static iwrc _sblk_create(IWLCTX *lx,
@@ -1991,8 +1992,11 @@ IW_INLINE iwrc _sblk_addkv(SBLK *sblk,
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
   if (sblk->pnum >= KVBLK_IDXNUM) {
-    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL, "sblk->addr=%d, sblk->pnum=%d, db->addr=%d",
-                      sblk->addr, sblk->pnum, sblk->db->addr);
+    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL,
+                      "sblk->addr=%d, sblk->pnum=%d, sblk->kblkn=%d, zidx=%d, db->addr=%d:%d",
+                      sblk->addr, sblk->pnum, sblk->kvblkn,
+                      sblk->kvblk->zidx, sblk->kvblk->zidx,
+                      sblk->kvblk->db->addr, sblk->db->addr);
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {

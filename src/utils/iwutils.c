@@ -39,7 +39,8 @@ void iwu_rand_seed(uint32_t seed) {
 }
 
 IW_EXPORT uint32_t iwu_rand_u32() {
-  return genrand_int32();
+  return random();
+  //return genrand_int32();
 }
 
 double_t iwu_rand_dnorm(double_t avg, double_t sd) {
@@ -49,7 +50,8 @@ double_t iwu_rand_dnorm(double_t avg, double_t sd) {
 }
 
 uint32_t iwu_rand_range(int range) {
-  return genrand_int31() % range;
+  return random() % range;  
+  //return genrand_int31() % range;
 }
 
 uint32_t iwu_rand_inorm(int range) {

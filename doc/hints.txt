@@ -1,1 +1,1 @@
-
+./iwkv_benchmark -b fillrandom -vz 100000 -n 467
