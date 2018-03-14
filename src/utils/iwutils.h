@@ -319,7 +319,7 @@ IW_EXPORT double_t iwu_rand_dnorm(double_t avg, double_t sd);
 /**
  * @brief Create uniform distributed integer random number in: `[0, range)`
  */
-IW_EXPORT uint32_t iwu_rand_range(int range);
+IW_EXPORT uint32_t iwu_rand_range(uint32_t range);
 
 /**
  * @brief Create normal distributed integer random number.

@@ -1639,8 +1639,8 @@ IW_INLINE uint8_t _sblk_genlevel() {
     for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) r >>= 1;
     return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;
   }
-#endif  
-  uint32_t r = iwu_rand_u32();  
+#endif
+  uint32_t r = iwu_rand_u32();
   for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) r >>= 1;
   return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;
 }
@@ -2252,7 +2252,11 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     if (idx > pivot) {
       sz += IW_VNUMSIZE(lx->key->size) + lx->key->size + lx->val->size;
     }
-    kvbpow = iwlog2_64(KVBLK_MAX_NKV_SZ + sz);
+    sz += KVBLK_MAX_NKV_SZ;
+    kvbpow = iwlog2_64(sz);
+    while ((1ULL << kvbpow) < sz) {
+      kvbpow++;
+    }
   }
   rc = _sblk_create(lx, lx->nlvl, kvbpow, sblk->addr, &nb);
   RCRET(rc);
@@ -2350,13 +2354,16 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
     fsm->release_mmap(fsm);
     return rc;
   }
+  
   idx = _sblk_find_pi_mm(sblk, lx->key, mm, &found);
   if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
     fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
   }
-  uadd = (!found && sblk->pnum >= KVBLK_IDXNUM &&
-          lx->nlvl < 0 && idx == sblk->pnum && lx->upper && lx->upper->pnum < KVBLK_IDXNUM);
+  
+  uadd = (!found &&
+          sblk->pnum > KVBLK_IDXNUM - 1 && idx > KVBLK_IDXNUM - 1 &&
+          lx->upper && lx->upper->pnum < KVBLK_IDXNUM);
   if (uadd) {
     rc = _sblk_loadkvblk_mm(lx, lx->upper, mm);
     if (rc) {
@@ -2365,8 +2372,8 @@ IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
     }
   }
   fsm->release_mmap(fsm);
-  if (!found && sblk->pnum >= KVBLK_IDXNUM) {
-    if (uadd) {
+  if (!found && sblk->pnum > KVBLK_IDXNUM - 1) {
+    if (uadd) {      
       return _sblk_addkv(lx->upper, lx->key, lx->val, lx->opflags, false);
     }
     if (lx->nlvl < 0) {
@@ -3482,4 +3489,5 @@ void iwkvd_db(FILE *f, IWDB db, int flags) {
     blk = sb->n[0];
     _sblk_release(&lx, &sb);
   }
+  fflush(f);
 }

@@ -496,7 +496,7 @@ static bool bm_bench_run(int argc, char *argv[]) {
     fprintf(stderr, "Benchmark cannot be initialized\n");
     exit(1);
   }
-  srandom(0xfffefe);
+  // srandom(0xfffefe);
   bm.env_setup();
   int c = 0;
   const char *ptr = bm.param_benchmarks;
