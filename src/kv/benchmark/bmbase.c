@@ -11,7 +11,7 @@ typedef struct BMCTX BMCTX;
 
 typedef bool (bench_method(BMCTX *bmctx));
 
-#define RND_DATA_SZ 1048576
+#define RND_DATA_SZ (10*1048576)
 char RND_DATA[RND_DATA_SZ];
 
 struct BM {
@@ -111,6 +111,7 @@ static void _bm_help() {
   fprintf(stderr, "Available benchmarks:\n");
   fprintf(stderr, "  fillseq        write N values in sequential key order in async mode\n");
   fprintf(stderr, "  fillrandom     write N values in random key order in async mode\n");
+  fprintf(stderr, "  fillrandom2    write N values with random key and random value length in async mode\n");
   fprintf(stderr, "  overwrite      overwrite N values in random key order in async mode\n");
   fprintf(stderr, "  fillsync       write N/100 values in random key order in sync mode\n");
   fprintf(stderr, "  fill100K       write N/100 100K values in random order in async mode\n");
@@ -162,7 +163,7 @@ static bool _bm_init(int argc, char *argv[]) {
         return false;
       }
       bm.param_num = atoi(argv[i]);
-      if (bm.param_num <= 1000) {
+      if (bm.param_num < 1) {
         fprintf(stderr, "'-n <num records>' invalid option value\n");
         return false;
       }
@@ -203,11 +204,11 @@ static bool _bm_init(int argc, char *argv[]) {
     fprintf(stderr, "Benchmark `bm` structure is not configured properly\n");
     return false;
   }
-
+  
   fprintf(stderr,
           "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n\n",
           bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
-
+          
   // Fill up random data array
   for (int i = 0; i < RND_DATA_SZ; ++i) {
     RND_DATA[i] = ' ' + iwu_rand_range(95); // ascii space ... ~
@@ -233,16 +234,23 @@ static void _bm_run(BMCTX *ctx) {
   ctx->end_ms = llv;
 }
 
-static bool _do_write(BMCTX *ctx, bool seq, bool sync) {
+static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
   char kbuf[100];
   IWKV_val key, val;
   key.data = kbuf;
+  int value_size = ctx->value_size;
+  if (rvlen) {
+    value_size = iwu_rand_range(value_size + 1);
+    if (value_size == 0) {
+      value_size = 1;
+    }
+  }
   for (int i = 0; i < ctx->num; ++i) {
     const int k = seq ? i : iwu_rand_range(bm.param_num);
     snprintf(key.data, sizeof(kbuf), "%016d", k);
     key.size = strlen(key.data);
-    val.data = (void *) _bmctx_rndbuf_nextptr(ctx, ctx->value_size);
-    val.size = ctx->value_size;
+    val.data = (void *) _bmctx_rndbuf_nextptr(ctx, value_size);
+    val.size = value_size;
     if (!bm.db_put(ctx, &key, &val, sync)) {
       return false;
     }
@@ -340,7 +348,7 @@ static bool _do_read_hot(BMCTX *ctx) {
 static bool _do_seek_random(BMCTX *ctx) {
   char kbuf[100];
   IWKV_val key, val;
-  bool found;  
+  bool found;
   key.data = kbuf;
   for (int i = 0; i < bm.param_num_reads; ++i) {
     const int k = iwu_rand_range(bm.param_num);
@@ -359,32 +367,39 @@ static bool _do_seek_random(BMCTX *ctx) {
 
 static bool _bm_fillseq(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
-  return _do_write(ctx, true, false);
+  return _do_write(ctx, true, false, false);
 }
 
 static bool _bm_fillrandom(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
-  return _do_write(ctx, false, false);
+  return _do_write(ctx, false, false, false);
+}
+
+static bool _bm_fillrandom2(BMCTX *ctx) {
+  if (!ctx->freshdb) return false;
+  return _do_write(ctx, false, false, true);
 }
 
 static bool _bm_overwrite(BMCTX *ctx) {
   if (ctx->freshdb) return false;
-  return _do_write(ctx, false, false);
+  return _do_write(ctx, false, false, false);
 }
 
 static bool _bm_fillsync(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
   ctx->num /= 100;
+  if (ctx->num < 1) ctx->num = 1;
   fprintf(stderr, "\tfillsync num records: %d\n", ctx->num);
-  return _do_write(ctx, false, true);
+  return _do_write(ctx, false, true, false);
 }
 
 static bool _bm_fill100K(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
   ctx->num /= 100;
+  if (ctx->num < 1) ctx->num = 1;
   fprintf(stderr, "\tfill100K num records: %d\n", ctx->num);
-  ctx->value_size = 100 * 1000;  
-  return _do_write(ctx, false, false);
+  ctx->value_size = 100 * 1000;
+  return _do_write(ctx, false, false, false);
 }
 
 static bool _bm_deleteseq(BMCTX *ctx) {
@@ -436,6 +451,9 @@ static BMCTX *_bmctx_create(const char *name) {
   } else if (!strcmp(name, "fillrandom")) {
     freshdb = true;
     method = _bm_fillrandom;
+  } else if (!strcmp(name, "fillrandom2")) {
+    freshdb = true;
+    method = _bm_fillrandom2;
   } else if (!strcmp(name, "overwrite")) {
     method = _bm_overwrite;
   } else if (!strcmp(name, "fillsync")) {

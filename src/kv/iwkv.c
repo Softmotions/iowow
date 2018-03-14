@@ -872,14 +872,16 @@ IW_INLINE void _kvblk_create(IWLCTX *lx,
                              off_t blen,
                              uint8_t kvbpow,
                              KVBLK **oblk) {
-  KVBLK *kblk = &lx->kaa[lx->kaan];
-  memset(lx->kaa, 0, sizeof(lx->kaa[0]));
+  KVBLK *kblk = &lx->kaa[lx->kaan];  
   assert((1ULL << kvbpow) == blen);
   kblk->db = lx->db;
   kblk->addr = baddr;
-  kblk->szpow = kvbpow;
+  kblk->maxoff = 0;
   kblk->idxsz = 2 * IW_VNUMSIZE(0) * KVBLK_IDXNUM;
+  kblk->zidx = 0;
+  kblk->szpow = kvbpow;
   kblk->flags = KVBLK_DURTY;
+  memset(kblk->pidx, 0, sizeof(kblk->pidx));    
   *oblk = kblk;
   AAPOS_INC(lx->kaan);
 }
@@ -1643,11 +1645,12 @@ IW_INLINE uint8_t _sblk_genlevel() {
 static iwrc _sblk_create(IWLCTX *lx,
                          int8_t nlevel,
                          int8_t kvbpow,
+                         off_t baddr,
                          SBLK **oblk) {
   iwrc rc;
   SBLK *sblk;
   KVBLK *kvblk;
-  off_t baddr = 0, blen;
+  off_t blen;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   if (kvbpow < KVBLK_INISZPOW) {
     kvbpow = KVBLK_INISZPOW;
@@ -1663,13 +1666,18 @@ static iwrc _sblk_create(IWLCTX *lx,
   RCRET(rc);
   
   sblk = &lx->saa[lx->saan];
-  memset(sblk, 0, sizeof(*sblk));
   sblk->db = lx->db;
   sblk->addr = baddr;
+  sblk->flags = SBLK_DURTY;
   sblk->lvl = nlevel;
+  sblk->p0 = 0;
+  memset(sblk->n, 0, sizeof(sblk->n));
   sblk->kvblk = kvblk;
   sblk->kvblkn = ADDR2BLK(kvblk->addr);
-  sblk->flags |= SBLK_DURTY;
+  sblk->lkl = 0;
+  sblk->pnum = 0;
+  memset(sblk->pi, 0, sizeof(sblk->pi));
+  
   *oblk = sblk;
   AAPOS_INC(lx->saan);
   return rc;
@@ -2057,25 +2065,6 @@ IW_INLINE iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   return rc;
 }
 
-IW_INLINE iwrc _sblk_create2(IWLCTX *lx,
-                             int8_t nlevel,
-                             int8_t kvbpow,
-                             const IWKV_val *key,
-                             IWKV_val *val,
-                             SBLK **oblk) {
-  SBLK *sblk;
-  *oblk = 0;
-  iwrc rc = _sblk_create(lx, nlevel, kvbpow, &sblk);
-  RCRET(rc);
-  rc = _sblk_addkv(sblk, key, val, lx->opflags, false);
-  if (rc) {
-    _sblk_destroy(lx, &sblk);
-  } else {
-    *oblk = sblk;
-  }
-  return rc;
-}
-
 //--------------------------  IWLCTX
 
 IW_INLINE iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *res) {
@@ -2256,7 +2245,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     }
     kvbpow = iwlog2_64(KVBLK_MAX_NKV_SZ + sz);
   }
-  rc = _sblk_create(lx, lx->nlvl, kvbpow, &nb);
+  rc = _sblk_create(lx, lx->nlvl, kvbpow, sblk->addr, &nb);
   RCRET(rc);
   nblk = ADDR2BLK(nb->addr);
   if (idx == sblk->pnum) { // Upper side
