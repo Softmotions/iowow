@@ -872,7 +872,7 @@ IW_INLINE void _kvblk_create(IWLCTX *lx,
                              off_t blen,
                              uint8_t kvbpow,
                              KVBLK **oblk) {
-  KVBLK *kblk = &lx->kaa[lx->kaan];  
+  KVBLK *kblk = &lx->kaa[lx->kaan];
   assert((1ULL << kvbpow) == blen);
   kblk->db = lx->db;
   kblk->addr = baddr;
@@ -881,7 +881,7 @@ IW_INLINE void _kvblk_create(IWLCTX *lx,
   kblk->zidx = 0;
   kblk->szpow = kvbpow;
   kblk->flags = KVBLK_DURTY;
-  memset(kblk->pidx, 0, sizeof(kblk->pidx));    
+  memset(kblk->pidx, 0, sizeof(kblk->pidx));
   *oblk = kblk;
   AAPOS_INC(lx->kaan);
 }
@@ -1313,6 +1313,8 @@ static iwrc _kvblk_addkv(KVBLK *kb,
 #endif
   
   if (kb->zidx < 0) {
+    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL, "kb->addr=%d, kb->zidx=%d, db->addr=%d",
+                      kb->addr, kb->zidx, db->addr);
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
   // DUP
@@ -1639,7 +1641,7 @@ IW_INLINE uint8_t _sblk_genlevel() {
 #endif
   uint32_t r = iwu_rand_u32();
   for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) r >>= 1;
-  return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;
+  return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;  
 }
 
 static iwrc _sblk_create(IWLCTX *lx,
@@ -1951,6 +1953,7 @@ IW_INLINE iwrc _sblk_addkv2(SBLK *sblk,
   int8_t kvidx;
   KVBLK *kvblk = sblk->kvblk;
   if (sblk->pnum >= KVBLK_IDXNUM) {
+    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL, "sblk->addr=%d, sblk->pnum=%d", sblk->addr, sblk->pnum);
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
@@ -1988,6 +1991,8 @@ IW_INLINE iwrc _sblk_addkv(SBLK *sblk,
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
   if (sblk->pnum >= KVBLK_IDXNUM) {
+    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL, "sblk->addr=%d, sblk->pnum=%d, db->addr=%d",
+                      sblk->addr, sblk->pnum, sblk->db->addr);
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
@@ -2395,8 +2400,8 @@ start:
   }
   if (rc) {
     if (rc == _IWKV_ERROR_KVBLOCK_FULL) {
-      iwlog_ecode_error3(rc);
       rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
     }
     _lx_release_mm(lx, 0);
   } else {
