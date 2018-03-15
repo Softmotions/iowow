@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include "utils/kbtree.h"
 
-#define NRECS 1000
+#define NRECS 10
 #define RECSZ (10*1024)
 
 typedef struct SREC {
@@ -48,6 +48,7 @@ int init_suite(void) {
   ts >>= 32;
   // ts = 3131111721;
   // ts = 1165688361;
+  ts = 11291434;
   iwu_rand_seed(ts);
   
   printf("Generating stress data file: test_fsm_stress1.data, random seed: %lu", ts);
@@ -163,6 +164,7 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     rc = fsm.write(&fsm, r->alc_addr, buf, r->rsz, &sp);
     CU_ASSERT_FALSE_FATAL(rc);
     CU_ASSERT_EQUAL_FATAL(sp, r->rsz);
+           
     if (r->alc_len > r->rsz) {
       off_t wsz = r->alc_len - r->rsz;
       while (wsz > 0) {
@@ -199,10 +201,22 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     if (r->alc_len < r->rsz) {
       CU_ASSERT_TRUE_FATAL(r->reallocated);
     }
+    memset(buf2, 0, rn);
     rc = fsm.read(&fsm, r->alc_addr, buf2, rn, &sp);
     CU_ASSERT_FALSE_FATAL(rc);
     CU_ASSERT_EQUAL_FATAL(rn, sp);
     int ri = memcmp(buf, buf2, rn);
+    if (ri) {
+      //fprintf(stderr, "rn=%ld\n", rn);
+      for (int j = 0; i < rn; ++j) {
+        //fprintf(stderr, "%c", buf[i]);
+        fprintf(stderr, "%c", buf[j]);
+//        if (buf[i] != buf2[i]) {
+//          fprintf(stderr, "<---\n");
+//          break;
+//        }
+      }
+    }
     CU_ASSERT_EQUAL_FATAL(ri, 0);
     
     if (rn < r->alc_len) {      
@@ -222,12 +236,11 @@ void test_stress(char *path, int bpow, bool mmap_all) {
 }
 
 static void test_stress1() {
-  test_stress("test_fsm_stress1.fsm", 6, true);  
+  //test_stress("test_fsm_stress1.fsm", 6, true);  
 }
 
-static void test_stress2() {
-  // todo !!
-  // test_stress("test_fsm_stress2.fsm", 6, false);  
+static void test_stress2() {  
+  test_stress("test_fsm_stress2.fsm", 6, false);  
 }
 
 int main() {
