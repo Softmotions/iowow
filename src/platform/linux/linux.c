@@ -142,21 +142,22 @@ iwrc iwp_write(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
 
 iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
   int overlap = IW_RANGES_OVERLAP(off, off + siz, noff, noff + siz);
-  size_t sp, sp2;  
+  size_t sp, sp2;
   iwrc rc = 0;
   off_t pos = 0;
   uint8_t buf[4096];
   if (overlap && noff > off) {
+    // todo resolve it!!
     return IW_ERROR_OVERFLOW;
   }
   if (siz > sizeof(buf)) {
-    posix_fadvise(fh, off, siz, POSIX_FADV_SEQUENTIAL);  
+    posix_fadvise(fh, off, siz, POSIX_FADV_SEQUENTIAL);
   }
-  while (pos < siz) {         
-    rc = iwp_read(fh, off + pos, buf, MIN(sizeof(buf), (siz - pos)), &sp);    
+  while (pos < siz) {
+    rc = iwp_read(fh, off + pos, buf, MIN(sizeof(buf), (siz - pos)), &sp);
     if (rc || !sp) {
       break;
-    } else {    
+    } else {
       pos += sp;
       rc = iwp_write(fh, noff, buf, sp, &sp2);
       if (rc) {
@@ -167,9 +168,6 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
         break;
       }
     }
-  }
-  if (!rc && pos != siz) {
-    rc = IW_ERROR_INVALID_STATE;
   }
   return rc;
 }

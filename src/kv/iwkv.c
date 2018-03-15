@@ -820,7 +820,7 @@ static iwrc _db_create_lw(IWKV iwkv,
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   rc = fsm->allocate(fsm, (1 << DB_SZPOW), &baddr, &blen,
-                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
   if (rc) {
     _db_release_lw(&db);
     return rc;
@@ -1266,7 +1266,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       mm = 0;
       
       rc = fsm->reallocate(fsm, sz, &naddr, &nlen,
-                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
       RCGO(rc, finish);
       kb->addr = naddr;
       kb->szpow = kb->szpow - dpow;
@@ -1366,7 +1366,7 @@ start:
       off_t naddr = kb->addr,
             nlen = (1ULL << kb->szpow);
       rc = fsm->reallocate(fsm, (1ULL << npow), &naddr, &nlen,
-                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
       RCGO(rc, finish);
       assert(nlen == (1ULL << npow));
       // Move pairs area
@@ -1661,7 +1661,7 @@ static iwrc _sblk_create(IWLCTX *lx,
   off_t kvblksz = 1ULL << kvbpow;
   *oblk = 0;
   rc = fsm->allocate(fsm, SBLK_SZ + kvblksz, &baddr, &blen,
-                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE);
+                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
   RCRET(rc);
   
   assert(blen - SBLK_SZ == kvblksz);
