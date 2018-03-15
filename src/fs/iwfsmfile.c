@@ -295,7 +295,7 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
                                               iwfs_fsm_aflags opts) {
   FSMBK k, *uk, *lk;
   iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
-  if (rc || !length_blk) return 0;  
+  if (rc) return 0;  
   kb_intervalp(fsm, impl->fsm, &k, &lk, &uk);
   uint64_t lklength = lk ? FSMBK_LENGTH(lk) : 0;  
   uint64_t uklength = uk ? FSMBK_LENGTH(uk) : 0;  

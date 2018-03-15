@@ -1730,20 +1730,17 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
     }
     sblk->flags |= flags;
     rp += 1;
-    memcpy(&sblk->lvl, rp, 1);
+    memcpy(&sblk->lvl, rp++, 1);
     if (sblk->lvl >= SLEVELS) {
       rc = IWKV_ERROR_CORRUPTED;
       goto finish;
     }
-    rp += 1;
-    memcpy(&sblk->lkl, rp, 1);
+    memcpy(&sblk->lkl, rp++, 1);
     if (sblk->lkl > SBLK_LKLEN) {
       rc = IWKV_ERROR_CORRUPTED;
       goto finish;
     }
-    rp += 1;
-    memcpy(&sblk->pnum, rp, 1);
-    rp += 1;
+    memcpy(&sblk->pnum, rp++, 1);
     memcpy(&sblk->p0, rp, 4);
     sblk->p0 = IW_ITOHL(sblk->p0);
     rp += 4;
