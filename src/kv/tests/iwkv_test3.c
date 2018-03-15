@@ -32,8 +32,7 @@ typedef struct TASK {
 } TASK;
 
 int init_suite(void) {
-  iwrc rc = iwkv_init();
-  iwu_rand_seed(1234569); // setup fixed random seed
+  iwrc rc = iwkv_init();  
   return rc;
 }
 

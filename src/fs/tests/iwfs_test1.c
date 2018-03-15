@@ -34,6 +34,7 @@
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
 #include <locale.h>
+#include <unistd.h>
 
 int init_suite(void) {
   int rc = iw_init();
@@ -41,6 +42,8 @@ int init_suite(void) {
 }
 
 int clean_suite(void) {
+  unlink("iwfs_exfile_test1.dat");
+  unlink("test_fibo_inc.dat");
   return 0;
 }
 

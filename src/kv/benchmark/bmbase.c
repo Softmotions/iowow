@@ -218,7 +218,7 @@ static bool _bm_init(int argc, char *argv[]) {
 
 static void _bm_run(BMCTX *ctx) {
   assert(ctx->method);
-  int64_t llv;
+  uint64_t llv;
   ctx->db = bm.db_open(ctx);
   if (!ctx->db) {
     ctx->success = false;

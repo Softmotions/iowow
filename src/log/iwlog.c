@@ -81,7 +81,7 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char 
   int errno_code = iwrc_strip_errno(&ecode);
   iwrc rc;
   locale_t locale = uselocale(0);
-  int64_t ts;
+  uint64_t ts;
 
   if (iwp_current_time_ms(&ts)) {
     return -1;

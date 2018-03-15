@@ -92,7 +92,8 @@ typedef enum {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-IW_INLINE int _fsm_cmp(FSMBK a, FSMBK b);
+IW_INLINE int _fsm_cmp_ptr(const FSMBK *a, const FSMBK *b);
+#define _fsm_cmp(a_, b_) (_fsm_cmp_ptr(&(a_), &(b_)))
 KBTREE_INIT(fsm, FSMBK, _fsm_cmp)
 
 struct IWFS_FSM_IMPL {
@@ -122,15 +123,15 @@ static iwrc _fsm_ensure_size_lw(FSM *impl, off_t size);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-IW_INLINE int _fsm_cmp(FSMBK a, FSMBK b) {
-  uint64_t la = FSMBK_LENGTH(&a);
-  uint64_t lb = FSMBK_LENGTH(&b);
+IW_INLINE int _fsm_cmp_ptr(const FSMBK *a, const FSMBK *b) {
+  uint64_t la = FSMBK_LENGTH(a);
+  uint64_t lb = FSMBK_LENGTH(b);
   int ret = ((lb < la) - (la < lb));
   if (ret) {
     return ret;
   } else {
-    uint64_t oa = FSMBK_OFFSET(&a);
-    uint64_t ob = FSMBK_OFFSET(&b);
+    uint64_t oa = FSMBK_OFFSET(a);
+    uint64_t ob = FSMBK_OFFSET(b);
     return ((ob < oa) - (oa < ob));
   }
 }
@@ -1500,6 +1501,9 @@ static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *ol
   if (!(impl->omode & IWFS_OWRITE)) {
     return IW_ERROR_READONLY;
   }
+  if (len <= 0) {
+    return IW_ERROR_INVALID_ARGS;
+  }
   /* Required blocks number */
   sbnum = *oaddr >> impl->bpow;
   len = IW_ROUNDUP(len, 1 << impl->bpow);
@@ -1536,7 +1540,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
   int deallocated = 0;
   int64_t sp;
   
-  if (nlen_blk == olen_blk) {
+  if (nlen_blk == olen_blk) {    
     return 0;
   }
   rc = _fsm_ctrl_wlock(impl);

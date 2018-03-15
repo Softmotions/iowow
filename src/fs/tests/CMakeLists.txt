@@ -4,7 +4,7 @@ include_directories(${CUNIT_INCLUDE_DIRS})
 set(TEST_DATA_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TEST_DATA_DIR})
 
-foreach(TN IN ITEMS iwfs_test1 iwfs_test2)
+foreach(TN IN ITEMS iwfs_test1 iwfs_test2 iwfs_test3)
     add_executable(${TN} ${TN}.c)
     set_target_properties(${TN} PROPERTIES 
                           COMPILE_FLAGS "-DIW_STATIC")

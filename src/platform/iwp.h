@@ -83,7 +83,7 @@ typedef enum {
  * @param [out] time Time returned
  * @return `0` for success, or error code
  */
-IW_EXPORT iwrc iwp_current_time_ms(int64_t *time);
+IW_EXPORT iwrc iwp_current_time_ms(uint64_t *time);
 
 /**
  * @enum iwp_file_type

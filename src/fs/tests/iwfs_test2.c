@@ -53,6 +53,10 @@ int init_suite(void) {
 
 int clean_suite(void) {
   pthread_mutex_destroy(&records_mtx);
+  unlink("test_fsm_open_close.fsm");
+  unlink("test_fsm_uniform_alloc.fsm");
+  unlink("test_block_allocation1.fsm");
+  unlink("test_block_allocation2.fsm");
   return 0;
 }
 

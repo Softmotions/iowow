@@ -2095,7 +2095,7 @@ IW_INLINE iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *res) {
       rc = _sblk_loadkvblk_mm(lx, sblk, mm);
       if (rc) {
         *res = 0;
-        fsm->release_mmap(fsm);;
+        fsm->release_mmap(fsm);
         return rc;
       }
     }
@@ -2664,12 +2664,14 @@ iwrc iwkv_init(void) {
   if (!__sync_bool_compare_and_swap(&_kv_initialized, 0, 1)) {
     return 0;  // initialized already
   }
-  int64_t t;
-  iwrc rc = iw_init();
-  RCRET(rc);
+  uint64_t t;
+  iwrc rc = iw_init();  
+  RCRET(rc);  
   rc = iwp_current_time_ms(&t);
   RCRET(rc);
-  iwu_rand_seed(t / 1000);
+  t = IW_SWAB64(t);
+  t >>= 32;
+  iwu_rand_seed(t);
   return iwlog_register_ecodefn(_kv_ecodefn);
 }
 
