@@ -41,9 +41,9 @@ void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
 /**
  * Free-space blocks-tree key.
  */
-typedef struct {  
-  uint64_t off;
-  uint64_t len;  
+typedef struct {
+  uint32_t off;
+  uint32_t len;
 } FSMBK;
 
 /** Additional options for `_fsm_set_bit_status_lw` routine */
@@ -169,9 +169,14 @@ IW_INLINE iwrc _fsm_bmptr(FSM *impl, uint64_t **bmptr) {
  *        with given @a offset
  *        and @a length values.
  */
-IW_INLINE void _fsm_init_fbk(FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
+IW_INLINE WUR iwrc _fsm_init_fbk(FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
+  if (offset_blk > ((uint32_t) - 1) ||
+      len_blk > ((uint32_t) - 1)) {
+    return IW_ERROR_OVERFLOW;
+  }
   bk->off = offset_blk;
-  bk->len = len_blk;  
+  bk->len = len_blk;
+  return 0;
 }
 
 /**
@@ -183,7 +188,8 @@ IW_INLINE void _fsm_init_fbk(FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
 IW_INLINE iwrc _fsm_del_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
   FSMBK fbk;
   assert(length_blk);
-  _fsm_init_fbk(&fbk, offset_blk, length_blk);  
+  iwrc rc = _fsm_init_fbk(&fbk, offset_blk, length_blk);
+  RCRET(rc);
 #ifndef NDEBUG
   int s2, s1 = kb_size(impl->fsm);
 #endif
@@ -228,7 +234,8 @@ IW_INLINE void _fsm_del_fbk2(FSM *impl, const FSMBK fbk) {
 IW_INLINE iwrc _fsm_put_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
   FSMBK fbk;
   assert(length_blk);
-  _fsm_init_fbk(&fbk, offset_blk, length_blk);  
+  iwrc rc = _fsm_init_fbk(&fbk, offset_blk, length_blk);
+  RCRET(rc);
   kb_putp(fsm, impl->fsm, &fbk);
   if (offset_blk + length_blk >= impl->lfbkoff + impl->lfbklen) {
     impl->lfbkoff = offset_blk;
@@ -246,7 +253,7 @@ IW_INLINE iwrc _fsm_put_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk)
 IW_INLINE FSMBK *_fsm_get_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
   FSMBK fbk;
   assert(length_blk);
-  _fsm_init_fbk(&fbk, offset_blk, length_blk);  
+  _fsm_init_fbk(&fbk, offset_blk, length_blk);
   return kb_getp(fsm, impl->fsm, &fbk);
 }
 
@@ -263,10 +270,14 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
                                               uint64_t length_blk,
                                               iwfs_fsm_aflags opts) {
   FSMBK k, *uk, *lk;
-  _fsm_init_fbk(&k, offset_blk, length_blk);  
+  iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
+  if (rc) {
+    iwlog_ecode_debug3(rc);
+    return 0;
+  }
   kb_intervalp(fsm, impl->fsm, &k, &lk, &uk);
-  uint64_t lklength = lk ? FSMBK_LENGTH(lk) : 0;  
-  uint64_t uklength = uk ? FSMBK_LENGTH(uk) : 0;  
+  uint64_t lklength = lk ? FSMBK_LENGTH(lk) : 0;
+  uint64_t uklength = uk ? FSMBK_LENGTH(uk) : 0;
   return (lklength >= length_blk ? lk : (uklength >= length_blk) ? uk : 0);
 }
 
@@ -1507,7 +1518,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
   int deallocated = 0;
   int64_t sp;
   
-  if (nlen_blk == olen_blk) {    
+  if (nlen_blk == olen_blk) {
     return 0;
   }
   rc = _fsm_ctrl_wlock(impl);

@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 
-// Hardcoded requirements:
+// Hardcoded requirements (fixme):
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
