@@ -41,13 +41,9 @@ void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
 /**
  * Free-space blocks-tree key.
  */
-typedef struct {
-  /* uint64 offset|length data, chunked in bytes in order to save padding memory
-    in each fsm tree node
-    #pragma pack not used to avoid portability issues */
-  uint8_t b[8];
-  /* Position of divider bit in the block offset|length data. */
-  uint8_t div;
+typedef struct {  
+  uint64_t off;
+  uint64_t len;  
 } FSMBK;
 
 /** Additional options for `_fsm_set_bit_status_lw` routine */
@@ -80,13 +76,9 @@ typedef enum {
 
 #define FSMBK_RESET(Bk_) memset((Bk_), 0, sizeof(*(Bk_)))
 
-#define FSMBK_I64(Bk_) (*((uint64_t *) (Bk_)))
+#define FSMBK_OFFSET(Bk_) ((Bk_)->off)
 
-#define FSMBK_OFFSET(Bk_) (FSMBK_I64(Bk_) & ((((uint64_t) 1) << (Bk_)->div) - 1))
-
-#define FSMBK_LENGTH(Bk_)                                                                                   \
-  ((Bk_)->div ? ((FSMBK_I64(Bk_) >> (Bk_)->div) & ((((uint64_t) 1) << (64 - (Bk_)->div)) - 1))              \
-   : FSMBK_I64(Bk_))
+#define FSMBK_LENGTH(Bk_) ((Bk_)->len)
 
 #define FSMBK_END(Bk_) (FSMBK_OFFSET(Bk_) + FSMBK_LENGTH(Bk_))
 
@@ -116,7 +108,7 @@ struct IWFS_FSM_IMPL {
   iwfs_fsm_openflags oflags; /**< Operation mode flags. */
   iwfs_omode omode;          /**< Open mode. */
   uint8_t bpow;              /**< Block size power for 2 */
-  int mmap_all;              /**< Mmap all file data */
+  bool mmap_all;             /**< Mmap all file data */
 };
 
 static iwrc _fsm_ensure_size_lw(FSM *impl, off_t size);
@@ -177,23 +169,9 @@ IW_INLINE iwrc _fsm_bmptr(FSM *impl, uint64_t **bmptr) {
  *        with given @a offset
  *        and @a length values.
  */
-IW_INLINE iwrc _fsm_init_fbk(FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
-  uint64_t apply = 0;
-  if (offset_blk) {
-    bk->div = iwbits_find_last_sbit64(offset_blk) + 1;
-    if (len_blk & ~(~((uint64_t) 0) >> bk->div)) {
-      iwlog_ecode_error3(IW_ERROR_OVERFLOW);
-      return IW_ERROR_OVERFLOW;
-    }
-    apply |= len_blk;
-    apply <<= bk->div;
-    apply |= offset_blk;
-  } else {
-    bk->div = 0;
-    apply = len_blk;
-  }
-  memcpy(bk, &apply, sizeof(apply));
-  return 0;
+IW_INLINE void _fsm_init_fbk(FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
+  bk->off = offset_blk;
+  bk->len = len_blk;  
 }
 
 /**
@@ -205,10 +183,7 @@ IW_INLINE iwrc _fsm_init_fbk(FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
 IW_INLINE iwrc _fsm_del_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
   FSMBK fbk;
   assert(length_blk);
-  iwrc rc = _fsm_init_fbk(&fbk, offset_blk, length_blk);
-  if (rc) {
-    return rc;
-  }
+  _fsm_init_fbk(&fbk, offset_blk, length_blk);  
 #ifndef NDEBUG
   int s2, s1 = kb_size(impl->fsm);
 #endif
@@ -253,10 +228,7 @@ IW_INLINE void _fsm_del_fbk2(FSM *impl, const FSMBK fbk) {
 IW_INLINE iwrc _fsm_put_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
   FSMBK fbk;
   assert(length_blk);
-  iwrc rc = _fsm_init_fbk(&fbk, offset_blk, length_blk);
-  if (rc) {
-    return rc;
-  }
+  _fsm_init_fbk(&fbk, offset_blk, length_blk);  
   kb_putp(fsm, impl->fsm, &fbk);
   if (offset_blk + length_blk >= impl->lfbkoff + impl->lfbklen) {
     impl->lfbkoff = offset_blk;
@@ -274,11 +246,7 @@ IW_INLINE iwrc _fsm_put_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk)
 IW_INLINE FSMBK *_fsm_get_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk) {
   FSMBK fbk;
   assert(length_blk);
-  iwrc rc = _fsm_init_fbk(&fbk, offset_blk, length_blk);
-  if (rc) {
-    iwlog_ecode_error3(rc);
-    return 0;
-  }
+  _fsm_init_fbk(&fbk, offset_blk, length_blk);  
   return kb_getp(fsm, impl->fsm, &fbk);
 }
 
@@ -295,8 +263,7 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
                                               uint64_t length_blk,
                                               iwfs_fsm_aflags opts) {
   FSMBK k, *uk, *lk;
-  iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
-  if (rc) return 0;  
+  _fsm_init_fbk(&k, offset_blk, length_blk);  
   kb_intervalp(fsm, impl->fsm, &k, &lk, &uk);
   uint64_t lklength = lk ? FSMBK_LENGTH(lk) : 0;  
   uint64_t uklength = uk ? FSMBK_LENGTH(uk) : 0;  

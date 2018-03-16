@@ -36,14 +36,20 @@
 #include <locale.h>
 #include <unistd.h>
 
+#define UNLINK() \
+  unlink("iwfs_exfile_test1.dat"); \
+  unlink("test_mmap1.dat"); \
+  unlink("test_fibo_inc.dat")
+  
+
 int init_suite(void) {
-  int rc = iw_init();
+  int rc = iw_init();  
+  UNLINK();
   return rc;
 }
 
 int clean_suite(void) {
-  unlink("iwfs_exfile_test1.dat");
-  unlink("test_fibo_inc.dat");
+  UNLINK();
   return 0;
 }
 

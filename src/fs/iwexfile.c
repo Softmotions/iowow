@@ -241,8 +241,7 @@ static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   return rc;
 }
 
-static iwrc _exfile_write(struct IWFS_EXT *f,
-                          off_t off, const void *buf, size_t siz, size_t *sp) {
+static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   MMAPSLOT *s;
   EXF *impl = f->impl;
   off_t end = off + siz;
@@ -331,7 +330,7 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
     }
     if (rp > 0 && s->off <= off && s->off + s->len > off) {
       len = MIN(rp, s->off + s->len - off);
-      memcpy((char *) buf + (siz - rp), s->mmap + (off - s->off), len);
+      memcpy((char *) buf + (siz - rp), s->mmap + (off - s->off), len);      
       rp -= len;
       off += len;
     }

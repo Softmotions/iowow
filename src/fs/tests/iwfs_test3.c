@@ -11,8 +11,13 @@
 #include <sys/stat.h>
 #include "utils/kbtree.h"
 
-#define NRECS 10
+#define NRECS 10000
 #define RECSZ (10*1024)
+
+#define UNLINK() \
+  unlink("test_fsm_stress.data"); \
+  unlink("test_fsm_stress1.fsm"); \
+  unlink("test_fsm_stress2.fsm")
 
 typedef struct SREC {
   int id;
@@ -32,9 +37,7 @@ FILE *fstress1;
 kbtree_t(rt) *rt;
 
 int init_suite(void) {
-  unlink("test_fsm_stress1.data");
-  unlink("test_fsm_stress2.data");
-  unlink("test_fsm_stress1.fsm");
+  UNLINK();
   int rc = iw_init();
   RCRET(rc);
   
@@ -48,11 +51,11 @@ int init_suite(void) {
   ts >>= 32;
   // ts = 3131111721;
   // ts = 1165688361;
-  ts = 11291434;
+  // ts = 11291434;
   iwu_rand_seed(ts);
   
   printf("Generating stress data file: test_fsm_stress1.data, random seed: %lu", ts);
-  fstress1 = fopen("test_fsm_stress1.data", "w+");
+  fstress1 = fopen("test_fsm_stress.data", "w+");
   char *buf = malloc(RECSZ + 1);
   for (int i = 0, j; i < NRECS; ++i) {
     int rsz = iwu_rand_range(RECSZ + 1);
@@ -83,9 +86,7 @@ int clean_suite(void) {
     fstress1 = 0;
   }
   kb_destroy(rt, rt);
-  unlink("test_fsm_stress1.data");
-  unlink("test_fsm_stress2.data");
-  unlink("test_fsm_stress1.fsm");
+  UNLINK();
   return 0;
 }
 
@@ -201,22 +202,11 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     if (r->alc_len < r->rsz) {
       CU_ASSERT_TRUE_FATAL(r->reallocated);
     }
-    memset(buf2, 0, rn);
+    memset(buf2, 0, rn); // 20736
     rc = fsm.read(&fsm, r->alc_addr, buf2, rn, &sp);
     CU_ASSERT_FALSE_FATAL(rc);
     CU_ASSERT_EQUAL_FATAL(rn, sp);
-    int ri = memcmp(buf, buf2, rn);
-    if (ri) {
-      //fprintf(stderr, "rn=%ld\n", rn);
-      for (int j = 0; i < rn; ++j) {
-        //fprintf(stderr, "%c", buf[i]);
-        fprintf(stderr, "%c", buf[j]);
-//        if (buf[i] != buf2[i]) {
-//          fprintf(stderr, "<---\n");
-//          break;
-//        }
-      }
-    }
+    int ri = memcmp(buf, buf2, rn);    
     CU_ASSERT_EQUAL_FATAL(ri, 0);
     
     if (rn < r->alc_len) {      
@@ -236,7 +226,7 @@ void test_stress(char *path, int bpow, bool mmap_all) {
 }
 
 static void test_stress1() {
-  //test_stress("test_fsm_stress1.fsm", 6, true);  
+  test_stress("test_fsm_stress1.fsm", 6, true);  
 }
 
 static void test_stress2() {  

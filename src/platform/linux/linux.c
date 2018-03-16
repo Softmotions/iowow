@@ -158,8 +158,8 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
     if (rc || !sp) {
       break;
     } else {
+      rc = iwp_write(fh, noff + pos, buf, sp, &sp2);
       pos += sp;
-      rc = iwp_write(fh, noff, buf, sp, &sp2);
       if (rc) {
         break;
       }
@@ -168,6 +168,9 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
         break;
       }
     }
+  }
+  if (siz > sizeof(buf)) {
+    posix_fadvise(fh, off, siz, POSIX_FADV_NORMAL);
   }
   return rc;
 }

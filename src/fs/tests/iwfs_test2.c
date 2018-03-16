@@ -41,22 +41,22 @@
 
 static pthread_mutex_t records_mtx;
 
-int init_suite(void) {
-  unlink("test_fsm_open_close.fsm");
-  unlink("test_fsm_uniform_alloc.fsm");
-  unlink("test_block_allocation1.fsm");
-  unlink("test_block_allocation2.fsm");
+#define UNLINK() \
+  unlink("test_fsm_open_close.fsm");  \
+  unlink("test_fsm_uniform_alloc.fsm"); \
+  unlink("test_block_allocation1.fsm"); \
+  unlink("test_block_allocation2.fsm")
+
+int init_suite(void) {  
   pthread_mutex_init(&records_mtx, 0);
   int rc = iw_init();
+  UNLINK();
   return rc;
 }
 
 int clean_suite(void) {
   pthread_mutex_destroy(&records_mtx);
-  unlink("test_fsm_open_close.fsm");
-  unlink("test_fsm_uniform_alloc.fsm");
-  unlink("test_block_allocation1.fsm");
-  unlink("test_block_allocation2.fsm");
+  UNLINK();
   return 0;
 }
 
