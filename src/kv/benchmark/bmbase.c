@@ -495,9 +495,18 @@ static bool bm_bench_run(int argc, char *argv[]) {
   if (!_bm_init(argc, argv)) {
     fprintf(stderr, "Benchmark cannot be initialized\n");
     exit(1);
-  }
-  // srandom(0xfffefe);
+  }      
   bm.env_setup();
+  
+  uint64_t ts;
+  iwp_current_time_ms(&ts);  
+  ts = IW_SWAB64(ts);
+  ts >>= 32;
+  //ts = 1583768622;
+  fprintf(stderr, "Random seed: %ld\n", ts);
+  iwu_rand_seed(ts);
+    
+  
   int c = 0;
   const char *ptr = bm.param_benchmarks;
   char bname[100];

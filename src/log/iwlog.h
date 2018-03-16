@@ -296,7 +296,7 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
 #define iwlog_ecode_debug3(IW_ecode) \
   iwlog2(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, "")
 #else
-#define iwlog_ecode_debug3(IW_ecode, IW_fmt)
+#define iwlog_ecode_debug3(IW_ecode)
 #endif
 #define iwlog_ecode_info3(IW_ecode) iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, ""))
 #define iwlog_ecode_warn3(IW_ecode) \

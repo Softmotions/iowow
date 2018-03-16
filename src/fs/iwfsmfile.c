@@ -272,7 +272,7 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
   FSMBK k, *uk, *lk;
   iwrc rc = _fsm_init_fbk(&k, offset_blk, length_blk);
   if (rc) {
-    iwlog_ecode_debug3(rc);
+    iwlog_ecode_error3(rc);
     return 0;
   }
   kb_intervalp(fsm, impl->fsm, &k, &lk, &uk);

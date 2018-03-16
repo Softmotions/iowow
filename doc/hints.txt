@@ -1,1 +1,27 @@
-./iwkv_benchmark -b fillrandom -vz 100000 -n 467
+997220142
+1583768622
+./iwkv_benchmark -b fillrandom2 -vz 900000 -n 22
+
+1528847406
+./iwkv_benchmark -b fillrandom2 -vz 800000 -n 30
+
+2104973614
+./iwkv_benchmark -b fillrandom2 -vz 700000 -n 46
+
+185489454
+./iwkv_benchmark -b fillrandom2 -vz 700000 -n 46
+
+3542766894
+./iwkv_benchmark -b fillrandom2 -vz 500000 -n 66
+
+seed: 1497123886
+./iwkv_benchmark -b fillrandom2 -vz 100000 -n 416
+
+seed: 3127398446
+./iwkv_benchmark -b fillrandom2 -vz 50000 -n 466
+
+seed: 1254641966
+./iwkv_benchmark -b fillrandom2 -vz 50000 -n 469
+
+2855228206
+./iwkv_benchmark -b fillrandom2 -vz 100000 -n 390
