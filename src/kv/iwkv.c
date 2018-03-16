@@ -1177,8 +1177,7 @@ IW_INLINE off_t _kvblk_maxkvoff(KVBLK *kb) {
   return off;
 }
 
-static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
-  uint64_t sz;
+static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {  
   iwrc rc = 0;
   uint8_t *mm = 0;
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
