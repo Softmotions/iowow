@@ -28,6 +28,8 @@
 
 #include "iwcfg.h"
 #include "log/iwlog.h"
+#include "iwutils.h"
+#include "iwp.h"
 
 iwrc iwfs_init(void);
 iwrc iwp_init(void);
@@ -38,25 +40,31 @@ iwrc iw_init(void) {
   static int _iw_initialized = 0;
   if (!__sync_bool_compare_and_swap(&_iw_initialized, 0, 1)) {
     return 0;  // initialized already
-  }
-
+  }  
   rc = iwlog_init();
   RCGO(rc, finish);
-
+  
   rc = iwp_init();
   RCGO(rc, finish);
-
+  
+  uint64_t ts;
+  rc = iwp_current_time_ms(&ts);
+  RCRET(rc);
+  ts = IW_SWAB64(ts);
+  ts >>= 32;
+  iwu_rand_seed(ts);
+  
   rc = iwfs_init();
   RCGO(rc, finish);
-
+  
   rc = iwkv_init();
   RCGO(rc, finish);
-
+  
 finish:
   return rc;
 }
 
-const char* iowow_version_full(void) {
+const char *iowow_version_full(void) {
   return IOWOW_VERSION;
 }
 

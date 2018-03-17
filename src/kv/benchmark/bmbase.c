@@ -22,6 +22,7 @@ struct BM {
   int param_num;
   int param_num_reads;
   int param_value_size;
+  uint32_t param_seed;
   char *param_benchmarks;
   void (*env_setup)(void);
   void *(*db_open)(BMCTX *ctx);
@@ -107,7 +108,8 @@ static void _bm_help() {
   fprintf(stderr, "  -r <num> Number of records to read (equals to number of stored records if not specified )\n");
   fprintf(stderr, "  -vz <size> Size of a single record value in bytes\n");
   fprintf(stderr, "  -b <comma separated benchmarks to run>\n\n");
-  fprintf(stderr, "  -db <file/directory> Database file/directory\n\n");
+  fprintf(stderr, "  -db <file/dir> Database file/directory\n\n");
+  fprintf(stderr, "  -rs <random seed> Random seed used for iwu random generator\n\n");
   fprintf(stderr, "Available benchmarks:\n");
   fprintf(stderr, "  fillseq        write N values in sequential key order in async mode\n");
   fprintf(stderr, "  fillrandom     write N values in random key order in async mode\n");
@@ -130,7 +132,10 @@ static bool _bm_init(int argc, char *argv[]) {
   if (bm.initiated) {
     fprintf(stderr, "Benchmark already initialized\n");
     return false;
-  }
+  }    
+  if (iw_init()) {
+    return false;
+  }  
   bm.argc = argc;
   bm.argv = argv;
   bm.param_num = 1000000; // 1M records
@@ -195,6 +200,12 @@ static bool _bm_init(int argc, char *argv[]) {
         return false;
       }
       bm.param_db = argv[i];
+    } else if (!strcmp(argv[i], "-rs")) {
+      if (++i >= argc) {
+        fprintf(stderr, "'-rs <random seed>' options has no value\n");
+        return false;
+      }
+      bm.param_seed = atoll(argv[i]);
     }
   }
   if (bm.param_num_reads < 0) {
@@ -203,11 +214,20 @@ static bool _bm_init(int argc, char *argv[]) {
   if (!_bm_check()) {
     fprintf(stderr, "Benchmark `bm` structure is not configured properly\n");
     return false;
-  }
-  
+  }  
+  if (!bm.param_seed) {
+    uint64_t ts;
+    iwp_current_time_ms(&ts);
+    ts = IW_SWAB64(ts);
+    ts >>= 32;        
+    bm.param_seed = ts;
+  }   
+  iwu_rand_seed(bm.param_seed);  
+  srandom(bm.param_seed);
   fprintf(stderr,
+          "\n random seed: %u"
           "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n\n",
-          bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
+          bm.param_seed, bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
           
   // Fill up random data array
   for (int i = 0; i < RND_DATA_SZ; ++i) {
@@ -495,18 +515,8 @@ static bool bm_bench_run(int argc, char *argv[]) {
   if (!_bm_init(argc, argv)) {
     fprintf(stderr, "Benchmark cannot be initialized\n");
     exit(1);
-  }      
-  bm.env_setup();
-  
-  uint64_t ts;
-  iwp_current_time_ms(&ts);  
-  ts = IW_SWAB64(ts);
-  ts >>= 32;
-  //ts = 1583768622;
-  fprintf(stderr, "Random seed: %ld\n", ts);
-  iwu_rand_seed(ts);
-    
-  
+  }  
+  bm.env_setup();    
   int c = 0;
   const char *ptr = bm.param_benchmarks;
   char bname[100];

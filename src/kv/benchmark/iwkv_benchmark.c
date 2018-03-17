@@ -1,4 +1,5 @@
 #include "bmbase.c"
+#include "iowow.h"
 
 typedef struct BM_IWKVDB {
   IWKV iwkv;
@@ -6,7 +7,7 @@ typedef struct BM_IWKVDB {
 } BM_IWKVDB;
 
 static void env_setup() {
-  iwrc rc = iwkv_init();
+  iwrc rc = iw_init();
   if (rc) {
     iwlog_ecode_error2(rc, "Failed to init iwkv: iwkv_init()");
     exit(1);

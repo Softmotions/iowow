@@ -112,7 +112,8 @@ typedef struct IWDB *IWDB;
  * @brief IWKV specific open options.
  */
 typedef struct IWKV_OPTS {
-  char *path;              /**< Path to database file */
+  char *path;              /**< Path to database file */  
+  int32_t random_seed;     /**< Random seed used for iwu random generator */
   iwkv_openflags oflags;   /**< Bitmask of database file open modes */
 } IWKV_OPTS;
 

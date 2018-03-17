@@ -13,6 +13,7 @@ enable_language(CXX)
 ExternalProject_Add(
   extern_leveldb
   GIT_REPOSITORY https://github.com/google/leveldb.git
+  GIT_TAG v1.20
   PREFIX ${CMAKE_BINARY_DIR}
   BUILD_IN_SOURCE ON
   GIT_PROGRESS ON

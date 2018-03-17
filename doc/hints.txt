@@ -1,6 +1,4 @@
-997220142
-1583768622
-./iwkv_benchmark -b fillrandom2 -vz 900000 -n 22
+./iwkv_benchmark -b fillrandom2 -vz 900000 -n 22 -rs 1638610227
 
 1528847406
 ./iwkv_benchmark -b fillrandom2 -vz 800000 -n 30

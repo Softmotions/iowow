@@ -2609,16 +2609,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
 iwrc iwkv_init(void) {
   static int _kv_initialized = 0;
   if (!__sync_bool_compare_and_swap(&_kv_initialized, 0, 1)) {
-    return 0;  // initialized already
-  }
-  uint64_t t;
-  iwrc rc = iw_init();
-  RCRET(rc);
-  rc = iwp_current_time_ms(&t);
-  RCRET(rc);
-  t = IW_SWAB64(t);
-  t >>= 32;
-  iwu_rand_seed(t);
+    return 0;
+  }  
   return iwlog_register_ecodefn(_kv_ecodefn);
 }
 
@@ -2629,8 +2621,11 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   uint32_t lv;
   uint64_t llv;
   uint8_t *rp, *mm;
-  rc = iwkv_init();
+  rc = iw_init();
   RCRET(rc);
+  if (opts->random_seed) {
+    iwu_rand_seed(opts->random_seed);
+  }
   *iwkvp = calloc(1, sizeof(struct IWKV));
   if (!*iwkvp) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
