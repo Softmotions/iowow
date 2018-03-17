@@ -132,10 +132,10 @@ static bool _bm_init(int argc, char *argv[]) {
   if (bm.initiated) {
     fprintf(stderr, "Benchmark already initialized\n");
     return false;
-  }    
+  }
   if (iw_init()) {
     return false;
-  }  
+  }
   bm.argc = argc;
   bm.argv = argv;
   bm.param_num = 1000000; // 1M records
@@ -214,15 +214,15 @@ static bool _bm_init(int argc, char *argv[]) {
   if (!_bm_check()) {
     fprintf(stderr, "Benchmark `bm` structure is not configured properly\n");
     return false;
-  }  
+  }
   if (!bm.param_seed) {
     uint64_t ts;
     iwp_current_time_ms(&ts);
     ts = IW_SWAB64(ts);
-    ts >>= 32;        
+    ts >>= 32;
     bm.param_seed = ts;
-  }   
-  iwu_rand_seed(bm.param_seed);  
+  }
+  iwu_rand_seed(bm.param_seed);
   srandom(bm.param_seed);
   fprintf(stderr,
           "\n random seed: %u"
@@ -258,6 +258,7 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
   char kbuf[100];
   IWKV_val key, val;
   key.data = kbuf;
+  // todo !!!
   int value_size = ctx->value_size;
   if (rvlen) {
     value_size = iwu_rand_range(value_size + 1);
@@ -266,11 +267,22 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
     }
   }
   for (int i = 0; i < ctx->num; ++i) {
-    const int k = seq ? i : iwu_rand_range(bm.param_num);
+    const int k = seq ? i : iwu_rand_range(bm.param_num);    
     snprintf(key.data, sizeof(kbuf), "%016d", k);
     key.size = strlen(key.data);
     val.data = (void *) _bmctx_rndbuf_nextptr(ctx, value_size);
     val.size = value_size;
+    
+    
+    fprintf(stderr, "i=%d, K=%d, L: %ld, V: %.*s..%.*s\n",
+            i,
+            k,
+            val.size,
+            4,
+            (char*)val.data,
+            4,
+            (char*)val.data + val.size - 4);
+            
     if (!bm.db_put(ctx, &key, &val, sync)) {
       return false;
     }
@@ -515,8 +527,8 @@ static bool bm_bench_run(int argc, char *argv[]) {
   if (!_bm_init(argc, argv)) {
     fprintf(stderr, "Benchmark cannot be initialized\n");
     exit(1);
-  }  
-  bm.env_setup();    
+  }
+  bm.env_setup();
   int c = 0;
   const char *ptr = bm.param_benchmarks;
   char bname[100];

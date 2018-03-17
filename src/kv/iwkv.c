@@ -1066,6 +1066,24 @@ IW_INLINE iwrc _kvblk_at(IWLCTX *lx, SBLK *sblk, KVBLK **blkp) {
   return rc;
 }
 
+IW_INLINE off_t _kvblk_compacted_offset(KVBLK *kb) {
+  off_t coff = 0;
+  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+    coff += kb->pidx[i].len;
+  }
+  return coff;
+}
+
+IW_INLINE off_t _kvblk_compacted_dsize(KVBLK *kb) {
+  off_t coff = KVBLK_HDRSZ;
+  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+    coff += kb->pidx[i].len;
+    coff += IW_VNUMSIZE32(kb->pidx[i].len);
+    coff += IW_VNUMSIZE(kb->pidx[i].off);
+  }
+  return coff;
+}
+
 static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   if (!(kb->flags & KVBLK_DURTY)) {
     return;
@@ -1091,24 +1109,10 @@ static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   memcpy(szp, &sp, sizeof(uint16_t));
   assert(wp - (mm + kb->addr) <= (1ULL << kb->szpow));
   kb->flags &= ~KVBLK_DURTY;
-}
-
-IW_INLINE off_t _kvblk_compacted_offset(KVBLK *kb) {
-  off_t coff = 0;
-  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
-    coff += kb->pidx[i].len;
-  }
-  return coff;
-}
-
-IW_INLINE off_t _kvblk_compacted_dsize(KVBLK *kb) {
-  off_t coff = KVBLK_HDRSZ;
-  for (int i = 0; i < KVBLK_IDXNUM; ++i) {
-    coff += kb->pidx[i].len;
-    coff += IW_VNUMSIZE32(kb->pidx[i].len);
-    coff += IW_VNUMSIZE(kb->pidx[i].off);
-  }
-  return coff;
+  
+  off_t coff = _kvblk_compacted_offset(kb);
+  fprintf(stderr, "kvblk_sync %ld szpow=%d, idxsz=%d maxoff=%ld coff=%ld\n", kb->addr, kb->szpow, kb->idxsz, kb->maxoff,
+          coff);
 }
 
 #define _kvblk_sort_kv_lt(v1, v2) \
@@ -1177,7 +1181,7 @@ IW_INLINE off_t _kvblk_maxkvoff(KVBLK *kb) {
   return off;
 }
 
-static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {  
+static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
   iwrc rc = 0;
   uint8_t *mm = 0;
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
@@ -1206,7 +1210,7 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCGO(rc, finish);
       _kvblk_compact_mm(kb, false, mm);
-      off_t maxoff = _kvblk_maxkvoff(kb);      
+      off_t maxoff = _kvblk_maxkvoff(kb);
       assert((1ULL << npow) > maxoff);
       memmove(mm + kb->addr + (1ULL << npow) - maxoff,
               mm + kb->addr + nlen - maxoff,
@@ -1218,8 +1222,8 @@ static iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       RCGO(rc, finish);
       kb->szpow = npow;
       assert(nlen == (1ULL << kb->szpow));
-      opts |= RMKV_SYNC;                  
-    }            
+      opts |= RMKV_SYNC;
+    }
   }
   if (RMKV_SYNC & opts) {
     if (!mm) {
@@ -1295,10 +1299,12 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   }
   
 start:
+
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   assert(msz >= 0);
   noff = kb->maxoff + psz;
   rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz);
+  
   if (msz < rsz) { // not enough space
     if (!compacted) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -1325,7 +1331,7 @@ start:
               mm + naddr + (1ULL << kb->szpow) - kb->maxoff, kb->maxoff);
       fsm->release_mmap(fsm);
       kb->addr = naddr;
-      kb->szpow = npow;
+      kb->szpow = npow;      
       goto start;
     }
   }
@@ -1347,7 +1353,8 @@ start:
   }
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
-  assert(kvp->off <= (1ULL << kb->szpow) && kvp->len <= kvp->off);
+  assert((1ULL << kb->szpow) >= KVBLK_HDRSZ + kb->idxsz + kb->maxoff);
+  assert(kvp->off < (1ULL << kb->szpow) && kvp->len <= kvp->off);
   wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
 #ifndef NDEBUG
   sptr = wp;
@@ -2280,7 +2287,7 @@ IW_INLINE iwrc _lx_init_chute(IWLCTX *lx) {
   return 0;
 }
 
-IW_INLINE WUR iwrc _lx_addkv(IWLCTX *lx) {
+WUR iwrc _lx_addkv(IWLCTX *lx) {
   iwrc rc;
   bool found, uadd;
   int idx;
@@ -2362,6 +2369,9 @@ start:
   } else {
     rc = _lx_release(lx);
   }
+  
+  iwkvd_db(stderr, lx->db, IWKVD_PRINT_VALS);
+  
   return rc;
 }
 
@@ -2610,7 +2620,7 @@ iwrc iwkv_init(void) {
   static int _kv_initialized = 0;
   if (!__sync_bool_compare_and_swap(&_kv_initialized, 0, 1)) {
     return 0;
-  }  
+  }
   return iwlog_register_ecodefn(_kv_ecodefn);
 }
 
@@ -3316,12 +3326,10 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     memcpy(&lkl, mm + sb->addr + SOFF_LKL_U1, 1);
     memcpy(lkbuf, mm + sb->addr + SOFF_LK, lkl);
   }
-  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, p0=%d, db=%d",
+  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, idxsz=%d, p0=%d, db=%d",
           blkn,
           ((IWKVD_PRINT_NO_LEVEVELS & flags) ? -1 : sb->lvl),
-          sb->pnum, sb->flags, sb->kvblk->zidx,
-          sb->p0,
-          sb->kvblk->db->id);
+          sb->pnum, sb->flags, sb->kvblk->zidx, sb->kvblk->idxsz, sb->p0, sb->kvblk->db->id);
           
           
   if (sb->db->dbflg & IWDB_UINT64_KEYS) {
@@ -3335,7 +3343,7 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     k = IW_ITOHL(k);
     fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%u\n", blkn, sb->kvblk->szpow, lkl, k);
   } else {
-    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow, lkl, lkbuf);
+    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow,  lkl, lkbuf);
   }
   
   for (int i = 0, j = 0; i < sb->pnum; ++i, ++j) {
@@ -3360,7 +3368,13 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
         k = IW_ITOHL(k);
         fprintf(f, "    [%03d,%03d] %u:%.*s", i, sb->pi[i], k, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
       } else {
-        fprintf(f, "    [%03d,%03d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
+        
+        fprintf(f, "    [%03d,%03d] %.*s:%.*s..%.*s", i, sb->pi[i],
+                klen, kbuf, 
+                4, 
+                vbuf,
+                4,
+                vbuf + vlen - 4);
       }
     } else {
       if (sb->db->dbflg & IWDB_UINT64_KEYS) {
