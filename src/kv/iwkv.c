@@ -43,7 +43,7 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 #define SBLK_SZ (3 * (1 << IWKV_FSM_BPOW))
 
 // Size of database start block in bytes
-#define DB_SZ  320
+#define DB_SZ   (5 * (1 << IWKV_FSM_BPOW))
 
 // Number of `KV` blocks in KVBLK
 #define KVBLK_IDXNUM 16
@@ -64,9 +64,6 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
 // Max non KV size [blen:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]
 #define KVBLK_MAX_NKV_SZ (KVBLK_HDRSZ + KVBLK_MAX_IDX_SZ)
-
-#define IWKV_ISLIGHT_ERROR(rc_) \
-  ((rc_) == IWKV_ERROR_NOTFOUND || (rc_) == IWKV_ERROR_KEY_EXISTS)
 
 #define ADDR2BLK(addr_) ((addr_) >> IWKV_FSM_BPOW)
 
@@ -1308,7 +1305,7 @@ start:
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   assert(msz > 0);
   noff = kb->maxoff + psz;
-  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz);
+  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz) - 2 * IW_VNUMSIZE(0);
   
   if (msz < rsz) { // not enough space
     if (!compacted) {
