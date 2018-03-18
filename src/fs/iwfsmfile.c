@@ -1515,16 +1515,13 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
   uint64_t olen_blk = *olen >> impl->bpow;
   uint64_t oaddr_blk = *oaddr >> impl->bpow;
   uint64_t naddr_blk = oaddr_blk;
-  int deallocated = 0;
   int64_t sp;
   
   if (nlen_blk == olen_blk) {
     return 0;
   }
   rc = _fsm_ctrl_wlock(impl);
-  if (rc) {
-    return rc;
-  }
+  RCRET(rc);
   if (nlen_blk < olen_blk) {
     rc = _fsm_blk_deallocate_lw(impl, oaddr_blk + nlen_blk, olen_blk - nlen_blk);
     if (!rc) {
@@ -1532,26 +1529,18 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f,
       *olen = nlen_blk << impl->bpow;
     }
   } else {
-    rc = _fsm_blk_deallocate_lw(impl, oaddr_blk, olen_blk);
-    RCGO(rc, finish);
-    deallocated = 1;
     rc = _fsm_blk_allocate_lw(impl, nlen_blk, &naddr_blk, &sp, opts);
-    RCGO(rc, error);
+    RCGO(rc, finish);
     if (naddr_blk != oaddr_blk) {
       rc = impl->pool.copy(&impl->pool, *oaddr, *olen, naddr_blk << impl->bpow);
       RCGO(rc, finish);
     }
+    rc = _fsm_blk_deallocate_lw(impl, oaddr_blk, olen_blk);
+    RCGO(rc, finish);
     *oaddr = naddr_blk << impl->bpow;
     *olen = sp << impl->bpow;
   }
 finish:
-  IWRC(_fsm_ctrl_unlock(impl), rc);
-  return rc;
-error:
-  if (deallocated) { // trying to fix things back
-    // TODO !!!!
-    IWRC(_fsm_blk_allocate_lw(impl, olen_blk, &oaddr_blk, &sp, opts), rc);
-  }
   IWRC(_fsm_ctrl_unlock(impl), rc);
   return rc;
 }
@@ -1852,7 +1841,7 @@ const char *byte_to_binary(int x) {
 }
 
 
-iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
+iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f) {
   assert(f);
   uint64_t sp;
   uint8_t *mm;
@@ -1879,8 +1868,7 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit) {
   // if (impl->bmoff == impl->psize) {
   //   i += ((impl->bmlen >> impl->bpow) >> 3);
   // }
-  blimit += i;
-  for (; i < sp && i < blimit; ++i) {
+  for (; i < sp && i < impl->bmlen; ++i) {
     uint8_t b = *(mm + i);
     fprintf(stderr, "%s", byte_to_binary(b));
   }

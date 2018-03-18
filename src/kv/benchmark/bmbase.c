@@ -260,29 +260,18 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
   key.data = kbuf;
   // todo !!!
   int value_size = ctx->value_size;
-  if (rvlen) {
-    value_size = iwu_rand_range(value_size + 1);
-    if (value_size == 0) {
-      value_size = 1;
-    }
-  }
   for (int i = 0; i < ctx->num; ++i) {
-    const int k = seq ? i : iwu_rand_range(bm.param_num);    
+    if (rvlen) {
+      value_size = iwu_rand_range(ctx->value_size + 1);
+      if (value_size == 0) {
+        value_size = 1;
+      }
+    }
+    const int k = seq ? i : iwu_rand_range(bm.param_num);
     snprintf(key.data, sizeof(kbuf), "%016d", k);
     key.size = strlen(key.data);
     val.data = (void *) _bmctx_rndbuf_nextptr(ctx, value_size);
     val.size = value_size;
-    
-    
-    fprintf(stderr, "i=%d, K=%d, L: %ld, V: %.*s..%.*s\n",
-            i,
-            k,
-            val.size,
-            4,
-            (char*)val.data,
-            4,
-            (char*)val.data + val.size - 4);
-            
     if (!bm.db_put(ctx, &key, &val, sync)) {
       return false;
     }

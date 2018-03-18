@@ -222,7 +222,7 @@ struct IWKV_cursor {
   IWLCTX lx;                  /**< Lookup context */
 };
 
-void iwkvd_kvblk(FILE *f, KVBLK *kb);
+void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen);
 void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
 void iwkvd_db(FILE *f, IWDB db, int flags);
 
@@ -1109,10 +1109,6 @@ static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   memcpy(szp, &sp, sizeof(uint16_t));
   assert(wp - (mm + kb->addr) <= (1ULL << kb->szpow));
   kb->flags &= ~KVBLK_DURTY;
-  
-  off_t coff = _kvblk_compacted_offset(kb);
-  fprintf(stderr, "kvblk_sync %ld szpow=%d, idxsz=%d maxoff=%ld coff=%ld\n", kb->addr, kb->szpow, kb->idxsz, kb->maxoff,
-          coff);
 }
 
 #define _kvblk_sort_kv_lt(v1, v2) \
@@ -1239,6 +1235,7 @@ finish:
   return rc;
 }
 
+
 static iwrc _kvblk_addkv(KVBLK *kb,
                          const IWKV_val *key,
                          const IWKV_val *val,
@@ -1299,41 +1296,45 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   }
   
 start:
-
+  assert((1ULL << kb->szpow) >= KVBLK_HDRSZ + kb->idxsz + kb->maxoff);
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
-  assert(msz >= 0);
   noff = kb->maxoff + psz;
-  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz);
+  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz) - IW_VNUMSIZE(0) - IW_VNUMSIZE(0);
   
   if (msz < rsz) { // not enough space
     if (!compacted) {
-      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      RCGO(rc, finish);
-      _kvblk_compact_mm(kb, false, mm);
       compacted = true;
-      fsm->release_mmap(fsm);
-      goto start;
-    } else { // resize the whole block
-      off_t nsz = (rsz - msz) + (1ULL << kb->szpow);
-      uint8_t npow = kb->szpow;
-      while ((1ULL << ++npow) < nsz);
-      off_t naddr = kb->addr,
-            nlen = (1ULL << kb->szpow);
-      rc = fsm->reallocate(fsm, (1ULL << npow), &naddr, &nlen,
-                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
-      RCGO(rc, finish);
-      assert(nlen == (1ULL << npow));
-      // Move pairs area
-      // [hdr..[pairs]] =reallocate=> [hdr..[pairs]_____] =memove=> [hdr.._____[pairs]]
-      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      RCGO(rc, finish);
-      memmove(mm + naddr + nlen - kb->maxoff,
-              mm + naddr + (1ULL << kb->szpow) - kb->maxoff, kb->maxoff);
-      fsm->release_mmap(fsm);
-      kb->addr = naddr;
-      kb->szpow = npow;      
-      goto start;
+      if (_kvblk_compacted_offset(kb) != kb->maxoff) {
+        rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+        RCGO(rc, finish);
+        _kvblk_compact_mm(kb, false, mm);
+        fsm->release_mmap(fsm);
+        goto start;
+      }
     }
+    // resize the whole block
+    off_t nsz = (rsz - msz) + (1ULL << kb->szpow);
+    uint8_t npow = kb->szpow;
+    while ((1ULL << ++npow) < nsz);
+    off_t naddr = kb->addr,
+          nlen = (1ULL << kb->szpow);
+        
+    assert(!fsm->check_allocation_status(fsm, naddr, nlen, true));  
+    rc = fsm->reallocate(fsm, (1ULL << npow), &naddr, &nlen,
+                         IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
+    RCGO(rc, finish);
+    assert(nlen == (1ULL << npow));
+    // Move pairs area
+    // [hdr..[pairs]] =reallocate=> [hdr..[pairs]_____] =memove=> [hdr.._____[pairs]]
+    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCGO(rc, finish);
+    kb->addr = naddr;
+    memmove(mm + naddr + nlen - kb->maxoff,
+            mm + naddr + (1ULL << kb->szpow) - kb->maxoff, kb->maxoff);
+    fsm->release_mmap(fsm);
+    kb->szpow = npow;
+    goto start;
+    
   }
   *oidx = kb->zidx;
   kvp = &kb->pidx[kb->zidx];
@@ -1932,11 +1933,11 @@ IW_INLINE iwrc _sblk_addkv2(SBLK *sblk,
   return 0;
 }
 
-IW_INLINE iwrc _sblk_addkv(SBLK *sblk,
-                           const IWKV_val *key,
-                           const IWKV_val *val,
-                           iwkv_opflags opflags,
-                           bool internal) {
+static iwrc _sblk_addkv(SBLK *sblk,
+                        const IWKV_val *key,
+                        const IWKV_val *val,
+                        iwkv_opflags opflags,
+                        bool internal) {
   assert(sblk && key && key->size && key->data && val && sblk->kvblk);
   int8_t kvidx;
   uint8_t *mm;
@@ -2369,9 +2370,6 @@ start:
   } else {
     rc = _lx_release(lx);
   }
-  
-  iwkvd_db(stderr, lx->db, IWKVD_PRINT_VALS);
-  
   return rc;
 }
 
@@ -3272,7 +3270,7 @@ finish:
 
 //--------------------------  DEBUG STAFF
 
-void iwkvd_kvblk(FILE *f, KVBLK *kb) {
+void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
   assert(f && kb && kb->addr);
   uint8_t *mm;
   uint8_t *kbuf, *vbuf;
@@ -3293,7 +3291,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb) {
     _kvblk_peek_val(kb, i, mm, &vbuf, &vlen);
     fprintf(f, "\n    %02d: [%04lu, %02u, %02d]: %.*s:%.*s",
             i, kvp->off, kvp->len, kvp->ridx,
-            klen, kbuf, vlen, vbuf);
+            klen, kbuf, MIN(vlen, maxvlen), vbuf);
   }
   fprintf(f, "\n");
 }
@@ -3326,10 +3324,12 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     memcpy(&lkl, mm + sb->addr + SOFF_LKL_U1, 1);
     memcpy(lkbuf, mm + sb->addr + SOFF_LK, lkl);
   }
-  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, idxsz=%d, p0=%d, db=%d",
+  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, p0=%d, db=%d",
           blkn,
           ((IWKVD_PRINT_NO_LEVEVELS & flags) ? -1 : sb->lvl),
-          sb->pnum, sb->flags, sb->kvblk->zidx, sb->kvblk->idxsz, sb->p0, sb->kvblk->db->id);
+          sb->pnum, sb->flags, sb->kvblk->zidx,
+          sb->p0,
+          sb->kvblk->db->id);
           
           
   if (sb->db->dbflg & IWDB_UINT64_KEYS) {
@@ -3368,13 +3368,7 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
         k = IW_ITOHL(k);
         fprintf(f, "    [%03d,%03d] %u:%.*s", i, sb->pi[i], k, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
       } else {
-        
-        fprintf(f, "    [%03d,%03d] %.*s:%.*s..%.*s", i, sb->pi[i],
-                klen, kbuf, 
-                4, 
-                vbuf,
-                4,
-                vbuf + vlen - 4);
+        fprintf(f, "    [%03d,%03d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
       }
     } else {
       if (sb->db->dbflg & IWDB_UINT64_KEYS) {

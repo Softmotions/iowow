@@ -689,17 +689,18 @@ void test_block_allocation1_impl(int mmap_all) {
   CU_ASSERT_EQUAL(iwfs_fsmdbg_number_of_free_areas(&fsm), 2);
   
   /* Next alloc status:
-     xxxxxx* */
-  rc = fsm.reallocate(&fsm, 6 * bsize, &oaddr, &olen, 0);
-  CU_ASSERT_FALSE_FATAL(rc);
-  CU_ASSERT_EQUAL(oaddr, hoff);
-  CU_ASSERT_EQUAL(olen, 6 * bsize);
+     *xxxxxx */
+//  rc = fsm.reallocate(&fsm, 6 * bsize, &oaddr, &olen, 0);
+//  CU_ASSERT_FALSE_FATAL(rc);
+//  CU_ASSERT_EQUAL(oaddr, hoff + 1 * bsize);
+//  CU_ASSERT_EQUAL(olen, 6 * bsize);
+//
+//  /* Next alloc status:
+//     *xx***x */
+//  rc = fsm.deallocate(&fsm, hoff + 3 * bsize, 3 * bsize);
+//  CU_ASSERT_FALSE_FATAL(rc);
   
-  /* Next alloc status:
-     xxx*** */
-  rc = fsm.deallocate(&fsm, hoff + 3 * bsize, 3 * bsize);
-  CU_ASSERT_FALSE_FATAL(rc);
-  
+  // todo
   //  oaddr = hoff + 1 * bsize;
   //  olen = 1 * bsize;
   //  rc = fsm.reallocate(&fsm, 2 * bsize, &oaddr, &olen, 0);
