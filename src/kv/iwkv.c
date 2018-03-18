@@ -1299,7 +1299,7 @@ start:
   assert((1ULL << kb->szpow) >= KVBLK_HDRSZ + kb->idxsz + kb->maxoff);
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   noff = kb->maxoff + psz;
-  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz) - IW_VNUMSIZE(0) - IW_VNUMSIZE(0);
+  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz);
   
   if (msz < rsz) { // not enough space
     if (!compacted) {

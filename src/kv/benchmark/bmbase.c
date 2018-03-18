@@ -140,8 +140,9 @@ static bool _bm_init(int argc, char *argv[]) {
   bm.argv = argv;
   bm.param_num = 1000000; // 1M records
   bm.param_num_reads = -1; // Same as param_num
-  bm.param_value_size = 128; // 128 byte per value
-  bm.param_benchmarks =  "fillrandom,"
+  bm.param_value_size = 200; 
+  bm.param_benchmarks =  "fillrandom2,"
+                         "readrandom,"
                          "deleterandom,"
                          "fillseq,"
                          "deleteseq,"
