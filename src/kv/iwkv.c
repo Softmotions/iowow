@@ -43,7 +43,7 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 #define SBLK_SZ (3 * (1 << IWKV_FSM_BPOW))
 
 // Size of database start block in bytes
-#define DB_SZ   (5 * (1 << IWKV_FSM_BPOW))
+#define DB_SZ (5 * (1 << IWKV_FSM_BPOW))
 
 // Number of `KV` blocks in KVBLK
 #define KVBLK_IDXNUM 16
@@ -1305,7 +1305,7 @@ start:
   msz = (1ULL << kb->szpow) - KVBLK_HDRSZ - kb->idxsz - kb->maxoff;
   assert(msz > 0);
   noff = kb->maxoff + psz;
-  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz) - 2 * IW_VNUMSIZE(0);
+  rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz);
   
   if (msz < rsz) { // not enough space
     if (!compacted) {
