@@ -129,7 +129,7 @@ typedef enum {
 
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
 
-/* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[30]:u4,c[30]:u4]:u257 */
+/* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209 */
 struct IWDB {
   // SBH
   IWDB db;                    /**< Database ref */
@@ -325,7 +325,7 @@ static_assert(SOFF_END == 192, "SOFF_END == 192");
 static_assert(SBLK_SZ >= SOFF_END, "SBLK_SZ >= SOFF_END");
 
 // DB
-// [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[30]:u4,c[30]:u4]:u257
+// [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
 #define DOFF_MAGIC_U4     0
 #define DOFF_DBFLG_U1     (DOFF_MAGIC_U4 + 4)
 #define DOFF_DBID_U4      (DOFF_DBFLG_U1 + 1)
@@ -743,7 +743,7 @@ static iwrc _db_destroy_lw(IWDB *dbp) {
     next->prev = prev;
     _db_save(next, mm);
   }
-  // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[30]:u4,c[30]:u4]:u257
+  // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
   memcpy(&first_sblkn, mm + db->addr + DOFF_N0_U4, 4);
   first_sblkn = IW_ITOHL(first_sblkn);
   fsm->release_mmap(fsm);
@@ -1668,7 +1668,7 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
   
   if (IW_UNLIKELY(addr == lx->db->addr)) {
     uint8_t *rp = mm + addr + DOFF_N0_U4;
-    // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[30]:u4,c[30]:u4]:u257
+    // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
     sblk->addr = addr;
     sblk->flags = SBLK_DB | flags;
     sblk->lvl = 0;
@@ -1752,7 +1752,7 @@ static void _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       if (sblk->addr) {
         assert(sblk->addr == sblk->db->addr);
         wp += DOFF_N0_U4;
-        // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[30]:u4,c[30]:u4]:u257
+        // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
         for (int i = 0; i < SLEVELS; ++i) {
           IW_WRITELV(wp, lv, sblk->n[i]);
         }
@@ -1903,8 +1903,8 @@ static iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, const IWKV_val *key,
   return 0;
 }
 
-IW_INLINE iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const IWKV_val *val, iwkv_opflags opflags,
-                            bool internal) {
+IW_INLINE iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const IWKV_val *val,
+                            iwkv_opflags opflags, bool internal) {
   assert(sblk && key && key->size && key->data &&
          val && idx >= 0 && sblk->kvblk);
   int8_t kvidx;
@@ -1936,11 +1936,8 @@ IW_INLINE iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const I
   return 0;
 }
 
-static iwrc _sblk_addkv(SBLK *sblk,
-                        const IWKV_val *key,
-                        const IWKV_val *val,
-                        iwkv_opflags opflags,
-                        bool internal) {
+static iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val,
+                        iwkv_opflags opflags, bool internal) {
   assert(sblk && key && key->size && key->data && val && sblk->kvblk);
   int8_t kvidx;
   uint8_t *mm, idx;
@@ -2714,11 +2711,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     RCGO(rc, finish);
     rc = _db_load_chain(iwkv, llv, mm);
     fsm->release_mmap(fsm);
-  }
-  
-  
-  
-  
+  }  
   (*iwkvp)->open = true;
 finish:
   if (rc) {
