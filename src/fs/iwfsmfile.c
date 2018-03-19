@@ -116,15 +116,11 @@ static iwrc _fsm_ensure_size_lw(FSM *impl, off_t size);
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 IW_INLINE int _fsm_cmp_ptr(const FSMBK *a, const FSMBK *b) {
-  uint64_t la = FSMBK_LENGTH(a);
-  uint64_t lb = FSMBK_LENGTH(b);
-  int ret = ((lb < la) - (la < lb));
+  int ret = ((FSMBK_LENGTH(b) < FSMBK_LENGTH(a)) - (FSMBK_LENGTH(a) < FSMBK_LENGTH(b)));
   if (ret) {
     return ret;
   } else {
-    uint64_t oa = FSMBK_OFFSET(a);
-    uint64_t ob = FSMBK_OFFSET(b);
-    return ((ob < oa) - (oa < ob));
+    return ((FSMBK_OFFSET(b) < FSMBK_OFFSET(a)) - (FSMBK_OFFSET(a) < FSMBK_OFFSET(b)));
   }
 }
 
