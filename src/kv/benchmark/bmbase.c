@@ -110,11 +110,10 @@ static void _bm_help() {
   fprintf(stderr, "  -b <comma separated benchmarks to run>\n\n");
   fprintf(stderr, "  -db <file/dir> Database file/directory\n\n");
   fprintf(stderr, "  -rs <random seed> Random seed used for iwu random generator\n\n");
-  fprintf(stderr, "Available benchmarks:\n");
-  fprintf(stderr, "  fillseq        write N values in sequential key order in async mode\n");
-  fprintf(stderr, "  fillseq2       write N values in sequential key order and random value length in async mode\n");
-  fprintf(stderr, "  fillrandom     write N values in random key order in async mode\n");
-  fprintf(stderr, "  fillrandom2    write N values with random key and random value length in async mode\n");
+  fprintf(stderr, "  fillseq        write N fixed length values in sequential key order in async mode\n");
+  fprintf(stderr, "  fillseq2       write N random length values in sequential key order in async mode\n");
+  fprintf(stderr, "  fillrandom     write N fixed length values in random key order in async mode\n");
+  fprintf(stderr, "  fillrandom2    write N random length values in random key order in async mode\n");
   fprintf(stderr, "  overwrite      overwrite N values in random key order in async mode\n");
   fprintf(stderr, "  fillsync       write N/100 values in random key order in sync mode\n");
   fprintf(stderr, "  fill100K       write N/100 100K values in random order in async mode\n");
