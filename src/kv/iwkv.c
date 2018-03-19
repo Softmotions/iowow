@@ -119,6 +119,7 @@ typedef enum {
   SBLK_FULL_LKEY  = 1UL,       /**< The lowest `SBLK` key is fully contained in `SBLK`. Persistent flag. */
   SBLK_DB         = 1UL << 3,  /**< This block is the start database block. */
   SBLK_DURTY      = 1UL << 4,  /**< Block data changed, block marked as durty and needs to be persisted */
+  //SBLK_KEY_ONLY   = 1UL << 5,
 } sblk_flags_t;
 
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
@@ -1711,8 +1712,8 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
     memcpy(&sblk->kvblkn, rp, 4);
     sblk->kvblkn = IW_ITOHL(sblk->kvblkn);
     rp += 4;
-    memcpy(sblk->pi, rp, KVBLK_IDXNUM);
-    rp += KVBLK_IDXNUM;    
+    memcpy(sblk->pi, rp, KVBLK_IDXNUM);    
+    rp += KVBLK_IDXNUM;
     for (int i = 0; i <= sblk->lvl; ++i) {
       memcpy(&sblk->n[i], rp, 4);
       sblk->n[i] = IW_ITOHL(sblk->n[i]);
@@ -1781,7 +1782,7 @@ static void _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       IW_WRITELV(wp, lv, sblk->p0);
       IW_WRITELV(wp, lv, sblk->kvblkn);
       memcpy(wp, sblk->pi, KVBLK_IDXNUM);
-      wp += KVBLK_IDXNUM;      
+      wp = mm + sblk->addr + SOFF_N0_U4;
       for (int i = 0; i <= sblk->lvl; ++i) {
         IW_WRITELV(wp, lv, sblk->n[i]);
       }
@@ -2095,6 +2096,9 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
       lx->lower = sblk;
     }
   }
+  
+  // load full sblk
+  
   return 0;
 }
 
