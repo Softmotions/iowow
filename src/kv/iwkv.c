@@ -1688,13 +1688,12 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
     uint8_t *rp = mm + addr;
     sblk->addr = addr;
     // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u28,lk:u64]:u256
-    memcpy(&sblk->flags, rp, 1);
+    memcpy(&sblk->flags, rp++, 1);
     if (sblk->flags & ~SBLK_PERSISTENT_FLAGS) {
       rc = IWKV_ERROR_CORRUPTED;
       goto finish;
     }
-    sblk->flags |= flags;
-    rp += 1;
+    sblk->flags |= flags;    
     memcpy(&sblk->lvl, rp++, 1);
     if (sblk->lvl >= SLEVELS) {
       rc = IWKV_ERROR_CORRUPTED;
@@ -2042,8 +2041,7 @@ IW_INLINE iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *res) {
     IWFS_FSM *fsm = &lx->db->iwkv->fsm;
     iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     if (rc) {
-      *res = 0;
-      fsm->release_mmap(fsm);
+      *res = 0;      
       return rc;
     }
     if (!sblk->kvblk) {
@@ -2095,10 +2093,7 @@ static iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
     } else {
       lx->lower = sblk;
     }
-  }
-  
-  // load full sblk
-  
+  }  
   return 0;
 }
 

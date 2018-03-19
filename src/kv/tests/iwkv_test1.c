@@ -13,7 +13,7 @@ char vbuf[VBUFSZ];
 
 extern int8_t iwkv_next_level;
 
-static int cmp_files(FILE *f1, FILE *f2) {  
+static int cmp_files(FILE *f1, FILE *f2) {    
   CU_ASSERT_TRUE_FATAL(f1 && f2);
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
