@@ -1266,10 +1266,7 @@ static iwrc _kvblk_addkv(KVBLK *kb,
   uint8_t *sptr;
 #endif
   
-  if (kb->zidx < 0) {
-    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL,
-                      "kb->addr=%d, kb->zidx=%d, db->addr=%d",
-                      kb->addr, kb->zidx, db->addr);
+  if (kb->zidx < 0) {    
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
   // DUP
@@ -1914,8 +1911,7 @@ IW_INLINE iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const I
          val && idx >= 0 && sblk->kvblk);
   int8_t kvidx;
   KVBLK *kvblk = sblk->kvblk;
-  if (sblk->pnum >= KVBLK_IDXNUM) {
-    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL, "sblk->addr=%d, sblk->pnum=%d", sblk->addr, sblk->pnum);
+  if (sblk->pnum >= KVBLK_IDXNUM) {    
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
@@ -1952,12 +1948,7 @@ static iwrc _sblk_addkv(SBLK *sblk,
   uint8_t *mm, idx;
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
-  if (sblk->pnum >= KVBLK_IDXNUM) {
-    iwlog_ecode_error(_IWKV_ERROR_KVBLOCK_FULL,
-                      "sblk->addr=%d, sblk->pnum=%d, sblk->kblkn=%d, zidx=%d, db->addr=%d:%d",
-                      sblk->addr, sblk->pnum, sblk->kvblkn,
-                      sblk->kvblk->zidx, sblk->kvblk->zidx,
-                      sblk->kvblk->db->addr, sblk->db->addr);
+  if (sblk->pnum >= KVBLK_IDXNUM) {    
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
@@ -2727,6 +2718,10 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     rc = _db_load_chain(iwkv, llv, mm);
     fsm->release_mmap(fsm);
   }
+  
+  
+  
+  
   (*iwkvp)->open = true;
 finish:
   if (rc) {
