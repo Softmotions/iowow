@@ -112,6 +112,7 @@ static void _bm_help() {
   fprintf(stderr, "  -rs <random seed> Random seed used for iwu random generator\n\n");
   fprintf(stderr, "Available benchmarks:\n");
   fprintf(stderr, "  fillseq        write N values in sequential key order in async mode\n");
+  fprintf(stderr, "  fillseq2       write N values in sequential key order and random value length in async mode\n");
   fprintf(stderr, "  fillrandom     write N values in random key order in async mode\n");
   fprintf(stderr, "  fillrandom2    write N values with random key and random value length in async mode\n");
   fprintf(stderr, "  overwrite      overwrite N values in random key order in async mode\n");
@@ -140,7 +141,7 @@ static bool _bm_init(int argc, char *argv[]) {
   bm.argv = argv;
   bm.param_num = 1000000; // 1M records
   bm.param_num_reads = -1; // Same as param_num
-  bm.param_value_size = 200; 
+  bm.param_value_size = 200;
   bm.param_benchmarks =  "fillrandom2,"
                          "readrandom,"
                          "deleterandom,"
@@ -392,6 +393,11 @@ static bool _bm_fillseq(BMCTX *ctx) {
   return _do_write(ctx, true, false, false);
 }
 
+static bool _bm_fillseq2(BMCTX *ctx) {
+  if (!ctx->freshdb) return false;
+  return _do_write(ctx, true, false, true);
+}
+
 static bool _bm_fillrandom(BMCTX *ctx) {
   if (!ctx->freshdb) return false;
   return _do_write(ctx, false, false, false);
@@ -470,6 +476,9 @@ static BMCTX *_bmctx_create(const char *name) {
   if (!strcmp(name, "fillseq")) {
     freshdb = true;
     method = _bm_fillseq;
+  } else if (!strcmp(name, "fillseq2")) {
+    freshdb = true;
+    method = _bm_fillseq2;
   } else if (!strcmp(name, "fillrandom")) {
     freshdb = true;
     method = _bm_fillrandom;

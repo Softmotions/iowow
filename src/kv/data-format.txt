@@ -6,9 +6,9 @@ max data file size: 255G
 
 SKIPLIST:
 
-  [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi15],lk:u44,n0-n29:u4]:u192  // SBLK
+  [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u28,lk:u64]:u256 // SBLK
                                                   \
-                                  [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps15,pl15]____[[KV],...]] // KVBLK
+                                  [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] // KVBLK
   KV     - [klen:vn,key,value]
 
   flags  - Block flags
