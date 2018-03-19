@@ -37,7 +37,10 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 #define AANUM (2 * SLEVELS + 3 /* (new block created) + (db block may be updated) + (first db block) */)
 
 // Lower key length in SBLK
-#define SBLK_LKLEN 64 
+#define SBLK_LKLEN 88
+
+// Lower key padding
+#define LKPAD 4
 
 // Size of database start block in bytes
 #define DB_SZ (5 * (1 << IWKV_FSM_BPOW))
@@ -145,7 +148,7 @@ struct IWDB {
 
 #define IWDB_DUP_FLAGS (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS )
 
-/* Skiplist block: [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u28,lk:u64]:u256 */
+/* Skiplist block: [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u4,lk:u88]:u256 */
 typedef struct SBLK {
   // SBH
   IWDB db;                    /**< Database ref */
@@ -304,7 +307,7 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 
 
 // SBLK
-// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u28,lk:u64]:u256
+// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u4,lk:u88]:u256
 
 #define SOFF_FLAGS_U1     0
 #define SOFF_LVL_U1       (SOFF_FLAGS_U1 + 1)
@@ -314,7 +317,7 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 #define SOFF_KBLK_U4      (SOFF_P0_U4 + 4)
 #define SOFF_PI0_U1       (SOFF_KBLK_U4 + 4)
 #define SOFF_N0_U4        (SOFF_PI0_U1 + 1 * KVBLK_IDXNUM) 
-#define SOFF_LK           (SOFF_N0_U4 + 4 * SLEVELS + 28)
+#define SOFF_LK           (SOFF_N0_U4 + 4 * SLEVELS + LKPAD)
 #define SOFF_END          (SOFF_LK + SBLK_LKLEN)
 static_assert(SOFF_END == 256, "SBLK size");
 
@@ -1687,7 +1690,7 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
   } else if (addr) {
     uint8_t *rp = mm + addr;
     sblk->addr = addr;
-    // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u28,lk:u64]:u256
+    // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u4,lk:u88]:u256
     memcpy(&sblk->flags, rp++, 1);
     if (sblk->flags & ~SBLK_PERSISTENT_FLAGS) {
       rc = IWKV_ERROR_CORRUPTED;
@@ -1767,17 +1770,13 @@ static void _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     } else {
       uint8_t *wp = mm + sblk->addr;
       sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
-      // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u28,lk:u64]:u256
-      wp += SOFF_FLAGS_U1;
-      memcpy(wp, &flags, 1);
-      wp += 1;
-      memcpy(wp, &sblk->lvl, 1);
-      wp += 1;
       assert(sblk->lkl <= SBLK_LKLEN);
-      memcpy(wp, &sblk->lkl, 1);
-      wp += 1;
-      memcpy(wp, &sblk->pnum, 1);
-      wp += 1;
+      // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n29:u4,pad:u4,lk:u88]:u256
+      wp += SOFF_FLAGS_U1;
+      memcpy(wp++, &flags, 1);      
+      memcpy(wp++, &sblk->lvl, 1);      
+      memcpy(wp++, &sblk->lkl, 1);      
+      memcpy(wp++, &sblk->pnum, 1);      
       IW_WRITELV(wp, lv, sblk->p0);
       IW_WRITELV(wp, lv, sblk->kvblkn);
       memcpy(wp, sblk->pi, KVBLK_IDXNUM);
