@@ -110,6 +110,7 @@ static void _bm_help() {
   fprintf(stderr, "  -b <comma separated benchmarks to run>\n\n");
   fprintf(stderr, "  -db <file/dir> Database file/directory\n\n");
   fprintf(stderr, "  -rs <random seed> Random seed used for iwu random generator\n\n");
+  fprintf(stderr, "Available benchmarks:\n");
   fprintf(stderr, "  fillseq        write N fixed length values in sequential key order in async mode\n");
   fprintf(stderr, "  fillseq2       write N random length values in sequential key order in async mode\n");
   fprintf(stderr, "  fillrandom     write N fixed length values in random key order in async mode\n");
