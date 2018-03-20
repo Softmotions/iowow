@@ -31,7 +31,7 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 // Length of KV fsm header in bytes
 #define KVHDRSZ 255
 
-// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u52]:u192
+// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK
 
 // Number of skip list levels
 #define SLEVELS 24
@@ -39,7 +39,7 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 #define AANUM (2 * SLEVELS + 3 /* (new block created) + (db block may be updated) + (first db block) */)
 
 // Lower key length in SBLK
-#define SBLK_LKLEN 52
+#define SBLK_LKLEN 116
 
 // Lower key padding
 #define LKPAD 0
@@ -48,7 +48,7 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 #define DB_SZ (4 * (1 << IWKV_FSM_BPOW))
 
 // Size of `SBLK` in bytes
-#define SBLK_SZ (3 * (1 << IWKV_FSM_BPOW))
+#define SBLK_SZ (4 * (1 << IWKV_FSM_BPOW))
 
 // Number of `KV` blocks in KVBLK
 #define KVBLK_IDXNUM 32
@@ -150,7 +150,7 @@ struct IWDB {
 
 #define IWDB_DUP_FLAGS (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS )
 
-/* Skiplist block: [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u52]:u192 */
+/* Skiplist block: [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK */
 typedef struct SBLK {
   // SBH
   IWDB db;                    /**< Database ref */
@@ -309,7 +309,7 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 
 
 // SBLK
-// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u52]:u192
+// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 
 
 #define SOFF_FLAGS_U1     0
 #define SOFF_LVL_U1       (SOFF_FLAGS_U1 + 1)
@@ -321,7 +321,7 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 #define SOFF_N0_U4        (SOFF_PI0_U1 + 1 * KVBLK_IDXNUM)
 #define SOFF_LK           (SOFF_N0_U4 + 4 * SLEVELS + LKPAD)
 #define SOFF_END          (SOFF_LK + SBLK_LKLEN)
-static_assert(SOFF_END == 192, "SOFF_END == 192");
+static_assert(SOFF_END == 256, "SOFF_END == 256");
 static_assert(SBLK_SZ >= SOFF_END, "SBLK_SZ >= SOFF_END");
 
 // DB
@@ -1689,7 +1689,7 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
   } else if (addr) {
     uint8_t *rp = mm + addr;
     sblk->addr = addr;
-    // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u52]:u192
+    // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
     memcpy(&sblk->flags, rp++, 1);
     if (sblk->flags & ~SBLK_PERSISTENT_FLAGS) {
       rc = IWKV_ERROR_CORRUPTED;
@@ -1770,7 +1770,7 @@ static void _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       uint8_t *wp = mm + sblk->addr;
       sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
       assert(sblk->lkl <= SBLK_LKLEN);
-      // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u52]:u192
+      // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
       wp += SOFF_FLAGS_U1;
       memcpy(wp++, &flags, 1);
       memcpy(wp++, &sblk->lvl, 1);
