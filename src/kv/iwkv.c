@@ -86,10 +86,10 @@ typedef uint32_t dbid_t;
 
 /* Key/Value pair stored in `KVBLK` */
 typedef struct KV {
-  uint8_t *key;
-  uint8_t *val;
   size_t keysz;
   size_t valsz;
+  uint8_t *key;
+  uint8_t *val;
 } KV;
 
 /* Ket/Value (KV) index: Offset and length. */
@@ -129,6 +129,30 @@ typedef enum {
 
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
 
+// Number of top levels to cache (~ 1023 cached elements)
+#define DBCACHE_LEVELS 10
+
+// Minimal cached level
+#define DBCACHE_MIN_LEVEL 1
+
+/** Cached SBLK node */
+typedef struct DBCNODE {
+  uint8_t lkl;                /**< Lower key length */
+  blkn_t sblkn;               /**< SBLK block number */
+  blkn_t kblkn;               /**< KVBLK block number */
+  uint8_t lk[SBLK_LKLEN + 0];
+} DBCNODE;
+static_assert(sizeof(DBCNODE) == 128, "sizeof(DBCNODE) == 128");
+
+/** Tallest SBLK nodes cache */
+typedef struct DBCACHE {
+  uint64_t atime;             /**< Cache access time */
+  size_t asize;               /**< Size of allocated cache buffer */
+  size_t num;                 /**< Actual number of nodes */
+  uint8_t lvl;                /**< Lowes cached level */
+  DBCNODE *nodes;             /**< Sorted nodes array */
+} DBCACHE;
+
 /* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209 */
 struct IWDB {
   // SBH
@@ -137,14 +161,15 @@ struct IWDB {
   sblk_flags_t flags;         /**< Flags */
   // !SBH
   IWKV iwkv;
-  iwdb_flags_t dbflg;         /**< Database specific flags */
+  DBCACHE cache;              /**< SBLK nodes cache */
   pthread_rwlock_t rwl;       /**< Database API RW lock */
-  dbid_t id;                  /**< Database ID */
   uint64_t next_db_addr;      /**< Next IWDB addr */
   struct IWDB *next;          /**< Next IWDB meta */
   struct IWDB *prev;          /**< Prev IWDB meta */
+  dbid_t id;                  /**< Database ID */
   volatile int32_t wk_count;  /**< Number of active database workers */
-  volatile atomic_bool open;  /**< True if DB is in OPEN state */
+  iwdb_flags_t dbflg;         /**< Database specific flags */
+  atomic_bool open;           /**< True if DB is in OPEN state */
   uint32_t lcnt[SLEVELS];     /**< SBLK count per level */
 };
 
@@ -181,7 +206,7 @@ struct IWKV {
   pthread_cond_t wk_cond;     /**< Workers cond variable */
   pthread_mutex_t wk_mtx;     /**< Workers cond mutext */
   volatile int32_t wk_count;  /**< Number of active workers */
-  volatile atomic_bool open;  /**< True if kvstore is in OPEN state */
+  atomic_bool open;           /**< True if kvstore is in OPEN state */
 };
 
 typedef enum {
@@ -309,7 +334,7 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 
 
 // SBLK
-// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 
+// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
 
 #define SOFF_FLAGS_U1     0
 #define SOFF_LVL_U1       (SOFF_FLAGS_U1 + 1)
@@ -2456,6 +2481,41 @@ finish:
   return rc;
 }
 
+//-------------------------- CACHE
+
+static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
+  iwrc rc = 0;
+  assert(lx->db->addr == sdb->addr);
+  if (sdb->lvl < DBCACHE_MIN_LEVEL) {
+    return 0;
+  }
+  blkn_t n;
+  IWDB db = lx->db;
+  DBCACHE *cache = &db->cache;
+  SBLK *sblk = sdb;
+  uint8_t lvl = (sdb->lvl > DBCACHE_LEVELS) ? (sdb->lvl - DBCACHE_LEVELS + 1) : DBCACHE_MIN_LEVEL;
+  if (lvl < DBCACHE_MIN_LEVEL) {
+    lvl = DBCACHE_MIN_LEVEL;
+  }
+  if (cache->nodes) {
+    free(cache->nodes);
+  }
+  cache->num = 0;
+  cache->lvl = lvl;
+  cache->asize = (1 << DBCACHE_LEVELS);
+  cache->nodes = malloc(cache->asize);
+  if (!cache->nodes) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
+  while ((n = sblk->n[lvl])) {
+    rc = _sblk_at(lx, BLK2ADDR(n), 0, &sblk);
+    RCRET(rc);
+  }
+  // todo 
+  return rc;
+}
+
+
 //--------------------------  CURSOR
 
 IW_INLINE iwrc _cursor_get_ge_idx(IWLCTX *lx, IWKV_cursor_op op, uint8_t *oidx) {
@@ -2711,7 +2771,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     RCGO(rc, finish);
     rc = _db_load_chain(iwkv, llv, mm);
     fsm->release_mmap(fsm);
-  }  
+  }
   (*iwkvp)->open = true;
 finish:
   if (rc) {
