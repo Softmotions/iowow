@@ -129,26 +129,38 @@ typedef enum {
 
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
 
+#define IWDB_DUP_FLAGS (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS)
+
+#define IWDB_UINT_KEYS_FLAGS (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)
+
 // Number of top levels to cache (~ 1023 cached elements)
 #define DBCACHE_LEVELS 10
 
 // Minimal cached level
-#define DBCACHE_MIN_LEVEL 1
+#define DBCACHE_MIN_LEVEL 0
 
 /** Cached SBLK node */
 typedef struct DBCNODE {
   uint8_t lkl;                /**< Lower key length */
   blkn_t sblkn;               /**< SBLK block number */
   blkn_t kblkn;               /**< KVBLK block number */
-  uint8_t lk[SBLK_LKLEN + 0];
+  uint8_t lk[1];              /**< Lower key buffer */
 } DBCNODE;
-static_assert(sizeof(DBCNODE) == 128, "sizeof(DBCNODE) == 128");
+
+#define DBCNODE_NUM_SZ 20
+#define DBCNODE_STR_SZ 128
+
+static_assert(DBCNODE_NUM_SZ >= offsetof(DBCNODE, lk) + sizeof(uint64_t),
+              "DBCNODE_NUM_SZ >= offsetof(DBCNODE, lk) + sizeof(uint64_t)");
+static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
+              "DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN");
 
 /** Tallest SBLK nodes cache */
 typedef struct DBCACHE {
   uint64_t atime;             /**< Cache access time */
   size_t asize;               /**< Size of allocated cache buffer */
   size_t num;                 /**< Actual number of nodes */
+  size_t nsize;               /**< Cached node size */
   uint8_t lvl;                /**< Lowes cached level */
   DBCNODE *nodes;             /**< Sorted nodes array */
 } DBCACHE;
@@ -172,8 +184,6 @@ struct IWDB {
   atomic_bool open;           /**< True if DB is in OPEN state */
   uint32_t lcnt[SLEVELS];     /**< SBLK count per level */
 };
-
-#define IWDB_DUP_FLAGS (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS )
 
 /* Skiplist block: [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK */
 typedef struct SBLK {
@@ -2486,32 +2496,59 @@ finish:
 static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
   iwrc rc = 0;
   assert(lx->db->addr == sdb->addr);
-  if (sdb->lvl < DBCACHE_MIN_LEVEL) {
+  if (sdb->lvl + 1 < DBCACHE_MIN_LEVEL + 1) {
+    // avoid error: comparison is always false due to limited range of data type [-Werror=type-limits]
     return 0;
   }
-  blkn_t n;
   IWDB db = lx->db;
-  DBCACHE *cache = &db->cache;
   SBLK *sblk = sdb;
-  uint8_t lvl = (sdb->lvl > DBCACHE_LEVELS) ? (sdb->lvl - DBCACHE_LEVELS + 1) : DBCACHE_MIN_LEVEL;
-  if (lvl < DBCACHE_MIN_LEVEL) {
-    lvl = DBCACHE_MIN_LEVEL;
+  DBCACHE *c = &db->cache;
+  c->lvl = (sdb->lvl > DBCACHE_LEVELS) ? (sdb->lvl - DBCACHE_LEVELS + 1) : DBCACHE_MIN_LEVEL;
+  if (c->lvl + 1 < DBCACHE_MIN_LEVEL + 1) {
+    // avoid error: comparison is always false due to limited range of data type [-Werror=type-limits]
+    c->lvl = DBCACHE_MIN_LEVEL;
   }
-  if (cache->nodes) {
-    free(cache->nodes);
+  if (c->nodes) {
+    free(c->nodes);
   }
-  cache->num = 0;
-  cache->lvl = lvl;
-  cache->asize = (1 << DBCACHE_LEVELS);
-  cache->nodes = malloc(cache->asize);
-  if (!cache->nodes) {
+  c->num = 0;
+  c->nsize = (lx->db->dbflg & IWDB_UINT_KEYS_FLAGS) ? DBCNODE_NUM_SZ : DBCNODE_STR_SZ;
+  c->asize = c->nsize * ((1 << DBCACHE_LEVELS) + 32);
+  c->nodes = malloc(c->asize);
+  if (!c->nodes) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  while ((n = sblk->n[lvl])) {
+  blkn_t n;
+  uint8_t *wp;
+  while ((n = sblk->n[c->lvl])) {
     rc = _sblk_at(lx, BLK2ADDR(n), 0, &sblk);
     RCRET(rc);
+    DBCNODE cn = {
+      .lkl = sblk->lkl,
+      .sblkn = ADDR2BLK(sblk->addr),
+      .kblkn = sblk->kvblkn
+    };
+    if (c->asize < c->nsize * (c->num + 1)) {
+      c->asize = c->asize + c->nsize * 32;
+      wp = (uint8_t *) c->nodes;
+      c->nodes = realloc(c->nodes, c->asize);
+      if (!c->nodes) {
+        rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+        free(wp);
+        return rc;
+      }
+    }
+    wp = (uint8_t *) c->nodes + c->nsize * c->num;
+    memcpy(wp, &cn, offsetof(DBCNODE, lk));
+    wp += offsetof(DBCNODE, lk);
+    if (offsetof(DBCNODE, lk) + sblk->lkl > c->nsize) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      return rc;
+    }
+    memcpy(wp, sblk->lk, sblk->lkl);
+    ++c->num;
   }
-  // todo 
   return rc;
 }
 
