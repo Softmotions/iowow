@@ -2528,8 +2528,13 @@ static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
       .sblkn = ADDR2BLK(sblk->addr),
       .kblkn = sblk->kvblkn
     };
+    if (offsetof(DBCNODE, lk) + sblk->lkl > c->nsize) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      return rc;
+    }
     if (c->asize < c->nsize * (c->num + 1)) {
-      c->asize = c->asize + c->nsize * 32;
+      c->asize += (c->nsize * 32);
       wp = (uint8_t *) c->nodes;
       c->nodes = realloc(c->nodes, c->asize);
       if (!c->nodes) {
@@ -2541,14 +2546,15 @@ static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
     wp = (uint8_t *) c->nodes + c->nsize * c->num;
     memcpy(wp, &cn, offsetof(DBCNODE, lk));
     wp += offsetof(DBCNODE, lk);
-    if (offsetof(DBCNODE, lk) + sblk->lkl > c->nsize) {
-      rc = IWKV_ERROR_CORRUPTED;
-      iwlog_ecode_error3(rc);
-      return rc;
-    }
     memcpy(wp, sblk->lk, sblk->lkl);
     ++c->num;
   }
+  return rc;
+}
+
+static iwrc _dbcache_set_lw(IWLCTX *lx, SBLK *sblk) {
+  iwrc rc = 0;
+  // todo  
   return rc;
 }
 
