@@ -9,15 +9,15 @@
 #define IWALIST_AUNIT 64
 #endif
 
-off_t iwarr_sorted_insert(void * restrict els,
+off_t iwarr_sorted_insert(void *restrict els,
                           size_t nels,
                           size_t elsize,
-                          void * restrict eptr,
+                          void *restrict eptr,
                           int (*cmp)(const void *, const void *),
                           bool skipeq) {
-
+                          
 #define EL(idx_) (elsptr + (idx_) * elsize)
-
+                          
   off_t idx = 0,
         lb = 0,
         ub = nels - 1;
@@ -54,14 +54,14 @@ off_t iwarr_sorted_insert(void * restrict els,
 #undef EL
 }
 
-bool iwarr_sorted_remove(void * restrict els,
+bool iwarr_sorted_remove(void *restrict els,
                          size_t nels,
                          size_t elsize,
-                         void * restrict eptr,
+                         void *restrict eptr,
                          int (*cmp)(const void *, const void *)) {
-
+                         
 #define EL(idx_) (elsptr + (idx_) * elsize)
-
+                         
   off_t idx = 0,
         lb = 0,
         ub = nels - 1;
@@ -95,14 +95,14 @@ bool iwarr_sorted_remove(void * restrict els,
 #undef EL
 }
 
-off_t iwarr_sorted_find(void * restrict els,
+off_t iwarr_sorted_find(void *restrict els,
                         size_t nels,
                         size_t elsize,
-                        void * restrict eptr,
+                        void *restrict eptr,
                         int (*cmp)(const void *, const void *)) {
-
+                        
 #define EL(idx_) (elsptr + (idx_) * elsize)
-
+                        
   off_t idx = 0,
         lb = 0,
         ub = nels - 1;
@@ -130,5 +130,44 @@ off_t iwarr_sorted_find(void * restrict els,
     }
   }
   return -1;
+#undef EL
+}
+
+off_t iwarr_sorted_find2(void *restrict els,
+                         size_t nels,
+                         size_t elsize,
+                         void *restrict eptr,
+                         void *op,
+                         int (*cmp)(const void *, const void *, void *)) {
+                         
+#define EL(idx_) (elsptr + (idx_) * elsize)
+                         
+  off_t idx = 0,
+        lb = 0,
+        ub = nels - 1;
+  char *elsptr = els;
+  if (nels == 0) {
+    return false;
+  }
+  while (1) {
+    int cr;
+    idx = (ub + lb) / 2;
+    cr = cmp(EL(idx), eptr, op);
+    if (!cr) {
+      return idx;
+    } else if (cr < 0) {
+      lb = idx + 1;
+      if (lb > ub) {
+        idx = lb;
+        break;
+      }
+    } else {
+      ub = idx - 1;
+      if (lb > ub) {
+        break;
+      }
+    }
+  }
+  return idx;
 #undef EL
 }

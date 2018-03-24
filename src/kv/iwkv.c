@@ -121,9 +121,9 @@ typedef struct KVBLK {
 } KVBLK;
 
 typedef enum {
-  SBLK_FULL_LKEY  = 1UL,       /**< The lowest `SBLK` key is fully contained in `SBLK`. Persistent flag. */
-  SBLK_DB         = 1UL << 3,  /**< This block is the start database block. */
-  SBLK_DURTY      = 1UL << 4,  /**< Block data changed, block marked as durty and needs to be persisted */
+  SBLK_FULL_LKEY  = 1,       /**< The lowest `SBLK` key is fully contained in `SBLK`. Persistent flag. */
+  SBLK_DB         = 1 << 3,  /**< This block is the start database block. */
+  SBLK_DURTY      = 1 << 4,  /**< Block data changed, block marked as durty and needs to be persisted */
   //SBLK_KEY_ONLY   = 1UL << 5,
 } sblk_flags_t;
 
@@ -139,9 +139,14 @@ typedef enum {
 // Minimal cached level
 #define DBCACHE_MIN_LEVEL 0
 
+// Single allocation step - number of DBCNODEs
+#define DBCACHE_ALLOC_STEP 32
+
 /** Cached SBLK node */
 typedef struct DBCNODE {
   uint8_t lkl;                /**< Lower key length */
+  uint8_t fullkey;            /**< SBLK full key */
+  uint8_t k0idx;              /**< KVBLK Zero KVP index */
   blkn_t sblkn;               /**< SBLK block number */
   blkn_t kblkn;               /**< KVBLK block number */
   uint8_t lk[1];              /**< Lower key buffer */
@@ -637,6 +642,7 @@ static iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   IW_READLV(rp, lv, lv);
   if (lv != IWDB_MAGIC) {
     rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
     goto finish;
   }
   IW_READBV(rp, lv, db->dbflg);
@@ -914,6 +920,7 @@ IW_INLINE iwrc _kvblk_peek_key(const KVBLK *kb, uint8_t idx, const uint8_t *mm, 
     if (!klen) {
       *obuf = 0;
       *olen = 0;
+      iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
       return IWKV_ERROR_CORRUPTED;
     }
     rp += step;
@@ -957,6 +964,7 @@ static iwrc _kvblk_getkey(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key) {
   IW_READVNUMBUF(rp, klen, step);
   rp += step;
   if (klen < 1 || klen > kvp->len || klen > kvp->off) {
+    iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   }
   key->size = klen;
@@ -984,6 +992,7 @@ static iwrc _kvblk_getvalue(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *val) 
   IW_READVNUMBUF(rp, klen, step);
   rp += step;
   if (klen < 1 || klen > kvp->len || klen > kvp->off) {
+    iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   }
   rp += klen;
@@ -1021,6 +1030,7 @@ static iwrc _kvblk_getkv(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key, IWK
   IW_READVNUMBUF(rp, klen, step);
   rp += step;
   if (klen < 1 || klen > kvp->len || klen > kvp->off) {
+    iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   }
   key->size = klen;
@@ -1071,6 +1081,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx, off_t addr, uint8_t *mm, KVBLK *kbp, KVBLK 
   IW_READSV(rp, sv, kb->idxsz);
   if (IW_UNLIKELY(kb->idxsz > KVBLK_MAX_IDX_SZ)) {
     rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
     goto finish;
   }
   for (int i = 0; i < KVBLK_IDXNUM; ++i) {
@@ -1081,6 +1092,7 @@ static iwrc _kvblk_at_mm(IWLCTX *lx, off_t addr, uint8_t *mm, KVBLK *kbp, KVBLK 
     if (kb->pidx[i].len) {
       if (IW_UNLIKELY(!kb->pidx[i].off)) {
         rc = IWKV_ERROR_CORRUPTED;
+        iwlog_ecode_error3(rc);
         goto finish;
       }
       if (kb->pidx[i].off > kb->maxoff) {
@@ -1449,6 +1461,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
     _kvblk_peek_val(kb, idx, mm, &wp, &len);
     if (len < 4) {
       rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
       goto finish;
     }
     sp = wp;
@@ -1458,6 +1471,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
     if (len < 4 + sz * val->size) {
       // kv capacity is less than reported number of items (sz)
       rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
       goto finish;
     }
     uint8_t vbuf[8];
@@ -1523,6 +1537,7 @@ static iwrc _kvblk_updatev(KVBLK *kb,
   wp += sz;
   if (ukey && (len != ukey->size || memcmp(wp, ukey->data, ukey->size))) {
     rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
     goto finish;
   }
   wp += len;
@@ -1728,17 +1743,20 @@ static iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
     memcpy(&sblk->flags, rp++, 1);
     if (sblk->flags & ~SBLK_PERSISTENT_FLAGS) {
       rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
       goto finish;
     }
     sblk->flags |= flags;
     memcpy(&sblk->lvl, rp++, 1);
     if (sblk->lvl >= SLEVELS) {
       rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
       goto finish;
     }
     memcpy(&sblk->lkl, rp++, 1);
     if (sblk->lkl > SBLK_LKLEN) {
       rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
       goto finish;
     }
     memcpy(&sblk->pnum, rp++, 1);
@@ -2062,6 +2080,7 @@ IW_INLINE iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *res) {
   const IWKV_val *key = lx->key;
   if (IW_UNLIKELY(sblk->pnum < 1 || (sblk->flags & SBLK_DB))) { // empty block
     *res = 0;
+    iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   } else if ((sblk->flags & SBLK_FULL_LKEY) || key->size < sblk->lkl) {
     *res = _cmp_key(dbflg, sblk->lk, sblk->lkl, key->data, key->size);
@@ -2513,7 +2532,7 @@ static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
   }
   c->num = 0;
   c->nsize = (lx->db->dbflg & IWDB_UINT_KEYS_FLAGS) ? DBCNODE_NUM_SZ : DBCNODE_STR_SZ;
-  c->asize = c->nsize * ((1 << DBCACHE_LEVELS) + 32);
+  c->asize = c->nsize * ((1 << DBCACHE_LEVELS) + DBCACHE_ALLOC_STEP);
   c->nodes = malloc(c->asize);
   if (!c->nodes) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -2525,6 +2544,8 @@ static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
     RCRET(rc);
     DBCNODE cn = {
       .lkl = sblk->lkl,
+      .fullkey = (sblk->flags & SBLK_FULL_LKEY),
+      .k0idx = sblk->pi[0],
       .sblkn = ADDR2BLK(sblk->addr),
       .kblkn = sblk->kvblkn
     };
@@ -2534,7 +2555,7 @@ static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
       return rc;
     }
     if (c->asize < c->nsize * (c->num + 1)) {
-      c->asize += (c->nsize * 32);
+      c->asize += (c->nsize * DBCACHE_ALLOC_STEP);
       wp = (uint8_t *) c->nodes;
       c->nodes = realloc(c->nodes, c->asize);
       if (!c->nodes) {
@@ -2554,7 +2575,128 @@ static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
 
 static iwrc _dbcache_set_lw(IWLCTX *lx, SBLK *sblk) {
   iwrc rc = 0;
-  // todo  
+  // todo
+  return rc;
+}
+
+// IW_INLINE int _cmp_key(iwdb_flags_t dbflg, void *v1, int v1len, void *v2, int v2len)
+static iwrc _cmp_cache_nodes(const void *v1, const void *v2, void *op, int *res) {
+  iwrc rc = 0;
+  uint8_t *mm = 0;
+  IWLCTX *lx = op;
+  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  const DBCNODE *c1 = v1, *c2 = v2;
+  const uint8_t *k1, *k2;
+  KVBLK *kvblk;
+  uint32_t kl1, kl2;
+  
+  *res = 0;
+  if (!c1->fullkey || !c2->fullkey) {
+    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCRET(rc);
+  }
+  if (!c1->fullkey) {
+    rc = _kvblk_at_mm(lx, BLK2ADDR(c1->kblkn), mm, 0, &kvblk);
+    RCRET(rc);
+  }
+  
+  
+  
+  if (mm) {
+    //fsm->release_mmap(mm);
+  }
+  
+  
+  // int ret =  _cmp_key(db->dbflg, c1->lk, c1->lkl, )
+  
+  //  iwdb_flags_t dbflg = sblk->db->dbflg;
+  //  const IWKV_val *key = lx->key;
+  //  if (IW_UNLIKELY(sblk->pnum < 1 || (sblk->flags & SBLK_DB))) { // empty block
+  //    *res = 0;
+  //    iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
+  //    return IWKV_ERROR_CORRUPTED;
+  //  } else if ((sblk->flags & SBLK_FULL_LKEY) || key->size < sblk->lkl) {
+  //    *res = _cmp_key(dbflg, sblk->lk, sblk->lkl, key->data, key->size);
+  //  } else {
+  //    uint32_t kl;
+  //    uint8_t *k, *mm;
+  //    IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  //    iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  //    if (rc) {
+  //      *res = 0;
+  //      return rc;
+  //    }
+  //    if (!sblk->kvblk) {
+  //      rc = _sblk_loadkvblk_mm(lx, sblk, mm);
+  //      if (rc) {
+  //        *res = 0;
+  //        fsm->release_mmap(fsm);
+  //        return rc;
+  //      }
+  //    }
+  //    rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[0], mm, &k, &kl);
+  //    RCRET(rc);
+  //    *res = _cmp_key(dbflg, k, kl, key->data, key->size);
+  //    fsm->release_mmap(fsm);
+  //  }
+  //  return 0;
+  
+  
+  
+  return 0;
+}
+
+static iwrc _dbcache_get(IWLCTX *lx) {
+  iwrc rc = 0;
+  IWDB db = lx->db;
+  DBCACHE *cache = &db->cache;
+  if (cache->num == 0) {
+    return 0;
+  }
+  //off_t idx = iwarr_sorted_find2(cach)
+  
+  
+  //static iwrc _sblk_find_pi_mm(SBLK *sblk, const IWKV_val *key, const uint8_t *mm, bool *found, uint8_t *idxp) {
+  //  *found = false;
+  //  if (sblk->flags & SBLK_DB) {
+  //    *idxp = KVBLK_IDXNUM;
+  //    return 0;
+  //  }
+  //  uint8_t *k;
+  //  uint32_t kl;
+  //  iwdb_flags_t dbflg = sblk->db->dbflg;
+  //  int idx = 0,
+  //      lb = 0,
+  //      ub = sblk->pnum - 1;
+  //  if (sblk->pnum < 1) {
+  //    *idxp = 0;
+  //    return 0;
+  //  }
+  //  while (1) {
+  //    idx = (ub + lb) / 2;
+  //    iwrc rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
+  //    RCRET(rc);
+  //    int cr = _cmp_key(dbflg, k, kl, key->data, key->size);
+  //    if (!cr) {
+  //      *found = true;
+  //      break;
+  //    } else if (cr < 0) {
+  //      lb = idx + 1;
+  //      if (lb > ub) {
+  //        idx = lb;
+  //        break;
+  //      }
+  //    } else {
+  //      ub = idx - 1;
+  //      if (lb > ub) {
+  //        break;
+  //      }
+  //    }
+  //  }
+  //  *idxp = idx;
+  //  return 0;
+  //}
+  
   return rc;
 }
 
@@ -2806,6 +2948,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     lv = IW_ITOHL(lv);
     if (lv != IWKV_MAGIC) {
       rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
       goto finish;
     }
     memcpy(&llv, rp, sizeof(llv));
@@ -3217,6 +3360,7 @@ iwrc iwkv_cursor_dup_num(const IWKV_cursor cur, uint32_t *onum) {
   _kvblk_peek_val(cur->cn->kvblk, idx, mm, &vbuf, &vlen);
   if (vlen < 4) {
     rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
     goto finish;
   }
   memcpy(&lv, vbuf, sizeof(lv));
@@ -3255,6 +3399,7 @@ iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool *out) {
   _kvblk_peek_val(cur->cn->kvblk, idx, mm, &rp, &len);
   if (len < 4) {
     rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
     goto finish;
   }
   memcpy(&num, rp, sizeof(num));
@@ -3308,6 +3453,7 @@ iwrc iwkv_cursor_dup_iter(const IWKV_cursor cur,
   _kvblk_peek_val(cur->cn->kvblk, idx, mm, &rp, &num);
   if (num < 4) {
     rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
     goto finish;
   }
   memcpy(&num, rp, sizeof(num));

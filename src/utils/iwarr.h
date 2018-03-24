@@ -22,10 +22,10 @@ IW_EXTERN_C_START
  * @param skipeq If true and `eptr` is found in array it will not be inserted and method will return -1
  * @return Index of inserted element
  */
-off_t iwarr_sorted_insert(void * restrict els,
+off_t iwarr_sorted_insert(void *restrict els,
                           size_t nels,
                           size_t elsize,
-                          void * restrict eptr,
+                          void *restrict eptr,
                           int (*cmp)(const void *, const void *),
                           bool skipeq);
 
@@ -40,18 +40,27 @@ off_t iwarr_sorted_insert(void * restrict els,
  * @param cmp Elements comparison function
  * @return `true` if element found and removed.
  */
-bool iwarr_sorted_remove(void * restrict els,
+bool iwarr_sorted_remove(void *restrict els,
                          size_t nels,
                          size_t elsize,
-                         void * restrict eptr,
+                         void *restrict eptr,
                          int (*cmp)(const void *, const void *));
 
 
-off_t iwarr_sorted_find(void * restrict els,
+off_t iwarr_sorted_find(void *restrict els,
                         size_t nels,
                         size_t elsize,
-                        void * restrict eptr,
+                        void *restrict eptr,
                         int (*cmp)(const void *, const void *));
+
+
+off_t iwarr_sorted_find2(void *restrict els,
+                         size_t nels,
+                         size_t elsize,
+                         void *restrict eptr,
+                         void *op,
+                         int (*cmp)(const void *, const void *, void *));
+
 
 
 IW_EXTERN_C_END
