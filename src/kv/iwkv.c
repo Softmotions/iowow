@@ -384,8 +384,7 @@ static_assert(DB_SZ >= DOFF_END, "DB_SZ >= DOFF_END");
 
 //-------------------------- UTILS
 
-IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
-  int rv;
+IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {  
   if (dbflg & IWDB_UINT64_KEYS) {
     uint64_t n1, n2;
     memcpy(&n1, v1, v1len);
@@ -413,7 +412,6 @@ IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const void
     return rv;
   }
 }
-
 
 IW_INLINE void _kv_val_dispose(IWKV_val *v) {
   if (v) {
