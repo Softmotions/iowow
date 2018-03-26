@@ -384,7 +384,7 @@ static_assert(DB_SZ >= DOFF_END, "DB_SZ >= DOFF_END");
 
 //-------------------------- UTILS
 
-IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {  
+IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
   if (dbflg & IWDB_UINT64_KEYS) {
     uint64_t n1, n2;
     memcpy(&n1, v1, v1len);
@@ -2511,8 +2511,13 @@ finish:
 
 //-------------------------- CACHE
 
-static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
+static iwrc _dbcache_fill_lw(IWLCTX *lx) {
   iwrc rc = 0;
+  SBLK *sdb = lx->dblk;
+  if (!sdb) {
+    rc = _sblk_at(lx, lx->db->addr, 0, &sdb);
+    RCRET(rc);
+  }
   assert(lx->db->addr == sdb->addr);
   if (sdb->lvl + 1 < DBCACHE_MIN_LEVEL + 1) {
     // avoid error: comparison is always false due to limited range of data type [-Werror=type-limits]
@@ -2572,12 +2577,6 @@ static iwrc _dbcache_fill_lw(IWLCTX *lx, SBLK *sdb) {
   return rc;
 }
 
-static iwrc _dbcache_set_lw(IWLCTX *lx, SBLK *sblk) {
-  iwrc rc = 0;
-  // todo
-  return rc;
-}
-
 static iwrc _cmp_cache_nodes(const void *v1, const void *v2, void *op, int *res) {
   KVBLK *kb;
   IWLCTX *lx = op;
@@ -2614,59 +2613,63 @@ finish:
 }
 
 static iwrc _dbcache_get(IWLCTX *lx) {
-  iwrc rc = 0;
+  iwrc rc;
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   if (cache->num == 0) {
     return 0;
   }
-  //off_t idx = iwarr_sorted_find2(cach)
-  
-  
-  //static iwrc _sblk_find_pi_mm(SBLK *sblk, const IWKV_val *key, const uint8_t *mm, bool *found, uint8_t *idxp) {
-  //  *found = false;
-  //  if (sblk->flags & SBLK_DB) {
-  //    *idxp = KVBLK_IDXNUM;
-  //    return 0;
-  //  }
-  //  uint8_t *k;
-  //  uint32_t kl;
-  //  iwdb_flags_t dbflg = sblk->db->dbflg;
-  //  int idx = 0,
-  //      lb = 0,
-  //      ub = sblk->pnum - 1;
-  //  if (sblk->pnum < 1) {
-  //    *idxp = 0;
-  //    return 0;
-  //  }
-  //  while (1) {
-  //    idx = (ub + lb) / 2;
-  //    iwrc rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
-  //    RCRET(rc);
-  //    int cr = _cmp_key(dbflg, k, kl, key->data, key->size);
-  //    if (!cr) {
-  //      *found = true;
-  //      break;
-  //    } else if (cr < 0) {
-  //      lb = idx + 1;
-  //      if (lb > ub) {
-  //        idx = lb;
-  //        break;
-  //      }
-  //    } else {
-  //      ub = idx - 1;
-  //      if (lb > ub) {
-  //        break;
-  //      }
-  //    }
-  //  }
-  //  *idxp = idx;
-  //  return 0;
-  //}
-  
+  off_t idx;
+  DBCNODE *n;
+  uint8_t dbcbuf[1024];
+  if (sizeof(DBCNODE) + lx->key->size <= sizeof(dbcbuf)) {
+    n = (DBCNODE *) dbcbuf;
+  } else {
+    n = malloc(sizeof(DBCNODE) + lx->key->size);
+    if (!n) {
+      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
+  }
+  n->lkl = lx->key->size;
+  n->fullkey = 1;
+  n->k0idx = 0;
+  n->sblkn = 0;
+  n->kblkn = 0;
+  memcpy((uint8_t *)n + offsetof(DBCNODE, lk), lx->key->data, lx->key->size);
+  rc = iwarr_sorted_find2(cache->nodes, cache->num, cache->nsize, n, lx, _cmp_cache_nodes, &idx);
+  RCGO(rc, finish);
+  if (idx > 0) {
+    DBCNODE *fn = cache->nodes + idx - 1;
+    assert(fn && idx - 1 < cache->num);
+    rc = _sblk_at(lx, BLK2ADDR(fn->sblkn), 0, &lx->lower);
+  }
+finish:
+  if ((uint8_t *)n != dbcbuf) {
+    free(n);
+  }
   return rc;
 }
 
+static iwrc _dbcache_add_lw(IWLCTX *lx, SBLK *sblk) {
+  iwrc rc = 0;
+  uint8_t *mm;
+  IWDB db = lx->db;
+  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  DBCACHE *cache = &db->cache;
+  uint8_t lvl = (sblk->lvl > DBCACHE_LEVELS) ? (sblk->lvl - DBCACHE_LEVELS + 1) : DBCACHE_MIN_LEVEL;
+  if (lvl + 1 < DBCACHE_MIN_LEVEL + 1) {
+    // avoid error: comparison is always false due to limited range of data type [-Werror=type-limits]
+    lvl = DBCACHE_MIN_LEVEL;
+  }
+  if (lvl > cache->lvl) { // need to reload full cache
+    return _dbcache_fill_lw(lx);
+  }
+  
+  // todo      
+  
+  
+  return rc;
+}
 
 //--------------------------  CURSOR
 
