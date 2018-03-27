@@ -264,6 +264,12 @@ struct IWKV_cursor {
   IWLCTX lx;                  /**< Lookup context */
 };
 
+static iwrc _dbcache_get(IWLCTX *lx);
+static iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk);
+static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk);
+static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk);
+static void _dbcache_destroy_lw(IWDB db);
+
 void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen);
 void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
 void iwkvd_db(FILE *f, IWDB db, int flags);
@@ -700,6 +706,7 @@ static iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
 
 static void _db_release_lw(IWDB *dbp) {
   assert(dbp && *dbp);
+  _dbcache_destroy_lw(*dbp);
   pthread_rwlock_destroy(&(*dbp)->rwl);
   free(*dbp);
   *dbp = 0;
@@ -2155,9 +2162,11 @@ static iwrc _lx_find_bounds(IWLCTX *lx) {
     RCRET(rc);
   }
   if (!lx->lower) {
+    // todo use cache!
     lx->lower = lx->dblk;
   }
-  if (lx->nlvl > lx->dblk->lvl) { // New level in DB
+  if (lx->nlvl > lx->dblk->lvl) { 
+    // New level in DB
     lx->dblk->lvl = lx->nlvl;
     lx->dblk->flags |= SBLK_DURTY;
   }
@@ -2349,14 +2358,12 @@ WUR iwrc _lx_addkv(IWLCTX *lx) {
     fsm->release_mmap(fsm);
     return rc;
   }
-  
   rc = _sblk_find_pi_mm(sblk, lx->key, mm, &found, &idx);
   RCRET(rc);
   if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
     fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
   }
-  
   uadd = (!found &&
           sblk->pnum > KVBLK_IDXNUM - 1 && idx > KVBLK_IDXNUM - 1 &&
           lx->upper && lx->upper->pnum < KVBLK_IDXNUM);
@@ -2512,6 +2519,13 @@ finish:
 
 //-------------------------- CACHE
 
+static void _dbcache_destroy_lw(IWDB db) {
+  if (db->cache.nodes) {
+    free(db->cache.nodes);
+  }
+  memset(&db->cache, 0, sizeof(db->cache));
+}
+
 IW_INLINE uint8_t _dbcache_lvl(uint8_t lvl) {
   uint8_t clvl = (lvl > DBCACHE_LEVELS) ? (lvl - DBCACHE_LEVELS + 1) : DBCACHE_MIN_LEVEL;
   if (clvl + 1 < DBCACHE_MIN_LEVEL + 1) {
@@ -2584,21 +2598,21 @@ static iwrc _dbcache_fill_lw(IWLCTX *lx) {
   }
   blkn_t n;
   uint8_t *wp;
-  while ((n = sblk->n[c->lvl])) {    
+  while ((n = sblk->n[c->lvl])) {
     rc = _sblk_at(lx, BLK2ADDR(n), 0, &sblk);
     RCRET(rc);
     if (sblk->pnum < 1 || offsetof(DBCNODE, lk) + sblk->lkl > c->nsize) {
       rc = IWKV_ERROR_CORRUPTED;
       iwlog_ecode_error3(rc);
       return rc;
-    }    
+    }
     DBCNODE cn = {
       .lkl = sblk->lkl,
       .fullkey = (sblk->flags & SBLK_FULL_LKEY),
       .k0idx = sblk->pi[0],
       .sblkn = ADDR2BLK(sblk->addr),
       .kblkn = sblk->kvblkn
-    };    
+    };
     if (c->asize < c->nsize * (c->num + 1)) {
       c->asize += (c->nsize * DBCACHE_ALLOC_STEP);
       wp = (uint8_t *) c->nodes;
@@ -2626,6 +2640,7 @@ static iwrc _dbcache_get(IWLCTX *lx) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   if (cache->num == 0) {
+    lx->lower = 0;
     return 0;
   }
   if (sizeof(DBCNODE) + lx->key->size <= sizeof(dbcbuf)) {
@@ -2742,7 +2757,7 @@ static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk) {
     DBCNODE *n = (DBCNODE *)(rp + i * nsize);
     if (sblkn == n->sblkn) {
       n->kblkn = sblk->kvblkn;
-      n->lkl = sblk->lkl;      
+      n->lkl = sblk->lkl;
       n->fullkey = (sblk->flags & SBLK_FULL_LKEY);
       n->k0idx = sblk->pi[0];
       memcpy((uint8_t *)n + offsetof(DBCNODE, lk), sblk->lk, sblk->lkl);
@@ -3011,7 +3026,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   (*iwkvp)->open = true;
 finish:
   if (rc) {
-    (*iwkvp)->open = true;
+    (*iwkvp)->open = true; // will be closed in iwkv_close
     IWRC(iwkv_close(iwkvp), rc);
   }
   return rc;
@@ -3027,7 +3042,6 @@ iwrc iwkv_close(IWKV *iwkvp) {
   IWDB db = iwkv->first_db;
   while (db) {
     IWDB ndb = db->next;
-    
     _db_release_lw(&db);
     db = ndb;
   }
@@ -3139,7 +3153,12 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     .opflags = opflags
   };
   API_DB_WLOCK(db, rci);
+  if (!db->cache.nodes) {
+    rc = _dbcache_fill_lw(&lx);
+    RCGO(rc, finish);
+  }
   rc = _lx_put_lw(&lx);
+finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc && (lx.opflags & IWKV_SYNC)) {
     rc = iwkv_sync(lx.db->iwkv, IWFS_NO_MMASYNC);
@@ -3160,8 +3179,17 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     .nlvl = -1
   };
   oval->size = 0;
-  API_DB_RLOCK(db, rci);
+  if (IW_LIKELY(db->cache.nodes)) {
+    API_DB_RLOCK(db, rci);
+  } else {
+    API_DB_WLOCK(db, rci);
+    if (!db->cache.nodes) {
+      rc = _dbcache_fill_lw(&lx);
+      RCGO(rc, finish);
+    }
+  }
   rc = _lx_get_lr(&lx);
+finish:
   API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
@@ -3179,7 +3207,12 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
     .op = IWLCTX_DEL
   };
   API_DB_WLOCK(db, rci);
+  if (!db->cache.nodes) {
+    rc = _dbcache_fill_lw(&lx);
+    RCGO(rc, finish);
+  }
   rc = _lx_del_lw(&lx);
+finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc && (lx.opflags & IWKV_SYNC)) {
     rc = iwkv_sync(lx.db->iwkv, IWFS_NO_MMASYNC);
@@ -3216,12 +3249,15 @@ iwrc iwkv_cursor_open(IWDB db,
   int rci;
   iwrc rc = _db_worker_inc_nolk(db);
   RCRET(rc);
-  rc = _api_db_rlock(db);
+  if (IW_LIKELY(db->cache.nodes)) {
+    rc = _api_db_rlock(db);
+  } else {
+    rc = _api_db_wlock(db);
+  }
   if (rc) {
     _db_worker_dec_nolk(db);
     return rc;
   }
-  RCRET(rc);
   *curptr = calloc(1, sizeof(**curptr));
   if (!curptr) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -3231,6 +3267,10 @@ iwrc iwkv_cursor_open(IWDB db,
   cur->lx.db = db;
   cur->lx.key = key;
   cur->lx.nlvl = -1;
+  if (!db->cache.nodes) {
+    rc = _dbcache_fill_lw(&cur->lx);
+    RCGO(rc, finish);
+  }
   rc = _cursor_to_lr(cur, op);
 finish:
   if (rc && cur) {
