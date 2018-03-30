@@ -54,13 +54,12 @@ off_t iwarr_sorted_find(void *restrict els,
                         int (*cmp)(const void *, const void *));
 
 
-iwrc iwarr_sorted_find2(void *restrict els,
+off_t iwarr_sorted_find2(void *restrict els,
                          size_t nels,
                          size_t elsize,
                          void *restrict eptr,
                          void *op,
-                         iwrc (*cmp)(const void *, const void *, void *, int *res),
-                         off_t *res);
+                         iwrc(*cmp)(const void *, const void *, void *, int *res));
 
 
 
