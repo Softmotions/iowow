@@ -1879,7 +1879,8 @@ IW_INLINE iwrc _sblk_sync_and_release(IWLCTX *lx, SBLK **sblkp) {
     RCRET(rc);
     rc = _sblk_sync_mm(lx, *sblkp, mm);
     _sblk_release(lx, sblkp);
-    return fsm->release_mmap(fsm);
+    fsm->release_mmap(fsm);
+    return rc; 
   } else {
     _sblk_release(lx, sblkp);
     return 0;
