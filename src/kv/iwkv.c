@@ -2252,7 +2252,7 @@ static iwrc _lx_release_mm(IWLCTX *lx, uint8_t *mm) {
   if (lx->nlvl > -1) {
     SBLK *lsb = 0, *usb = 0;
     if (lx->nb) {
-      rc = _sblk_sync_and_release_mm(lx, &lx->nb, mm);
+      rc = _sblk_sync_mm(lx, lx->nb, mm);
       RCRET(rc);
     }
     if (lx->pupper[0] == lx->upper) {
@@ -2292,7 +2292,14 @@ static iwrc _lx_release_mm(IWLCTX *lx, uint8_t *mm) {
     rc = _sblk_sync_mm(lx, lx->dblk, mm);
     RCRET(rc);
   }
-  if (lx->cache_reload) {    
+  if (lx->nb) {
+    if (lx->nb->flags & SBLK_CACHE_PUT) {
+      rc = _dbcache_put_lw(lx, lx->nb);
+    }
+    _sblk_release(lx, &lx->nb);
+    RCRET(rc);
+  }
+  if (lx->cache_reload) {
     rc = _dbcache_fill_lw(lx);
   }
   return rc;
@@ -2790,7 +2797,7 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
   if (sblk->lvl < cache->lvl) {
     return;
   }
-  if (cache->lvl > DBCACHE_MIN_LEVEL && lx->dblk->lvl < sblk->lvl) { 
+  if (cache->lvl > DBCACHE_MIN_LEVEL && lx->dblk->lvl < sblk->lvl) {
     // Database level reduced so we need to shift cache down
     lx->cache_reload = 1;
     return;
@@ -2808,7 +2815,7 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
       --cache->num;
       break;
     }
-  }  
+  }
 }
 
 static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk) {
