@@ -246,12 +246,13 @@ typedef struct IWLCTX {
 #ifndef NDEBUG
   uint32_t num_cmps;
 #endif
+  iwkv_opflags opflags;       /**< Operation flags */
+  sblk_flags_t sblk_flags;    /**< `SBLK` flags applied to all new/looked blocks in this context */
+  iwlctx_op_t op;             /**< Context operation */
   uint8_t saan;               /**< Position of next free `SBLK` element in the `saa` area */
   uint8_t kaan;               /**< Position of next free `KVBLK` element in the `kaa` area */
   int8_t nlvl;                /**< Level of new inserted/deleted `SBLK` node. -1 if no new node inserted/deleted */
-  iwlctx_op_t op;             /**< Context operation */
-  iwkv_opflags opflags;       /**< Operation flags */
-  sblk_flags_t sblk_flags;    /**< `SBLK` flags applied to all new/looked blocks in this context */
+  int8_t cache_reload;        /**< If true dbcache should be refreshed after operation */
   SBLK *plower[SLEVELS];      /**< Pinned lower nodes per level */
   SBLK *pupper[SLEVELS];      /**< Pinned upper nodes per level */
   SBLK saa[AANUM];            /**< `SBLK` allocation area */
@@ -267,6 +268,7 @@ struct IWKV_cursor {
   IWLCTX lx;                  /**< Lookup context */
 };
 
+static iwrc _dbcache_fill_lw(IWLCTX *lx);
 static iwrc _dbcache_get(IWLCTX *lx);
 static iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk);
 static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk);
@@ -1603,7 +1605,9 @@ finish:
 
 IW_INLINE void _sblk_release(IWLCTX *lx, SBLK **sblkp) {
   assert(sblkp && *sblkp);
-  (*sblkp)->kvblk = 0;
+  SBLK *sblk = *sblkp;
+  sblk->flags &= ~SBLK_CACHE_FLAGS; // clear cache flags
+  sblk->kvblk = 0;
   *sblkp = 0;
 }
 
@@ -1769,6 +1773,11 @@ static WUR iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp
       goto finish;
     }
     memcpy(&sblk->pnum, rp++, 1);
+    if (sblk->pnum < 0) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      goto finish;
+    }
     memcpy(&sblk->p0, rp, 4);
     sblk->p0 = IW_ITOHL(sblk->p0);
     rp += 4;
@@ -1853,9 +1862,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   if (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY)) {
     _kvblk_sync_mm(sblk->kvblk, mm);
   }
-  if (sblk->flags & SBLK_CACHE_PUT) {
-    rc = _dbcache_put_lw(lx, sblk);
-  } else if (sblk->flags & SBLK_CACHE_UPDATE) {
+  if (sblk->flags & SBLK_CACHE_UPDATE) {
     _dbcache_update_lw(lx, sblk);
   }
   return rc;
@@ -2283,6 +2290,10 @@ static iwrc _lx_release_mm(IWLCTX *lx, uint8_t *mm) {
   }
   if (lx->dblk && (lx->dblk->flags & SBLK_DURTY)) {
     rc = _sblk_sync_mm(lx, lx->dblk, mm);
+    RCRET(rc);
+  }
+  if (lx->cache_reload) {    
+    rc = _dbcache_fill_lw(lx);
   }
   return rc;
 }
@@ -2292,7 +2303,7 @@ iwrc _lx_release(IWLCTX *lx) {
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-  rc = _lx_release_mm(lx, mm);  
+  rc = _lx_release_mm(lx, mm);
   IWRC(fsm->release_mmap(fsm), rc);
   return rc;
 }
@@ -2586,7 +2597,7 @@ static void _dbcache_destroy_lw(IWDB db) {
 }
 
 IW_INLINE uint8_t _dbcache_lvl(uint8_t lvl) {
-  uint8_t clvl = (lvl > DBCACHE_LEVELS) ? (lvl - DBCACHE_LEVELS + 1) : DBCACHE_MIN_LEVEL;
+  uint8_t clvl = (lvl >= DBCACHE_LEVELS) ? (lvl - DBCACHE_LEVELS + 1) : DBCACHE_MIN_LEVEL;
   if (clvl + 1 < DBCACHE_MIN_LEVEL + 1) {
     // avoid error: comparison is always false due to limited range of data type [-Werror=type-limits]
     clvl = DBCACHE_MIN_LEVEL;
@@ -2632,6 +2643,7 @@ finish:
 static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
   iwrc rc = 0;
   SBLK *sdb = lx->dblk;
+  lx->cache_reload = 0;
   if (!sdb) {
     rc = _sblk_at(lx, lx->db->addr, 0, &sdb);
     RCRET(rc);
@@ -2660,11 +2672,7 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
   while ((n = sblk->n[c->lvl])) {
     rc = _sblk_at(lx, BLK2ADDR(n), 0, &sblk);
     RCRET(rc);
-    if (sblk->pnum < 1 || offsetof(DBCNODE, lk) + sblk->lkl > c->nsize) {
-      rc = IWKV_ERROR_CORRUPTED;
-      iwlog_ecode_error3(rc);
-      return rc;
-    }
+    assert(offsetof(DBCNODE, lk) + sblk->lkl <= c->nsize);
     DBCNODE cn = {
       .lkl = sblk->lkl,
       .fullkey = (sblk->flags & SBLK_FULL_LKEY),
@@ -2698,8 +2706,7 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   uint8_t dbcbuf[1024];
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
-  if (cache->num == 0) {
-    lx->lower = 0;
+  if (lx->nlvl > -1 || !cache->nodes || cache->num == 0) {
     return 0;
   }
   if (sizeof(DBCNODE) + lx->key->size <= sizeof(dbcbuf)) {
@@ -2721,6 +2728,8 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
     DBCNODE *fn = cache->nodes + idx - 1;
     assert(fn && idx - 1 < cache->num);
     rc = _sblk_at(lx, BLK2ADDR(fn->sblkn), 0, &lx->lower);
+  } else if (!lx->lower) {
+    lx->lower = lx->dblk;
   }
   if ((uint8_t *)n != dbcbuf) {
     free(n);
@@ -2741,7 +2750,8 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
     return 0;
   }
   if (sblk->lvl >= cache->lvl + DBCACHE_LEVELS) { // need to reload full cache
-    return _dbcache_fill_lw(lx);
+    lx->cache_reload = 1;
+    return 0;
   }
   if (!sblk->kvblk) {
     assert(sblk->kvblk);
@@ -2759,7 +2769,10 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
     size_t nsz = cache->asize + (nsize * DBCACHE_ALLOC_STEP);
     DBCNODE *nodes = realloc(cache->nodes, nsz);
     if (!nodes) {
-      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+      iwrc rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+      free(cache->nodes);
+      cache->nodes = 0;
+      return rc;
     }
     cache->asize = nsz;
     cache->nodes = nodes;
@@ -2767,6 +2780,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   uint8_t *cptr = (uint8_t *) cache->nodes;
   memmove(cptr + (idx + 1) * nsize, cptr + idx * nsize, (cache->num - idx) * nsize);
   memcpy(cptr + idx * nsize, n, cache->nsize);
+  ++cache->num;
   return 0;
 }
 
@@ -2789,6 +2803,10 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
       --cache->num;
       break;
     }
+  }
+  if (cache->lvl > DBCACHE_MIN_LEVEL && lx->dblk->lvl < sblk->lvl) { 
+    // Database level reduced so we need to shift cache down
+    lx->cache_reload = 1;
   }
 }
 
