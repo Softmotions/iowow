@@ -2790,6 +2790,11 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
   if (sblk->lvl < cache->lvl) {
     return;
   }
+  if (cache->lvl > DBCACHE_MIN_LEVEL && lx->dblk->lvl < sblk->lvl) { 
+    // Database level reduced so we need to shift cache down
+    lx->cache_reload = 1;
+    return;
+  }
   blkn_t sblkn = ADDR2BLK(sblk->addr);
   size_t num = cache->num;
   size_t nsize = cache->nsize;
@@ -2803,11 +2808,7 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
       --cache->num;
       break;
     }
-  }
-  if (cache->lvl > DBCACHE_MIN_LEVEL && lx->dblk->lvl < sblk->lvl) { 
-    // Database level reduced so we need to shift cache down
-    lx->cache_reload = 1;
-  }
+  }  
 }
 
 static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk) {
