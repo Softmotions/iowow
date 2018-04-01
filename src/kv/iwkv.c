@@ -136,7 +136,7 @@ typedef enum {
 
 #define IWDB_UINT_KEYS_FLAGS (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)
 
-// Number of top levels to cache (~ 1023 cached elements)
+// Number of top levels to cache (~ (1<<DBCACHE_LEVELS) cached elements)
 #define DBCACHE_LEVELS 10
 
 // Minimal cached level
@@ -2715,6 +2715,7 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   if (lx->nlvl > -1 || !cache->nodes || cache->num == 0) {
+    lx->lower = lx->dblk;
     return 0;
   }
   if (sizeof(DBCNODE) + lx->key->size <= sizeof(dbcbuf)) {
@@ -2736,8 +2737,6 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
     DBCNODE *fn = (DBCNODE *)((uint8_t *)cache->nodes + (idx - 1) * cache->nsize);
     assert(fn && idx - 1 < cache->num);
     rc = _sblk_at(lx, BLK2ADDR(fn->sblkn), 0, &lx->lower);
-  } else if (!lx->lower) {
-    lx->lower = lx->dblk;
   }
   if ((uint8_t *)n != dbcbuf) {
     free(n);
@@ -2754,7 +2753,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   register size_t nsize = cache->nsize;
   
   assert(sizeof(*cache) + sblk->lkl <= sizeof(dbcbuf));
-  if (sblk->pnum < 1 || sblk->lvl < cache->lvl) {
+  if (sblk->pnum < 1 || sblk->lvl < cache->lvl || !cache->nodes) {
     return 0;
   }
   if (sblk->lvl >= cache->lvl + DBCACHE_LEVELS) { // need to reload full cache

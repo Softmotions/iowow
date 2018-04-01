@@ -1,0 +1,1 @@
+time ./leveldb_benchmark -b fillseq,readrandom -vz 2000 -n 1000000
