@@ -2219,9 +2219,6 @@ static WUR iwrc _lx_find_bounds(IWLCTX *lx) {
   if (!lx->lower) {
     rc = _dbcache_get(lx);
     RCRET(rc);
-    if (!lx->lower) {
-      lx->lower = lx->dblk;
-    }
   }
   if (lx->nlvl > lx->dblk->lvl) {
     // New level in DB
