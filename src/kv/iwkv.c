@@ -2655,18 +2655,19 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
     rc = _sblk_at(lx, lx->db->addr, 0, &sdb);
     RCRET(rc);
   }
+  IWDB db = lx->db;
+  SBLK *sblk = sdb;
+  DBCACHE *c = &db->cache;
+  if (c->nodes) {
+    free(c->nodes);
+    c->nodes = 0;
+  }
   assert(lx->db->addr == sdb->addr);
   if (sdb->lvl + 1 < DBCACHE_MIN_LEVEL + 1) {
     // avoid error: comparison is always false due to limited range of data type [-Werror=type-limits]
     return 0;
   }
-  IWDB db = lx->db;
-  SBLK *sblk = sdb;
-  DBCACHE *c = &db->cache;
   c->lvl = _dbcache_lvl(sdb->lvl);
-  if (c->nodes) {
-    free(c->nodes);
-  }
   c->num = 0;
   c->nsize = (lx->db->dbflg & IWDB_UINT_KEYS_FLAGS) ? DBCNODE_NUM_SZ : DBCNODE_STR_SZ;
   c->asize = c->nsize * ((1 << DBCACHE_LEVELS) + DBCACHE_ALLOC_STEP);
@@ -2732,7 +2733,7 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   memcpy((uint8_t *)n + offsetof(DBCNODE, lk), lx->key->data, lx->key->size);
   idx = iwarr_sorted_find2(cache->nodes, cache->num, cache->nsize, n, lx, _dbcache_cmp_nodes);
   if (idx > 0) {
-    DBCNODE *fn = cache->nodes + idx - 1;
+    DBCNODE *fn = (DBCNODE *)((uint8_t *)cache->nodes + (idx - 1) * cache->nsize);
     assert(fn && idx - 1 < cache->num);
     rc = _sblk_at(lx, BLK2ADDR(fn->sblkn), 0, &lx->lower);
   } else if (!lx->lower) {
@@ -2771,7 +2772,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   n->kblkn = sblk->kvblkn;
   memcpy((uint8_t *)n + offsetof(DBCNODE, lk), sblk->lk, sblk->lkl);
   
-  idx = iwarr_sorted_find2(cache->nodes, cache->num, nsize, &n, lx, _dbcache_cmp_nodes);
+  idx = iwarr_sorted_find2(cache->nodes, cache->num, nsize, n, lx, _dbcache_cmp_nodes);
   if (cache->asize <= cache->num * nsize) {
     size_t nsz = cache->asize + (nsize * DBCACHE_ALLOC_STEP);
     DBCNODE *nodes = realloc(cache->nodes, nsz);
@@ -2786,7 +2787,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   }
   uint8_t *cptr = (uint8_t *) cache->nodes;
   memmove(cptr + (idx + 1) * nsize, cptr + idx * nsize, (cache->num - idx) * nsize);
-  memcpy(cptr + idx * nsize, n, cache->nsize);
+  memcpy(cptr + idx * nsize, n, nsize);
   ++cache->num;
   return 0;
 }
@@ -3679,4 +3680,4 @@ finish:
   return rc;
 }
 
-#include "iwkvdbg.c"
+#include "iwkvdbg.inc"

@@ -105,7 +105,7 @@
     <File Name="src/basedefs.h"/>
     <File Name="src/iowow.c"/>
     <VirtualDirectory Name="kv">
-      <File Name="src/kv/iwkvdbg.c"/>
+      <File Name="src/kv/iwkvdbg.inc"/>
       <VirtualDirectory Name="benchmark">
         <File Name="src/kv/benchmark/lmdb_benchmark.c"/>
         <File Name="src/kv/benchmark/leveldb_benchmark.c"/>
