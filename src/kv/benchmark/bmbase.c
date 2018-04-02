@@ -7,6 +7,8 @@
 
 char *g_program;
 
+uint32_t _execsize();
+
 typedef struct BMCTX BMCTX;
 
 typedef bool (bench_method(BMCTX *bmctx));
@@ -79,7 +81,7 @@ static const char *_bmctx_rndbuf_nextptr(BMCTX *ctx, int len) {
 
 static bool _bm_check() {
   if (!bm.env_setup) {
-    fprintf(stderr, "print_env function is not set\n");
+    fprintf(stderr, "env_setup function is not set\n");
     return false;
   }
   if (!bm.db_open) {
@@ -242,8 +244,10 @@ static bool _bm_init(int argc, char *argv[]) {
   iwu_rand_seed(bm.param_seed);
   srandom(bm.param_seed);
   fprintf(stderr,
+          "\n exec size: %u"
           "\n random seed: %u"
           "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n\n",
+          _execsize(),
           bm.param_seed, bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
           
   // Fill up random data array
@@ -258,6 +262,17 @@ static void _logdbsize(BMCTX *ctx) {
     uint64_t dbz = bm.db_size_bytes(ctx);
     fprintf(stderr, " db size: %lu (%lu MB)\n", dbz, (dbz / 1024 / 1024));
   }
+}
+
+uint32_t _execsize() {
+  const char *path = g_program;
+  IWP_FILE_STAT fst;
+  iwrc rc = iwp_fstat(path, &fst);
+  if (rc) {
+    iwlog_ecode_error3(rc);
+    return 0;
+  }
+  return fst.size;
 }
 
 static void _bm_run(BMCTX *ctx) {
