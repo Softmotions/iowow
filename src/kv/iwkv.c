@@ -10,7 +10,7 @@
 #include <stdatomic.h>
 
 // Hardcoded requirements (fixme)
-// CMakeLists.txt defines: -D_LARGEFILE_SOURCE=1 D_FILE_OFFSET_BITS=64 
+// CMakeLists.txt defines: -D_LARGEFILE_SOURCE=1 D_FILE_OFFSET_BITS=64
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
@@ -167,11 +167,11 @@ static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
 
 /** Tallest SBLK nodes cache */
 typedef struct DBCACHE {
-  uint64_t atime;             /**< Cache access time */
   size_t asize;               /**< Size of allocated cache buffer */
   size_t num;                 /**< Actual number of nodes */
   size_t nsize;               /**< Cached node size */
   uint8_t lvl;                /**< Lowes cached level */
+  bool open;                  /**< Is cache open */
   DBCNODE *nodes;             /**< Sorted nodes array */
 } DBCACHE;
 
@@ -1723,7 +1723,7 @@ static WUR iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp
   uint32_t lv;
   sblk_flags_t flags = lx->sblk_flags | flgs;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  *sblkp = 0;  
+  *sblkp = 0;
   SBLK *sblk = &lx->saa[lx->saan];
   sblk->kvblk = 0;
   sblk->db = lx->db;
@@ -1857,7 +1857,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       }
       wp = mm + sblk->addr + SOFF_LK;
       memcpy(wp, sblk->lk, sblk->lkl);
-    }      
+    }
   }
   if (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY)) {
     _kvblk_sync_mm(sblk->kvblk, mm);
@@ -2602,8 +2602,7 @@ static void _dbcache_destroy_lw(IWDB db) {
 
 IW_INLINE uint8_t _dbcache_lvl(uint8_t lvl) {
   uint8_t clvl = (lvl >= DBCACHE_LEVELS) ? (lvl - DBCACHE_LEVELS + 1) : DBCACHE_MIN_LEVEL;
-  if (clvl + 1 < DBCACHE_MIN_LEVEL + 1) {
-    // avoid error: comparison is always false due to limited range of data type [-Werror=type-limits]
+  if (clvl < DBCACHE_MIN_LEVEL) {
     clvl = DBCACHE_MIN_LEVEL;
   }
   return clvl;
@@ -2655,23 +2654,24 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
   IWDB db = lx->db;
   SBLK *sblk = sdb;
   DBCACHE *c = &db->cache;
+  assert(lx->db->addr == sdb->addr);
+  c->num = 0;
   if (c->nodes) {
     free(c->nodes);
     c->nodes = 0;
   }
-  assert(lx->db->addr == sdb->addr);
-  if (sdb->lvl + 1 < DBCACHE_MIN_LEVEL + 1) {
-    // avoid error: comparison is always false due to limited range of data type [-Werror=type-limits]
+  if (sdb->lvl < DBCACHE_MIN_LEVEL) {
+    c->open = true;
     return 0;
   }
   c->lvl = _dbcache_lvl(sdb->lvl);
-  c->num = 0;
   c->nsize = (lx->db->dbflg & IWDB_UINT_KEYS_FLAGS) ? DBCNODE_NUM_SZ : DBCNODE_STR_SZ;
   c->asize = c->nsize * ((1 << DBCACHE_LEVELS) + DBCACHE_ALLOC_STEP);
   c->nodes = malloc(c->asize);
   if (!c->nodes) {
+    c->open = false;
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-  }
+  }  
   blkn_t n;
   uint8_t *wp;
   while ((n = sblk->n[c->lvl])) {
@@ -2690,6 +2690,7 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
       wp = (uint8_t *) c->nodes;
       c->nodes = realloc(c->nodes, c->asize);
       if (!c->nodes) {
+        c->open = false;
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         free(wp);
         return rc;
@@ -2701,7 +2702,8 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
     memcpy(wp, sblk->lk, sblk->lkl);
     ++c->num;
   }
-  return rc;
+  c->open = true;
+  return 0;
 }
 
 static WUR iwrc _dbcache_get(IWLCTX *lx) {
@@ -2711,10 +2713,11 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   uint8_t dbcbuf[1024];
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
-  if (lx->nlvl > -1 || !cache->nodes || cache->num == 0) {
+  if (lx->nlvl > -1 || cache->num < 1) {
     lx->lower = lx->dblk;
     return 0;
   }
+  assert(cache->nodes);
   if (sizeof(DBCNODE) + lx->key->size <= sizeof(dbcbuf)) {
     n = (DBCNODE *) dbcbuf;
   } else {
@@ -2752,10 +2755,10 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   register size_t nsize = cache->nsize;
   
   assert(sizeof(*cache) + sblk->lkl <= sizeof(dbcbuf));
-  if (sblk->pnum < 1 || sblk->lvl < cache->lvl || !cache->nodes) {
+  if (sblk->pnum < 1 || sblk->lvl < cache->lvl) {
     return 0;
   }
-  if (sblk->lvl >= cache->lvl + DBCACHE_LEVELS) { // need to reload full cache
+  if (sblk->lvl >= cache->lvl + DBCACHE_LEVELS || !cache->nodes) { // need to reload full cache
     lx->cache_reload = 1;
     return 0;
   }
@@ -2793,7 +2796,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
 static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
-  if (sblk->lvl < cache->lvl) {
+  if (sblk->lvl < cache->lvl || cache->num < 1) {
     return;
   }
   if (cache->lvl > DBCACHE_MIN_LEVEL && lx->dblk->lvl < sblk->lvl) {
@@ -2821,7 +2824,7 @@ static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   assert(sblk->pnum > 0);
-  if (sblk->lvl < cache->lvl) {
+  if (sblk->lvl < cache->lvl || cache->num < 1) {
     return;
   }
   blkn_t sblkn = ADDR2BLK(sblk->addr);
@@ -3230,7 +3233,7 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     .opflags = opflags
   };
   API_DB_WLOCK(db, rci);
-  if (!db->cache.nodes) {
+  if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
     RCGO(rc, finish);
   }
@@ -3256,11 +3259,11 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     .nlvl = -1
   };
   oval->size = 0;
-  if (IW_LIKELY(db->cache.nodes)) {
+  if (IW_LIKELY(db->cache.open)) {
     API_DB_RLOCK(db, rci);
   } else {
     API_DB_WLOCK(db, rci);
-    if (!db->cache.nodes) {
+    if (!db->cache.open) {
       rc = _dbcache_fill_lw(&lx);
       RCGO(rc, finish);
     }
@@ -3284,7 +3287,7 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
     .op = IWLCTX_DEL
   };
   API_DB_WLOCK(db, rci);
-  if (!db->cache.nodes) {
+  if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
     RCGO(rc, finish);
   }
@@ -3327,7 +3330,7 @@ iwrc iwkv_cursor_open(IWDB db,
   int rci;
   iwrc rc = _db_worker_inc_nolk(db);
   RCRET(rc);
-  if (IW_LIKELY(db->cache.nodes)) {
+  if (IW_LIKELY(db->cache.open)) {
     rc = _api_db_rlock(db);
   } else {
     rc = _api_db_wlock(db);
@@ -3345,7 +3348,7 @@ iwrc iwkv_cursor_open(IWDB db,
   cur->lx.db = db;
   cur->lx.key = key;
   cur->lx.nlvl = -1;
-  if (!db->cache.nodes) {
+  if (!db->cache.open) {
     rc = _dbcache_fill_lw(&cur->lx);
     RCGO(rc, finish);
   }
