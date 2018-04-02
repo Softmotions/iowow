@@ -10,7 +10,7 @@
 #include <stdatomic.h>
 
 // Hardcoded requirements (fixme)
-// Defined on CMakeLists.txt -D_LARGEFILE_SOURCE=1 D_FILE_OFFSET_BITS=64 
+// Defined in CMakeLists.txt -D_LARGEFILE_SOURCE=1 D_FILE_OFFSET_BITS=64 
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
