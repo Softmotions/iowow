@@ -80,18 +80,18 @@ set_target_properties(lmdb_benchmark
 # KyotoCabinet 
 ExternalProject_Add(
   extern_kyc
-  GIT_REPOSITORY https://github.com/cloudflare/kyotocabinet.git
+  GIT_REPOSITORY git@github.com:Softmotions/kyotocabinet.git
   GIT_TAG master
   PREFIX ${CMAKE_BINARY_DIR}
-  BUILD_ALWAYS OFF
   BUILD_IN_SOURCE ON
   GIT_PROGRESS ON
   UPDATE_DISCONNECTED ON
-  BUILD_COMMAND ./configure --disable-zlib --prefix=${CMAKE_BINARY_DIR}/src/extern_kyc/install && make
-  CONFIGURE_COMMAND ""
+  BUILD_COMMAND make
+  CONFIGURE_COMMAND ./configure --disable-zlib --prefix=${CMAKE_BINARY_DIR}/src/extern_kyc/install
   INSTALL_COMMAND make install
   LOG_DOWNLOAD ON
-  LOG_BUILD ON
+  LOG_BUILD OFF
+  LOG_CONFIGURE OFF
 )
 set(KYC_SOURCE_DIR "${CMAKE_BINARY_DIR}/src/extern_kyc")
 set(KYC_BINARY_DIR "${CMAKE_BINARY_DIR}/src/extern_kyc")

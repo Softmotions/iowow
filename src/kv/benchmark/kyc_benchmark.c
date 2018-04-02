@@ -1,19 +1,32 @@
 #include "bmbase.c"
 #include <kclangc.h>
 
+#define DEFAULT_DB "iwkv_bench.kct"
+
 typedef struct BM_KYC {
   KCDB *db;
 } BM_KYC;
 
 static void env_setup() {
-  printf("KyotoCabinet %s\n", KCVERSION);
+  printf(" engine: KyotoCabinet %s\n", KCVERSION);
+}
+
+uint64_t db_size_bytes(BMCTX *ctx) {
+  const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
+  IWP_FILE_STAT fst;
+  iwrc rc = iwp_fstat(path, &fst);
+  if (rc) {
+    iwlog_ecode_error3(rc);
+    return 0;
+  }
+  return fst.size;
 }
 
 static void *db_open(BMCTX *ctx) {
   if (ctx->db) {
     return 0; // db is not closed properly
   }
-  const char *path = bm.param_db ? bm.param_db : "iwkv_bench.kct";
+  const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
   BM_KYC *bmdb = malloc(sizeof(*bmdb));
   bmdb->db = kcdbnew();
   uint32_t mode = KCOWRITER | KCOCREATE;
@@ -144,6 +157,7 @@ int main(int argc, char **argv) {
   if (argc < 1) return -1;
   g_program = argv[0];
   bm.env_setup = env_setup;
+  bm.db_size_bytes = db_size_bytes;
   bm.val_free = kcfree;
   bm.db_open = db_open;
   bm.db_close = db_close;

@@ -33,11 +33,13 @@ struct BM {
   bool (*db_cursor_to_key)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
   bool (*db_del)(BMCTX *ctx, const IWKV_val *key, bool sync);
   bool (*db_read_seq)(BMCTX *ctx, bool reverse);
+  uint64_t (*db_size_bytes)(BMCTX *ctx);
 } bm = {0};
 
 struct BMCTX {
   bool success;
   bool freshdb;
+  bool logdbsize;
   char *name;
   int num;
   int value_size;
@@ -249,6 +251,13 @@ static bool _bm_init(int argc, char *argv[]) {
     RND_DATA[i] = ' ' + iwu_rand_range(95); // ascii space ... ~
   }
   return true;
+}
+
+static void _logdbsize(BMCTX *ctx) {
+  if (bm.db_size_bytes) {
+    uint64_t dbz = bm.db_size_bytes(ctx);
+    fprintf(stderr, " db size: %lu (%lu MB)\n", dbz, (dbz / 1024 / 1024));
+  }
 }
 
 static void _bm_run(BMCTX *ctx) {
@@ -485,30 +494,40 @@ static bool _bm_seekrandom(BMCTX *ctx) {
 
 static BMCTX *_bmctx_create(const char *name) {
   bench_method *method = 0;
+  bool logdbsize = false;
   bool freshdb = false;
   if (!strcmp(name, "fillseq")) {
     freshdb = true;
+    logdbsize = true;
     method = _bm_fillseq;
   } else if (!strcmp(name, "fillseq2")) {
     freshdb = true;
+    logdbsize = true;
     method = _bm_fillseq2;
   } else if (!strcmp(name, "fillrandom")) {
     freshdb = true;
+    logdbsize = true;
     method = _bm_fillrandom;
   } else if (!strcmp(name, "fillrandom2")) {
     freshdb = true;
+    logdbsize = true;
     method = _bm_fillrandom2;
   } else if (!strcmp(name, "overwrite")) {
+    logdbsize = true;
     method = _bm_overwrite;
   } else if (!strcmp(name, "fillsync")) {
     freshdb = true;
+    logdbsize = true;
     method = _bm_fillsync;
   } else if (!strcmp(name, "fill100K")) {
     freshdb = true;
+    logdbsize = true;
     method = _bm_fill100K;
   } else if (!strcmp(name, "deleteseq")) {
+    logdbsize = true;
     method = _bm_deleteseq;
   } else if (!strcmp(name, "deleterandom")) {
+    logdbsize = true;
     method = _bm_deleterandom;
   } else if (!strcmp(name, "readseq")) {
     method = _bm_readseq;
@@ -532,6 +551,7 @@ static BMCTX *_bmctx_create(const char *name) {
   bmctx->num = bm.param_num;
   bmctx->value_size = bm.param_value_size;
   bmctx->freshdb = freshdb;
+  bmctx->logdbsize = logdbsize;
   return bmctx;
 }
 
@@ -551,13 +571,16 @@ static bool bm_bench_run(int argc, char *argv[]) {
       BMCTX *ctx = _bmctx_create(bname);
       c = 0;
       if (ctx) {
-        printf("Starting benchmark: '%s'\n", bname);
+        printf(" benchmark: %s\n", bname);
         _bm_run(ctx);
         bmres = ctx->success;
         if (!bmres) {
           fprintf(stderr, "Failed to run benchmark: %s\n", bname);
         } else {
-          printf("Done '%s' in %ld\n", bname, (ctx->end_ms - ctx->start_ms));
+          printf(" done: %s in %ld\n", bname, (ctx->end_ms - ctx->start_ms));
+        }
+        if (ctx->logdbsize) {
+          _logdbsize(ctx);
         }
         _bmctx_dispose(ctx);
       }

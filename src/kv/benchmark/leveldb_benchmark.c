@@ -1,7 +1,8 @@
 #include "bmbase.c"
+#include <dirent.h>
 #include <leveldb/c.h>
 
-#define DBDIR "leveldb_bench.db"
+#define DEFAULT_DB "leveldb_bench.db"
 
 typedef struct BM_LEVELDB {
   leveldb_t *db;
@@ -9,14 +10,34 @@ typedef struct BM_LEVELDB {
 } BM_LEVELDB;
 
 static void env_setup() {
-  printf("LevelDB %d.%d\n", leveldb_major_version(), leveldb_minor_version());
-  const char *path;
-  if (bm.param_db) {
-    path = bm.param_db;
-  } else {
-    path = DBDIR;
-  }
+  printf(" engine: LevelDB %d.%d\n", leveldb_major_version(), leveldb_minor_version());
+  const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
   iwp_removedir(path);
+}
+
+uint64_t db_size_bytes(BMCTX *ctx) {
+  char buf[PATH_MAX + 1];
+  DIR *d;
+  uint64_t sz = 0;
+  struct dirent *dir;
+  const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
+  d = opendir(path);
+  if (d) {
+    while ((dir = readdir(d))) {
+      snprintf(buf, sizeof(buf), "%s/%s", path, dir->d_name);
+      IWP_FILE_STAT fst;
+      iwrc rc = iwp_fstat(buf, &fst);
+      if (rc) {
+        iwlog_ecode_error3(rc);
+        return 0;
+      }
+      if (fst.ftype == IWP_TYPE_FILE) {
+        sz += fst.size;
+      }
+    }
+    closedir(d);
+  }
+  return sz;
 }
 
 static void *db_open(BMCTX *ctx) {
@@ -24,12 +45,7 @@ static void *db_open(BMCTX *ctx) {
     return 0; // db is not closed properly
   }
   char *err = 0;
-  const char *path;
-  if (bm.param_db) {
-    path = bm.param_db;
-  } else {
-    path = DBDIR;
-  }
+  const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
   BM_LEVELDB *bmdb = malloc(sizeof(*bmdb));
   bmdb->options = leveldb_options_create();
   leveldb_options_set_create_if_missing(bmdb->options, 1);
@@ -145,8 +161,8 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
 }
 
 static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
-  BM_LEVELDB *bmdb = ctx->db;  
-  bool ret = true;  
+  BM_LEVELDB *bmdb = ctx->db;
+  bool ret = true;
   leveldb_readoptions_t *ropt = leveldb_readoptions_create();
   leveldb_iterator_t *it = leveldb_create_iterator(bmdb->db, ropt);
   leveldb_iter_seek(it, key->data, key->size);
@@ -155,7 +171,7 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
   val->size = 0;
   if (*found) {
     size_t vlen;
-    const char *v = leveldb_iter_value(it, &vlen);    
+    const char *v = leveldb_iter_value(it, &vlen);
     val->data = malloc(vlen);
     memcpy(val->data, v, vlen);
   }
@@ -169,6 +185,7 @@ int main(int argc, char **argv) {
   if (argc < 1) return -1;
   g_program = argv[0];
   bm.env_setup = env_setup;
+  bm.db_size_bytes = db_size_bytes;
   bm.db_open = db_open;
   bm.db_close = db_close;
   bm.db_put = db_put;
@@ -181,4 +198,3 @@ int main(int argc, char **argv) {
   }
   return 0;
 }
-

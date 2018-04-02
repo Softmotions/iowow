@@ -13,6 +13,8 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
 #define B(expr_) E(expr_, 0)
 
+#define DEFAULT_DB "lmdb_bench.db"
+
 typedef struct BM_LEVELDB {
   MDB_env *env;
   MDB_dbi dbi;
@@ -21,7 +23,18 @@ typedef struct BM_LEVELDB {
 static void env_setup() {
   int major, minor, patch;
   mdb_version(&major, &minor, &patch);
-  printf("LMDB %d.%d.%d\n", major, minor, patch);
+  printf(" engine: LMDB %d.%d.%d\n", major, minor, patch);
+}
+
+uint64_t db_size_bytes(BMCTX *ctx) {
+  const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
+  IWP_FILE_STAT fst;
+  iwrc rc = iwp_fstat(path, &fst);
+  if (rc) {
+    iwlog_ecode_error3(rc);
+    return 0;
+  }
+  return fst.size;
 }
 
 static void *db_open(BMCTX *ctx) {
@@ -29,12 +42,7 @@ static void *db_open(BMCTX *ctx) {
   if (ctx->db) {
     return 0; // db is not closed properly
   }
-  const char *path;
-  if (bm.param_db) {
-    path = bm.param_db;
-  } else {
-    path = "lmdb_bench.db";
-  }
+  const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
   if (ctx->freshdb) { // completely remove db folder
     rc = unlink(path);
     if (rc && errno != ENOENT) {
@@ -179,6 +187,7 @@ int main(int argc, char **argv) {
   if (argc < 1) return -1;
   g_program = argv[0];
   bm.env_setup = env_setup;
+  bm.db_size_bytes = db_size_bytes;
   bm.db_open = db_open;
   bm.db_close = db_close;
   bm.db_put = db_put;
