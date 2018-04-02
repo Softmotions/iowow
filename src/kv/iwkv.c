@@ -2734,6 +2734,8 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
     DBCNODE *fn = (DBCNODE *)((uint8_t *)cache->nodes + (idx - 1) * cache->nsize);
     assert(fn && idx - 1 < cache->num);
     rc = _sblk_at(lx, BLK2ADDR(fn->sblkn), 0, &lx->lower);
+  } else {
+    lx->lower = lx->dblk;
   }
   if ((uint8_t *)n != dbcbuf) {
     free(n);
