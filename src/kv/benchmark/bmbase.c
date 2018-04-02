@@ -24,6 +24,7 @@ struct BM {
   int param_value_size;
   uint32_t param_seed;
   char *param_benchmarks;
+  void (*val_free)(void *ptr);
   void (*env_setup)(void);
   void *(*db_open)(BMCTX *ctx);
   bool (*db_close)(BMCTX *ctx);
@@ -32,7 +33,7 @@ struct BM {
   bool (*db_cursor_to_key)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
   bool (*db_del)(BMCTX *ctx, const IWKV_val *key, bool sync);
   bool (*db_read_seq)(BMCTX *ctx, bool reverse);
-} bm;
+} bm = {0};
 
 struct BMCTX {
   bool success;
@@ -47,6 +48,17 @@ struct BMCTX {
   bench_method *method;
   int rnd_data_pos;
 };
+
+static void _val_dispose(IWKV_val *val) {
+  if (bm.val_free) {
+    if (val->data) {
+      bm.val_free(val->data);
+      val->size = 0;
+    }
+  } else {
+    iwkv_val_dispose(val);
+  }
+}
 
 static void _bmctx_dispose(BMCTX *ctx) {
   free(ctx->name);
@@ -317,10 +329,10 @@ static bool _do_read_random(BMCTX *ctx) {
     val.data = 0;
     val.size = 0;
     if (!bm.db_get(ctx, &key, &val, &found)) {
-      iwkv_val_dispose(&val);
+      _val_dispose(&val);
       return false;
     }
-    iwkv_val_dispose(&val);
+    _val_dispose(&val);
   }
   return true;
 }
@@ -337,10 +349,10 @@ static bool _do_read_missing(BMCTX *ctx) {
     val.data = 0;
     val.size = 0;
     if (!bm.db_get(ctx, &key, &val, &found)) {
-      iwkv_val_dispose(&val);
+      _val_dispose(&val);
       return false;
     }
-    iwkv_val_dispose(&val);
+    _val_dispose(&val);
     if (found) {
       return false;
     }
@@ -361,10 +373,10 @@ static bool _do_read_hot(BMCTX *ctx) {
     val.data = 0;
     val.size = 0;
     if (!bm.db_get(ctx, &key, &val, &found)) {
-      iwkv_val_dispose(&val);
+      _val_dispose(&val);
       return false;
     }
-    iwkv_val_dispose(&val);
+    _val_dispose(&val);
   }
   return true;
 }
@@ -381,10 +393,10 @@ static bool _do_seek_random(BMCTX *ctx) {
     val.data = 0;
     val.size = 0;
     if (!bm.db_cursor_to_key(ctx, &key, &val, &found)) {
-      iwkv_val_dispose(&val);
+      _val_dispose(&val);
       return false;
     }
-    iwkv_val_dispose(&val);
+    _val_dispose(&val);
   }
   return true;
 }

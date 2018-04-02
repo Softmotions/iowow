@@ -83,11 +83,12 @@ ExternalProject_Add(
   GIT_REPOSITORY https://github.com/cloudflare/kyotocabinet.git
   GIT_TAG master
   PREFIX ${CMAKE_BINARY_DIR}
+  BUILD_ALWAYS OFF
   BUILD_IN_SOURCE ON
   GIT_PROGRESS ON
   UPDATE_DISCONNECTED ON
-  BUILD_COMMAND make
-  CONFIGURE_COMMAND ./configure --prefix=${CMAKE_BINARY_DIR}/src/extern_kyc/install
+  BUILD_COMMAND ./configure --disable-zlib --prefix=${CMAKE_BINARY_DIR}/src/extern_kyc/install && make
+  CONFIGURE_COMMAND ""
   INSTALL_COMMAND make install
   LOG_DOWNLOAD ON
   LOG_BUILD ON
@@ -99,7 +100,14 @@ set_target_properties(
   libkyotocabinet
   PROPERTIES
   IMPORTED_LOCATION "${KYC_BINARY_DIR}/install/lib/libkyotocabinet.a"  
+  IMPORTED_LINK_INTERFACE_LANGUAGES CXX
 )
 add_dependencies(libkyotocabinet extern_kyc)
 include_directories(AFTER "${KYC_BINARY_DIR}/install/include")
+
+add_executable(kyc_benchmark kyc_benchmark.c)
+target_link_libraries(kyc_benchmark libkyotocabinet iowow_s)
+set_target_properties(kyc_benchmark
+  PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
+)
 
