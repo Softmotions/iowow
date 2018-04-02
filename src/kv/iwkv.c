@@ -167,12 +167,13 @@ static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
 
 /** Tallest SBLK nodes cache */
 typedef struct DBCACHE {
-  size_t asize;               /**< Size of allocated cache buffer */
-  size_t num;                 /**< Actual number of nodes */
-  size_t nsize;               /**< Cached node size */
-  uint8_t lvl;                /**< Lowes cached level */
-  bool open;                  /**< Is cache open */
-  DBCNODE *nodes;             /**< Sorted nodes array */
+  atomic_uint_least64_t atime;  /**< Cache access time */
+  size_t asize;                 /**< Size of allocated cache buffer */
+  size_t num;                   /**< Actual number of nodes */
+  size_t nsize;                 /**< Cached node size */
+  uint8_t lvl;                  /**< Lowes cached level */
+  bool open;                    /**< Is cache open */
+  DBCNODE *nodes;               /**< Sorted nodes array */
 } DBCACHE;
 
 /* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209 */
@@ -237,12 +238,13 @@ typedef enum {
 /** Database lookup context */
 typedef struct IWLCTX {
   IWDB db;
+  uint64_t ts;                /**< Context creation timestamp ms */
   const IWKV_val *key;        /**< Search key */
   IWKV_val *val;              /**< Update value */
   SBLK *lower;                /**< Next to upper bound block */
   SBLK *upper;                /**< Upper bound block */
   SBLK *nb;                   /**< New block */
-  SBLK *dblk;                 /**< First database block */
+  SBLK *dblk;                 /**< First database block */  
   off_t upper_addr;           /**< Upper block address used in `_lx_del_lr()` */
 #ifndef NDEBUG
   uint32_t num_cmps;
@@ -2645,7 +2647,7 @@ finish:
 
 static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
   iwrc rc = 0;
-  SBLK *sdb = lx->dblk;
+  SBLK *sdb = lx->dblk;  
   lx->cache_reload = 0;
   if (!sdb) {
     rc = _sblk_at(lx, lx->db->addr, 0, &sdb);
@@ -2655,6 +2657,7 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
   SBLK *sblk = sdb;
   DBCACHE *c = &db->cache;
   assert(lx->db->addr == sdb->addr);
+  c->atime = lx->ts;
   c->num = 0;
   if (c->nodes) {
     free(c->nodes);
@@ -2713,6 +2716,7 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   uint8_t dbcbuf[1024];
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
+  cache->atime = lx->ts;
   if (lx->nlvl > -1 || cache->num < 1) {
     lx->lower = lx->dblk;
     return 0;
@@ -2754,6 +2758,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   DBCACHE *cache = &db->cache;
   register size_t nsize = cache->nsize;
   
+  cache->atime = lx->ts;
   assert(sizeof(*cache) + sblk->lkl <= sizeof(dbcbuf));
   if (sblk->pnum < 1 || sblk->lvl < cache->lvl) {
     return 0;
@@ -2796,6 +2801,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
 static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
+  cache->atime = lx->ts;
   if (sblk->lvl < cache->lvl || cache->num < 1) {
     return;
   }
@@ -2823,6 +2829,7 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
 static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
+  cache->atime = lx->ts;
   assert(sblk->pnum > 0);
   if (sblk->lvl < cache->lvl || cache->num < 1) {
     return;
@@ -3232,6 +3239,7 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     .op = IWLCTX_PUT,
     .opflags = opflags
   };
+  iwp_current_time_ms(&lx.ts);
   API_DB_WLOCK(db, rci);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
@@ -3258,6 +3266,7 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     .val = oval,
     .nlvl = -1
   };
+  iwp_current_time_ms(&lx.ts);
   oval->size = 0;
   if (IW_LIKELY(db->cache.open)) {
     API_DB_RLOCK(db, rci);
@@ -3286,6 +3295,7 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
     .nlvl = -1,
     .op = IWLCTX_DEL
   };
+  iwp_current_time_ms(&lx.ts);
   API_DB_WLOCK(db, rci);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
@@ -3348,6 +3358,7 @@ iwrc iwkv_cursor_open(IWDB db,
   cur->lx.db = db;
   cur->lx.key = key;
   cur->lx.nlvl = -1;
+  iwp_current_time_ms(&cur->lx.ts);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&cur->lx);
     RCGO(rc, finish);
