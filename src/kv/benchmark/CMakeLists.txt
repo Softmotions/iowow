@@ -77,3 +77,29 @@ set_target_properties(lmdb_benchmark
   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
 )
 
+# KyotoCabinet 
+ExternalProject_Add(
+  extern_kyc
+  GIT_REPOSITORY https://github.com/cloudflare/kyotocabinet.git
+  GIT_TAG master
+  PREFIX ${CMAKE_BINARY_DIR}
+  BUILD_IN_SOURCE ON
+  GIT_PROGRESS ON
+  UPDATE_DISCONNECTED ON
+  BUILD_COMMAND make
+  CONFIGURE_COMMAND ./configure --prefix=${CMAKE_BINARY_DIR}/src/extern_kyc/install
+  INSTALL_COMMAND make install
+  LOG_DOWNLOAD ON
+  LOG_BUILD ON
+)
+set(KYC_SOURCE_DIR "${CMAKE_BINARY_DIR}/src/extern_kyc")
+set(KYC_BINARY_DIR "${CMAKE_BINARY_DIR}/src/extern_kyc")
+add_library(libkyotocabinet STATIC IMPORTED)
+set_target_properties(
+  libkyotocabinet
+  PROPERTIES
+  IMPORTED_LOCATION "${KYC_BINARY_DIR}/install/lib/libkyotocabinet.a"  
+)
+add_dependencies(libkyotocabinet extern_kyc)
+include_directories(AFTER "${KYC_BINARY_DIR}/install/include")
+
