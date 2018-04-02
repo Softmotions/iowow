@@ -9,7 +9,8 @@
 #include <pthread.h>
 #include <stdatomic.h>
 
-// Hardcoded requirements (fixme):
+// Hardcoded requirements (fixme)
+// Defined on CMakeLists.txt -D_LARGEFILE_SOURCE=1 D_FILE_OFFSET_BITS=64 
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
@@ -140,7 +141,7 @@ typedef enum {
 #define DBCACHE_LEVELS 10
 
 // Minimal cached level
-#define DBCACHE_MIN_LEVEL 0
+#define DBCACHE_MIN_LEVEL 5
 
 // Single allocation step - number of DBCNODEs
 #define DBCACHE_ALLOC_STEP 32
@@ -1717,18 +1718,17 @@ static WUR iwrc _sblk_create(IWLCTX *lx, int8_t nlevel, int8_t kvbpow, off_t bad
 }
 
 static WUR iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
+  iwrc rc;
   uint8_t *mm;
   uint32_t lv;
-  *sblkp = 0;
   sblk_flags_t flags = lx->sblk_flags | flgs;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCRET(rc);
-  
+  *sblkp = 0;  
   SBLK *sblk = &lx->saa[lx->saan];
-  sblk->db = lx->db;
   sblk->kvblk = 0;
-  
+  sblk->db = lx->db;
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCRET(rc);
   if (IW_UNLIKELY(addr == lx->db->addr)) {
     uint8_t *rp = mm + addr + DOFF_N0_U4;
     // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
@@ -1857,7 +1857,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       }
       wp = mm + sblk->addr + SOFF_LK;
       memcpy(wp, sblk->lk, sblk->lkl);
-    }
+    }      
   }
   if (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY)) {
     _kvblk_sync_mm(sblk->kvblk, mm);
