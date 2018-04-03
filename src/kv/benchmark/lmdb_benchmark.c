@@ -23,7 +23,7 @@ typedef struct BM_LEVELDB {
 static void env_setup() {
   int major, minor, patch;
   mdb_version(&major, &minor, &patch);
-  printf(" engine: LMDB %d.%d.%d\n", major, minor, patch);
+  fprintf(stderr, " engine: LMDB %d.%d.%d\n", major, minor, patch);
 }
 
 uint64_t db_size_bytes(BMCTX *ctx) {

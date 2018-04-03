@@ -53,7 +53,9 @@
                 "${workspaceRoot}/src/kv",
                 "${workspaceRoot}/src/fs",
                 "${workspaceRoot}/src/log",
-                "${workspaceRoot}/src/platform"
+                "${workspaceRoot}/src/platform",
+                "${workspaceFolder}/build/src/extern_kyc/install/include",
+                "${workspaceFolder}/build/src/extern_lmdb/libraries/liblmdb"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",
@@ -82,7 +84,10 @@
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
-            }
+            },
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
         },
         {
             "name": "Win32",

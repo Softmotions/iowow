@@ -14,7 +14,7 @@ static void env_setup() {
     iwlog_ecode_error2(rc, "Failed to init iwkv: iwkv_init()");
     exit(1);
   }
-  printf(" engine: IWKV %s\n", iowow_version_full());
+  fprintf(stderr, " engine: IWKV %s\n", iowow_version_full());
 }
 
 uint64_t db_size_bytes(BMCTX *ctx) {

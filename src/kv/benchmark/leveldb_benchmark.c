@@ -10,7 +10,7 @@ typedef struct BM_LEVELDB {
 } BM_LEVELDB;
 
 static void env_setup() {
-  printf(" engine: LevelDB %d.%d\n", leveldb_major_version(), leveldb_minor_version());
+  fprintf(stderr, " engine: LevelDB %d.%d\n", leveldb_major_version(), leveldb_minor_version());
   const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
   iwp_removedir(path);
 }

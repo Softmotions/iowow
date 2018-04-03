@@ -8,7 +8,7 @@ typedef struct BM_KYC {
 } BM_KYC;
 
 static void env_setup() {
-  printf(" engine: KyotoCabinet %s\n", KCVERSION);
+  fprintf(stderr, " engine: KyotoCabinet %s\n", KCVERSION);
 }
 
 uint64_t db_size_bytes(BMCTX *ctx) {

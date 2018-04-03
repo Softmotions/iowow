@@ -174,7 +174,7 @@ static bool _bm_init(int argc, char *argv[]) {
                          "deleteseq,"
                          "fill100K";
 #ifndef NDEBUG
-  fprintf(stdout, "WARNING: Assertions are enabled, benchmarks can be slow\n");
+  fprintf(stderr, "WARNING: Assertions are enabled, benchmarks can be slow\n");
 #endif
   for (int i = 1; i < argc; ++i) {
     if (!strcmp(argv[i], "-h")) {
@@ -249,7 +249,7 @@ static bool _bm_init(int argc, char *argv[]) {
           "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n\n",
           _execsize(),
           bm.param_seed, bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
-          
+
   // Fill up random data array
   for (int i = 0; i < RND_DATA_SZ; ++i) {
     RND_DATA[i] = ' ' + iwu_rand_range(95); // ascii space ... ~
@@ -586,13 +586,13 @@ static bool bm_bench_run(int argc, char *argv[]) {
       BMCTX *ctx = _bmctx_create(bname);
       c = 0;
       if (ctx) {
-        printf(" benchmark: %s\n", bname);
+        fprintf(stderr, " benchmark: %s\n", bname);
         _bm_run(ctx);
         bmres = ctx->success;
         if (!bmres) {
           fprintf(stderr, "Failed to run benchmark: %s\n", bname);
         } else {
-          printf(" done: %s in %ld\n", bname, (ctx->end_ms - ctx->start_ms));
+          fprintf(stderr, " done: %s in %ld\n", bname, (ctx->end_ms - ctx->start_ms));
         }
         if (ctx->logdbsize) {
           _logdbsize(ctx);

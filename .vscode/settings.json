@@ -69,7 +69,17 @@
     "iwutils.h": "c",
     "c.h": "c",
     "streambuf": "c",
-    "system_error": "cpp"
-  }
+    "system_error": "cpp",
+    "kclangc.h": "c",
+    "lmdb.h": "c",
+    "array": "c",
+    "initializer_list": "c",
+    "utility": "c"
+  },
+  "python.pythonPath": "/usr/bin/python3",
+  "python.linting.pylintEnabled": false,
+  "python.linting.enabled": true,
+  "python.linting.pep8Enabled": false,
+  "python.linting.flake8Enabled": true
 }
 
