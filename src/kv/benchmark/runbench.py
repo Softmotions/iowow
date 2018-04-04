@@ -10,7 +10,7 @@ from bokeh.layouts import gridplot
 
 parser = argparse.ArgumentParser(description='IWKV Benchmarks')
 parser.add_argument(
-    '-b', '--basedir', help='Base directory with benchmark executables',  default='.', nargs='?')
+    '-b', '--basedir', help='Base directory with benchmark executables', default='.', nargs='?')
 args = parser.parse_args()
 
 basedir = os.path.abspath(args.basedir)
@@ -29,22 +29,25 @@ runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 2853624976, 'sizestats': T
          for n in (int(1e6),)
          for vz in (1000,)]
 
-runs += [{'b': 'fillrandom2,readrandom,deleterandom,fillseq2,deleteseq,fillseq,overwrite,deleteseq,fill100K', 'n': n, 'vz': vz, 'rs': 2605940112}
-         for n in (int(2e6),)
-         for vz in (200,)]
+runs += [{'b': 'fillrandom2,readrandom,deleterandom', 'n': n, 'vz': vz, 'rs': 2605940112}
+         for n in (int(1e6),)
+         for vz in (400,)]
 
-runs += [{'b': 'fillseq2,readrandom,deleterandom', 'n': n, 'vz': vz, 'rs': 1747454607}
-         for n in (int(1e6), int(5e6))
-         for vz in (200, 5000)]
+runs += [{'b': 'fillseq,overwrite,deleteseq', 'n': n, 'rs': 560078848}
+         for n in (int(1e6),)
+         for vz in (400,)]
 
-runs += [{'b': 'fillrandom2,readrandom,readseq,deleterandom', 'r': int(1e6), 'n': n, 'vz': vz, 'rs': 1513195152}
+runs += [{'b': 'fill100K', 'n': n, 'rs': 1313807505}
+         for n in (int(1e6),)
+         for vz in (400,)]
+
+runs += [{'b': 'fillrandom2,readrandom,readseq,deleterandom', 'r': int(10000), 'n': n, 'vz': vz, 'rs': 1513195152}
          for n in (int(20e6),)
          for vz in (200,)]
 
 runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 3434183568}
          for n in (int(10e3),)
          for vz in ((200 * 1024),)]
-
 
 tests = [
     'fillseq',
@@ -129,12 +132,15 @@ def main():
         x = [(bm, brun) for bm in iter(rmap) for brun in iter(rmap[bm])]
         if len([v for v in x if v[1] == 'db size']):
             sizestats = True
+        else:
+            sizestats = False
         if pfactors is None:
             pfactors = [f[1] for f in x]
         counts = [rmap[bm][brun]
                   for bm in iter(rmap) for brun in iter(rmap[bm])]
         source = ColumnDataSource(data=dict(x=x, counts=counts))
-        p = figure(x_range=FactorRange(*x), plot_height=350, title=bn)
+        p = figure(x_range=FactorRange(*x), plot_height=350,
+                   title=bn)  # y_axis_type="log"
         p.vbar(x='x', top='counts', width=0.9, source=source, line_color='white',
                fill_color=factor_cmap('x', palette=palette, factors=pfactors, start=1, end=2))
         p.y_range.start = 0
@@ -145,6 +151,7 @@ def main():
         plots.append(p)
 
     grid = gridplot(plots, ncols=1)
+    # script, div = components(plots)
     save(grid)
     show(grid)
 
