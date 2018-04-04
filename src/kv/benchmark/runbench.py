@@ -5,6 +5,7 @@ from bokeh.transform import factor_cmap
 from parse import parse
 
 basedir = '/home/adam/Projects/softmotions/iowow/build/src/kv/benchmark'
+random_seed = 1747454607
 
 benchmarks = [
     'iwkv_benchmark',
@@ -15,7 +16,7 @@ benchmarks = [
 
 runs = []
 
-runs += [{'b': 'fillseq2,readrandom,readseq,deleteseq', 'n': n, 'vz': vz}
+runs += [{'b': 'fillseq2,readrandom,readseq,deleteseq', 'n': n, 'vz': vz, 'rs': random_seed}
          for n in (int(1e2), int(1e3))
          for vz in (100, 600)]
 
@@ -29,12 +30,7 @@ runs += [{'b': 'fillseq2,readrandom,readseq,deleteseq', 'n': n, 'vz': vz}
 
 metrics = {
     'exec size': 'exec size: {}',
-    'num records': 'num records: {}',
-    'read records': 'read num records: {}',
-    'value size': 'value size: {}',
     'db size': 'db size: {} ({})',
-    'engine': 'engine: {}',
-    'seed': 'random seed: {}'
 }
 
 tests = [
@@ -58,18 +54,22 @@ tests = [
 results = {}
 
 
-def fill_result(bm, line):
-    if bm not in results:
-        results[bm] = {}
+def fill_result(bm, run, line):
+    key = ' '.join(['-{} {}'.format(a, v) for a, v in run.items()])
+    if key not in results:
+        results[key] = {}
+    if bm not in results[key]:
+        results[key][bm] = {}
+    res = results[key][bm]
 
-    res = results[bm]
     pval = parse('done: {} in {}', line)
     if pval:
+        print(line, flush=True)
         res[pval[0]] = int(pval[1])
     else:
         for m, p in metrics.items():
             pval = parse(p, line)
-            if pval:
+            if pval and m not in res:
                 res[m] = pval[0]
 
 
@@ -78,6 +78,7 @@ def run_benchmark_run(bm, run):
     for a, v in run.items():
         args.append('-{}'.format(a))
         args.append(str(v))
+    print('Run {}'.format(' '.join(args)), flush=True)
     with subprocess.Popen(args,
                           stderr=subprocess.STDOUT,
                           stdout=subprocess.PIPE,
@@ -85,7 +86,7 @@ def run_benchmark_run(bm, run):
                           cwd=basedir,
                           bufsize=1) as output:
         for line in output.stdout:
-            fill_result(bm, line.strip())
+            fill_result(bm, run, line.strip())
         output.wait()
 
 
