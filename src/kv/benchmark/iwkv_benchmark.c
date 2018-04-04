@@ -113,7 +113,7 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
     iwlog_ecode_error2(rc, "db_read_seq::iwkv_cursor_open failed");
     return false;
   }
-  for (int i = 0; i < bm.param_num_reads && !rc; ++i) {
+  for (int i = 0; i < bm.param_num && !rc; ++i) {
     rc = iwkv_cursor_to(cur, reverse ? IWKV_CURSOR_PREV : IWKV_CURSOR_NEXT);
   }
   iwkv_cursor_close(&cur);

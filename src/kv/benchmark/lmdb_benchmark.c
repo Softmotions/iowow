@@ -143,7 +143,7 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
   B(mdb_txn_begin(bmdb->env, NULL, MDB_RDONLY, &txn));
   B(mdb_cursor_open(txn, bmdb->dbi, &cur));
   B(mdb_cursor_get(cur, &mkey, &mval, reverse ? MDB_LAST : MDB_FIRST));
-  for (int i = 0; i < bm.param_num_reads - 1 && !rc; ++i) {
+  for (int i = 0; i < bm.param_num - 1 && !rc; ++i) {
     rc = mdb_cursor_get(cur, &mkey, &mval, reverse ? MDB_PREV : MDB_NEXT);
   }
   if (rc == MDB_NOTFOUND) {

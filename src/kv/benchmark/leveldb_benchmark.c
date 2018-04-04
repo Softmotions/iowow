@@ -12,7 +12,6 @@ typedef struct BM_LEVELDB {
 static void env_setup() {
   fprintf(stderr, " engine: LevelDB %d.%d\n", leveldb_major_version(), leveldb_minor_version());
   const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
-  iwp_removedir(path);
 }
 
 uint64_t db_size_bytes(BMCTX *ctx) {
@@ -55,6 +54,7 @@ static void *db_open(BMCTX *ctx) {
       leveldb_free(err);
       err = 0;
     }
+    iwp_removedir(path);
   }
   bmdb->db = leveldb_open(bmdb->options, path, &err);
   if (err) {
@@ -145,7 +145,7 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
   } else {
     leveldb_iter_seek_to_first(it);
   }
-  for (int i = 0; i < bm.param_num_reads && leveldb_iter_valid(it); ++i) {
+  for (int i = 0; i < bm.param_num && leveldb_iter_valid(it); ++i) {
     size_t vlen, klen;
     leveldb_iter_value(it, &vlen);
     leveldb_iter_key(it, &klen);

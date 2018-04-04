@@ -1,3 +1,4 @@
+.vscode/.ropeproject
 .codelite/
 .cmaketools.json
 *.tags

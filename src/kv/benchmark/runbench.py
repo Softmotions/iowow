@@ -1,37 +1,50 @@
 import subprocess
-from bokeh.plotting import figure, output_file, show
+import argparse
+import os
+from collections import OrderedDict
+from parse import parse
+from bokeh.plotting import figure, output_file, show, save
 from bokeh.models import ColumnDataSource, FactorRange
 from bokeh.transform import factor_cmap
-from parse import parse
+from bokeh.layouts import gridplot
 
-basedir = '/home/adam/Projects/softmotions/iowow/build/src/kv/benchmark'
-random_seed = 1747454607
+parser = argparse.ArgumentParser(description='IWKV Benchmarks')
+parser.add_argument(
+    '-b', '--basedir', help='Base directory with benchmark executables',  default='.', nargs='?')
+args = parser.parse_args()
+
+basedir = os.path.abspath(args.basedir)
+print('Base directory:', basedir)
 
 benchmarks = [
-    'iwkv_benchmark',
-    'lmdb_benchmark'
-    # 'leveldb_benchmark',
-    # 'kyc_benchmark'
+    'iwkv',
+    'lmdb',
+    'leveldb',
+    'kyc'
 ]
 
 runs = []
 
-runs += [{'b': 'fillseq2,readrandom,readseq,deleteseq', 'n': n, 'vz': vz, 'rs': random_seed}
-         for n in (int(1e2), int(1e3))
-         for vz in (100, 600)]
+runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 2853624976, 'sizestats': True}
+         for n in (int(1e6),)
+         for vz in (1000,)]
 
-# runs += [{'b': 'fillseq,overwrite,readrandom,deleterandom', 'n': n, 'vz': vz}
-#          for n in (5e5, 1e6)
-#          for vz in (100, 600)]
+runs += [{'b': 'fillrandom2,readrandom,deleterandom,fillseq2,deleteseq,fillseq,overwrite,deleteseq,fill100K', 'n': n, 'vz': vz, 'rs': 2605940112}
+         for n in (int(2e6),)
+         for vz in (200,)]
 
-# runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz}
-#          for n in (5e3, 10e3)
-#          for vz in (100 * 1024, 200 * 1024)]
+runs += [{'b': 'fillseq2,readrandom,deleterandom', 'n': n, 'vz': vz, 'rs': 1747454607}
+         for n in (int(1e6), int(5e6))
+         for vz in (200, 5000)]
 
-metrics = {
-    'exec size': 'exec size: {}',
-    'db size': 'db size: {} ({})',
-}
+runs += [{'b': 'fillrandom2,readrandom,readseq,deleterandom', 'r': int(1e6), 'n': n, 'vz': vz, 'rs': 1513195152}
+         for n in (int(20e6),)
+         for vz in (200,)]
+
+runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 3434183568}
+         for n in (int(10e3),)
+         for vz in ((200 * 1024),)]
+
 
 tests = [
     'fillseq',
@@ -51,31 +64,35 @@ tests = [
     'seekrandom'
 ]
 
-results = {}
+results = OrderedDict()
 
 
-def fill_result(bm, run, line):
+def fill_result(bm, run, sizestats, line):
     key = ' '.join(['-{} {}'.format(a, v) for a, v in run.items()])
     if key not in results:
-        results[key] = {}
+        results[key] = OrderedDict()
     if bm not in results[key]:
-        results[key][bm] = {}
+        results[key][bm] = OrderedDict()
     res = results[key][bm]
 
     pval = parse('done: {} in {}', line)
-    if pval:
+    if sizestats:
+        pval = parse('db size: {} ({})', line)
+        if pval and 'db size' not in res:
+            print(line, flush=True)
+            res['db size'] = int(pval[0]) / (1024 * 1024)
+    elif pval:
         print(line, flush=True)
         res[pval[0]] = int(pval[1])
-    else:
-        for m, p in metrics.items():
-            pval = parse(p, line)
-            if pval and m not in res:
-                res[m] = pval[0]
 
 
 def run_benchmark_run(bm, run):
-    args = ['{}/{}'.format(basedir, bm)]
+    args = ['{}/{}_benchmark'.format(basedir, bm)]
+    sizestats = False
     for a, v in run.items():
+        if a in ('sizestats',):
+            sizestats = True
+            continue
         args.append('-{}'.format(a))
         args.append(str(v))
     print('Run {}'.format(' '.join(args)), flush=True)
@@ -86,7 +103,7 @@ def run_benchmark_run(bm, run):
                           cwd=basedir,
                           bufsize=1) as output:
         for line in output.stdout:
-            fill_result(bm, run, line.strip())
+            fill_result(bm, run, sizestats, line.strip())
         output.wait()
 
 
@@ -102,43 +119,34 @@ def run():
 
 def main():
     run()
-    print(results)
-# {
-#   'lmdb_benchmark': {
-#     'engine': 'LMDB 0.9.70',
-#     'exec size': '494872',
-#     'db size': '417792',
-#     'readseq': 0,
-#     'read records': '1000',
-#     'fillseq2': 13,
-#     'seed': '3461453708',
-#     'num records': '1000',
-#     'deleteseq': 11,
-#     'readrandom': 1,
-#     'value size': '600'
-#   },
-#   'iwkv_benchmark': {
-#     'engine': 'IWKV 1.0.0',
-#     'exec size': '180744',
-#     'db size': '8192',
-#     'readseq': 8,
-#     'read records': '1000',
-#     'fillseq2': 10,
-#     'seed': '3847133068',
-#     'num records': '1000',
-#     'deleteseq': 11,
-#     'readrandom': 11,
-#     'value size': '600'
-#   }
-# }
+    plots = []
+    palette = ["#0054AE", "#e84d60", "#c9d9d3", "#718dbf",
+               "#BFF500", "#555555", "#DFBFFF", "#B1D28F",
+               "#FFAA00", "#A18353", "#888888", "#00B377"]
+    output_file('runbench.html')
+    for bn, rmap in results.items():
+        pfactors = None
+        x = [(bm, brun) for bm in iter(rmap) for brun in iter(rmap[bm])]
+        if len([v for v in x if v[1] == 'db size']):
+            sizestats = True
+        if pfactors is None:
+            pfactors = [f[1] for f in x]
+        counts = [rmap[bm][brun]
+                  for bm in iter(rmap) for brun in iter(rmap[bm])]
+        source = ColumnDataSource(data=dict(x=x, counts=counts))
+        p = figure(x_range=FactorRange(*x), plot_height=350, title=bn)
+        p.vbar(x='x', top='counts', width=0.9, source=source, line_color='white',
+               fill_color=factor_cmap('x', palette=palette, factors=pfactors, start=1, end=2))
+        p.y_range.start = 0
+        p.yaxis.axis_label = 'Time ms' if not sizestats else 'Database file size (MB)'
+        p.x_range.range_padding = 0.1
+        p.xaxis.major_label_orientation = 1
+        p.xgrid.grid_line_color = None
+        plots.append(p)
 
-
-output_file('runbench.html')
-
-# p = figure()
-# p.line([1, 2, 3, 4, 5], [6, 7, 2, 4, 5], line_width=2)
-# print(runs)
-# show(p)
+    grid = gridplot(plots, ncols=1)
+    save(grid)
+    show(grid)
 
 
 if __name__ == '__main__':

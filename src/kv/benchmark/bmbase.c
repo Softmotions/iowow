@@ -121,7 +121,7 @@ static void _bm_help() {
   fprintf(stderr, "Options:\n");
   fprintf(stderr, "  -h Show this help\n");
   fprintf(stderr, "  -n <num> Number of stored records\n");
-  fprintf(stderr, "  -r <num> Number of records to read (equals to number of stored records if not specified )\n");
+  fprintf(stderr, "  -r <num> Number of records to read (equals to number of stored records if not specified, not for readseq,readreverse)\n");
   fprintf(stderr, "  -vz <size> Size of a single record value in bytes\n");
   fprintf(stderr, "  -b <comma separated benchmarks to run>\n\n");
   fprintf(stderr, "  -db <file/dir> Database file/directory\n\n");

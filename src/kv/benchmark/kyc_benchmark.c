@@ -119,7 +119,7 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
     kccurdel(cur);
     return false;
   }
-  for (int i = 0; i < bm.param_num_reads && rc; ++i) {
+  for (int i = 0; i < bm.param_num && rc; ++i) {
     if (reverse) {
       rc = kccurstepback(cur);
     } else {
