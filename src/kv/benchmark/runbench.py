@@ -41,11 +41,15 @@ runs += [{'b': 'fill100K', 'n': n, 'rs': 1313807505}
          for n in (int(1e6),)
          for vz in (400,)]
 
-runs += [{'b': 'fillrandom2,readrandom,readseq,deleterandom', 'r': int(10000), 'n': n, 'vz': vz, 'rs': 1513195152}
-         for n in (int(20e6),)
+runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 1513195152}
+         for n in (int(10e6),)
          for vz in (200,)]
 
-runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 3434183568}
+runs += [{'b': 'readseq,readreverse', 'n': n, 'vz': vz, 'rs': 1513195152}
+         for n in (int(10e6),)
+         for vz in (200,)]
+
+runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 3434183568}
          for n in (int(10e3),)
          for vz in ((200 * 1024),)]
 
