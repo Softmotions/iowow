@@ -14,7 +14,6 @@ char vbuf[VBUFSZ];
 extern int8_t iwkv_next_level;
 
 static int cmp_files(FILE *f1, FILE *f2) { 
-  if (1) return 0;  
   CU_ASSERT_TRUE_FATAL(f1 && f2);
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
@@ -38,14 +37,14 @@ static int cmp_files(FILE *f1, FILE *f2) {
 
 static int logstage(FILE *f, const char *name, IWDB db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
-  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS);
+  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS, 0);
   fflush(f);
   return rci < 0 ? rci : 0;
 }
 
 static int logstage2(FILE *f, const char *name, IWDB db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
-  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS);
+  iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS, 0);
   fflush(f);
   return rci < 0 ? rci : 0;
 }

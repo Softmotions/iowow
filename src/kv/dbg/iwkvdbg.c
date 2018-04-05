@@ -1,6 +1,9 @@
-
-
 //--------------------------  DEBUG STAFF
+
+
+void iwkvd_trigger(bool val) {
+  g_trigger = val;
+}
 
 void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
   assert(f && kb && kb->addr);
@@ -34,7 +37,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
 
 #define IWKVD_MAX_VALSZ 96
 
-void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
+iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   assert(sb && sb->addr);
   int lkl = 0;
   char lkbuf[SBLK_LKLEN + 1] = {0};
@@ -46,12 +49,12 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
   if (rc) {
     iwlog_ecode_error3(rc);
-    return;
+    return rc;
   }
   rc = _sblk_loadkvblk_mm(lx, sb, mm);
   if (rc) {
     iwlog_ecode_error3(rc);
-    return;
+    return rc;
   }
   assert(sb->kvblk);
   if (sb->flags & SBLK_DB) {
@@ -93,7 +96,7 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     rc = _kvblk_peek_key(sb->kvblk, sb->pi[i], mm, &kbuf, &klen);
     if (rc) {
       iwlog_ecode_error3(rc);
-      return;
+      return rc;
     }
     if (flags & IWKVD_PRINT_VALS) {
       _kvblk_peek_val(sb->kvblk, sb->pi[i], mm, &vbuf, &vlen);
@@ -127,13 +130,14 @@ void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     }
   }
   fprintf(f, "\n\n");
+  return rc;
 }
 
 IWFS_FSM *iwkvd_fsm(IWKV kv) {
   return &kv->fsm;
 }
 
-void iwkvd_db(FILE *f, IWDB db, int flags) {
+void iwkvd_db(FILE *f, IWDB db, int flags, int plvl) {
   assert(db);
   SBLK *sb, *tail;
   IWLCTX lx = {
@@ -167,7 +171,7 @@ void iwkvd_db(FILE *f, IWDB db, int flags) {
     }
     fprintf(f, "]");
   }
-  blkn_t blk = sb->n[0];
+  blkn_t blk = sb->n[plvl];
   while (blk) {
     rc = _sblk_at(&lx, BLK2ADDR(blk), 0, &sb);
     if (rc) {
@@ -175,8 +179,10 @@ void iwkvd_db(FILE *f, IWDB db, int flags) {
       return;
     }
     iwkvd_sblk(f, &lx, sb, flags);
-    blk = sb->n[0];
+    blk = sb->n[plvl];
     _sblk_release(&lx, &sb);
   }
   fflush(f);
 }
+
+

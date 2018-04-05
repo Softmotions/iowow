@@ -37,7 +37,7 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 // Number of skip list levels
 #define SLEVELS 24
 
-#define AANUM (2 * SLEVELS + 3 /* (new block created) + (db block may be updated) + (first db block) */)
+#define AANUM (2 * SLEVELS + 2 /* levels + (new block created) + (db block may be updated) */)
 
 // Lower key length in SBLK
 #define SBLK_LKLEN 116
@@ -78,6 +78,8 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 #ifdef IW_TESTS
 volatile int8_t iwkv_next_level = -1;
 #endif
+
+atomic_bool g_trigger;
 
 struct IWKV;
 struct IWDB;
@@ -180,7 +182,7 @@ typedef struct DBCACHE {
 struct IWDB {
   // SBH
   IWDB db;                    /**< Database ref */
-  off_t addr;                 /**< Block address */
+  off_t addr;                 /**< Database block address */
   sblk_flags_t flags;         /**< Flags */
   // !SBH
   IWKV iwkv;
@@ -244,7 +246,6 @@ typedef struct IWLCTX {
   SBLK *lower;                /**< Next to upper bound block */
   SBLK *upper;                /**< Upper bound block */
   SBLK *nb;                   /**< New block */
-  SBLK *dblk;                 /**< First database block */  
   off_t upper_addr;           /**< Upper block address used in `_lx_del_lr()` */
 #ifndef NDEBUG
   uint32_t num_cmps;
@@ -258,6 +259,7 @@ typedef struct IWLCTX {
   int8_t cache_reload;        /**< If true dbcache should be refreshed after operation */
   SBLK *plower[SLEVELS];      /**< Pinned lower nodes per level */
   SBLK *pupper[SLEVELS];      /**< Pinned upper nodes per level */
+  SBLK dblk;                  /**< First database block */
   SBLK saa[AANUM];            /**< `SBLK` allocation area */
   KVBLK kaa[AANUM];           /**< `KVBLK` allocation area */
 } IWLCTX;
@@ -279,8 +281,8 @@ static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk);
 static void _dbcache_destroy_lw(IWDB db);
 
 void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen);
-void iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
-void iwkvd_db(FILE *f, IWDB db, int flags);
+iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
+void iwkvd_db(FILE *f, IWDB db, int flags, int plvl);
 
 #define ENSURE_OPEN(iwkv_) \
   if (!iwkv_ || !(iwkv_->open)) return IW_ERROR_INVALID_STATE
@@ -1362,8 +1364,9 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   }
   
 start:
+  // [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] // KVBLK
   msz = (1ULL << kb->szpow) - (KVBLK_HDRSZ + kb->idxsz + kb->maxoff);
-  assert(msz > 0);
+  assert(msz >= 0);
   noff = kb->maxoff + psz;
   rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz);
   
@@ -1705,7 +1708,7 @@ static WUR iwrc _sblk_create(IWLCTX *lx, int8_t nlevel, int8_t kvbpow, off_t bad
   sblk->db->lcnt[nlevel]++;
   sblk->db->flags |= SBLK_DURTY;
   sblk->addr = baddr;
-  sblk->flags = SBLK_DURTY | SBLK_CACHE_PUT;
+  sblk->flags = (SBLK_DURTY | SBLK_CACHE_PUT);
   sblk->lvl = nlevel;
   sblk->p0 = 0;
   memset(sblk->n, 0, sizeof(sblk->n));
@@ -1719,14 +1722,12 @@ static WUR iwrc _sblk_create(IWLCTX *lx, int8_t nlevel, int8_t kvbpow, off_t bad
   return 0;
 }
 
-static WUR iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
+static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk) {
   iwrc rc;
   uint8_t *mm;
   uint32_t lv;
   sblk_flags_t flags = lx->sblk_flags | flgs;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-  *sblkp = 0;
-  SBLK *sblk = &lx->saa[lx->saan];
   sblk->kvblk = 0;
   sblk->db = lx->db;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -1811,11 +1812,18 @@ static WUR iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp
   }
 finish:
   fsm->release_mmap(fsm);
-  AAPOS_INC(lx->saan);
-  *sblkp = sblk;
   return rc;
 }
 
+IW_INLINE WUR iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
+  *sblkp = 0;
+  SBLK *sblk = &lx->saa[lx->saan];  
+  iwrc rc = _sblk_at2(lx, addr, flgs, sblk);
+  AAPOS_INC(lx->saan);
+  *sblkp = sblk;
+  return rc;
+}  
+  
 static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   iwrc rc = 0;
   if (sblk->flags & SBLK_DURTY) {
@@ -2214,18 +2222,20 @@ static WUR iwrc _lx_find_bounds(IWLCTX *lx) {
   iwrc rc = 0;
   int lvl;
   blkn_t blkn;
-  if (!lx->dblk) {
-    rc = _sblk_at(lx, lx->db->addr, 0, &lx->dblk);
+  if (!lx->dblk.addr) {
+    SBLK *s;
+    rc = _sblk_at(lx, lx->db->addr, 0, &s);
     RCRET(rc);
+    memcpy(&lx->dblk, s, sizeof(lx->dblk));
   }
   if (!lx->lower) {
     rc = _dbcache_get(lx);
     RCRET(rc);
   }
-  if (lx->nlvl > lx->dblk->lvl) {
+  if (lx->nlvl > lx->dblk.lvl) {
     // New level in DB
-    lx->dblk->lvl = lx->nlvl;
-    lx->dblk->flags |= SBLK_DURTY;
+    lx->dblk.lvl = lx->nlvl;
+    lx->dblk.flags |= SBLK_DURTY;
   }
   lvl = lx->lower->lvl;
   while (lvl > -1) {
@@ -2287,8 +2297,8 @@ static iwrc _lx_release_mm(IWLCTX *lx, uint8_t *mm) {
     rc = _sblk_sync_and_release_mm(lx, &lx->lower, mm);
     RCRET(rc);
   }
-  if (lx->dblk && (lx->dblk->flags & SBLK_DURTY)) {
-    rc = _sblk_sync_mm(lx, lx->dblk, mm);
+  if (lx->dblk.flags & SBLK_DURTY) {
+    rc = _sblk_sync_mm(lx, &lx->dblk, mm);
     RCRET(rc);
   }
   if (lx->nb) {
@@ -2320,8 +2330,6 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   blkn_t nblk;
   uint8_t kvbpow = 0;
   register int pivot = (KVBLK_IDXNUM / 2) + 1; // 32
-  
-  assert(idx > 0);
   if (idx < sblk->pnum) {
     assert(sblk->kvblk);
     // Partial split required
@@ -2472,6 +2480,26 @@ WUR iwrc _lx_addkv(IWLCTX *lx) {
 
 IW_INLINE WUR iwrc _lx_put_lw(IWLCTX *lx) {
   iwrc rc;
+  static FILE *df;
+  if (g_trigger) {        
+    if (!df) {
+      df = fopen("db.dmp", "w+");
+    }
+    SBLK s = {0};
+    fprintf(df, "1\n");
+    rc = _sblk_at2(lx, BLK2ADDR(13149340), 0, &s);
+    if (rc) {
+      iwlog_ecode_error3(rc);
+      fflush(df);
+      return rc;
+    }
+    rc = iwkvd_sblk(df, lx, &s, 0);
+    if (rc) {
+      iwlog_ecode_error3(rc);
+      fflush(df);
+      return rc;
+    }
+  }
 start:
   rc = _lx_find_bounds(lx);
   if (rc) {
@@ -2496,6 +2524,23 @@ start:
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
+  }
+  
+  if (g_trigger) {      
+    SBLK s = {0};
+    fprintf(df, "2\n");
+    rc = _sblk_at2(lx, BLK2ADDR(13149340), 0, &s);
+    if (rc) {
+      iwlog_ecode_error3(rc);
+      fflush(df);
+      return rc;
+    }
+    rc = iwkvd_sblk(df, lx, &s, 0);
+    if (rc) {
+      iwlog_ecode_error3(rc);
+      fflush(df);
+      return rc;
+    }
   }
   return rc;
 }
@@ -2647,13 +2692,15 @@ finish:
 
 static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
   iwrc rc = 0;
-  SBLK *sdb = lx->dblk;  
-  lx->cache_reload = 0;
-  if (!sdb) {
-    rc = _sblk_at(lx, lx->db->addr, 0, &sdb);
-    RCRET(rc);
-  }
   IWDB db = lx->db;
+  lx->cache_reload = 0;
+  if (!lx->dblk.addr) {
+    SBLK *s;
+    rc = _sblk_at(lx, lx->db->addr, 0, &s);
+    RCRET(rc);
+    memcpy(&lx->dblk, s, sizeof(lx->dblk));
+  }
+  SBLK *sdb = &lx->dblk;
   SBLK *sblk = sdb;
   DBCACHE *c = &db->cache;
   assert(lx->db->addr == sdb->addr);
@@ -2670,17 +2717,25 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
   c->lvl = _dbcache_lvl(sdb->lvl);
   c->nsize = (lx->db->dbflg & IWDB_UINT_KEYS_FLAGS) ? DBCNODE_NUM_SZ : DBCNODE_STR_SZ;
   c->asize = c->nsize * ((1 << DBCACHE_LEVELS) + DBCACHE_ALLOC_STEP);
+  size_t nsize = c->nsize;
   c->nodes = malloc(c->asize);
   if (!c->nodes) {
     c->open = false;
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-  }  
+  }
   blkn_t n;
   uint8_t *wp;
+  size_t num = 0;
   while ((n = sblk->n[c->lvl])) {
     rc = _sblk_at(lx, BLK2ADDR(n), 0, &sblk);
     RCRET(rc);
-    assert(offsetof(DBCNODE, lk) + sblk->lkl <= c->nsize);
+    if (offsetof(DBCNODE, lk) + sblk->lkl > nsize) {
+      free(c->nodes);
+      c->nodes = 0;
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      return rc;
+    }
     DBCNODE cn = {
       .lkl = sblk->lkl,
       .fullkey = (sblk->flags & SBLK_FULL_LKEY),
@@ -2688,37 +2743,42 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
       .sblkn = ADDR2BLK(sblk->addr),
       .kblkn = sblk->kvblkn
     };
-    if (c->asize < c->nsize * (c->num + 1)) {
-      c->asize += (c->nsize * DBCACHE_ALLOC_STEP);
+    if (c->asize < nsize * (num + 1)) {
+      c->asize += (nsize * DBCACHE_ALLOC_STEP);
       wp = (uint8_t *) c->nodes;
       c->nodes = realloc(c->nodes, c->asize);
       if (!c->nodes) {
-        c->open = false;
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         free(wp);
         return rc;
       }
     }
-    wp = (uint8_t *) c->nodes + c->nsize * c->num;
+    wp = (uint8_t *) c->nodes + nsize * num;
     memcpy(wp, &cn, offsetof(DBCNODE, lk));
     wp += offsetof(DBCNODE, lk);
     memcpy(wp, sblk->lk, sblk->lkl);
-    ++c->num;
+    ++num;
   }
+  c->num = num;
   c->open = true;
   return 0;
 }
 
 static WUR iwrc _dbcache_get(IWLCTX *lx) {
+  if (1)  {
+    lx->lower = &lx->dblk;
+    return 0;
+  }
   iwrc rc = 0;
   off_t idx;
+  bool found;
   DBCNODE *n;
   uint8_t dbcbuf[1024];
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   cache->atime = lx->ts;
   if (lx->nlvl > -1 || cache->num < 1) {
-    lx->lower = lx->dblk;
+    lx->lower = &lx->dblk;
     return 0;
   }
   assert(cache->nodes);
@@ -2736,13 +2796,13 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   n->sblkn = 0;
   n->kblkn = 0;
   memcpy((uint8_t *)n + offsetof(DBCNODE, lk), lx->key->data, lx->key->size);
-  idx = iwarr_sorted_find2(cache->nodes, cache->num, cache->nsize, n, lx, _dbcache_cmp_nodes);
+  idx = iwarr_sorted_find2(cache->nodes, cache->num, cache->nsize, n, lx, &found, _dbcache_cmp_nodes);
   if (idx > 0) {
     DBCNODE *fn = (DBCNODE *)((uint8_t *)cache->nodes + (idx - 1) * cache->nsize);
     assert(fn && idx - 1 < cache->num);
     rc = _sblk_at(lx, BLK2ADDR(fn->sblkn), 0, &lx->lower);
   } else {
-    lx->lower = lx->dblk;
+    lx->lower = &lx->dblk;
   }
   if ((uint8_t *)n != dbcbuf) {
     free(n);
@@ -2752,12 +2812,14 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
 
 static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   off_t idx;
+  bool found;
   IWDB db = lx->db;
   uint8_t dbcbuf[1024];
   DBCNODE *n = (DBCNODE *) dbcbuf;
   DBCACHE *cache = &db->cache;
   register size_t nsize = cache->nsize;
   
+  sblk->flags &= ~SBLK_CACHE_PUT;
   cache->atime = lx->ts;
   assert(sizeof(*cache) + sblk->lkl <= sizeof(dbcbuf));
   if (sblk->pnum < 1 || sblk->lvl < cache->lvl) {
@@ -2778,7 +2840,8 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   n->kblkn = sblk->kvblkn;
   memcpy((uint8_t *)n + offsetof(DBCNODE, lk), sblk->lk, sblk->lkl);
   
-  idx = iwarr_sorted_find2(cache->nodes, cache->num, nsize, n, lx, _dbcache_cmp_nodes);
+  idx = iwarr_sorted_find2(cache->nodes, cache->num, nsize, n, lx, &found, _dbcache_cmp_nodes);
+  assert(!found);
   if (cache->asize <= cache->num * nsize) {
     size_t nsz = cache->asize + (nsize * DBCACHE_ALLOC_STEP);
     DBCNODE *nodes = realloc(cache->nodes, nsz);
@@ -2801,11 +2864,12 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
 static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
+  sblk->flags &= ~SBLK_CACHE_REMOVE;
   cache->atime = lx->ts;
   if (sblk->lvl < cache->lvl || cache->num < 1) {
     return;
   }
-  if (cache->lvl > DBCACHE_MIN_LEVEL && lx->dblk->lvl < sblk->lvl) {
+  if (cache->lvl > DBCACHE_MIN_LEVEL && lx->dblk.lvl < sblk->lvl) {
     // Database level reduced so we need to shift cache down
     lx->cache_reload = 1;
     return;
@@ -2829,8 +2893,9 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
 static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
-  cache->atime = lx->ts;
   assert(sblk->pnum > 0);
+  sblk->flags &= ~SBLK_CACHE_UPDATE;
+  cache->atime = lx->ts;
   if (sblk->lvl < cache->lvl || cache->num < 1) {
     return;
   }
@@ -3692,4 +3757,4 @@ finish:
   return rc;
 }
 
-#include "iwkvdbg.inc"
+#include "./dbg/iwkvdbg.c"

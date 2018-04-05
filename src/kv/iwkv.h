@@ -354,6 +354,6 @@ IW_EXPORT iwrc iwkv_cursor_close(IWKV_cursor *cur);
 // Print record values
 #define IWKVD_PRINT_VALS 0x2
 
-void iwkvd_db(FILE *f, IWDB db, int flags);
+void iwkvd_db(FILE *f, IWDB db, int flags, int plvl);
 
 #endif

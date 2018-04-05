@@ -1,12 +1,17 @@
-#include "bmbase.c"
 #include "iowow.h"
-
-#define DEFAULT_DB "iwkv_bench.db"
+#include "iwkv.h"
 
 typedef struct BM_IWKVDB {
   IWKV iwkv;
   IWDB db;
 } BM_IWKVDB;
+
+
+#include "bmbase.c"
+
+
+#define DEFAULT_DB "iwkv_bench.db"
+
 
 static void env_setup() {
   iwrc rc = iw_init();
@@ -115,6 +120,16 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
   }
   for (int i = 0; i < bm.param_num && !rc; ++i) {
     rc = iwkv_cursor_to(cur, reverse ? IWKV_CURSOR_PREV : IWKV_CURSOR_NEXT);
+    if (rc) {
+      break;
+    }    
+    IWKV_val key, val;    
+    rc = iwkv_cursor_get(cur, &key, &val);
+    if (rc) {      
+      iwlog_ecode_error2(rc, "iwkv_cursor_get");
+      break;
+    }    
+    iwkv_kv_dispose(&key, &val);
   }
   iwkv_cursor_close(&cur);
   if (rc == IWKV_ERROR_NOTFOUND) {

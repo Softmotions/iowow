@@ -121,7 +121,8 @@ static void _bm_help() {
   fprintf(stderr, "Options:\n");
   fprintf(stderr, "  -h Show this help\n");
   fprintf(stderr, "  -n <num> Number of stored records\n");
-  fprintf(stderr, "  -r <num> Number of records to read (equals to number of stored records if not specified, not for readseq,readreverse)\n");
+  fprintf(stderr,
+          "  -r <num> Number of records to read (equals to number of stored records if not specified, not for readseq,readreverse)\n");
   fprintf(stderr, "  -vz <size> Size of a single record value in bytes\n");
   fprintf(stderr, "  -b <comma separated benchmarks to run>\n\n");
   fprintf(stderr, "  -db <file/dir> Database file/directory\n\n");
@@ -249,7 +250,7 @@ static bool _bm_init(int argc, char *argv[]) {
           "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n\n",
           _execsize(),
           bm.param_seed, bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
-
+          
   // Fill up random data array
   for (int i = 0; i < RND_DATA_SZ; ++i) {
     RND_DATA[i] = ' ' + iwu_rand_range(95); // ascii space ... ~
@@ -293,11 +294,12 @@ static void _bm_run(BMCTX *ctx) {
   ctx->end_ms = llv;
 }
 
+void iwkvd_trigger(bool val);
+
 static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
   char kbuf[100];
   IWKV_val key, val;
   key.data = kbuf;
-  // todo !!!
   int value_size = ctx->value_size;
   for (int i = 0; i < ctx->num; ++i) {
     if (rvlen) {
@@ -311,7 +313,15 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
     key.size = strlen(key.data);
     val.data = (void *) _bmctx_rndbuf_nextptr(ctx, value_size);
     val.size = value_size;
+    if (i ==  9105074) {
+      fprintf(stderr, "i = %d\n", i);
+    }    
+    if (i == 7749274) {
+      fprintf(stderr, "trigger i=%d\n", i);
+      iwkvd_trigger(true);
+    }
     if (!bm.db_put(ctx, &key, &val, sync)) {
+      fprintf(stderr, "Fail i=%d\n", i);
       return false;
     }
   }

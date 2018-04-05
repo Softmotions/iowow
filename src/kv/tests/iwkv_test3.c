@@ -42,7 +42,7 @@ int clean_suite(void) {
 
 static int logstage(FILE *f, const char *name, IWDB db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
-  iwkvd_db(f, db, /*IWKVD_PRINT_NO_LEVEVELS*/ 0);
+  iwkvd_db(f, db, /*IWKVD_PRINT_NO_LEVEVELS*/ 0, 0);
   fflush(f);
   return rci < 0 ? rci : 0;
 }

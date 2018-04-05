@@ -138,6 +138,7 @@ off_t iwarr_sorted_find2(void *restrict els,
                          size_t elsize,
                          void *restrict eptr,
                          void *op,
+                         bool *found,
                          iwrc(*cmp)(const void *, const void *, void *, int *res)) {
                          
 #define EL(idx_) (elsptr + (idx_) * elsize)
@@ -154,7 +155,8 @@ off_t iwarr_sorted_find2(void *restrict els,
     idx = (ub + lb) / 2;
     iwrc rc = cmp(EL(idx), eptr, op, &cr);
     RCRET(rc);
-    if (!cr) {      
+    if (!cr) {    
+      *found = true;  
       return idx;
     } else if (cr < 0) {
       lb = idx + 1;
@@ -169,6 +171,7 @@ off_t iwarr_sorted_find2(void *restrict els,
       }
     }
   }  
+  *found = false;
   return idx;
 #undef EL
 }
