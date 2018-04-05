@@ -315,11 +315,8 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
     val.size = value_size;
     if (i ==  9105074) {
       fprintf(stderr, "i = %d\n", i);
-    }    
-    if (i == 7749274) {
-      fprintf(stderr, "trigger i=%d\n", i);
       iwkvd_trigger(true);
-    }
+    }    
     if (!bm.db_put(ctx, &key, &val, sync)) {
       fprintf(stderr, "Fail i=%d\n", i);
       return false;

@@ -15,9 +15,12 @@ Should be:
 
 Round 2:
 
-Fail i=9105074
+i=9105074, key=0000000004233684, old vlen=100, new vlen=194, sz=4096, free=0 
+kvp: off=715,len=100
 
 Before:
+
+kvblkn=13149344
 
  === SBLK[13149340] lvl=1, pnum=25, flg=1, kvzidx=25, p0=769212, db=1
  === SBLK[13149340] szpow=12, lkl=16, lk=0000000004233704

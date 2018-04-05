@@ -1549,7 +1549,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
   sp = wp;
   IW_READVNUMBUF(wp, len, sz);
   wp += sz;
-  if (ukey && (len != ukey->size || memcmp(wp, ukey->data, ukey->size))) {
+  if (ukey && len != ukey->size) {
     rc = IWKV_ERROR_CORRUPTED;
     iwlog_ecode_error3(rc);
     goto finish;
@@ -1624,6 +1624,21 @@ IW_INLINE WUR iwrc _sblk_loadkvblk_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     return 0;
   }
 }
+
+IW_INLINE WUR iwrc _sblk_loadkvblk(IWLCTX *lx, SBLK *sblk) {
+  if (!sblk->kvblk && sblk->kvblkn) {
+    uint8_t *mm;
+    IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+    iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCRET(rc);
+    rc = _sblk_loadkvblk_mm(lx, sblk, mm);
+    fsm->release_mmap(fsm);
+    return rc;
+  } else {
+    return 0;
+  }
+}
+
 
 IW_INLINE WUR iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
   assert(sblkp && *sblkp && (*sblkp)->addr);
@@ -1817,13 +1832,13 @@ finish:
 
 IW_INLINE WUR iwrc _sblk_at(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK **sblkp) {
   *sblkp = 0;
-  SBLK *sblk = &lx->saa[lx->saan];  
+  SBLK *sblk = &lx->saa[lx->saan];
   iwrc rc = _sblk_at2(lx, addr, flgs, sblk);
   AAPOS_INC(lx->saan);
   *sblkp = sblk;
   return rc;
-}  
-  
+}
+
 static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   iwrc rc = 0;
   if (sblk->flags & SBLK_DURTY) {
@@ -2479,7 +2494,14 @@ WUR iwrc _lx_addkv(IWLCTX *lx) {
 }
 
 IW_INLINE WUR iwrc _lx_put_lw(IWLCTX *lx) {
-  iwrc rc;  
+  iwrc rc;
+  SBLK sb1 = {0}, sb2 = {0};
+  if (g_trigger) {
+    rc = _sblk_at2(lx, BLK2ADDR(13149340), 0, &sb1);
+    RCRET(rc);
+    rc = _sblk_loadkvblk(lx, &sb1);
+    RCRET(rc);
+  }
 start:
   rc = _lx_find_bounds(lx);
   if (rc) {
@@ -2504,6 +2526,12 @@ start:
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
+  }
+  if (g_trigger) {
+    rc = _sblk_at2(lx, BLK2ADDR(13149340), 0, &sb2);
+    RCRET(rc);
+    rc = _sblk_loadkvblk(lx, &sb2);
+    RCRET(rc);
   }
   return rc;
 }
