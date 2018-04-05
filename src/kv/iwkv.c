@@ -1575,6 +1575,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
       rc = _kvblk_getkey(kb, mm, idx, ukey);
       RCGO(rc, finish);
     }
+    // FIXME
     for (i = 0; i < KVBLK_IDXNUM; ++i) {
       if (tidx[i].off == koff) {
         if (koff - (i > 0 ? tidx[i - 1].off : 0) >= rsize) {
@@ -2495,13 +2496,6 @@ WUR iwrc _lx_addkv(IWLCTX *lx) {
 
 IW_INLINE WUR iwrc _lx_put_lw(IWLCTX *lx) {
   iwrc rc;
-  SBLK sb1 = {0}, sb2 = {0};
-  if (g_trigger) {
-    rc = _sblk_at2(lx, BLK2ADDR(13149340), 0, &sb1);
-    RCRET(rc);
-    rc = _sblk_loadkvblk(lx, &sb1);
-    RCRET(rc);
-  }
 start:
   rc = _lx_find_bounds(lx);
   if (rc) {
@@ -2526,12 +2520,6 @@ start:
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
-  }
-  if (g_trigger) {
-    rc = _sblk_at2(lx, BLK2ADDR(13149340), 0, &sb2);
-    RCRET(rc);
-    rc = _sblk_loadkvblk(lx, &sb2);
-    RCRET(rc);
   }
   return rc;
 }
@@ -2756,10 +2744,6 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
 }
 
 static WUR iwrc _dbcache_get(IWLCTX *lx) {
-  if (1)  { // FIXME
-    lx->lower = &lx->dblk;
-    return 0;
-  }
   iwrc rc = 0;
   off_t idx;
   bool found;
