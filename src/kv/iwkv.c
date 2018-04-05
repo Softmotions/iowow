@@ -2479,27 +2479,7 @@ WUR iwrc _lx_addkv(IWLCTX *lx) {
 }
 
 IW_INLINE WUR iwrc _lx_put_lw(IWLCTX *lx) {
-  iwrc rc;
-  static FILE *df;
-  if (g_trigger) {        
-    if (!df) {
-      df = fopen("db.dmp", "w+");
-    }
-    SBLK s = {0};
-    fprintf(df, "1\n");
-    rc = _sblk_at2(lx, BLK2ADDR(13149340), 0, &s);
-    if (rc) {
-      iwlog_ecode_error3(rc);
-      fflush(df);
-      return rc;
-    }
-    rc = iwkvd_sblk(df, lx, &s, 0);
-    if (rc) {
-      iwlog_ecode_error3(rc);
-      fflush(df);
-      return rc;
-    }
-  }
+  iwrc rc;  
 start:
   rc = _lx_find_bounds(lx);
   if (rc) {
@@ -2524,23 +2504,6 @@ start:
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
-  }
-  
-  if (g_trigger) {      
-    SBLK s = {0};
-    fprintf(df, "2\n");
-    rc = _sblk_at2(lx, BLK2ADDR(13149340), 0, &s);
-    if (rc) {
-      iwlog_ecode_error3(rc);
-      fflush(df);
-      return rc;
-    }
-    rc = iwkvd_sblk(df, lx, &s, 0);
-    if (rc) {
-      iwlog_ecode_error3(rc);
-      fflush(df);
-      return rc;
-    }
   }
   return rc;
 }
@@ -2765,7 +2728,7 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
 }
 
 static WUR iwrc _dbcache_get(IWLCTX *lx) {
-  if (1)  {
+  if (1)  { // FIXME
     lx->lower = &lx->dblk;
     return 0;
   }
