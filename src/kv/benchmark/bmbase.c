@@ -294,12 +294,11 @@ static void _bm_run(BMCTX *ctx) {
   ctx->end_ms = llv;
 }
 
-void iwkvd_trigger(bool val);
-
 static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
   char kbuf[100];
   IWKV_val key, val;
   key.data = kbuf;
+  // todo !!!
   int value_size = ctx->value_size;
   for (int i = 0; i < ctx->num; ++i) {
     if (rvlen) {
@@ -313,12 +312,7 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
     key.size = strlen(key.data);
     val.data = (void *) _bmctx_rndbuf_nextptr(ctx, value_size);
     val.size = value_size;
-    if (i ==  9105074) {
-      fprintf(stderr, "i = %d\n", i);
-      iwkvd_trigger(true);
-    }    
     if (!bm.db_put(ctx, &key, &val, sync)) {
-      fprintf(stderr, "Fail i=%d\n", i);
       return false;
     }
   }

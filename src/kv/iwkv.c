@@ -1454,16 +1454,19 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
   assert(*idxp < KVBLK_IDXNUM);
   int32_t i;
   uint32_t len, nlen, sz;
+  IWDB db = kb->db;
   int8_t idx = *idxp;
   uint8_t *mm = 0, *wp, *sp;
   IWKV_val *uval = (IWKV_val *) val;
   IWKV_val *ukey = (IWKV_val *) key;
   IWKV_val sval, skey; // stack allocated key/val
   KVP *kvp = &kb->pidx[idx];
-  IWDB db = kb->db;
+  size_t kbsz = 1ULL << kb->szpow; // kvblk size
+  off_t freesz = kbsz - KVBLK_HDRSZ - kb->idxsz - kb->maxoff; // free space available
   IWFS_FSM *fsm = &db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
+  assert(freesz >= 0);
   
   // DUP
   if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
@@ -1544,8 +1547,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
     }
   }
   // !DUP
-  
-  wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
+  wp = mm + kb->addr + kbsz - kvp->off;
   sp = wp;
   IW_READVNUMBUF(wp, len, sz);
   wp += sz;
@@ -1555,7 +1557,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
     goto finish;
   }
   wp += len;
-  size_t rsize = IW_VNUMSIZE32(len) + len + uval->size; // required size
+  off_t rsize = sz + len + uval->size; // required size
   if (rsize <= kvp->len) {
     memcpy(wp, uval->data, uval->size);
     wp += uval->size;
@@ -1575,21 +1577,23 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
       rc = _kvblk_getkey(kb, mm, idx, ukey);
       RCGO(rc, finish);
     }
-    // FIXME
     for (i = 0; i < KVBLK_IDXNUM; ++i) {
       if (tidx[i].off == koff) {
         if (koff - (i > 0 ? tidx[i - 1].off : 0) >= rsize) {
-          memcpy(wp, uval->data, uval->size);
-          wp += uval->size;
-          kvp->len = wp - sp;
-        } else {
-          // todo: optimize?
-          mm = 0;
-          fsm->release_mmap(fsm);
-          rc = _kvblk_rmkv(kb, idx, RMKV_NO_RESIZE);
-          RCGO(rc, finish);
-          rc = _kvblk_addkv(kb, ukey, uval, idxp, opflags, true);
+          uint32_t nlen = wp + uval->size - sp;
+          if (!(nlen > kvp->len && freesz - IW_VNUMSIZE32(nlen) + IW_VNUMSIZE32(kvp->len) < 0)) { // enough space?
+            memcpy(wp, uval->data, uval->size);
+            wp += uval->size;
+            kvp->len = nlen;
+            break;;
+          }          
         }
+        // todo: optimize?
+        mm = 0;
+        fsm->release_mmap(fsm);
+        rc = _kvblk_rmkv(kb, idx, RMKV_NO_RESIZE);
+        RCGO(rc, finish);
+        rc = _kvblk_addkv(kb, ukey, uval, idxp, opflags, true);
         break;
       }
     }

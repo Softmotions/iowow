@@ -38,11 +38,11 @@ include_directories(AFTER "${LEVELDB_SOURCE_DIR}/include")
 ## !LevelDB
 
 # LevelDB benchmark
-# add_executable(leveldb_benchmark leveldb_benchmark.c)
-# target_link_libraries(leveldb_benchmark libleveldb iowow_s)
-# set_target_properties(leveldb_benchmark
-#   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
-# )
+add_executable(leveldb_benchmark leveldb_benchmark.c)
+target_link_libraries(leveldb_benchmark libleveldb iowow_s)
+set_target_properties(leveldb_benchmark
+  PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
+)
 
 # LMDB 
 ExternalProject_Add(
@@ -71,11 +71,11 @@ add_dependencies(liblmdb extern_lmdb)
 include_directories(AFTER "${LMDB_SOURCE_DIR}/libraries/liblmdb")
 
 # LMDB benchmark
-# add_executable(lmdb_benchmark lmdb_benchmark.c)
-# target_link_libraries(lmdb_benchmark liblmdb iowow_s)
-# set_target_properties(lmdb_benchmark
-#   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
-# )
+add_executable(lmdb_benchmark lmdb_benchmark.c)
+target_link_libraries(lmdb_benchmark liblmdb iowow_s)
+set_target_properties(lmdb_benchmark
+  PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
+)
 
 # KyotoCabinet 
 ExternalProject_Add(
@@ -105,9 +105,9 @@ set_target_properties(
 add_dependencies(libkyotocabinet extern_kyc)
 include_directories(AFTER "${KYC_BINARY_DIR}/install/include")
 
-# add_executable(kyc_benchmark kyc_benchmark.c)
-# target_link_libraries(kyc_benchmark libkyotocabinet iowow_s)
-# set_target_properties(kyc_benchmark
-#   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
-# )
+add_executable(kyc_benchmark kyc_benchmark.c)
+target_link_libraries(kyc_benchmark libkyotocabinet iowow_s)
+set_target_properties(kyc_benchmark
+  PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
+)
 
