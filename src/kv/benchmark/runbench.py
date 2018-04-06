@@ -1,6 +1,7 @@
 import subprocess
 import argparse
 import os
+import random
 from collections import OrderedDict
 from parse import parse
 from bokeh.plotting import figure, output_file, show, save
@@ -127,9 +128,9 @@ def run():
 def main():
     run()
     plots = []
-    palette = ["#0054AE", "#e84d60", "#c9d9d3", "#718dbf",
+    palette = ["#00B377", "#e84d60", "#0054AE", "#c9d9d3",
                "#BFF500", "#555555", "#DFBFFF", "#B1D28F",
-               "#FFAA00", "#A18353", "#888888", "#00B377"]
+               "#FFAA00", "#A18353", "#888888", "#718dbf"]
     output_file('runbench.html')
     for bn, rmap in results.items():
         pfactors = None

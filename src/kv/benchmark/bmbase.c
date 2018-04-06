@@ -298,7 +298,6 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
   char kbuf[100];
   IWKV_val key, val;
   key.data = kbuf;
-  // todo !!!
   int value_size = ctx->value_size;
   for (int i = 0; i < ctx->num; ++i) {
     if (rvlen) {

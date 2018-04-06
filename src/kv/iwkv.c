@@ -3243,8 +3243,38 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   return rc;
 }
 
+iwrc iwkv_db_cache_release(IWDB db) {
+  if (!db || !db->iwkv) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  int rci;
+  iwrc rc = 0;
+  API_DB_WLOCK(db, rci);
+  _dbcache_destroy_lw(db);
+  API_DB_UNLOCK(db, rci, rc);
+  return rc;
+}
+
+iwrc iwkv_db_last_access_time(const IWDB db, uint64_t *ts) {
+  if (!db || !db->iwkv || !ts) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  int rci;
+  iwrc rc = 0;
+  API_DB_RLOCK(db, rci);
+  if (db->cache.open)   {
+    *ts = db->cache.atime;
+  } else {
+    *ts = 0;
+  }  
+  API_DB_UNLOCK(db, rci, rc);
+  return rc;
+}
+
 iwrc iwkv_db_destroy(IWDB *dbp) {
-  assert(dbp && *dbp);
+  if (!dbp || !*dbp) {
+    return IW_ERROR_INVALID_ARGS;
+  }  
   int rci;
   IWDB db = *dbp;
   IWKV iwkv = db->iwkv;

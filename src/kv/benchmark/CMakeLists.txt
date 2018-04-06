@@ -85,7 +85,7 @@ ExternalProject_Add(
   PREFIX ${CMAKE_BINARY_DIR}
   BUILD_IN_SOURCE ON
   GIT_PROGRESS ON
-  UPDATE_DISCONNECTED ON
+  UPDATE_DISCONNECTED ON  
   BUILD_COMMAND make
   CONFIGURE_COMMAND ./configure --disable-zlib --prefix=${CMAKE_BINARY_DIR}/src/extern_kyc/install
   INSTALL_COMMAND make install
@@ -110,4 +110,3 @@ target_link_libraries(kyc_benchmark libkyotocabinet iowow_s)
 set_target_properties(kyc_benchmark
   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
 )
-
