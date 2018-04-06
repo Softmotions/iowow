@@ -17,7 +17,7 @@ set(PROJECT_MAINTAINER "Anton Adamansky <adamansky@softmotions.com>")
 set(PROJECT_DESCRIPTION_SUMMARY "Key value store and IO library")
 set(PROJECT_DESCRIPTION "Key value store and IO library")
 set(CHANGELOG_MESSAGE ${CHANGELOG_LAST_MESSAGE})
-set(PROJECT_PPA "ppa:adamansky/ejdb2")
+set(PROJECT_PPA "ppa:adamansky/iowow")
 set(PROJECT_PPA_USER "adamansky")
 set(PROJECT_PPA_DISTRIB_TARGET xenial)
 
@@ -114,6 +114,8 @@ if(CPACK_GENERATORS)
     set(CPACK_SOURCE_IGNORE_FILES
             "iowow\\\\.mk$"
             "\\\\.project$"
+            "\\\\.vscode$"
+            "\\\\.idea$"
             "\\\\.workspace$"
             "\\\\.iml$"
             "\\\\.cmake_dirty$"
@@ -126,7 +128,9 @@ endif(CPACK_GENERATORS)
 
 message("${PROJECT_NAME} CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 message("${PROJECT_NAME} CPACK_GENERATORS: ${CPACK_GENERATORS}")
-
+if (MXE_HOME)
+	message("MXE_HOME: ${MXE_HOME}")
+endif()
 if(CMAKE_SYSTEM_NAME)
     message("${PROJECT_NAME} CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 endif()
