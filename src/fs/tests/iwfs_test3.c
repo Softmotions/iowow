@@ -5,10 +5,16 @@
 
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
-#include <locale.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
+#include <locale.h>
+#endif
+
 #include "utils/kbtree.h"
 
 #define NRECS 10000
@@ -40,9 +46,9 @@ int init_suite(void) {
   UNLINK();
   int rc = iw_init();
   RCRET(rc);
-  
+
   rt = kb_init(rt, KB_DEFAULT_SIZE);
-  
+
   off_t addr = 0;
   uint64_t ts;
   rc = iwp_current_time_ms(&ts);
@@ -53,7 +59,7 @@ int init_suite(void) {
   // ts = 1165688361;
   // ts = 11291434;
   iwu_rand_seed(ts);
-  
+
   printf("Generating stress data file: test_fsm_stress1.data, random seed: %lu", ts);
   fstress1 = fopen("test_fsm_stress.data", "w+");
   char *buf = malloc(RECSZ + 1);
@@ -106,9 +112,9 @@ void test_stress(char *path, int bpow, bool mmap_all) {
   };
   iwrc rc = iwfs_fsmfile_open(&fsm, &opts);
   CU_ASSERT_FALSE_FATAL(rc);
-  
+
   fprintf(stderr, "\nRunning allocations...\n");
-  
+
   char *buf = malloc(2 * RECSZ + 1);
   for (int i = 0; i < NRECS; ++i) {
     size_t sp;
@@ -150,14 +156,14 @@ void test_stress(char *path, int bpow, bool mmap_all) {
         }
       }
     }
-    
+
     k.id = i;
     SREC *r = kb_getp(rt, rt, &k);
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
     fseek(fstress1, r->addr + 8 + 1, SEEK_SET);
     fread(buf, r->rsz, 1, fstress1);
     buf[r->rsz + 1] = '\0';
-    
+
     rc = fsm.allocate(&fsm, r->rsz, &r->alc_addr, &r->alc_len, aflags);
     //fprintf(stderr, "%05d A %ld:%ld\n", i, r->alc_addr, r->alc_len);
     CU_ASSERT_FALSE_FATAL(rc);
@@ -165,7 +171,7 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     rc = fsm.write(&fsm, r->alc_addr, buf, r->rsz, &sp);
     CU_ASSERT_FALSE_FATAL(rc);
     CU_ASSERT_EQUAL_FATAL(sp, r->rsz);
-           
+
     if (r->alc_len > r->rsz) {
       off_t wsz = r->alc_len - r->rsz;
       while (wsz > 0) {
@@ -178,12 +184,12 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     }
   }
   CU_ASSERT_FALSE_FATAL(fsm.close(&fsm));
-  
+
   fprintf(stderr, "Checking data\n");
   opts.exfile.file.omode = 0;
   rc = iwfs_fsmfile_open(&fsm, &opts);
   CU_ASSERT_FALSE_FATAL(rc);
-  
+
   char *buf2 = malloc(2 * RECSZ + 1);
   for (int i = 0; i < NRECS; ++i) {
     size_t sp;
@@ -197,7 +203,7 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     fseek(fstress1, r->addr + 8 + 1, SEEK_SET);
     fread(buf, r->rsz, 1, fstress1);
     buf[r->rsz + 1] = '\0';
-    
+
     off_t rn = MIN(r->rsz, r->alc_len);
     if (r->alc_len < r->rsz) {
       CU_ASSERT_TRUE_FATAL(r->reallocated);
@@ -206,18 +212,18 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     rc = fsm.read(&fsm, r->alc_addr, buf2, rn, &sp);
     CU_ASSERT_FALSE_FATAL(rc);
     CU_ASSERT_EQUAL_FATAL(rn, sp);
-    int ri = memcmp(buf, buf2, rn);    
+    int ri = memcmp(buf, buf2, rn);
     CU_ASSERT_EQUAL_FATAL(ri, 0);
-    
-    if (rn < r->alc_len) {      
+
+    if (rn < r->alc_len) {
       while (rn < r->alc_len) {
-        off_t rz = MIN(r->alc_len - rn, r->rsz);        
+        off_t rz = MIN(r->alc_len - rn, r->rsz);
         rc = fsm.read(&fsm, r->alc_addr + rn, buf2, rz, &sp);
         CU_ASSERT_FALSE_FATAL(rc);
         ri = memcmp(buf, buf2, rz);
         CU_ASSERT_EQUAL_FATAL(ri, 0);
-        rn += rz;              
-      }      
+        rn += rz;
+      }
     }
   }
   free(buf2);
@@ -226,29 +232,29 @@ void test_stress(char *path, int bpow, bool mmap_all) {
 }
 
 static void test_stress1() {
-  test_stress("test_fsm_stress1.fsm", 6, true);  
+  test_stress("test_fsm_stress1.fsm", 6, true);
 }
 
-static void test_stress2() {  
-  test_stress("test_fsm_stress2.fsm", 6, false);  
+static void test_stress2() {
+  test_stress("test_fsm_stress2.fsm", 6, false);
 }
 
 int main() {
   setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
-  
+
   /* Initialize the CUnit test registry */
   if (CUE_SUCCESS != CU_initialize_registry())
     return CU_get_error();
-    
+
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwfs_test3", init_suite, clean_suite);
-  
+
   if (NULL == pSuite) {
     CU_cleanup_registry();
     return CU_get_error();
   }
-  
+
   /* Add the tests to the suite */
   if (
       (NULL == CU_add_test(pSuite, "test_stress1", test_stress1)) ||
@@ -257,7 +263,7 @@ int main() {
     CU_cleanup_registry();
     return CU_get_error();
   }
-  
+
   /* Run all tests using the CUnit Basic interface */
   CU_basic_set_mode(CU_BRM_VERBOSE);
   CU_basic_run_tests();

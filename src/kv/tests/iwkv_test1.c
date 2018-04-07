@@ -4,7 +4,12 @@
 #include "iwcfg.h"
 
 #include <CUnit/Basic.h>
+
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
 #include <locale.h>
+#endif
 
 #define KBUFSZ 128
 #define VBUFSZ 128
@@ -13,7 +18,7 @@ char vbuf[VBUFSZ];
 
 extern int8_t iwkv_next_level;
 
-static int cmp_files(FILE *f1, FILE *f2) { 
+static int cmp_files(FILE *f1, FILE *f2) {
   CU_ASSERT_TRUE_FATAL(f1 && f2);
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
@@ -607,7 +612,7 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
 
   // iwkv_next_level = 0;
-  
+
   for (int i = 0; i < 127 * 2; i += 2) {
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
     snprintf(vbuf, VBUFSZ, "%03dval", i);

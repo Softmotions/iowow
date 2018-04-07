@@ -4,10 +4,15 @@
 #include "iwcfg.h"
 
 #include <CUnit/Basic.h>
-#include <locale.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <unistd.h>
+
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
+#include <locale.h>
+#endif
 
 typedef struct VN {
   int kn; // key number
@@ -32,7 +37,7 @@ typedef struct TASK {
 } TASK;
 
 int init_suite(void) {
-  iwrc rc = iwkv_init();  
+  iwrc rc = iwkv_init();
   return rc;
 }
 

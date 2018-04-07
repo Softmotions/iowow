@@ -1,7 +1,13 @@
 #include "iowow.h"
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
+
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
 #include <locale.h>
+#endif
+
 #include "iwarr.h"
 
 

@@ -57,9 +57,14 @@
 #include "iowow.h"
 
 #include <stdint.h>
-#include <locale.h>
 #include <stdarg.h>
 #include <stdio.h>
+
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
+#include <locale.h>
+#endif
 
 IW_EXTERN_C_START
 

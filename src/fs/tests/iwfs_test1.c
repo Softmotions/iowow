@@ -33,17 +33,22 @@
 
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
-#include <locale.h>
 #include <unistd.h>
+
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
+#include <locale.h>
+#endif
 
 #define UNLINK() \
   unlink("iwfs_exfile_test1.dat"); \
   unlink("test_mmap1.dat"); \
   unlink("test_fibo_inc.dat")
-  
+
 
 int init_suite(void) {
-  int rc = iw_init();  
+  int rc = iw_init();
   UNLINK();
   return rc;
 }

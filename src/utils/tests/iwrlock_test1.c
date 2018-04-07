@@ -6,7 +6,13 @@
 
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
+
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
 #include <locale.h>
+#endif
+
 #include <pthread.h>
 
 #define LK4THREADS 8
