@@ -33,8 +33,8 @@
  *         datastructure (https://en.wikipedia.org/wiki/Skip_list).
  *  @author Anton Adamansky (adamansky@softmotions.com)
  *
- * <strong>Main features:<strong>
- * - Simple key value storage design
+ * <strong>Features:<strong>
+ * - Simple design of key value storage
  * - Lightweight shared/static library: 200Kb
  * - Support of multiple key-value databases within a single file
  * - Ultra-fast traversal of database records

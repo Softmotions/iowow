@@ -1,11 +1,24 @@
-IOWOW - The C11 persistent key/value database engine based on skiplist
-======================================================================
+IOWOW - The C11 persistent key/value database engine based on skip list
+=======================================================================
 
-* Persistent key/value database engine (iwkv.h)
-* Allocation/deallocation of file data blocks management like `malloc` does for memory (iwfsmfile.h)
-* Basic file IO routines (iwfile.h)
-* Management of a file memory mmapped regions
-* Automatic file space expansion/truncation (iwexfile.h)
-* Reader/writer locking of file address space among a threads (iwrwlfile.h)
-* Simple message logging facility (iwlog.h)
+# Key components
 
+* [iwkv.h](https://github.com/Softmotions/iowow/blob/master/src/kv/iwkv.h) Persistent key/value database engine
+* [iwfsmfile.h](https://github.com/Softmotions/iowow/blob/master/src/fs/iwfsmfile.h) File blocks allocation manager like `malloc()` on files
+
+# IWKV
+
+## Features
+
+* Support of multiple key-value databases within a single file.
+* Native support of integer keys
+* Support of record values represented as sorted array of integers
+* Ultra-fast traversal of database records
+* Good performance comparing its main competitors: `lmdb`, `leveldb`, `kyoto cabinet`
+* Simple C11 library can be easily embedded into any software
+
+## Limitations
+
+* Maximum iwkv storage file size: `255 GB (0x3fffffffc0)`
+* Total size of a single key+value record must be not greater than 255Mb (0xfffffff)
+* In-memory cache for every opened database takes ~130Kb, cache can be disposed by `iwkv_db_cache_release()`
