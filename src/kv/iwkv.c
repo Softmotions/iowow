@@ -396,7 +396,7 @@ static_assert(DB_SZ >= DOFF_END, "DB_SZ >= DOFF_END");
 
 
 // KVBLK
-// [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]____[[_KV],...]] // KVBLK
+// [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps32,pl32]____[[_KV],...]] // KVBLK
 #define KBLK_SZPOW_OFF   0
 
 //-------------------------- UTILS
