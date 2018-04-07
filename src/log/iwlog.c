@@ -38,6 +38,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libgen.h>
 #include <time.h>
 
 static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode, int errno_code, int werror_code,
