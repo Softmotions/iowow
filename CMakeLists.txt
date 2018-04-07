@@ -13,9 +13,9 @@ include(DebChangelog)
 set(PROJECT_NAME "iowow")
 set(PROJECT_VENDOR "Softmotions (http://softmotions.com)")
 set(PROJECT_WEBSITE "https://github.com/Softmotions/iowow")
-set(PROJECT_MAINTAINER "Anton Adamansky <adamansky@softmotions.com>")
-set(PROJECT_DESCRIPTION_SUMMARY "Key value store and IO library")
-set(PROJECT_DESCRIPTION "Key value store and IO library")
+set(PROJECT_MAINTAINER "Anton Adamansky <adamansky@gmail.com>")
+set(PROJECT_DESCRIPTION_SUMMARY "The skiplist based persistent key/value storage engine")
+set(PROJECT_DESCRIPTION "The skiplist based persistent key/value storage engine")
 set(CHANGELOG_MESSAGE ${CHANGELOG_LAST_MESSAGE})
 set(PROJECT_PPA "ppa:adamansky/iowow")
 set(PROJECT_PPA_USER "adamansky")
@@ -112,15 +112,16 @@ endif()
 if(CPACK_GENERATORS)
     set(CPACK_GENERATOR "${CPACK_GENERATORS}")
     set(CPACK_SOURCE_IGNORE_FILES
-            "iowow\\\\.mk$"
+            "/\\\\.vscode/"
+            "/\\\\.codelite/"
+            "/\\\\.idea/"
+            "/cmake-.*/"
+            "\\\\.sh$"
             "\\\\.project$"
-            "\\\\.vscode$"
-            "\\\\.idea$"
             "\\\\.workspace$"
             "\\\\.iml$"
-            "\\\\.cmake_dirty$"
-            "ctest\\\\.cmake"
-            "compile_commands\\\\.json$"
+            "\\\\.mk$"
+            "\\\\.astylerc$"
             "/Makefile$"
     )
     add_subdirectory(installer)

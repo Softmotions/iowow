@@ -87,6 +87,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwexfile.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfsmfile.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwrwlfile.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/kv/iwkv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/platform/iwp.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwutils.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwxstr.h
@@ -215,17 +216,15 @@ if (BUILD_SHARED_LIBS)
 endif()
 
 
-if(BUILD_DOCUMENTATION)
-    install(FILES
-            ${CMAKE_SOURCE_DIR}/LICENSE
-            ${CMAKE_SOURCE_DIR}/INSTALL
-            ${CMAKE_SOURCE_DIR}/Changelog
-            DESTINATION ${CMAKE_INSTALL_DOCDIR})
-    install(FILES
-            ${CMAKE_SOURCE_DIR}/README.md
-            RENAME README
-            DESTINATION ${CMAKE_INSTALL_DOCDIR})
-endif()
+install(FILES
+        ${CMAKE_SOURCE_DIR}/LICENSE
+        ${CMAKE_SOURCE_DIR}/INSTALL
+        ${CMAKE_SOURCE_DIR}/Changelog
+        DESTINATION ${CMAKE_INSTALL_DOCDIR})
+install(FILES
+        ${CMAKE_SOURCE_DIR}/README.md
+        RENAME README
+        DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 if (CMAKE_VERSION VERSION_GREATER 3.0)
     export(EXPORT iowow-exports)
