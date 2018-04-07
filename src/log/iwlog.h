@@ -2,12 +2,6 @@
 #ifndef IWLOG_H
 #define IWLOG_H
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#endif
-
-//
 /**************************************************************************************************
  * IOWOW library
  *
@@ -34,6 +28,10 @@
  * SOFTWARE.
  *************************************************************************************************/
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
 
 /**
  * @file

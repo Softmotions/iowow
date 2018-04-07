@@ -48,7 +48,7 @@
 #define IWCPU_AVX512F 0x80
 
 /**
- * Flags supported by current CPU. 
+ * Flags supported by current CPU.
  * `iwp_init()` must be called.
  */
 extern unsigned int iwcpuflags;
@@ -224,7 +224,5 @@ IW_EXPORT uint16_t iwp_num_cpu_cores();
  * @return `0` on success or error code.
  */
 IW_EXPORT WUR iwrc iwp_init(void);
-
-
 
 #endif

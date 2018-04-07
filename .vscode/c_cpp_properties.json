@@ -47,15 +47,15 @@
                 "/usr/include/c++/5/backward",
                 "${workspaceRoot}",
                 "${workspaceRoot}/build/src/generated",
-                "${workspaceRoot}/build/src/extern_leveldb/include",
                 "${workspaceRoot}/src",
                 "${workspaceRoot}/src/utils",
                 "${workspaceRoot}/src/kv",
                 "${workspaceRoot}/src/fs",
                 "${workspaceRoot}/src/log",
                 "${workspaceRoot}/src/platform",
-                "${workspaceFolder}/build/src/extern_kyc/install/include",
-                "${workspaceFolder}/build/src/extern_lmdb/libraries/liblmdb"
+                "${workspaceRoot}/build/src/extern_leveldb/include",
+                "${workspaceRoot}/build/src/extern_kyc/install/include",
+                "${workspaceRoot}/build/src/extern_lmdb/libraries/liblmdb"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",

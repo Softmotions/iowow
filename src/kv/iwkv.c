@@ -785,7 +785,7 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
   IWFS_FSM *fsm = &db->iwkv->fsm;
   uint32_t first_sblkn;
   bool dec_worker = true;
-  
+
   kh_del(DBS, db->iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
@@ -1087,7 +1087,7 @@ static WUR iwrc _kvblk_at_mm(IWLCTX *lx, off_t addr, uint8_t *mm, KVBLK *kbp, KV
   kb->szpow = 0;
   kb->flags = 0;
   memset(kb->pidx, 0, sizeof(kb->pidx));
-  
+
   *blkp = 0;
   rp = mm + addr;
   memcpy(&kb->szpow, rp, 1);
@@ -1204,7 +1204,7 @@ static void _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
   uint8_t *wp = mm + kb->addr + (1ULL << kb->szpow);
   memcpy(tidx, kb->pidx, sizeof(tidx));
   ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp);
-  
+
   coff = 0;
   for (i = 0; i < KVBLK_IDXNUM && tidx[i].off; ++i) {
 #ifndef NDEBUG
@@ -1326,11 +1326,11 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   bool compacted = false;
   IWKV_val *uval = (IWKV_val *) val, sval;
   off_t psz = IW_VNUMSIZE(key->size) + key->size + uval->size; // required KVP size
-  
+
 #ifndef NDEBUG
   uint8_t *sptr;
 #endif
-  
+
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
   }
@@ -1362,14 +1362,14 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
     }
     return IWKV_ERROR_MAXKVSZ;
   }
-  
+
 start:
   // [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] // KVBLK
   msz = (1ULL << kb->szpow) - (KVBLK_HDRSZ + kb->idxsz + kb->maxoff);
   assert(msz >= 0);
   noff = kb->maxoff + psz;
   rsz = psz + IW_VNUMSIZE(noff) + IW_VNUMSIZE(psz);
-  
+
   if (msz < rsz) { // not enough space
     if (!compacted) {
       compacted = true;
@@ -1387,7 +1387,7 @@ start:
     while ((1ULL << ++npow) < nsz);
     off_t naddr = kb->addr;
     off_t nlen = 1ULL << kb->szpow;
-    
+
     assert(!fsm->check_allocation_status(fsm, naddr, nlen, true));
     rc = fsm->reallocate(fsm, (1ULL << npow), &naddr, &nlen,
                          IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
@@ -1467,7 +1467,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   assert(freesz >= 0);
-  
+
   // DUP
   if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
     if (((db->dbflg & IWDB_DUP_UINT32_VALS) && val->size != 4) ||
@@ -1494,7 +1494,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
     uint8_t vbuf[8];
     uint32_t avail = len - (4 /* num items */ + sz * val->size);
     _num2lebuf(vbuf, val->data, val->size);
-    
+
     if (opflags & IWKV_DUP_REMOVE) {
       if (!sz || !iwarr_sorted_remove(wp, sz, val->size, vbuf,  val->size > 4 ? _u8cmp : _u4cmp)) {
         rc = IWKV_ERROR_NOTFOUND;
@@ -1509,7 +1509,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
         kb->flags |= KVBLK_DURTY;
       }
       goto finish;
-      
+
     } else if (avail >= val->size) { // we have enough room to store the given number
       if (iwarr_sorted_insert(wp, sz, val->size, vbuf,
                               val->size > 4 ? _u8cmp : _u4cmp, true) == -1) {
@@ -1586,7 +1586,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
             wp += uval->size;
             kvp->len = nlen;
             break;;
-          }          
+          }
         }
         // todo: optimize?
         mm = 0;
@@ -1598,7 +1598,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
       }
     }
   }
-  
+
 finish:
   if (uval != val) {
     _kv_val_dispose(uval);
@@ -1718,11 +1718,11 @@ static WUR iwrc _sblk_create(IWLCTX *lx, int8_t nlevel, int8_t kvbpow, off_t bad
   rc = fsm->allocate(fsm, SBLK_SZ + kvblksz, &baddr, &blen,
                      IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
   RCRET(rc);
-  
+
   assert(blen - SBLK_SZ == kvblksz);
   _kvblk_create(lx, baddr + SBLK_SZ, kvblksz, kvbpow, &kvblk);
   RCRET(rc);
-  
+
   sblk = &lx->saa[lx->saan];
   sblk->db = lx->db;
   sblk->db->lcnt[nlevel]++;
@@ -2207,7 +2207,7 @@ static WUR iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
   SBLK *sblk;
   blkn_t blkn;
   assert(lx->lower);
-  
+
   while ((blkn = lx->lower->n[lvl])) {
     off_t blkaddr = BLK2ADDR(blkn);
     if (lx->nlvl > -1 && lvl < lx->nlvl) {
@@ -2647,7 +2647,7 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
   uint32_t kl1 = c1->lkl, kl2 = c2->lkl;
   uint8_t *mm = 0;
   iwrc rc = 0;
-  
+
   *res = _cmp_key2(lx->db->dbflg, k1, kl1, k2, kl2);
   if (*res == 0 && (!c1->fullkey || !c2->fullkey)) {
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -2797,7 +2797,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   DBCNODE *n = (DBCNODE *) dbcbuf;
   DBCACHE *cache = &db->cache;
   register size_t nsize = cache->nsize;
-  
+
   sblk->flags &= ~SBLK_CACHE_PUT;
   cache->atime = lx->ts;
   assert(sizeof(*cache) + sblk->lkl <= sizeof(dbcbuf));
@@ -2818,7 +2818,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   n->sblkn = ADDR2BLK(sblk->addr);
   n->kblkn = sblk->kvblkn;
   memcpy((uint8_t *)n + offsetof(DBCNODE, lk), sblk->lk, sblk->lkl);
-  
+
   idx = iwarr_sorted_find2(cache->nodes, cache->num, nsize, n, lx, &found, _dbcache_cmp_nodes);
   assert(!found);
   if (cache->asize <= cache->num * nsize) {
@@ -3029,20 +3029,20 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-    case IWKV_ERROR_NOTFOUND:
-      return "Key not found. (IWKV_ERROR_NOTFOUND)";
-    case IWKV_ERROR_KEY_EXISTS:
-      return "Key exists. (IWKV_ERROR_KEY_EXISTS)";
-    case IWKV_ERROR_MAXKVSZ:
-      return "Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
-    case IWKV_ERROR_CORRUPTED:
-      return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
-    case IWKV_ERROR_DUP_VALUE_SIZE:
-      return "Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE)";
-    case IWKV_ERROR_KEY_NUM_VALUE_SIZE:
-      return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
-    case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
-      return "Incompatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
+  case IWKV_ERROR_NOTFOUND:
+    return "Key not found. (IWKV_ERROR_NOTFOUND)";
+  case IWKV_ERROR_KEY_EXISTS:
+    return "Key exists. (IWKV_ERROR_KEY_EXISTS)";
+  case IWKV_ERROR_MAXKVSZ:
+    return "Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
+  case IWKV_ERROR_CORRUPTED:
+    return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
+  case IWKV_ERROR_DUP_VALUE_SIZE:
+    return "Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE)";
+  case IWKV_ERROR_KEY_NUM_VALUE_SIZE:
+    return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
+  case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
+    return "Incompatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
   }
   return 0;
 }
@@ -3119,14 +3119,14 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
 #if defined(IW_TESTS) && !defined(IW_RELEASE)
   fsmopts.oflags |= IWFSM_STRICT;
 #endif
-  
+
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
   IWFS_FSM *fsm  = &iwkv->fsm;
   iwkv->dbs = kh_init(DBS);
   rc = fsm->state(fsm, &fsmstate);
   RCGO(rc, finish);
-  
+
   if (fsmstate.exfile.file.ostatus & IWFS_OPEN_NEW) {
     // Write magic number
     lv = IWKV_MAGIC;
@@ -3266,7 +3266,7 @@ iwrc iwkv_db_last_access_time(const IWDB db, uint64_t *ts) {
     *ts = db->cache.atime;
   } else {
     *ts = 0;
-  }  
+  }
   API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
@@ -3274,7 +3274,7 @@ iwrc iwkv_db_last_access_time(const IWDB db, uint64_t *ts) {
 iwrc iwkv_db_destroy(IWDB *dbp) {
   if (!dbp || !*dbp) {
     return IW_ERROR_INVALID_ARGS;
-  }  
+  }
   int rci;
   IWDB db = *dbp;
   IWKV iwkv = db->iwkv;
@@ -3531,6 +3531,72 @@ iwrc iwkv_cursor_get(IWKV_cursor cur,
   } else {
     rc = IW_ERROR_INVALID_ARGS;
   }
+finish:
+  if (mm) {
+    fsm->release_mmap(fsm);
+  }
+  API_DB_UNLOCK(cur->lx.db, rci, rc);
+  return rc;
+}
+
+iwrc iwkv_cursor_copy_val(IWKV_cursor cur, uint8_t *vbuf, size_t vbufsz, size_t *vsz) {
+  int rci;
+  iwrc rc = 0;
+  if (!cur || !vbuf) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  if (!cur->cn || !cur->lx.db || cur->cnpos >= cur->cn->pnum) {
+    return IW_ERROR_INVALID_STATE;
+  }
+  *vsz = 0;
+  API_DB_RLOCK(cur->lx.db, rci);
+  uint8_t *mm = 0, *oval;
+  uint32_t ovalsz;
+  IWFS_FSM *fsm = &cur->lx.db->iwkv->fsm;
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCGO(rc, finish);
+  if (!cur->cn->kvblk) {
+    rc = _sblk_loadkvblk_mm(&cur->lx, cur->cn, mm);
+    RCGO(rc, finish);
+  }
+  int8_t idx = cur->cn->pi[cur->cnpos];
+  _kvblk_peek_val(cur->cn->kvblk, idx, mm, &oval, &ovalsz);
+  *vsz = ovalsz;
+  memcpy(vbuf, oval, MIN(vbufsz, ovalsz));
+finish:
+  if (mm) {
+    fsm->release_mmap(fsm);
+  }
+  API_DB_UNLOCK(cur->lx.db, rci, rc);
+  return rc;
+}
+
+iwrc iwkv_cursor_copy_key(IWKV_cursor cur, uint8_t *kbuf, size_t kbufsz, size_t *ksz) {
+  int rci;
+  iwrc rc = 0;
+  if (!cur || !kbuf) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  if (!cur->cn || !cur->lx.db || cur->cnpos >= cur->cn->pnum) {
+    return IW_ERROR_INVALID_STATE;
+  }
+  *ksz = 0;
+  API_DB_RLOCK(cur->lx.db, rci);
+  uint8_t *mm = 0;
+  const uint8_t *okey;
+  uint32_t okeysz;
+  IWFS_FSM *fsm = &cur->lx.db->iwkv->fsm;
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCGO(rc, finish);
+  if (!cur->cn->kvblk) {
+    rc = _sblk_loadkvblk_mm(&cur->lx, cur->cn, mm);
+    RCGO(rc, finish);
+  }
+  int8_t idx = cur->cn->pi[cur->cnpos];
+  rc = _kvblk_peek_key(cur->cn->kvblk, idx, mm, &okey, &okeysz);
+  RCGO(rc, finish);
+  *ksz = okeysz;
+  memcpy(kbuf, okey, MIN(kbufsz, okeysz));
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
