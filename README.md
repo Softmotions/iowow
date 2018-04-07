@@ -1,5 +1,5 @@
-IOWOW - The C11 persistent key/value database engine based on skip list
-=======================================================================
+IOWOW - The C11 persistent key/value database engine based on [skip list](https://en.wikipedia.org/wiki/Skip_list)
+==================================================================================================================
 
 # Key components
 
