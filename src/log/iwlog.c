@@ -40,7 +40,7 @@
 #include <time.h>
 #include <limits.h>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #include <libgen.h>
 #else
 #include <string.h>
@@ -380,7 +380,7 @@ static iwrc _default_logfn(locale_t locale,
     ecode_msg = _ecode_explained(locale, ecode);
   }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__FreeBSD__)
   char bfile[MAXPATHLEN];
   if (file && line > 0) {
     file = basename_r(file, bfile);
