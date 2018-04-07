@@ -42,6 +42,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
+
+#ifndef MAXPATHLEN
+#ifdef PATH_MAX
+# define MAXPATHLEN PATH_MAX
+#else
+# define MAXPATHLEN 4096
+#endif
+#endif
 
 #define IOWOW_VERSION "@iowow_VERSION@"
 #define IOWOW_VERSION_MAJOR @iowow_VERSION_MAJOR@

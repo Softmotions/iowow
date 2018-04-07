@@ -37,9 +37,14 @@
 #include <math.h>
 #include <pthread.h>
 #include <stdlib.h>
-#include <string.h>
-#include <libgen.h>
 #include <time.h>
+#include <limits.h>
+
+#ifdef __APPLE__
+#include <libgen.h>
+#else
+#include <string.h>
+#endif
 
 static iwrc _default_logfn(locale_t locale, iwlog_lvl lvl, iwrc ecode, int errno_code, int werror_code,
                            const char *file, int line, uint64_t ts, void *opts, const char *fmt,
@@ -374,19 +379,30 @@ static iwrc _default_logfn(locale_t locale,
   if (ecode) {
     ecode_msg = _ecode_explained(locale, ecode);
   }
+
+#ifdef __APPLE__
+  char bfile[MAXPATHLEN];
+  if (file && line > 0) {
+    file = basename_r(file, bfile);
+  }
+#else
+  if (file && line > 0) {
+    file = basename(file);
+  }
+#endif
+
   if (ecode || errno_code || werror_code) {
     if (file && line > 0) {
-      file = basename(file);
       fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, file, line, ecode, errno_code,
               werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
               (werror_msg ? werror_msg : ""));
+
     } else {
       fprintf(out, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, ecode, errno_code, werror_code,
               (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
     }
   } else {
     if (file && line > 0) {
-      file = basename(file);
       fprintf(out, "%s %s %s:%d: ", tbuf, cat, file, line);
     } else {
       fprintf(out, "%s %s: ", tbuf, cat);
