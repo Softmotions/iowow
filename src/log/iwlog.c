@@ -302,7 +302,8 @@ static iwrc _default_logfn(locale_t locale,
   const char *ecode_msg = 0, *cat;
 
   if (errno_code) {
-    errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ);
+    strerror_r(errno_code, ebuf, EBUF_SZ);
+    errno_msg = ebuf;
   }
 
 #ifdef _WIN32
