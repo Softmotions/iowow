@@ -5,11 +5,11 @@
 
 #include <CUnit/Basic.h>
 
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
+// #ifdef __APPLE__
+// #include <xlocale.h>
+// #else
 #include <locale.h>
-#endif
+//#endif
 
 #define KBUFSZ 128
 #define VBUFSZ 128
