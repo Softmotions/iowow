@@ -280,8 +280,9 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
                                    const fsm_bmopts_t opts) {
   iwrc rc;
   uint8_t *mm;
+  size_t sp;
   register uint64_t *p, set_mask;
-  uint64_t bend = offset_bits + length_bits, sp;
+  uint64_t bend = offset_bits + length_bits;
   int set_bits;
 
   if (bend < offset_bits) { // overflow
