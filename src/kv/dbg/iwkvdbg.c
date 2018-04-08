@@ -75,12 +75,12 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     uint64_t k;
     memcpy(&k, lkbuf, sizeof(k));
     k = IW_ITOHLL(k);
-    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%lu\n", blkn, sb->kvblk->szpow, lkl, k);
+    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%llu\n", blkn, sb->kvblk->szpow, lkl, k);
   } else if (sb->db->dbflg & IWDB_UINT32_KEYS) {
     uint32_t k;
     memcpy(&k, lkbuf, sizeof(k));
     k = IW_ITOHL(k);
-    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%u\n", blkn, sb->kvblk->szpow, lkl, k);
+    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%llu\n", blkn, sb->kvblk->szpow, lkl, k);
   } else {
     fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow,  lkl, lkbuf);
   }
