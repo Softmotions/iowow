@@ -5,11 +5,10 @@
 
 #include <CUnit/Basic.h>
 
-// #ifdef __APPLE__
-// #include <xlocale.h>
-// #else
+#ifdef __APPLE__
+#include <xlocale.h>
+#endif
 #include <locale.h>
-//#endif
 
 #define KBUFSZ 128
 #define VBUFSZ 128
@@ -75,18 +74,18 @@ static bool _test5dup5visitor(uint64_t dv, void *op) {
   CU_ASSERT_PTR_NOT_NULL_FATAL(op);
   struct Test5DUP1 *s = op;
   switch (dv) {
-    case -1ULL:
-      s->_mv = true;
-      break;
-    case 1ULL:
-      s->_1v = true;
-      break;
-    case 10ULL:
-      s->_10v = true;
-      break;
-    default:
-      CU_FAIL("Invalid dup value");
-      break;
+  case -1ULL:
+    s->_mv = true;
+    break;
+  case 1ULL:
+    s->_1v = true;
+    break;
+  case 10ULL:
+    s->_10v = true;
+    break;
+  default:
+    CU_FAIL("Invalid dup value");
+    break;
   }
   return false;
 }
@@ -386,46 +385,46 @@ static void iwkv_test2(void) {
     iwkv_kv_dispose(0, &val);
   }
 
-//  snprintf(kbuf, KBUFSZ, "%03dkkk", 64);
-//  key.data = kbuf;
-//  key.size = strlen(key.data);
-//  rc = iwkv_del(db1, &key);
-//  CU_ASSERT_EQUAL_FATAL(rc, 0);
-//  logstage(f, "removed 064kkk", db1);
-//
-//
-//  snprintf(kbuf, KBUFSZ, "%03dkkk", 126);
-//  key.data = kbuf;
-//  key.size = strlen(key.data);
-//  rc = iwkv_del(db1, &key);
-//  CU_ASSERT_EQUAL_FATAL(rc, 0);
-//  logstage(f, "removed 126kkk", db1);
-//
-//
-//  // Now delete more than half of block records
-//  // 126
-//  for (int i = 64; i <= 99; ++i) {
-//    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
-//    key.data = kbuf;
-//    key.size = strlen(key.data);
-//    rc = iwkv_del(db1, &key);
-//    if (i == 64) {
-//      CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
-//      rc = 0;
-//      continue;
-//    }
-//    CU_ASSERT_EQUAL_FATAL(rc, 0);
-//  }
-//  logstage(f, "removed 065kkk - 099kkk", db1); // 125
-//
-//  for (int i = 100; i <= 125; ++i) {
-//    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
-//    key.data = kbuf;
-//    key.size = strlen(key.data);
-//    rc = iwkv_del(db1, &key);
-//    CU_ASSERT_EQUAL_FATAL(rc, 0);
-//  }
-//  logstage(f, "removed all keys in SBLK[54]", db1); // 125
+  //  snprintf(kbuf, KBUFSZ, "%03dkkk", 64);
+  //  key.data = kbuf;
+  //  key.size = strlen(key.data);
+  //  rc = iwkv_del(db1, &key);
+  //  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  //  logstage(f, "removed 064kkk", db1);
+  //
+  //
+  //  snprintf(kbuf, KBUFSZ, "%03dkkk", 126);
+  //  key.data = kbuf;
+  //  key.size = strlen(key.data);
+  //  rc = iwkv_del(db1, &key);
+  //  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  //  logstage(f, "removed 126kkk", db1);
+  //
+  //
+  //  // Now delete more than half of block records
+  //  // 126
+  //  for (int i = 64; i <= 99; ++i) {
+  //    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
+  //    key.data = kbuf;
+  //    key.size = strlen(key.data);
+  //    rc = iwkv_del(db1, &key);
+  //    if (i == 64) {
+  //      CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
+  //      rc = 0;
+  //      continue;
+  //    }
+  //    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  //  }
+  //  logstage(f, "removed 065kkk - 099kkk", db1); // 125
+  //
+  //  for (int i = 100; i <= 125; ++i) {
+  //    snprintf(kbuf, KBUFSZ, "%03dkkk", i);
+  //    key.data = kbuf;
+  //    key.size = strlen(key.data);
+  //    rc = iwkv_del(db1, &key);
+  //    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  //  }
+  //  logstage(f, "removed all keys in SBLK[54]", db1); // 125
 
   rc = iwkv_db_destroy(&db1);      // Destroy DB and remove all db blocks
   CU_ASSERT_EQUAL_FATAL(rc, 0);
