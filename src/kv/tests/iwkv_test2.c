@@ -2,13 +2,7 @@
 #include "iwlog.h"
 #include "iwutils.h"
 #include "iwcfg.h"
-
 #include <CUnit/Basic.h>
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
-#include <locale.h>
-#endif
 
 int init_suite(void) {
   iwrc rc = iwkv_init();
@@ -59,7 +53,6 @@ static void iwkv_test1(void) {
 }
 
 int main() {
-  setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

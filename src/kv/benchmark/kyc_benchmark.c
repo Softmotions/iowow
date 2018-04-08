@@ -153,7 +153,6 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
 
 
 int main(int argc, char **argv) {
-  setlocale(LC_ALL, "en_US.UTF-8");
   if (argc < 1) return -1;
   g_program = argv[0];
   bm.env_setup = env_setup;

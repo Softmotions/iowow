@@ -8,12 +8,6 @@
 #include <stdatomic.h>
 #include <unistd.h>
 
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
-#include <locale.h>
-#endif
-
 typedef struct VN {
   int kn; // key number
   int vs; // value seed
@@ -169,7 +163,6 @@ static void iwkv_test1(void) {
 }
 
 int main() {
-  setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

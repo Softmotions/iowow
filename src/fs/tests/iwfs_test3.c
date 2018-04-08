@@ -9,12 +9,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
-#include <locale.h>
-#endif
-
 #include "utils/kbtree.h"
 
 #define NRECS 10000
@@ -240,7 +234,6 @@ static void test_stress2() {
 }
 
 int main() {
-  setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

@@ -30,14 +30,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
-#include <locale.h>
-#endif
-
 #include <CUnit/Basic.h>
+
 #include "iwlog.h"
 #include "iwutils.h"
 
@@ -109,7 +103,6 @@ void iwlog_test2() {
 }
 
 int main() {
-  setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

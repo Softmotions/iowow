@@ -5,15 +5,8 @@
 #include "platform/iwp.h"
 
 #include "iwcfg.h"
-#include <CUnit/Basic.h>
-
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
-#include <locale.h>
-#endif
-
 #include <pthread.h>
+#include <CUnit/Basic.h>
 
 #define LK4THREADS 8
 #define LK4RANGESZ 100
@@ -167,7 +160,6 @@ void test_iwrlock4(void) {
 }
 
 int main() {
-  setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

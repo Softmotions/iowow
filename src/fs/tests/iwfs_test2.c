@@ -38,12 +38,6 @@
 #include <sys/stat.h>
 #include <pthread.h>
 
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
-#include <locale.h>
-#endif
-
 static pthread_mutex_t records_mtx;
 
 #define UNLINK() \
@@ -730,7 +724,6 @@ void test_block_allocation2_impl(int mmap_all) {
 }
 
 int main() {
-  setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

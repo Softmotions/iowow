@@ -35,12 +35,6 @@
 #include <CUnit/Basic.h>
 #include <unistd.h>
 
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
-#include <locale.h>
-#endif
-
 #define UNLINK() \
   unlink("iwfs_exfile_test1.dat"); \
   unlink("test_mmap1.dat"); \
@@ -310,7 +304,6 @@ void test_mmap1(void) {
 }
 
 int main() {
-  setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

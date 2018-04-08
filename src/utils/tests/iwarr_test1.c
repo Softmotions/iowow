@@ -1,13 +1,6 @@
 #include "iowow.h"
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
-
-#ifdef __APPLE__
-#include <xlocale.h>
-#else
-#include <locale.h>
-#endif
-
 #include "iwarr.h"
 
 
@@ -47,7 +40,6 @@ void test_iwarr1(void) {
 }
 
 int main() {
-  setlocale(LC_ALL, "en_US.UTF-8");
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
