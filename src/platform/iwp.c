@@ -32,7 +32,7 @@
 
 unsigned int iwcpuflags = 0;
 
-#if defined(__linux) || defined(__unix)
+#if defined(__linux) || defined(__unix) || defined(__APPLE__)
 #include "linux/linux.c"
 #else
 #error Unsupported platform
