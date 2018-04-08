@@ -154,9 +154,11 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
     // todo resolve it!!
     return IW_ERROR_OVERFLOW;
   }
+#ifndef __APPLE__
   if (siz > sizeof(buf)) {
     posix_fadvise(fh, off, siz, POSIX_FADV_SEQUENTIAL);
   }
+#endif
   while (pos < siz) {
     rc = iwp_read(fh, off + pos, buf, MIN(sizeof(buf), (siz - pos)), &sp);
     if (rc || !sp) {
