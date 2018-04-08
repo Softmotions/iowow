@@ -57,7 +57,9 @@
                 "${workspaceRoot}/build/src/extern_kyc/install/include",
                 "${workspaceRoot}/build/src/extern_lmdb/libraries/liblmdb"
             ],
-            "defines": [],
+            "defines": [
+                "_GNU_SOURCE"
+            ],
             "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [

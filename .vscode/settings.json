@@ -23,6 +23,9 @@
   "clang.completion.enable": true,
   "clang.diagnostic.enable": true,
   "clang.cflags": [
+    "-D_GNU_SOURCE",
+    "-D_LARGEFILE_SOURCE",
+    "-D_FILE_OFFSET_BITS=64",
     "-std=gnu11",
     "-Wc99-compat",
     "-Wall",
@@ -48,6 +51,9 @@
     "-I${workspaceRoot}/src/kv"
   ],
   "clang.cxxflags": [
+    "-D_GNU_SOURCE",
+    "-D_LARGEFILE_SOURCE",
+    "-D_FILE_OFFSET_BITS=64",
     "-std=c++11",
     "-Wall",
     "-Wcast-qual",

@@ -92,14 +92,12 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char 
   if (iwp_current_time_ms(&ts)) {
     return -1;
   }
-
   pthread_mutex_lock(&_mtx);
   IWLOG_FN logfn = _current_logfn;
   void *opts = _current_logfn_options;
   pthread_mutex_unlock(&_mtx);
 
   rc = logfn(locale, lvl, ecode, errno_code, werror_code, file, line, ts, opts, fmt, argp);
-
   if (rc) {
     fprintf(stderr, "Logging function returned with error: %" PRIu64 IW_LINE_SEP, rc);
   }
@@ -308,8 +306,14 @@ static iwrc _default_logfn(locale_t locale,
   const char *ecode_msg = 0, *cat;
 
   if (errno_code) {
-    strerror_r(errno_code, ebuf, EBUF_SZ);
-    errno_msg = ebuf;
+#if defined(__APPLE__) || defined(__FreeBSD__)
+    int rci = strerror_r(errno_code, ebuf, EBUF_SZ);
+    if (!rci) {
+      errno_msg = ebuf;
+    }
+#else
+    errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ);
+#endif
   }
 
 #ifdef _WIN32
@@ -336,7 +340,6 @@ static iwrc _default_logfn(locale_t locale,
 
   if (opts) {
     myopts = *(IWLOG_DEFAULT_OPTS *) opts;
-
     if (myopts.out) {
       out = myopts.out;
     }
@@ -412,7 +415,6 @@ static iwrc _default_logfn(locale_t locale,
   if (fmt) {
     vfprintf(out, fmt, argp);
   }
-
   fprintf(out, IW_LINE_SEP);
   pthread_mutex_unlock(&_mtx);
   fflush(out);
@@ -420,11 +422,9 @@ static iwrc _default_logfn(locale_t locale,
 finish:
 
 #ifdef _WIN32
-
   if (werror_msg) {
     LocalFree(werror_msg);
   }
-
 #endif
 
 #undef TBUF_SZ
