@@ -1827,7 +1827,7 @@ const char *byte_to_binary(int x) {
 
 iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f) {
   assert(f);
-  uint64_t sp;
+  size_t sp;
   uint8_t *mm;
   FSM *impl = f->impl;
   iwrc rc;
