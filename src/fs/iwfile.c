@@ -88,9 +88,16 @@ static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
   }
   IWF *wf = (IWF *) f->impl;
   if (flags & IWFS_FDATASYNC) {
+#ifdef __APPLE__
+    if (fcntl(wf->fh, F_FULLFSYNC) == -1) {
+      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    }
+#else
     if (fdatasync(wf->fh) == -1) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
+#endif
+
   } else if (fsync(wf->fh) == -1) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
