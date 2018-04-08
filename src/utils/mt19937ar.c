@@ -44,8 +44,11 @@
 */
 
 #include "mt19937ar.h"
-#include <pthread.h>
 #include <stdlib.h>
+#include <pthread.h>
+#if defined(__APPLE__)
+#include "pthread_spin_lock_shim.h"
+#endif
 
 /* Period parameters */
 #define N 624
