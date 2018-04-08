@@ -12,8 +12,8 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
   uint32_t klen, vlen;
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(kb->addr);
-  fprintf(f, "\n === KVBLK[%u] maxoff=%zd, zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
-          blkn, kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
+  fprintf(f, "\n === KVBLK[%u] maxoff=%lld, zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
+          blkn, (long long int) kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
 
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
   if (rc) {
