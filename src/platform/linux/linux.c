@@ -40,6 +40,12 @@
 #include <fcntl.h>
 #include <ftw.h>
 
+#ifdef __APPLE__
+#define st_atim st_atimespec
+#define st_ctim st_ctimespec
+#define st_mtim st_mtimespec
+#endif
+
 #define _IW_TIMESPEC2MS(IW_ts) ((IW_ts).tv_sec * 1000) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6)
 
 iwrc iwp_current_time_ms(uint64_t *time) {
@@ -53,8 +59,7 @@ iwrc iwp_current_time_ms(uint64_t *time) {
 }
 
 IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fstat) {
-  assert(path);
-  assert(fstat);
+  assert(path && fstat);
   iwrc rc = 0;
   struct stat st = {0};
 
