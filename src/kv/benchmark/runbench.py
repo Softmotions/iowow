@@ -4,6 +4,7 @@ import os
 import random
 from collections import OrderedDict
 from parse import parse
+from bokeh.io import export_png
 from bokeh.plotting import figure, output_file, show, save
 from bokeh.models import ColumnDataSource, FactorRange
 from bokeh.transform import factor_cmap
@@ -131,7 +132,6 @@ def main():
     palette = ["#00B377", "#e84d60", "#0054AE", "#c9d9d3",
                "#BFF500", "#555555", "#DFBFFF", "#B1D28F",
                "#FFAA00", "#A18353", "#888888", "#718dbf"]
-    output_file('runbench.html')
     for bn, rmap in results.items():
         pfactors = None
         x = [(bm, brun) for bm in iter(rmap) for brun in iter(rmap[bm])]
@@ -153,10 +153,15 @@ def main():
         p.x_range.range_padding = 0.1
         p.xaxis.major_label_orientation = 1
         p.xgrid.grid_line_color = None
+        # p.toolbar_location = None
         plots.append(p)
+        output_file("{}.html".format(bn))
+        save(p)
+        # export_png(p, filename="{}.png".format(bn))
 
     grid = gridplot(plots, ncols=1)
     # script, div = components(plots)
+    output_file('runbench.html')
     save(grid)
     show(grid)
 

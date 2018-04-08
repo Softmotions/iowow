@@ -30,7 +30,7 @@ IOWOW - The C11 persistent key/value database engine based on [skip list](https:
 #### PPA repository
 
 ```sh
-sudo add-apt-repository ppa:adamansky/iwowo
+sudo add-apt-repository ppa:adamansky/iwowow
 sudo apt-get update
 sudo apt-get install iowow
 ```
