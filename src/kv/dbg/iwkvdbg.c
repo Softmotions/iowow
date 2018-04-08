@@ -104,7 +104,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
         uint64_t k;
         memcpy(&k, kbuf, sizeof(k));
         k = IW_ITOHLL(k);
-        fprintf(f, "    [%03d,%03d] %lu:%.*s", i, sb->pi[i], k, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
+        fprintf(f, "    [%03d,%03d] %llu:%.*s", i, sb->pi[i], k, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
       } else if (sb->db->dbflg & IWDB_UINT32_KEYS) {
         uint32_t k;
         memcpy(&k, kbuf, sizeof(k));
@@ -118,7 +118,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
         uint64_t k;
         memcpy(&k, kbuf, sizeof(k));
         k = IW_ITOHLL(k);
-        fprintf(f, "    [%03d,%03d] %lu", i, sb->pi[i], k);
+        fprintf(f, "    [%03d,%03d] %llu", i, sb->pi[i], k);
       } else if (sb->db->dbflg & IWDB_UINT32_KEYS) {
         uint32_t k;
         memcpy(&k, kbuf, sizeof(k));
