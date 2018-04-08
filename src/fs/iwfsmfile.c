@@ -758,7 +758,7 @@ static iwrc _fsm_blk_deallocate_lw(FSM *impl,
 static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   iwrc rc;
   uint8_t *mm, *mm2;
-  uint64_t sp, sp2;
+  size_t sp, sp2;
   uint64_t old_bmoff, old_bmlen;
   IWFS_EXT *pool = &impl->pool;
 
