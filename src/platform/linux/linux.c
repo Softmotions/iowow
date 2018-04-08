@@ -175,9 +175,11 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
       }
     }
   }
+#ifndef __APPLE__
   if (siz > sizeof(buf)) {
     posix_fadvise(fh, off, siz, POSIX_FADV_NORMAL);
   }
+#endif
   return rc;
 }
 
