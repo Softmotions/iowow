@@ -11,7 +11,7 @@ unset(CHANGELOG_LAST_MESSAGE)
 include(DebChangelog)
 
 set(PROJECT_NAME "iowow")
-set(PROJECT_VENDOR "Softmotions (http://softmotions.com)")
+set(PROJECT_VENDOR "Softmotions (https://softmotions.com)")
 set(PROJECT_WEBSITE "https://github.com/Softmotions/iowow")
 set(PROJECT_MAINTAINER "Anton Adamansky <adamansky@gmail.com>")
 set(PROJECT_DESCRIPTION_SUMMARY "The skiplist based persistent key/value storage engine")
@@ -93,6 +93,7 @@ if(BUILD_DOCUMENTATION)
     install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
 endif()
 
+add_subdirectory(man)
 
 if(NOT ENABLE_PPA)
     add_subdirectory(src)

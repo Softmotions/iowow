@@ -1,3 +1,9 @@
+iowow (1.0.3) UNRELEASED; urgency=medium
+
+  * Added basic iowow.3 man page to distribution archive
+
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 09 Apr 2018 23:46:33 +0700
+
 iowow (1.0.2) testing; urgency=medium
 
   * Removed unneeded -D_LARGE_FILE_SOURCE from iowow.h
