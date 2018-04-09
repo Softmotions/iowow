@@ -2,7 +2,7 @@ iowow (1.0.2) testing; urgency=medium
 
   * Removed unneeded -D_LARGE_FILE_SOURCE from iowow.h
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 09 Apr 2018 13:56:07 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 09 Apr 2018 13:56:53 +0700
 
 iowow (1.0.1) testing; urgency=medium
 
