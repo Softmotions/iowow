@@ -236,14 +236,14 @@ IW_EXPORT iwrc iwlog_register_ecodefn(IWLOG_ECODE_FN fp);
  * @param fmt       Printf like message format.
  * @return
  */
-iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-           const char *fmt, ...);
+IW_EXPORT iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
+                     const char *fmt, ...);
 
-void iwlog2(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-            const char *fmt, ...);
+IW_EXPORT void iwlog2(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
+                      const char *fmt, ...);
 
-iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-              const char *fmt, va_list argp);
+IW_EXPORT iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
+                        const char *fmt, va_list argp);
 
 #ifdef _DEBUG
 #define iwlog_debug(IW_fmt, ...) \
