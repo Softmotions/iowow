@@ -1,3 +1,9 @@
+iowow (1.0.1ubuntu1) testing; urgency=medium
+
+  * Fix export flags iwlog2 method
+
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 09 Apr 2018 12:43:01 +0700
+
 iowow (1.0.0) testing; urgency=medium
 
   * Initial release.
