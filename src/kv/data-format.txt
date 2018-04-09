@@ -1,29 +1,45 @@
-IWKV:
+IWKV
 
 block size: u64
 max key+value size: 268435455 (~255Mb)
 max data file size: 255G
 
-SKIPLIST:
+SBLK - Skip list node with pointers to next nodes and pointer to KVBLK (key/value pairs block).
+       SBLK has fixed size (256 bytes). SBLK file position (block adress) within a file is
+       fixed and cannot be changed.
 
-  [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK
-                                                  \
-                                  [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] // KVBLK
+ flags:u1,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,pi:u1[32],n:u4[24],lk:u116]:u256
+                                        \
+                                       KVBLK
+
+  flags  - Persistent block flags (1 byte)
+  lvl    - Skiplist level of this block (1 byte)
+  lkl    - Length of the lower key in this block (1 byte)
+  kblk   - Block number of associated KVBLK. (4 bytes)
+  pi[32] - Array of key/value pair indexes in KVBLK block.
+           Indexes are sorted by keys. (32 bytes)
+  n[24]  - Pointers to next SBLK blocks in skiplist (96 bytes)
+  lk     - Buffer for the lowest key among all key/value pairs stored in KVBLK
+
+
+KVBLK - Data block stored a set of key/value pairs associated with SBLK
+
+[szpow:u1,idxsz:u2,KVI[32] ___free space___ [[KV],...]]
+
+  szpow   - KVBLK length as power of 2
+  idxsz   - Length of KVI array in bytes
+  KVI[32] - [ps:vn, pl:vn]
+              ps: key/value pair block offset on i-th place variable length encoded number.
+                  This offset is relative to end of KVBLK block
+              pl: key/value pair block length on i-th place variable length encoded number
+
   KV     - [klen:vn,key,value]
+           Key/value pair
+             klen:  Key length as variable length encoded number
+            key:   Key data buffer
+            value: Value data buffer
 
-  flags  - Block flags
-  lvl    - Skip list level for this block
-  lk     - Lower key data in pairs block
-  lkl    - Lower key len
-  kblk   - Address of `Pairs block (PB)` as block number.
-  pnum   - Number of active pairs in `piN` array
-  piN    - Sorted indexes of pair nodes in `Pairs block`
-  szpow  - Whole block length as power of 2
-  idxsz -  Length of [ppos,plen...] array in bytes
-  psN    - Key/Value pair block start on i-th place
-  plN    - Key/Value pair block length on i-th place
-
-DB:
+DB header block:
 
   [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
 
@@ -33,7 +49,7 @@ DB:
   dbid        - Database ID
   p0          - Last database block
   n30         - Skiplist next pointers to `SBLK`
-  c30         - SBLK count per levele      
+  c30         - SBLK count per levele
 
 HEADER:
 
