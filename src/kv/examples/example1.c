@@ -28,11 +28,11 @@ int main() {
   key.size = strlen(key.data);
   val.data = "bar";
   val.size = strlen(val.data);
-  
+
   fprintf(stdout, "put: %.*s => %.*s\n",
           (int) key.size, (char *) key.data,
           (int) val.size, (char *) val.data);
-                  
+
   rc = iwkv_put(mydb, &key, &val, 0);
   if (rc) {
     iwlog_ecode_error3(rc);
@@ -46,12 +46,12 @@ int main() {
     iwlog_ecode_error3(rc);
     return rc;
   }
-  
+
   fprintf(stdout, "get: %.*s => %.*s\n",
           (int) key.size, (char *) key.data,
           (int) val.size, (char *) val.data);
-          
-          
+
+  iwkv_val_dispose(&val);
   iwkv_close(&iwkv);
   return 0;
 }

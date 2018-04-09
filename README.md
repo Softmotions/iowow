@@ -120,7 +120,7 @@ int main() {
           (int) key.size, (char *) key.data,
           (int) val.size, (char *) val.data);
 
-
+  iwkv_val_dispose(&val);
   iwkv_close(&iwkv);
   return 0;
 }
