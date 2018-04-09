@@ -126,6 +126,7 @@ if(CPACK_GENERATORS)
             "\\\\.iml$"
             "\\\\.mk$"
             "\\\\.astylerc$"
+            "\\\\.editorconfig$"
             "/Makefile$"
     )
     add_subdirectory(installer)
