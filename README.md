@@ -128,7 +128,7 @@ int main() {
 **Compile and run:**
 
 ```sh
-gcc -std=gnu11 -Wall -pedantic -D_LARGEFILE_SOURCE -c -o example1.o example1.c
+gcc -std=gnu11 -Wall -pedantic -c -o example1.o example1.c
 gcc -o example1 example1.o -liowow
 
 ./example1

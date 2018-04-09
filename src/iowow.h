@@ -28,13 +28,6 @@
  * SOFTWARE.
  *************************************************************************************************/
 
-
-/** @file */
-
-#ifndef _LARGEFILE_SOURCE
-#error "You must compile your application with -D_LARGEFILE_SOURCE"
-#endif
-
 #include "basedefs.h"
 IW_EXTERN_C_START
 
