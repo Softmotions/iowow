@@ -192,17 +192,31 @@ size_t iwp_page_size(void) {
 }
 
 iwrc iwp_ftruncate(HANDLE fh, off_t len) {
-  int rv = ftruncate(fh, len);
-  return !rv ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  int rci = ftruncate(fh, len);
+  return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
 }
 
 iwrc iwp_fallocate(HANDLE fh, off_t len) {
-  #ifndef __APPLE__
-  int rv = posix_fallocate(fh, 0, len);
-  return !rv ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-  #else
-  return iwp_ftruncate(fh, len);
-  #endif
+#ifndef __APPLE__
+  int rci = posix_fallocate(fh, 0, len);
+  return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+#else
+  fstore_t fstore = {
+    .fst_flags = F_ALLOCATECONTIG,
+    .fst_posmode = F_PEOFPOSMODE,
+    .fst_length = len
+  };
+  int rci = fcntl(fh, F_PREALLOCATE, &fstore);
+  if (rci == -1) {
+    fstore.fst_flags = F_ALLOCATEALL;
+    rci = fcntl(fh, F_PREALLOCATE, &fstore);
+    if (rci == -1) {
+      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    }
+  }
+  rci = ftruncate(fh, len);
+  return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+#endif
 }
 
 iwrc iwp_sleep(uint64_t ms) {
