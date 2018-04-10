@@ -207,7 +207,7 @@ iwrc iwp_fallocate(HANDLE fh, off_t len) {
     .fst_length = len
   };
   fcntl(fh, F_PREALLOCATE, &fstore);
-  rci = ftruncate(fh, len);
+  int rci = ftruncate(fh, len);
   return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
 #endif
 }
