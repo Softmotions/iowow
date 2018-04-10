@@ -192,6 +192,14 @@ IW_EXPORT size_t iwp_page_size(void);
 IW_EXPORT iwrc iwp_ftruncate(HANDLE fh, off_t len);
 
 /**
+ * @brief Allocate extra space for a file.
+ * @param fh File handle
+ * @param len New file size
+ * @return `0` on sucess or error code.
+ */
+IW_EXPORT iwrc iwp_fallocate(HANDLE fh, off_t len);
+
+/**
  * @brief Pause execution of current thread
  *        to the specified @a ms time in milliseconds.
  * @param ms Thread pause time

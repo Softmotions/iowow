@@ -196,6 +196,15 @@ iwrc iwp_ftruncate(HANDLE fh, off_t len) {
   return !rv ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
 }
 
+iwrc iwp_fallocate(HANDLE fh, off_t len) {
+  #ifndef __APPLE__
+  int rv = posix_fallocate(fh, 0, len);
+  return !rv ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  #else
+  return iwp_ftruncate(fh, len);
+  #endif
+}
+
 iwrc iwp_sleep(uint64_t ms) {
   iwrc rc = 0;
   struct timespec req;

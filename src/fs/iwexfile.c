@@ -180,7 +180,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
       return IWFS_ERROR_MAXOFF;
     }
     impl->fsize = size;
-    rc = iwp_ftruncate(impl->fh, size);
+    rc = iwp_fallocate(impl->fh, size);
     RCGO(rc, truncfail);
     rc = _exfile_initmmap_lw(f);
   } else if (old_size > size) {
@@ -330,7 +330,7 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
     }
     if (rp > 0 && s->off <= off && s->off + s->len > off) {
       len = MIN(rp, s->off + s->len - off);
-      memcpy((char *) buf + (siz - rp), s->mmap + (off - s->off), len);      
+      memcpy((char *) buf + (siz - rp), s->mmap + (off - s->off), len);
       rp -= len;
       off += len;
     }
