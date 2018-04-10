@@ -1,9 +1,9 @@
-iowow (1.0.3) UNRELEASED; urgency=medium
+iowow (1.0.3) testing; urgency=medium
 
   * Added basic iowow.3 man page to distribution archive
   * Use posix_fallocate() to extend iwkv file instead of ftruncate() on Linux/FreeBSD
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 09 Apr 2018 23:46:33 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Tue, 10 Apr 2018 18:56:11 +0700
 
 iowow (1.0.2) testing; urgency=medium
 
