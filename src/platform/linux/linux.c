@@ -206,14 +206,7 @@ iwrc iwp_fallocate(HANDLE fh, off_t len) {
     .fst_posmode = F_PEOFPOSMODE,
     .fst_length = len
   };
-  int rci = fcntl(fh, F_PREALLOCATE, &fstore);
-  if (rci == -1) {
-    fstore.fst_flags = F_ALLOCATEALL;
-    rci = fcntl(fh, F_PREALLOCATE, &fstore);
-    if (rci == -1) {
-      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-    }
-  }
+  fcntl(fh, F_PREALLOCATE, &fstore);
   rci = ftruncate(fh, len);
   return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
 #endif
