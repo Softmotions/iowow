@@ -107,7 +107,7 @@ int main() {
     iwlog_ecode_error3(rc);
     return rc;
   }
-  // Retrive value associated with `foo` key
+  // Retrieve value associated with `foo` key
   val.data = 0;
   val.size = 0;
   rc = iwkv_get(mydb, &key, &val);

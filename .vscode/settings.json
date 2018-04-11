@@ -92,6 +92,17 @@
   "files.exclude": {
     "**/.git": true,
     "**/build": true
-  }
+  },
+  "cSpell.enabledLanguageIds": [
+    "asciidoc",
+    "html",
+    "markdown",
+    "plaintext",
+    "restructuredtext",
+    "text"
+  ],
+  "cSpell.words": [
+    "IWKV"
+  ]
 }
 
