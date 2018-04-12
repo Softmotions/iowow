@@ -1,3 +1,9 @@
+iowow (1.0.4) UNRELEASED; urgency=medium
+
+  * Added IWFSM_SYNC_BMAP option to iwfs_fsm_aflags
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 10:38:26 +0700
+
 iowow (1.0.3) testing; urgency=medium
 
   * Added basic iowow.3 man page to distribution archive

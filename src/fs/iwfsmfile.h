@@ -105,9 +105,11 @@ typedef enum {
   /** Do not update(collect) internal allocation stats for this allocation. */
   IWFSM_ALLOC_NO_STATS = 0x08U,
 
-  /** Force all allocated address space backed by real file address space,
-      useful when operating on mmaped allocated regions. */
-  IWFSM_SOLID_ALLOCATED_SPACE = 0x10U
+  /** Force all of the allocated address space backed by real file address space. */
+  IWFSM_SOLID_ALLOCATED_SPACE = 0x10U,
+
+  /** Do msync of bitmap allocation index. */
+  IWFSM_SYNC_BMAP = 0x20U
 
 } iwfs_fsm_aflags;
 
