@@ -1,3 +1,9 @@
+iowow (1.0.5) UNRELEASED; urgency=medium
+
+  * iwextfile: do msync before munmap on file resizing
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 20:46:37 +0700
+
 iowow (1.0.4) testing; urgency=medium
 
   * Added IWFSM_SYNC_BMAP option to iwfs_fsm_aflags

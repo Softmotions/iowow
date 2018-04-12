@@ -127,6 +127,10 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
   }
   if (s->len) {  // unmap me first
     assert(s->mmap);
+    if (msync(s->mmap, s->len, 0) == -1) {
+      s->len = 0;
+      return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+    }
     if (munmap(s->mmap, s->len) == -1) {
       s->len = 0;
       return iwrc_set_errno(IW_ERROR_ERRNO, errno);
