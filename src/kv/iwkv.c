@@ -3197,7 +3197,7 @@ iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
   }
   iwrc rc = 0;
   IWFS_FSM *fsm  = &iwkv->fsm;
-  pthread_rwlock_rdlock(&iwkv->rwl);
+  pthread_rwlock_wrlock(&iwkv->rwl);
   iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
   IWRC(fsm->sync(fsm, flags), rc);
   pthread_rwlock_unlock(&iwkv->rwl);
