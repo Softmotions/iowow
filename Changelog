@@ -1,10 +1,10 @@
-iowow (1.0.4) UNRELEASED; urgency=medium
+iowow (1.0.4) testing; urgency=medium
 
   * Added IWFSM_SYNC_BMAP option to iwfs_fsm_aflags
   * Removed IWFS_NO_MMASYNC since it does noop on many platforms
   * Set exclusive iwkv write lock in iwkv_sync()
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 10:38:26 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 12:33:53 +0700
 
 iowow (1.0.3) testing; urgency=medium
 
