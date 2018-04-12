@@ -226,7 +226,7 @@ static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   iwrc rc = _exfile_rlock(f);
   RCRET(rc);
   EXF *impl = f->impl;
-  int mflags = (flags & IWFS_NO_MMASYNC) ? MS_SYNC : MS_ASYNC;
+  int mflags = MS_SYNC;
   MMAPSLOT *s = impl->mmslots;
   while (s) {
     if (s->mmap && s->mmap != MAP_FAILED) {
@@ -630,7 +630,7 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, iwfs_sync_flags fla
   iwrc rc = _exfile_rlock(f);
   RCRET(rc);
   EXF *impl = f->impl;
-  int mflags = (flags & IWFS_NO_MMASYNC) ? MS_SYNC : MS_ASYNC;
+  int mflags = MS_SYNC;
   MMAPSLOT *s = impl->mmslots;
   while (s) {
     if (s->off == off) {

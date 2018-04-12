@@ -3323,7 +3323,7 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
 finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc && (lx.opflags & IWKV_SYNC)) {
-    rc = iwkv_sync(lx.db->iwkv, IWFS_NO_MMASYNC);
+    rc = iwkv_sync(lx.db->iwkv, 0);
   }
   return rc;
 }
@@ -3379,7 +3379,7 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
 finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc && (lx.opflags & IWKV_SYNC)) {
-    rc = iwkv_sync(lx.db->iwkv, IWFS_NO_MMASYNC);
+    rc = iwkv_sync(lx.db->iwkv, 0);
   }
   return rc;
 }

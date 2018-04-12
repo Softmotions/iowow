@@ -72,7 +72,7 @@ typedef enum {
 #define FSM_ENSURE_OPEN(FSM_impl_)                                                                          \
   if (!(FSM_impl_) || !(FSM_impl_)->f) return IW_ERROR_INVALID_STATE;
 
-#define FSM_ENSURE_OPEN2(FSM_f_)                                                                            \
+#define FSM_ENSURE_OPEN2(FSM_f_)                                                                             \
   if (!(FSM_f_) || !(FSM_f_)->impl) return IW_ERROR_INVALID_STATE;
 
 #define FSMBK_RESET(Bk_) memset((Bk_), 0, sizeof(*(Bk_)))
@@ -858,7 +858,7 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   rc = _fsm_write_meta_lw(impl);
   RCGO(rc, rollback);
 
-  rc = pool->sync(pool, IWFS_NO_MMASYNC | IWFS_FDATASYNC);
+  rc = pool->sync(pool, IWFS_FDATASYNC);
   RCGO(rc, rollback);
 
   if (old_bmlen) {
@@ -876,7 +876,7 @@ rollback: /* try to rollback previous bitmap state */
   if (old_bmlen > 0) {
     _fsm_load_fsm_lw(impl, mm2, old_bmlen);
   }
-  pool->sync(pool, IWFS_NO_MMASYNC | IWFS_FDATASYNC);
+  pool->sync(pool, IWFS_FDATASYNC);
   return rc;
 }
 
@@ -1402,7 +1402,7 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
   if (impl->omode & IWFS_OWRITE) {
     IWRC(_fsm_trim_tail_lw(impl), rc);
     IWRC(_fsm_write_meta_lw(impl), rc);
-    IWRC(impl->pool.sync(&impl->pool, IWFS_NO_MMASYNC), rc);
+    IWRC(impl->pool.sync(&impl->pool, 0), rc);
   }
   IWRC(impl->pool.close(&impl->pool), rc);
   if (impl->fsm) {

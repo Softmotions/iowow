@@ -126,7 +126,6 @@ typedef struct {
  */
 typedef enum {
   IWFS_FDATASYNC = 0x01, /**< Use `fdatasync` mode */
-  IWFS_NO_MMASYNC = 0x02 /**< Do not use `MS_ASYNC` mmap sync mode */
 } iwfs_sync_flags;
 
 /**

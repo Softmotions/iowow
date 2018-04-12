@@ -1,6 +1,7 @@
 iowow (1.0.4) UNRELEASED; urgency=medium
 
   * Added IWFSM_SYNC_BMAP option to iwfs_fsm_aflags
+  * Removed IWFS_NO_MMASYNC since it does noop on many platforms
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 10:38:26 +0700
 
