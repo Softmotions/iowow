@@ -2,7 +2,7 @@ if (NOT CMAKE_BUILD_TYPE)
     message(FATAL_ERROR "Please specify the build type -DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo")
 endif()
 
-set(MODULES log utils platform fs kv)
+set(MODULES log utils platform fs rdb kv)
 
 set(PROJECT_LLIBRARIES)
 set(PROJECT_INCLUDE_DIRS)
@@ -87,6 +87,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfile.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwexfile.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfsmfile.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/rdb/iwrdb.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/kv/iwkv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/platform/iwp.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwutils.h
