@@ -280,8 +280,8 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
                                    const int bit_status,
                                    const fsm_bmopts_t opts) {
   iwrc rc;
-  uint8_t *mm;
   size_t sp;
+  uint8_t *mm;
   register uint64_t *p, set_mask;
   uint64_t bend = offset_bits + length_bits;
   int set_bits;
