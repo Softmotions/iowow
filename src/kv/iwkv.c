@@ -669,6 +669,7 @@ static WUR iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   }
   db->open = true;
   *dbp = db;
+
 finish:
   if (rc)  {
     pthread_rwlock_destroy(&db->rwl);
@@ -902,6 +903,7 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   }
   db->open = true;
   *odb = db;
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -1134,6 +1136,7 @@ static WUR iwrc _kvblk_at_mm(IWLCTX *lx, off_t addr, uint8_t *mm, KVBLK *kbp, KV
   if (!kbp) {
     AAPOS_INC(lx->kaan);
   }
+
 finish:
   return rc;
 }
@@ -1318,6 +1321,7 @@ static WUR iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
     }
     IWRC(_kvblk_sync_mm(kb, mm), rc);
   }
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -1456,6 +1460,7 @@ start:
   assert(wp - sptr == kvp->len);
 #endif
   fsm->release_mmap(fsm);
+
 finish:
   if (uval != val) {
     _kv_val_dispose(uval);
@@ -1848,6 +1853,7 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
       sblk->p0 = ADDR2BLK(lx->db->addr);
     }
   }
+
 finish:
   fsm->release_mmap(fsm);
   return rc;
@@ -2439,6 +2445,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     lx->plower[i]->flags |= SBLK_DURTY;
     nb->n[i] = ADDR2BLK(lx->pupper[i]->addr);
   }
+
 finish:
   if (rc) {
     lx->nb = 0;
@@ -2565,6 +2572,7 @@ IW_INLINE WUR iwrc _lx_get_lr(IWLCTX *lx) {
   } else {
     rc = IWKV_ERROR_NOTFOUND;
   }
+
 finish:
   IWRC(fsm->release_mmap(fsm), rc);
   _lx_release_mm(lx, 0);
@@ -2627,6 +2635,7 @@ IW_INLINE WUR iwrc _lx_del_lw(IWLCTX *lx) {
     rc = _sblk_rmkv(sblk, idx);
     RCGO(rc, finish);
   }
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -2684,6 +2693,7 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
     }
     *res = _cmp_key(lx->db->dbflg, k1, kl1, k2, kl2);
   }
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -2936,6 +2946,7 @@ IW_INLINE WUR iwrc _cursor_get_ge_idx(IWLCTX *lx, IWKV_cursor_op op, uint8_t *oi
       *oidx = idx ? idx - 1 : idx;
     }
   }
+
 finish:
   IWRC(fsm->release_mmap(fsm), rc);
   return rc;
@@ -3033,6 +3044,7 @@ start:
       lx->lower = 0;
     }
   }
+
 finish:
   if (rc && rc != IWKV_ERROR_NOTFOUND && cur->cn) {
     _sblk_release(lx, &cur->cn);
@@ -3173,6 +3185,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     fsm->release_mmap(fsm);
   }
   (*iwkvp)->open = true;
+
 finish:
   if (rc) {
     (*iwkvp)->open = true; // will be closed in iwkv_close
@@ -3306,6 +3319,7 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
     rc = _db_destroy_lw(dbp);
   }
   API_UNLOCK(iwkv, rci, rc);
+
 finish:
   return rc;
 }
@@ -3338,6 +3352,7 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     RCGO(rc, finish);
   }
   rc = _lx_put_lw(&lx);
+
 finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc && (lx.opflags & IWKV_SYNC)) {
@@ -3370,6 +3385,7 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     }
   }
   rc = _lx_get_lr(&lx);
+
 finish:
   API_DB_UNLOCK(db, rci, rc);
   return rc;
@@ -3394,6 +3410,7 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
     RCGO(rc, finish);
   }
   rc = _lx_del_lw(&lx);
+
 finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc && (lx.opflags & IWKV_SYNC)) {
@@ -3456,6 +3473,7 @@ iwrc iwkv_cursor_open(IWDB db,
     RCGO(rc, finish);
   }
   rc = _cursor_to_lr(cur, op);
+
 finish:
   if (rc && cur) {
     IWRC(_cursor_close_lw(cur), rc);
@@ -3549,6 +3567,7 @@ iwrc iwkv_cursor_get(IWKV_cursor cur,
   } else {
     rc = IW_ERROR_INVALID_ARGS;
   }
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -3581,6 +3600,7 @@ iwrc iwkv_cursor_copy_val(IWKV_cursor cur, uint8_t *vbuf, size_t vbufsz, size_t 
   _kvblk_peek_val(cur->cn->kvblk, idx, mm, &oval, &ovalsz);
   *vsz = ovalsz;
   memcpy(vbuf, oval, MIN(vbufsz, ovalsz));
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -3615,6 +3635,7 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, uint8_t *kbuf, size_t kbufsz, size_t 
   RCGO(rc, finish);
   *ksz = okeysz;
   memcpy(kbuf, okey, MIN(kbufsz, okeysz));
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -3706,6 +3727,7 @@ iwrc iwkv_cursor_dup_num(const IWKV_cursor cur, uint32_t *onum) {
   memcpy(&lv, vbuf, sizeof(lv));
   lv = IW_ITOHL(lv);
   *onum = lv;
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -3756,6 +3778,7 @@ iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool *out) {
     dv = IW_HTOILL(dv);
     *out = (iwarr_sorted_find(rp, num, elsz, &dv, _u8cmp) != -1);
   }
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -3842,6 +3865,7 @@ iwrc iwkv_cursor_dup_iter(const IWKV_cursor cur,
     }
   }
 #undef _VBODY
+
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
