@@ -33,7 +33,6 @@
 #include "utils/iwbits.h"
 
 #include <pthread.h>
-#include <sys/mman.h>
 
 typedef struct IWFS_FSM_IMPL FSM;
 
@@ -1024,10 +1023,8 @@ start:
   if (!rc && (opts & IWFSM_SYNC_BMAP)) {
     uint64_t *bmptr;
     if (!_fsm_bmptr(impl, &bmptr)) {
-      int rci = msync(bmptr, impl->bmlen, MS_SYNC);
-      if (rci) {
-        rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-      }
+      IWFS_EXT *pool = &impl->pool;
+      rc = pool->sync_mmap(pool, impl->bmoff, 0);
     }
   }
   return rc;

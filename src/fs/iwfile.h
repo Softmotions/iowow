@@ -64,6 +64,7 @@
 #include "iowow.h"
 #include "iwlog.h"
 #include "iwp.h"
+#include "iwdlsnr.h"
 
 IW_EXTERN_C_START
 
@@ -106,6 +107,7 @@ typedef struct {
   /**< Specifies the permissions to use in case a new file is created,
        `int open(const char *pathname, int flags, mode_t mode)` */
   int filemode;
+  IWDLSNR *dlsnr;         /**< Optional data listener */
 } IWFS_FILE_OPTS;
 
 /**
@@ -204,15 +206,12 @@ typedef struct IWFS_FILE {
  *      .path = "file path",  //File path. This options value is requied.
  *      .omode =  ...,        //File open mode.
  *                            //    Default: `IWFS_DEFAULT_OMODE`
- *      .lock_mode = ...,     //File locking mode acquired by process opened
- this file.
+ *      .lock_mode = ...,     //File locking mode acquired by process opened this file.
  *                            //    Default: `IWP_NOLOCK`
- *      .filemode = ..        //Specifies the permissions to use in case a new
- file is created.
-                              //    Default: `00644`
+ *      .filemode = ..        //Specifies the permissions to use in case a new file is created.
+ *                            //    Default: `00644`
  *   }
  * @endcode
- *
  *
  * @param f `struct IWFS_FILE` pointer.
  * @param opts [in] File open options

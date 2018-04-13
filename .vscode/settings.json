@@ -17,7 +17,6 @@
   "astyle.astylerc": "${workspaceRoot}/.astylerc",
   "astyle.c.enable": true,
   "astyle.cpp.enable": true,
-  "clang-format.language.c.enable": false,
   "clang.completion.enable": true,
   "clang.diagnostic.enable": true,
   "clang.cflags": [

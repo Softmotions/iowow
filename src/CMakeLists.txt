@@ -84,6 +84,7 @@ endforeach(MODULE)
 list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/iowow.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/log/iwlog.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwdlsnr.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfile.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwexfile.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfsmfile.h
@@ -256,9 +257,3 @@ message("${PROJECT_NAME} BUILD_TESTS: ${BUILD_TESTS}")
 message("${PROJECT_NAME} BUILD_EXAMPLES: ${BUILD_EXAMPLES}")
 message("${PROJECT_NAME} BUILD_BENCHMARKS: ${BUILD_BENCHMARKS}")
 message("${PROJECT_NAME} BUILD_DOCUMENTATION: ${BUILD_DOCUMENTATION}")
-
-
-
-
-
-

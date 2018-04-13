@@ -49,7 +49,11 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t 
   if (!(impl->opts.omode & IWFS_OWRITE)) {
     return IW_ERROR_READONLY;
   }
-  return iwp_write(impl->fh, off, buf, siz, sp);
+  iwrc rc = iwp_write(impl->fh, off, buf, siz, sp);
+  if (!rc && impl->opts.dlsnr) {
+    rc = impl->opts.dlsnr->onwrite(off, buf, siz);
+  }
+  return rc;
 }
 
 static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp) {
@@ -83,25 +87,28 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
 
 static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
   assert(f);
+  iwrc rc = 0;
   if (!f->impl) {
     return IW_ERROR_INVALID_STATE;
   }
-  IWF *wf = (IWF *) f->impl;
+  IWF *impl = f->impl;
   if (flags & IWFS_FDATASYNC) {
 #ifdef __APPLE__
     if (fcntl(wf->fh, F_FULLFSYNC) == -1) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
 #else
-    if (fdatasync(wf->fh) == -1) {
+    if (fdatasync(impl->fh) == -1) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
 #endif
-
-  } else if (fsync(wf->fh) == -1) {
+  } else if (fsync(impl->fh) == -1) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
-  return 0;
+  if (impl->opts.dlsnr) {
+    rc = impl->opts.dlsnr->onsynced();
+  }
+  return rc;
 }
 
 static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE *state) {
@@ -128,7 +135,11 @@ static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
   if (!(impl->opts.omode & IWFS_OWRITE)) {
     return IW_ERROR_READONLY;
   }
-  return iwp_copy_bytes(impl->fh, off, siz, noff);
+  iwrc rc = iwp_copy_bytes(impl->fh, off, siz, noff);
+  if (!rc && impl->opts.dlsnr) {
+    rc = impl->opts.dlsnr->oncopy(off, siz, noff);
+  }
+  return rc;
 }
 
 iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
@@ -160,6 +171,15 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
 
   impl->opts = *_opts;
   opts = &impl->opts;
+
+  if (opts->dlsnr) {
+    IWDLSNR *l = opts->dlsnr;
+    if (!l->oncopy || !l->onresize || !l->onset || !l->onsynced || !l->onwrite) {
+      iwlog_ecode_error2(IW_ERROR_INVALID_ARGS, "Invalid 'opts->dlsnr' specified");
+      return IW_ERROR_INVALID_ARGS;
+    }
+  }
+
   opts->path = strndup(_opts->path, PATH_MAX);
   if (!opts->path) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);

@@ -2,10 +2,9 @@
 #ifndef IWRDB_H
 #define IWRDB_H
 
-#include <fcntl.h>
-#include <stddef.h>
-
 #include "basedefs.h"
+#include <unistd.h>
+
 IW_EXTERN_C_START
 
 typedef enum {

@@ -135,6 +135,7 @@ typedef struct IWFS_EXT_OPTS {
                                  Default: `0` */
   off_t maxoff;             /**< Maximum allowed file offset. Unlimited if zero.
                                  If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
+
 } IWFS_EXT_OPTS;
 
 /**
@@ -254,8 +255,7 @@ typedef struct IWFS_EXT {
    *
    * @param f `IWFS_EXT`
    * @param off Region start offset
-   * @param flags Sync flags one of: `MS_ASYNC, MS_SYNC, and MS_INVALIDATE` from
-   * `msync`
+   * @param flags Sync flags.
    * @return `0` on success or error code.
    */
   iwrc(*sync_mmap)(struct IWFS_EXT *f, off_t off, iwfs_sync_flags flags);
