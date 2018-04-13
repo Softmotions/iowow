@@ -1172,12 +1172,14 @@ IW_INLINE off_t _kvblk_compacted_dsize(KVBLK *kb) {
   return coff;
 }
 
-static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
+static WUR iwrc _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
+  iwrc rc = 0;
   if (!(kb->flags & KVBLK_DURTY)) {
-    return;
+    return rc;
   }
   uint16_t sp;
   uint8_t *szp;
+  IWDLSNR *dlsnr = kb->db->iwkv->dlsnr;
   uint8_t *wp = mm + kb->addr;
   memcpy(wp, &kb->szpow, 1);
   wp += 1;
@@ -1195,8 +1197,12 @@ static void _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   assert(kb->idxsz <= KVBLK_MAX_IDX_SZ);
   sp = IW_HTOIS(sp);
   memcpy(szp, &sp, sizeof(uint16_t));
+
+  // todo !!!
+
   assert(wp - (mm + kb->addr) <= (1ULL << kb->szpow));
   kb->flags &= ~KVBLK_DURTY;
+  return rc;
 }
 
 #define _kvblk_sort_kv_lt(v1, v2) \
@@ -1310,7 +1316,7 @@ static WUR iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCGO(rc, finish);
     }
-    _kvblk_sync_mm(kb, mm);
+    IWRC(_kvblk_sync_mm(kb, mm), rc);
   }
 finish:
   if (mm) {
@@ -1902,7 +1908,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     }
   }
   if (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY)) {
-    _kvblk_sync_mm(sblk->kvblk, mm);
+    IWRC(_kvblk_sync_mm(sblk->kvblk, mm), rc);
   }
   if (sblk->flags & SBLK_CACHE_UPDATE) {
     _dbcache_update_lw(lx, sblk);
