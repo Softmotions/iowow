@@ -11,7 +11,6 @@ typedef struct BM_LEVELDB {
 
 static void env_setup() {
   fprintf(stderr, " engine: LevelDB %d.%d\n", leveldb_major_version(), leveldb_minor_version());
-  const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
 }
 
 uint64_t db_size_bytes(BMCTX *ctx) {
