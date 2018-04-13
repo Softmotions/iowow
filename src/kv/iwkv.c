@@ -3,13 +3,14 @@
 #include "iwarr.h"
 #include "iwutils.h"
 #include "iwfsmfile.h"
+#include "iwdlsnr.h"
 #include "iwcfg.h"
 #include "khash.h"
 #include "ksort.h"
 #include <pthread.h>
 #include <stdatomic.h>
 
-// Hardcoded requirements (fixme)
+// Hardcoded requirements (FIXME)
 // CMakeLists.txt defines: -D_LARGEFILE_SOURCE=1 D_FILE_OFFSET_BITS=64
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
@@ -99,7 +100,7 @@ typedef struct KV {
 typedef struct KVP {
   off_t off;      /**< KV block offset relative to `end` of KVBLK */
   uint32_t len;   /**< Length of kv pair block */
-  uint8_t  ridx;  /**< Position of the auctually persisted slot in `KVBLK` */
+  uint8_t ridx;   /**< Position of the auctually persisted slot in `KVBLK` */
 } KVP;
 
 typedef enum {
@@ -224,6 +225,7 @@ struct IWKV {
   pthread_rwlock_t rwl;       /**< API RW lock */
   IWDB first_db;              /**< First database in chain */
   IWDB last_db;               /**< Last database in chain */
+  IWDLSNR *dlsnr;             /**< Data events listener */
   khash_t(DBS) *dbs;          /**< Database id -> IWDB mapping */
   iwkv_openflags oflags;      /**< Open flags */
   pthread_cond_t wk_cond;     /**< Workers cond variable */
@@ -675,15 +677,21 @@ finish:
   return rc;
 }
 
-static void _db_save(IWDB db, uint8_t *mm) {
+static WUR iwrc _db_save(IWDB db, uint8_t *mm) {
+  iwrc rc = 0;
   uint32_t lv;
   uint8_t *wp = mm + db->addr;
+  uint8_t *sp = wp;
   db->next_db_addr = db->next ? db->next->addr : 0;
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]
   IW_WRITELV(wp, lv, IWDB_MAGIC);
   IW_WRITEBV(wp, lv, db->dbflg);
   IW_WRITELV(wp, lv, db->id);
   IW_WRITELV(wp, lv, ADDR2BLK(db->next_db_addr));
+  if (db->iwkv->dlsnr) {
+    rc = db->iwkv->dlsnr->onwrite(db->addr, wp, sp - wp, 0);
+  }
+  return rc;
 }
 
 static WUR iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
@@ -791,11 +799,13 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
   RCRET(rc);
   if (prev) {
     prev->next = next;
-    _db_save(prev, mm);
+    rc = _db_save(prev, mm);
+    RCRET(rc);
   }
   if (next) {
     next->prev = prev;
-    _db_save(next, mm);
+    rc = _db_save(next, mm);
+    RCRET(rc);
   }
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
   memcpy(&first_sblkn, mm + db->addr + DOFF_N0_U4, 4);
@@ -884,9 +894,11 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   }
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
-  _db_save(db, mm);
+  rc = _db_save(db, mm);
+  RCGO(rc, finish);
   if (db->prev) {
-    _db_save(db->prev, mm);
+    rc = _db_save(db->prev, mm);
+    RCGO(rc, finish);
   }
   db->open = true;
   *odb = db;

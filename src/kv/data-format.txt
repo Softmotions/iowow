@@ -62,9 +62,7 @@ HEADER:
 
 WAL
 
-1. Move msync into extfile
-2. Add file events listener
-3. Extra rdb methods
+1. Extra rdb methods
 
 
 

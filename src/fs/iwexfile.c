@@ -41,7 +41,7 @@ typedef struct IWFS_EXT_IMPL {
   IW_EXT_RSPOLICY rspolicy;  /**< File resize policy function ptr */
   void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
   struct MMAPSLOT *mmslots;  /**< Memory mapping slots */
-  IWDLSNR *dlsnr;            /**< Data events listener  */
+  IWDLSNR *dlsnr;            /**< Data events listener */
   int use_locks;             /**< Use rwlocks to guard method access */
   off_t maxoff;              /**< Maximum allowed file offset. Unlimited if zero.
                                   If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
