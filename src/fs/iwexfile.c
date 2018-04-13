@@ -41,6 +41,7 @@ typedef struct IWFS_EXT_IMPL {
   IW_EXT_RSPOLICY rspolicy;  /**< File resize policy function ptr */
   void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
   struct MMAPSLOT *mmslots;  /**< Memory mapping slots */
+  IWDLSNR *dlsnr;            /**< Data events listener  */
   int use_locks;             /**< Use rwlocks to guard method access */
   off_t maxoff;              /**< Maximum allowed file offset. Unlimited if zero.
                                   If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
@@ -171,7 +172,6 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   EXF *impl = f->impl;
   iwfs_omode omode = impl->omode;
   off_t old_size = impl->fsize;
-
   if (impl->fsize == size) {
     return 0;
   }
@@ -183,6 +183,10 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
     if (impl->maxoff && size > impl->maxoff) {
       return IWFS_ERROR_MAXOFF;
     }
+    if (impl->dlsnr) {
+      rc = impl->dlsnr->onresize(impl->fsize, size, 0);
+      RCGO(rc, truncfail);
+    }
     impl->fsize = size;
     rc = iwp_fallocate(impl->fh, size);
     RCGO(rc, truncfail);
@@ -190,6 +194,10 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   } else if (old_size > size) {
     if (!(omode & IWFS_OWRITE)) {
       return IW_ERROR_READONLY;
+    }
+    if (impl->dlsnr) {
+      rc = impl->dlsnr->onresize(impl->fsize, size, 0);
+      RCGO(rc, truncfail);
     }
     impl->fsize = size;
     rc = _exfile_initmmap_lw(f);
@@ -285,6 +293,10 @@ static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t
     if (wp > 0 && s->off <= off && s->off + s->len > off) {
       len = MIN(wp, s->off + s->len - off);
       memcpy(s->mmap + (off - s->off), (const char *) buf + (siz - wp), len);
+      if (impl->dlsnr) {
+        rc = impl->dlsnr->onwrite(off - s->off, (const char *) buf + (siz - wp), len, 0);
+        RCGO(rc, finish);
+      }
       wp -= len;
       off += len;
     }
@@ -367,14 +379,18 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
 static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) {
   int rc = _exfile_rlock(f);
   RCRET(rc);
-  EXF *xf = f->impl;
-  MMAPSLOT *s = xf->mmslots;
+  EXF *impl = f->impl;
+  MMAPSLOT *s = impl->mmslots;
   if (s && s->mmap && s->off == 0 && s->len >= noff + siz) { // fully mmaped file
     rc = _exfile_ensure_size_lw(f, noff + siz);
     RCRET(rc);
     memmove(s->mmap + noff, s->mmap + off, siz);
+    if (impl->dlsnr) {
+      rc = impl->dlsnr->oncopy(off, siz, noff, 0);
+      RCRET(rc);
+    }
   } else {
-    IWRC(xf->file.copy(&xf->file, off, siz, noff), rc);
+    IWRC(impl->file.copy(&impl->file, off, siz, noff), rc);
   }
   IWRC(_exfile_unlock(f), rc);
   return rc;
@@ -769,6 +785,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
 
+  impl->dlsnr = opts->file.dlsnr;
   impl->psize = iwp_page_size();
   impl->rspolicy = opts->rspolicy ? opts->rspolicy : _exfile_default_szpolicy;
   impl->rspolicy_ctx = opts->rspolicy_ctx;

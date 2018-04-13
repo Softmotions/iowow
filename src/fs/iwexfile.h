@@ -300,7 +300,7 @@ typedef struct IWFS_EXT {
  *          .lock_mode  = IWP_WLOCK
  *      },
  *      .initial_size   = 4096,
- *      .use_locks      = 1,
+ *      .use_locks      = true,
  *      .rspolicy       = iw_exfile_szpolicy_fibo
  *  };
  *  IWFS_EXT f;

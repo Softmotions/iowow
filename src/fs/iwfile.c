@@ -51,7 +51,7 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t 
   }
   iwrc rc = iwp_write(impl->fh, off, buf, siz, sp);
   if (!rc && impl->opts.dlsnr) {
-    rc = impl->opts.dlsnr->onwrite(off, buf, siz);
+    rc = impl->opts.dlsnr->onwrite(off, buf, siz, 0);
   }
   return rc;
 }
@@ -106,7 +106,7 @@ static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
   if (impl->opts.dlsnr) {
-    rc = impl->opts.dlsnr->onsynced();
+    rc = impl->opts.dlsnr->onsynced(0);
   }
   return rc;
 }
@@ -137,7 +137,7 @@ static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
   }
   iwrc rc = iwp_copy_bytes(impl->fh, off, siz, noff);
   if (!rc && impl->opts.dlsnr) {
-    rc = impl->opts.dlsnr->oncopy(off, siz, noff);
+    rc = impl->opts.dlsnr->oncopy(off, siz, noff, 0);
   }
   return rc;
 }

@@ -5,7 +5,7 @@
     "-DCMAKE_VERBOSE_MAKEFILE=OFF",
     "-DBUILD_SHARED_LIBS=ON",
     "-DBUILD_EXAMPLES=ON",
-    "-DBUILD_BENCHMARKS=OFF"
+    "-DBUILD_BENCHMARKS=ON"
   ],
   "cmake.ctestArgs": [],
   "cmake.debugConfig": {
@@ -75,8 +75,8 @@
   ],
   "files.associations": {
     "*.h": "c",
-    "iowow.3": "troff"
-
+    "iowow.3": "troff",
+    "*.ipp": "c"
   },
   "python.pythonPath": "/usr/bin/python3",
   "python.linting.pylintEnabled": false,

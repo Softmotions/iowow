@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="iowow" Version="10.0.0" InternalType="Console">
+  <VirtualDirectory Name="man">
+    <File Name="man/CMakeLists.txt"/>
+  </VirtualDirectory>
   <Reconciliation>
     <Regexes/>
     <Excludepaths/>
     <Ignorefiles/>
     <Extensions>
-      <![CDATA[cpp;c;h;hpp;xrc;wxcp;fbp;txt;md]]>
+      <![CDATA[*.cpp;*.c;*.h;*.hpp;*.xrc;*.wxcp;*.fbp;*.txt;*.md;*.txt]]>
     </Extensions>
-    <Topleveldir>../iowow</Topleveldir>
+    <Topleveldir>/home/adam/Projects/softmotions/iowow</Topleveldir>
   </Reconciliation>
   <Description/>
   <Dependencies/>
@@ -38,7 +41,12 @@
     <File Name="installer/CMakeLists.txt"/>
   </VirtualDirectory>
   <VirtualDirectory Name="src">
+    <VirtualDirectory Name="rdb">
+      <File Name="src/rdb/iwrdb.h"/>
+      <File Name="src/rdb/iwrdb.c"/>
+    </VirtualDirectory>
     <VirtualDirectory Name="fs">
+      <File Name="src/fs/iwdlsnr.h"/>
       <VirtualDirectory Name="tests">
         <File Name="src/fs/tests/iwfs_test3.c"/>
         <File Name="src/fs/tests/CMakeLists.txt"/>
@@ -71,6 +79,7 @@
       <File Name="src/platform/iwp.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="utils">
+      <File Name="src/utils/pthread_spin_lock_shim.h"/>
       <File Name="src/utils/ksort.h"/>
       <VirtualDirectory Name="tests">
         <File Name="src/utils/tests/CMakeLists.txt"/>
@@ -109,6 +118,7 @@
         <File Name="src/kv/dbg/iwkvdbg.c"/>
       </VirtualDirectory>
       <VirtualDirectory Name="benchmark">
+        <File Name="src/kv/benchmark/README.md"/>
         <File Name="src/kv/benchmark/runbench.py"/>
         <File Name="src/kv/benchmark/kyc_benchmark.c"/>
         <File Name="src/kv/benchmark/lmdb_benchmark.c"/>
