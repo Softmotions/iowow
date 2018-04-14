@@ -260,6 +260,13 @@ typedef struct IWFS_EXT {
    */
   iwrc(*sync_mmap)(struct IWFS_EXT *f, off_t off, iwfs_sync_flags flags);
 
+  /**
+   * @brief Remap all mmaped regions.
+   *
+   * @param f `IWFS_EXT`
+   */
+  iwrc(*remap_all)(struct IWFS_EXT *f);
+
   /* See iwfile.h */
 
   /**  @see IWFS_FILE::write */

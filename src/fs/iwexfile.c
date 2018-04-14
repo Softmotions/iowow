@@ -184,7 +184,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
       return IWFS_ERROR_MAXOFF;
     }
     if (impl->dlsnr) {
-      rc = impl->dlsnr->onresize(impl->fsize, size, 0);
+      rc = impl->dlsnr->onresize(impl->dlsnr, impl->fsize, size, 0);
       RCGO(rc, truncfail);
     }
     impl->fsize = size;
@@ -196,7 +196,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
       return IW_ERROR_READONLY;
     }
     if (impl->dlsnr) {
-      rc = impl->dlsnr->onresize(impl->fsize, size, 0);
+      rc = impl->dlsnr->onresize(impl->dlsnr, impl->fsize, size, 0);
       RCGO(rc, truncfail);
     }
     impl->fsize = size;
@@ -294,7 +294,7 @@ static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t
       len = MIN(wp, s->off + s->len - off);
       memcpy(s->mmap + (off - s->off), (const char *) buf + (siz - wp), len);
       if (impl->dlsnr) {
-        rc = impl->dlsnr->onwrite(off - s->off, (const char *) buf + (siz - wp), len, 0);
+        rc = impl->dlsnr->onwrite(impl->dlsnr, off - s->off, (const char *) buf + (siz - wp), len, 0);
         RCGO(rc, finish);
       }
       wp -= len;
@@ -386,7 +386,7 @@ static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) 
     RCRET(rc);
     memmove(s->mmap + noff, s->mmap + off, siz);
     if (impl->dlsnr) {
-      rc = impl->dlsnr->oncopy(off, siz, noff, 0);
+      rc = impl->dlsnr->oncopy(impl->dlsnr, off, siz, noff, 0);
       RCRET(rc);
     }
   } else {
@@ -674,6 +674,15 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, iwfs_sync_flags fla
   return rc;
 }
 
+static iwrc _exfile_remap_all(struct IWFS_EXT *f) {
+  assert(f);
+  iwrc rc = _exfile_rlock(f);
+  RCRET(rc);
+  rc = _exfile_initmmap_lw(f);
+  IWRC(_exfile_unlock(f), rc);
+  return rc;
+}
+
 static off_t _exfile_default_szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **ctx) {
   if (nsize == -1) {
     return 0;
@@ -775,6 +784,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   f->release_mmap = _exfile_release_mmap;
   f->remove_mmap = _exfile_remove_mmap;
   f->sync_mmap = _exfile_sync_mmap;
+  f->remap_all = _exfile_remap_all;
 
   if (!path) {
     return IW_ERROR_INVALID_ARGS;

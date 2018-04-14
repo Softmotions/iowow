@@ -359,7 +359,7 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
     if (ds + dl > impl->bmlen) {
       --dl;
     }
-    rc = impl->dlsnr->onwrite(impl->bmoff + ds, mm + ds, dl, 0);
+    rc = impl->dlsnr->onwrite(impl->dlsnr, impl->bmoff + ds, mm + ds, dl, 0);
   }
   return rc;
 }
@@ -829,20 +829,20 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
     assert(!((impl->bmlen - bmlen) & ((1 << impl->bpow) - 1)));
     memcpy(mm, mm2, impl->bmlen);
     if (impl->dlsnr) {
-      rc = impl->dlsnr->oncopy(impl->bmoff, impl->bmlen, bmoff, 0);
+      rc = impl->dlsnr->oncopy(impl->dlsnr, impl->bmoff, impl->bmlen, bmoff, 0);
       RCRET(rc);
     }
     if (bmlen > impl->bmlen) {
       memset(mm + impl->bmlen, 0, bmlen - impl->bmlen);
       if (impl->dlsnr) {
-        rc = impl->dlsnr->onset(bmoff + impl->bmlen, 0, bmlen - impl->bmlen, 0);
+        rc = impl->dlsnr->onset(impl->dlsnr, bmoff + impl->bmlen, 0, bmlen - impl->bmlen, 0);
         RCRET(rc);
       }
     }
   } else {
     memset(mm, 0, bmlen);
     if (impl->dlsnr) {
-      rc = impl->dlsnr->onset(bmoff, 0, bmlen, 0);
+      rc = impl->dlsnr->onset(impl->dlsnr, bmoff, 0, bmlen, 0);
       RCRET(rc);
     }
   }

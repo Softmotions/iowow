@@ -4,11 +4,13 @@
 #include "iwutils.h"
 #include "iwfsmfile.h"
 #include "iwdlsnr.h"
-#include "iwcfg.h"
+#include "iwal.h"
 #include "khash.h"
 #include "ksort.h"
 #include <pthread.h>
 #include <stdatomic.h>
+
+#include "iwcfg.h"
 
 // Hardcoded requirements (FIXME)
 // CMakeLists.txt defines: -D_LARGEFILE_SOURCE=1 D_FILE_OFFSET_BITS=64
@@ -683,14 +685,15 @@ static WUR iwrc _db_save(IWDB db, uint8_t *mm) {
   uint32_t lv;
   uint8_t *wp = mm + db->addr;
   uint8_t *sp = wp;
+  IWDLSNR *dlsnr = db->iwkv->dlsnr;
   db->next_db_addr = db->next ? db->next->addr : 0;
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]
   IW_WRITELV(wp, lv, IWDB_MAGIC);
   IW_WRITEBV(wp, lv, db->dbflg);
   IW_WRITELV(wp, lv, db->id);
   IW_WRITELV(wp, lv, ADDR2BLK(db->next_db_addr));
-  if (db->iwkv->dlsnr) {
-    rc = db->iwkv->dlsnr->onwrite(db->addr, wp, wp - sp, 0);
+  if (dlsnr) {
+    rc = dlsnr->onwrite(dlsnr, db->addr, wp, wp - sp, 0);
   }
   return rc;
 }
@@ -1196,7 +1199,7 @@ static WUR iwrc _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
     wp += sp;
   }
   if (dlsnr) {
-    rc = dlsnr->onwrite(kb->addr, mm + kb->addr, wp - (mm + kb->addr), 0);
+    rc = dlsnr->onwrite(dlsnr, kb->addr, mm + kb->addr, wp - (mm + kb->addr), 0);
   }
   sp = wp - szp - sizeof(uint16_t);
   kb->idxsz = sp;
@@ -1242,7 +1245,7 @@ static WUR iwrc _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
       assert(noff <= (1ULL << kb->szpow) && kvp->len <= noff);
       memmove(wp - noff, wp - kvp->off, kvp->len);
       if (dlsnr) {
-        rc = dlsnr->oncopy(blkend - kvp->off, kvp->len, blkend - noff, 0);
+        rc = dlsnr->oncopy(dlsnr, blkend - kvp->off, kvp->len, blkend - noff, 0);
       }
       kvp->off = noff;
     }
@@ -1316,7 +1319,7 @@ static WUR iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
               mm + kb->addr + nlen - maxoff,
               maxoff);
       if (dlsnr) {
-        rc = dlsnr->oncopy(kb->addr + nlen - maxoff, maxoff, kb->addr + (1ULL << npow) - maxoff, 0);
+        rc = dlsnr->oncopy(dlsnr, kb->addr + nlen - maxoff, maxoff, kb->addr + (1ULL << npow) - maxoff, 0);
         RCGO(rc, finish);
       }
       fsm->release_mmap(fsm);
@@ -1440,7 +1443,7 @@ start:
     memmove(mm + naddr + nlen - kb->maxoff,
             mm + naddr + (1ULL << kb->szpow) - kb->maxoff, kb->maxoff);
     if (dlsnr) {
-      rc = dlsnr->oncopy(naddr + (1ULL << kb->szpow) - kb->maxoff, kb->maxoff, naddr + nlen - kb->maxoff, 0);
+      rc = dlsnr->oncopy(dlsnr, naddr + (1ULL << kb->szpow) - kb->maxoff, kb->maxoff, naddr + nlen - kb->maxoff, 0);
       RCGO(rc, finish);
     }
     fsm->release_mmap(fsm);
@@ -1479,7 +1482,7 @@ start:
   assert(wp - sptr == kvp->len);
 #endif
   if (dlsnr) {
-    rc = dlsnr->onwrite(kb->addr + (1ULL << kb->szpow) - kvp->off, sptr, wp - sptr, 0);
+    rc = dlsnr->onwrite(dlsnr, kb->addr + (1ULL << kb->szpow) - kvp->off, sptr, wp - sptr, 0);
   }
   fsm->release_mmap(fsm);
 
@@ -1567,7 +1570,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
       sz = IW_HTOIL(sz);
       memcpy(sp, &sz, 4);
       if (dlsnr) {
-        rc = dlsnr->onwrite(sp - mm, sp, 4 /* num items */ + sz * val->size, 0);
+        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, 4 /* num items */ + sz * val->size, 0);
       }
       goto finish;
     } else {
@@ -1611,7 +1614,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
   if (rsize <= kvp->len) {
     memcpy(wp, uval->data, uval->size);
     if (dlsnr) {
-      rc = dlsnr->onwrite(wp - mm, uval->data, uval->size, 0);
+      rc = dlsnr->onwrite(dlsnr, wp - mm, uval->data, uval->size, 0);
       RCGO(rc, finish);
     }
     wp += uval->size;
@@ -1638,7 +1641,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
           if (!(nlen > kvp->len && freesz - IW_VNUMSIZE32(nlen) + IW_VNUMSIZE32(kvp->len) < 0)) { // enough space?
             memcpy(wp, uval->data, uval->size);
             if (dlsnr) {
-              rc = dlsnr->onwrite(wp - mm, uval->data, uval->size, 0);
+              rc = dlsnr->onwrite(dlsnr, wp - mm, uval->data, uval->size, 0);
               RCGO(rc, finish);
             }
             wp += uval->size;
@@ -1928,7 +1931,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
         assert(wp - (mm + sblk->db->addr) <= SBLK_SZ);
       }
       if (dlsnr) {
-        rc = dlsnr->onwrite(sp - mm, sp, wp - sp, 0);
+        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, wp - sp, 0);
       }
       return rc;
     } else {
@@ -1953,7 +1956,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       memcpy(wp, sblk->lk, sblk->lkl);
       wp += sblk->lkl;
       if (dlsnr) {
-        rc = dlsnr->onwrite(sp - mm, sp, wp - sp, 0);
+        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, wp - sp, 0);
         RCRET(rc);
       }
     }
@@ -2228,6 +2231,23 @@ IW_INLINE WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
     fsm->release_mmap(fsm);
   }
   return rc;
+}
+
+//--------------------------  WAL
+
+WUR iwrc _wal_checkpoint_awl(IWKV iwkv, bool force) {
+  // TODO:
+  return 0;
+}
+
+WUR iwrc _wal_close_awl(IWKV iwkv) {
+  // TODO:
+  return 0;
+}
+
+WUR iwrc _wal_checkpoint(IWKV iwkv, bool force) {
+  // TODO:
+  return 0;
 }
 
 //--------------------------  IWLCTX
@@ -3253,6 +3273,7 @@ iwrc iwkv_close(IWKV *iwkvp) {
     _db_release_lw(&db);
     db = ndb;
   }
+  IWRC(_wal_close_awl(iwkv), rc);
   IWRC(iwkv->fsm.close(&iwkv->fsm), rc);
   if (iwkv->dbs) {
     kh_destroy(DBS, iwkv->dbs);
@@ -3275,6 +3296,7 @@ iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
   iwrc rc = 0;
   IWFS_FSM *fsm  = &iwkv->fsm;
   pthread_rwlock_wrlock(&iwkv->rwl);
+  // TODO:
   iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
   IWRC(fsm->sync(fsm, flags), rc);
   pthread_rwlock_unlock(&iwkv->rwl);
@@ -3317,6 +3339,9 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
     rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
   }
   API_UNLOCK(iwkv, rci, rc);
+  if (!rc) {
+    rc = _wal_checkpoint(iwkv, true);
+  }
   return rc;
 }
 
@@ -3367,6 +3392,9 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   API_UNLOCK(iwkv, rci, rc);
 
 finish:
+  if (!rc) {
+    rc = _wal_checkpoint(iwkv, true);
+  }
   return rc;
 }
 
@@ -3374,7 +3402,8 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
   if (!db || !db->iwkv || !key || !key->size || !val) {
     return IW_ERROR_INVALID_ARGS;
   }
-  if (db->iwkv->oflags & IWKV_RDONLY) {
+  IWKV iwkv = db->iwkv;
+  if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
   }
   if (((db->dbflg & IWDB_UINT32_KEYS) && key->size != 4) ||
@@ -3401,8 +3430,12 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
 
 finish:
   API_DB_UNLOCK(db, rci, rc);
-  if (!rc && (lx.opflags & IWKV_SYNC)) {
-    rc = iwkv_sync(lx.db->iwkv, 0);
+  if (!rc) {
+    if (lx.opflags & IWKV_SYNC) {
+      rc = iwkv_sync(iwkv, 0);
+    } else {
+      rc = _wal_checkpoint(iwkv, false);
+    }
   }
   return rc;
 }
@@ -3443,6 +3476,7 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
   }
   int rci;
   iwrc rc = 0;
+  IWKV iwkv = db->iwkv;
   IWLCTX lx = {
     .db = db,
     .key = key,
@@ -3459,8 +3493,12 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
 
 finish:
   API_DB_UNLOCK(db, rci, rc);
-  if (!rc && (lx.opflags & IWKV_SYNC)) {
-    rc = iwkv_sync(lx.db->iwkv, 0);
+  if (!rc) {
+    if (lx.opflags & IWKV_SYNC) {
+      rc = iwkv_sync(iwkv, 0);
+    } else {
+      rc = _wal_checkpoint(iwkv, false);
+    }
   }
   return rc;
 }
@@ -3538,6 +3576,7 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
     return IW_ERROR_INVALID_ARGS;
   }
   IWKV_cursor cur = *curp;
+  IWKV iwkv = cur->lx.db->iwkv;
   if (cur->closed) {
     free(cur);
     return 0;
@@ -3551,6 +3590,9 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
   IWRC(_db_worker_dec_nolk(cur->lx.db), rc);
   free(cur);
   *curp = 0;
+  if (!rc) {
+    rc = _wal_checkpoint(iwkv, false);
+  }
   return rc;
 }
 
@@ -3562,9 +3604,13 @@ iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op) {
   if (!cur->lx.db) {
     return IW_ERROR_INVALID_STATE;
   }
+  IWKV iwkv = cur->lx.db->iwkv;
   API_DB_RLOCK(cur->lx.db, rci);
   iwrc rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
+  if (!rc) {
+    rc = _wal_checkpoint(iwkv, false);
+  }
   return rc;
 }
 
@@ -3576,10 +3622,14 @@ iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key)
   if (!cur->lx.db) {
     return IW_ERROR_INVALID_STATE;
   }
+  IWKV iwkv = cur->lx.db->iwkv;
   API_DB_RLOCK(cur->lx.db, rci);
   cur->lx.key = key;
   iwrc rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
+  if (!rc) {
+    rc = _wal_checkpoint(iwkv, false);
+  }
   return rc;
 }
 
@@ -3700,9 +3750,13 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
     return IW_ERROR_INVALID_STATE;
   }
   IWDB db = cur->lx.db;
+  IWKV iwkv = db->iwkv;
   API_DB_WLOCK(db, rci);
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val, opflags);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
+  if (!rc) {
+    rc = _wal_checkpoint(iwkv, false);
+  }
   return rc;
 }
 

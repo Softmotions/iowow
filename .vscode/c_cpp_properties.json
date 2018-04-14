@@ -53,6 +53,7 @@
                 "${workspaceRoot}/src/fs",
                 "${workspaceRoot}/src/log",
                 "${workspaceRoot}/src/platform",
+                "${workspaceRoot}/src/rdb",
                 "${workspaceRoot}/build/src/extern_leveldb/include",
                 "${workspaceRoot}/build/src/extern_kyc/install/include",
                 "${workspaceRoot}/build/src/extern_lmdb/libraries/liblmdb"

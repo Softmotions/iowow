@@ -45,7 +45,8 @@
     "-I${workspaceRoot}/src/utils",
     "-I${workspaceRoot}/src/platform",
     "-I${workspaceRoot}/src/fs",
-    "-I${workspaceRoot}/src/kv"
+    "-I${workspaceRoot}/src/kv",
+    "-I${workspaceRoot}/src/rdb"
   ],
   "clang.cxxflags": [
     "-D_GNU_SOURCE",
@@ -71,11 +72,15 @@
     "-I${workspaceRoot}/src/utils",
     "-I${workspaceRoot}/src/platform",
     "-I${workspaceRoot}/src/fs",
-    "-I${workspaceRoot}/src/kv"
+    "-I${workspaceRoot}/src/kv",
+    "-I${workspaceRoot}/src/rdb"
   ],
   "files.associations": {
     "*.h": "c",
-    "iowow.3": "troff"
+    "iowow.3": "troff",
+    "istream": "c",
+    "ostream": "c",
+    "type_traits": "c"
   },
   "python.pythonPath": "/usr/bin/python3",
   "python.linting.pylintEnabled": false,
