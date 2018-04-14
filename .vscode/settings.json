@@ -75,8 +75,7 @@
   ],
   "files.associations": {
     "*.h": "c",
-    "iowow.3": "troff",
-    "*.ipp": "c"
+    "iowow.3": "troff"
   },
   "python.pythonPath": "/usr/bin/python3",
   "python.linting.pylintEnabled": false,
