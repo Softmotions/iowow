@@ -7,7 +7,7 @@
     "-DCMAKE_VERBOSE_MAKEFILE=OFF",
     "-DBUILD_SHARED_LIBS=ON",
     "-DBUILD_EXAMPLES=ON",
-    "-DBUILD_BENCHMARKS=ON"
+    "-DBUILD_BENCHMARKS=OFF"
   ],
   "cmake.ctestArgs": [],
   "cmake.debugConfig": {
