@@ -50,6 +50,7 @@
 /**
  * Flags supported by current CPU.
  * `iwp_init()` must be called.
+ *  Zero on non `x86` platforms.
  */
 extern unsigned int iwcpuflags;
 

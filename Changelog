@@ -1,6 +1,7 @@
 iowow (1.0.6) UNRELEASED; urgency=medium
 
-  * #3 src/CMakeLists.txt cleanups 
+  * src/CMakeLists.txt cleanups #3
+  * x86-specific code in src/platform/iwp.c is not guarded #7
 
  -- Anton Adamansky <adamansky@gmail.com>  Sun, 15 Apr 2018 20:11:03 +0700
 
