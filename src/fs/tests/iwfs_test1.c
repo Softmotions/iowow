@@ -206,8 +206,13 @@ void test_mmap1(void) {
   rc = ef.add_mmap(&ef, psize, 2 * psize);
   CU_ASSERT_EQUAL_FATAL(rc, IWFS_ERROR_MMAP_OVERLAP);
 
+#ifndef IW_32
   rc = ef.add_mmap(&ef, 3 * psize, UINT64_MAX);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+#else
+  rc = ef.add_mmap(&ef, 3 * psize, UINT32_MAX >> 1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+#endif
 
   // iwrc(*write)(struct IWFS_EXT* f, off_t off, const void *buf, size_t siz,
   // size_t *sp);
