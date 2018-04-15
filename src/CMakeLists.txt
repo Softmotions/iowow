@@ -215,7 +215,6 @@ endif()
 
 install(FILES
         ${CMAKE_SOURCE_DIR}/LICENSE
-        ${CMAKE_SOURCE_DIR}/INSTALL
         ${CMAKE_SOURCE_DIR}/Changelog
         DESTINATION ${CMAKE_INSTALL_DOCDIR})
 install(FILES
