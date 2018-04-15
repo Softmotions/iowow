@@ -1127,7 +1127,6 @@ static iwrc _fsm_destroy_locks(FSM *impl) {
   }
   iwrc rc = 0;
   int err = pthread_rwlock_destroy(impl->ctlrwlk);
-  ;
   if (err) {
     IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err), rc);
   }
