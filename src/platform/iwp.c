@@ -40,14 +40,16 @@ unsigned int iwcpuflags = 0;
 
 // Thanks to https://attractivechaos.wordpress.com/2017/09/04/on-cpu-dispatch
 static unsigned int x86_simd(void) {
+
+#if defined(__i386__) || defined(__amd64__)
   unsigned int eax, ebx, ecx, edx, flag = 0;
-#ifdef _MSC_VER
+# ifdef _MSC_VER
   int cpuid[4];
   __cpuid(cpuid, 1);
   eax = cpuid[0], ebx = cpuid[1], ecx = cpuid[2], edx = cpuid[3];
-#else
+# else
   __asm volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(1));
-#endif
+# endif
   if (edx >> 25 & 1) flag |= IWCPU_SSE;
   if (edx >> 26 & 1) flag |= IWCPU_SSE2;
   if (ecx >> 0 & 1) flag |= IWCPU_SSE3;
@@ -57,6 +59,9 @@ static unsigned int x86_simd(void) {
   if (ebx >> 5 & 1) flag |= IWCPU_AVX2;
   if (ebx >> 16 & 1) flag |= IWCPU_AVX512F;
   return flag;
+#else
+  return 0;
+#endif
 }
 
 iwrc iwp_init(void) {

@@ -4,6 +4,14 @@ iowow (1.1.0) UNRELEASED; urgency=medium
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 18:17:39 +0700
 
+iowow (1.0.6) UNRELEASED; urgency=medium
+
+  * src/CMakeLists.txt cleanups #3
+  * x86-specific code in src/platform/iwp.c is not guarded #7
+  * Database size limited to 2GB on 32 bit CPUs #5
+
+ -- Anton Adamansky <adamansky@gmail.com>  Sun, 15 Apr 2018 20:11:03 +0700
+
 iowow (1.0.5) testing; urgency=medium
 
   * iwextfile: do msync before munmap on file resizing

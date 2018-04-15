@@ -266,7 +266,16 @@ IW_EXTERN_C_START
 
 #define IW_VNUMBUFSZ 10
 
+#define IW_VNUMSIZE32(num_) \
+  ((num_) < 0x80ULL ? 1 : \
+   (num_) < 0x4000ULL ? 2 : \
+   (num_) < 0x200000ULL ? 3 : \
+   (num_) < 0x10000000ULL ? 4 : 5)
+
 /* Size of variable number in bytes */
+#ifdef IW_32
+#define IW_VNUMSIZE IW_VNUMSIZE32
+#else
 #define IW_VNUMSIZE(num_) \
   ((num_) < 0x80ULL ? 1 : \
    (num_) < 0x4000ULL ? 2 : \
@@ -277,13 +286,7 @@ IW_EXTERN_C_START
    (num_) < 0x2000000000000ULL ? 7 : \
    (num_) < 0x100000000000000ULL ? 8 : \
    (num_) < 0x8000000000000000ULL ? 9 : 10)
-
-
-#define IW_VNUMSIZE32(num_) \
-  ((num_) < 0x80ULL ? 1 : \
-   (num_) < 0x4000ULL ? 2 : \
-   (num_) < 0x200000ULL ? 3 : \
-   (num_) < 0x10000000ULL ? 4 : 5)
+#endif
 
 /* Lexicographic comparison of values */
 #define IW_CMP(rv_, vp1_, vp1sz_, vp2_, vp2sz_) \

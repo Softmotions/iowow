@@ -32,6 +32,12 @@ if (IS_BIG_ENDIAN EQUAL 1)
   add_definitions(-DIW_BIGENDIAN=1)
 endif()
 
+if(CMAKE_SIZEOF_VOID_P MATCHES 8)
+  add_definitions(-DIW_64=1)
+else()
+  add_definitions(-DIW_32=1)
+endif()
+
 if (BUILD_TESTS)
  add_definitions(-DIW_TESTS=1)
 endif()
@@ -122,8 +128,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fsigned-char -pedantic -Wfatal-e
 if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
 if (ASAN)
   set(CMAKE_C_ASAN "-fsanitize=address -fno-omit-frame-pointer")
@@ -219,7 +223,6 @@ endif()
 
 install(FILES
         ${CMAKE_SOURCE_DIR}/LICENSE
-        ${CMAKE_SOURCE_DIR}/INSTALL
         ${CMAKE_SOURCE_DIR}/Changelog
         DESTINATION ${CMAKE_INSTALL_DOCDIR})
 install(FILES

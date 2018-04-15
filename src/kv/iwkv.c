@@ -12,11 +12,6 @@
 
 #include "iwcfg.h"
 
-// Hardcoded requirements (FIXME)
-// CMakeLists.txt defines: -D_LARGEFILE_SOURCE=1 D_FILE_OFFSET_BITS=64
-static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
-static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
-
 // IWKV magic number
 #define IWKV_MAGIC 0x69776b76
 
@@ -26,8 +21,13 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 // Max key + value size: 255Mb
 #define IWKV_MAX_KVSZ 0xfffffff
 
+#ifdef IW_32
+// Max database file size on 32 bit systems: 2Gb
+# define IWKV_MAX_DBSZ 0x7fffffff
+#else
 // Max database file size: ~255Gb
-#define IWKV_MAX_DBSZ 0x3fffffffc0
+# define IWKV_MAX_DBSZ 0x3fffffffc0
+#endif
 
 // Size of KV fsm block as power of 2
 #define IWKV_FSM_BPOW 6
