@@ -58,7 +58,8 @@
                 "${workspaceRoot}/build/src/extern_lmdb/libraries/liblmdb"
             ],
             "defines": [
-                "_GNU_SOURCE"
+                "_GNU_SOURCE",
+                "IW_64=1"
             ],
             "intelliSenseMode": "clang-x64",
             "browse": {

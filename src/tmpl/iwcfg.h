@@ -52,6 +52,10 @@
 #endif
 #endif
 
+#if !defined(IW_32) && !defined(IW_64)
+#error Unknown CPU bits
+#endif
+
 #define IOWOW_VERSION "@iowow_VERSION@"
 #define IOWOW_VERSION_MAJOR @iowow_VERSION_MAJOR@
 #define IOWOW_VERSION_MINOR @iowow_VERSION_MINOR@
