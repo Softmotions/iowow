@@ -2,7 +2,8 @@ iowow (1.0.6) testing; urgency=medium
 
   * src/CMakeLists.txt cleanups #3
   * x86-specific code in src/platform/iwp.c is not guarded #7
-  * Database size limited to 2GB on 32 bit CPUs #5 
+  * Database size limited to 2GB on 32 bit CPUs #5
+  * Database block size changed: 64 to 128 bytes #8
 
  -- Anton Adamansky <adamansky@gmail.com>  Mon, 16 Apr 2018 10:19:51 +0700
 
