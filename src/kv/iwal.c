@@ -162,6 +162,7 @@ iwrc _onclosed(struct IWDLSNR *self, const char *path) {
 }
 
 iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
+  IWAL *wal = (IWAL*) self;
   uint8_t obuf[1 + sizeof(off) + sizeof(val) + sizeof(len)];
   uint8_t *wp = obuf;
   *wp = WOP_SET;
@@ -171,10 +172,12 @@ iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) 
   memcpy(wp, &val, sizeof(val));
   wp += sizeof(val);
   memcpy(wp, &len, sizeof(len));
+  wal->mbytes += len;
   return _write((IWAL*) self, obuf, sizeof(obuf), 0, 0);
 }
 
 iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
+  IWAL *wal = (IWAL*) self;
   uint8_t obuf[1 + sizeof(off) + sizeof(len) + sizeof(noff)];
   uint8_t *wp = obuf;
   *wp = WOP_COPY;
@@ -184,15 +187,18 @@ iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) 
   memcpy(wp, &len, sizeof(len));
   wp += sizeof(len);
   memcpy(wp, &noff, sizeof(noff));
+  wal->mbytes += len;
   return _write((IWAL*) self, obuf, sizeof(obuf), 0, 0);
 }
 
 iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
+  IWAL *wal = (IWAL*) self;
   uint8_t obuf[1 + sizeof(len)];
   uint8_t *wp = obuf;
   *wp = WOP_WRITE;
   ++wp;
   memcpy(wp, &len, sizeof(len));
+  wal->mbytes += len;
   return _write((IWAL*) self, obuf, sizeof(obuf), buf, len);
 }
 
