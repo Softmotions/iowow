@@ -110,16 +110,26 @@ struct IWDB;
 typedef struct IWDB *IWDB;
 
 /**
+ * @brief WAL oprions.
+ */
+typedef struct IWKV_WAL_OPTS {
+  bool enabled;                     /**< WAL enabled */
+  size_t wal_buffer_sz;             /**< WAL file intermediate buffer size */
+  size_t checkpoint_buffer_sz;      /**< Checkpoint buffer size in bytes. */
+  uint64_t checkpoint_timeout_ms;   /**< Checkpoint timeout millesconds */
+} IWKV_WAL_OPTS;
+
+/**
  * @brief IWKV storage open options.
  */
 typedef struct IWKV_OPTS {
   char *path;                       /**< Path to database file */
   int32_t random_seed;              /**< Random seed used for iwu random generator */
   iwkv_openflags oflags;            /**< Bitmask of database file open modes */
-  bool use_wal;                     /**< Use Write Ahead Logging (WAL) */
   size_t wal_buffer_sz;             /**< Size of in-memory WAL file buffer */
   size_t wal_checkpoint_after_sz;   /**< Perform checkpoint after specified number of bytes changed */
   uint32_t wal_checkpoint_every_ms; /**< Perform checkpoint after period of time specified as milliseconds */
+  IWKV_WAL_OPTS wal;                /**< WAL options */
 } IWKV_OPTS;
 
 /**

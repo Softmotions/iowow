@@ -155,11 +155,12 @@ typedef enum {
  */
 typedef struct IWFS_FSM_OPTS {
   IWFS_EXT_OPTS exfile;
-  iwfs_fsm_openflags oflags; /**< Operation mode flags */
-  uint8_t bpow;              /**< Block size power for 2 */
-  size_t bmlen;              /**< Initial size of free-space bitmap */
-  size_t hdrlen;             /**< Length of custom file header.*/
-  bool mmap_all;             /**< Mmap all file data */
+  iwfs_fsm_openflags oflags;      /**< Operation mode flags */
+  uint8_t bpow;                   /**< Block size power for 2 */
+  size_t bmlen;                   /**< Initial size of free-space bitmap */
+  size_t hdrlen;                  /**< Length of custom file header.*/
+  bool mmap_all;                  /**< Mmap all file data */
+  iwfs_ext_mmap_opts_t mmap_opts; /**< Defaul mmap options used in `add_mmap` */
 } IWFS_FSM_OPTS;
 
 /**
@@ -288,8 +289,9 @@ typedef struct IWFS_FSM {
   /** @see IWFS_EXT::ensure_size */
   iwrc(*ensure_size)(struct IWFS_FSM *f, off_t size);
 
+
   /** @see IWFS_EXT::add_mmap */
-  iwrc(*add_mmap)(struct IWFS_FSM *f, off_t off, size_t maxlen);
+  iwrc(*add_mmap)(struct IWFS_FSM *f, off_t off, size_t maxlen, iwfs_ext_mmap_opts_t opts);
 
   /**
    * @brief Get a pointer to the registered mmap area starting at `off`.

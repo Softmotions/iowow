@@ -82,7 +82,11 @@
     "iowow.3": "troff",
     "istream": "c",
     "ostream": "c",
-    "type_traits": "c"
+    "type_traits": "c",
+    "slist": "c",
+    "array": "c",
+    "initializer_list": "c",
+    "utility": "c"
   },
   "python.pythonPath": "/usr/bin/python3",
   "python.linting.pylintEnabled": false,

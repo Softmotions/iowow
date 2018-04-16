@@ -32,23 +32,17 @@
  *  @brief Write Ahead Logging (WAL) module.
  */
 #include "iwkv.h"
-#include "iwdlsnr.h"
+#include "iwfsmfile.h"
 
 IW_EXTERN_C_START
 
-typedef struct IWAL_OPTS {
-  size_t buffer_sz;
-} IWAL_OPTS;
+iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts);
 
-iwrc iwal_create(const IWAL_OPTS *opts, IWDLSNR **olsnr);
+iwrc iwal_sync(IWKV iwkv);
 
-void iwal_reset_write_bytes_count(void);
+iwrc iwal_checkpoint(IWKV iwkv, bool force);
 
-off_t iwal_get_write_bytes_count(void);
-
-iwrc iwal_sync(void);
-
-void iwal_destroy(IWDLSNR *lsnr);
+iwrc iwal_close(IWKV iwkv);
 
 IW_EXTERN_C_END
 #endif
