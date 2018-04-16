@@ -79,12 +79,13 @@ void _iwal_destroy(IWAL *wal) {
   }
 }
 
-iwrc iwal_close(IWKV iwkv) {
-  IWAL *iwal = (IWAL *) iwkv->dlsnr;
-  if (iwal) {
-    _iwal_destroy(iwal);
-  }
-  return 0;
+iwrc _write(IWAL *wal, uint8_t op, const void *data, size_t len) {
+  iwrc rc = 0;
+  size_t rlen = 1 + len; // Required size for record
+
+  // TODO:
+
+  return rc;
 }
 
 iwrc iwal_sync(IWKV iwkv) {
@@ -127,6 +128,14 @@ iwrc _onsynced(struct IWDLSNR *self, int flags) {
   return 0;
 }
 
+iwrc iwal_close(IWKV iwkv) {
+  IWAL *iwal = (IWAL *) iwkv->dlsnr;
+  if (iwal) {
+    _iwal_destroy(iwal);
+  }
+  return 0;
+}
+
 iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   assert(!iwkv->dlsnr && opts && fsmopts);
   if (!opts) {
@@ -141,7 +150,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
   size_t sz = strlen(opts->path);
-  char *wpath = malloc(sz + 4 /*-wal*/ + 1);
+  char *wpath = malloc(sz + 4 /*-wal*/ + 1 /*\0*/);
   if (!wpath) {
     free(wal);
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
