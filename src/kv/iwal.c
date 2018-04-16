@@ -4,6 +4,14 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+typedef enum {
+  WOP_SEP = 1, /**< WAL file separator */
+  WOP_SET,
+  WOP_COPY,
+  WOP_WRITE,
+  WOP_RESIZE
+} wop_t;
+
 typedef struct IWAL {
   IWDLSNR lsnr;
   iwkv_openflags oflags;            /**< File open flags */
@@ -12,10 +20,9 @@ typedef struct IWAL {
   uint64_t checkpoint_timeout_ms;   /**< Checkpoint timeout millesconds */
   char *path;                       /**< WAL file path */
   uint8_t *buf;                     /**< File buffer */
-  size_t bufsz;                     /**< Size of buffer */
-  off_t bufpos;                     /**< Current position in buffer */
-  off_t end;                        /**< WAL file end position */
-  off_t mbytes;                     /**< Estimated size of modifed private mmaped memory bytes */
+  uint32_t bufsz;                   /**< Size of buffer */
+  uint32_t bufpos;                  /**< Current position in buffer */
+  atomic_uint mbytes;               /**< Estimated size of modifed private mmaped memory bytes */
   HANDLE fh;                        /**< File handle */
   pthread_mutex_t *mtx;             /**< Global thread mutex */
 } IWAL;
@@ -79,25 +86,71 @@ void _iwal_destroy(IWAL *wal) {
   }
 }
 
-iwrc _write(IWAL *wal, uint8_t op, const void *data, size_t len) {
-  iwrc rc = 0;
-  size_t rlen = 1 + len; // Required size for record
+iwrc _flush_lk(IWAL *wal, bool sync) {
+  if (wal->bufpos) {
+    uint8_t sep[1 + sizeof(wal->bufpos) + sizeof(uint32_t)];
+    uint32_t crc = iwu_crc32(wal->buf, wal->bufpos, 0);
+    uint8_t *wp = sep;
+    *wp = WOP_SEP;
+    ++wp;
+    memcpy(wp, &wal->bufpos, sizeof(wal->bufpos));
+    wp += sizeof(wal->bufpos);
+    memcpy(wp, &crc, sizeof(crc));
 
-  // TODO:
+    ssize_t sz = write(wal->fh, sep, sizeof(sep));
+    if (sz != sizeof(sep)) {
+      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    }
+    sz = write(wal->fh, wal->buf, wal->bufpos);
+    if (sz != wal->bufpos) {
+      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    }
+    wal->bufpos = 0;
+  }
+  if (sync && fsync(wal->fh)) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  }
+  return 0;
+}
 
+iwrc _write(IWAL *wal, const uint8_t *op, off_t oplen, const uint8_t *data, off_t len) {
+  iwrc rc = _lock(wal);
+  RCRET(rc);
+  const off_t bufsz = wal->bufsz;
+  const uint8_t *wp = data;
+  uint8_t *buf = wal->buf;
+  if (bufsz - wal->bufpos < oplen) {
+    rc = _flush_lk(wal, false);
+    RCGO(rc, finish);
+  }
+  assert(bufsz - wal->bufpos >= oplen);
+  memcpy(buf + wal->bufpos, op, oplen);
+  wal->bufpos += oplen;
+  while (len > 0) {
+    off_t wlen = MIN(bufsz - wal->bufpos, len);
+    if (!wlen) {
+      rc = _flush_lk(wal, false);
+      RCGO(rc, finish);
+      wlen = MIN(bufsz - wal->bufpos, len);
+    }
+    memcpy(buf, wp, wlen);
+    wal->bufpos += wlen;
+    wp += wlen;
+    len -= wlen;
+  }
+
+finish:
+  IWRC(_unlock(wal), rc);
   return rc;
 }
 
 iwrc iwal_sync(IWKV iwkv) {
-  return 0;
-}
-
-iwrc iwal_checkpoint(IWKV iwkv, bool force) {
-  return 0;
-}
-
-iwrc _recover_lk(IWKV iwkv, IWAL *wal) {
-  return 0;
+  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  iwrc rc = _lock(wal);
+  RCRET(rc);
+  rc = _flush_lk(wal, true);
+  IWRC(_unlock(wal), rc);
+  return rc;
 }
 
 iwrc _onopen(struct IWDLSNR *self, const char *path, int mode) {
@@ -108,23 +161,61 @@ iwrc _onclosed(struct IWDLSNR *self, const char *path) {
   return 0;
 }
 
-iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, uint64_t len, int flags) {
-  return 0;
+iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
+  uint8_t obuf[1 + sizeof(off) + sizeof(val) + sizeof(len)];
+  uint8_t *wp = obuf;
+  *wp = WOP_SET;
+  ++wp;
+  memcpy(wp, &off, sizeof(off));
+  wp += sizeof(off);
+  memcpy(wp, &val, sizeof(val));
+  wp += sizeof(val);
+  memcpy(wp, &len, sizeof(len));
+  return _write((IWAL*) self, obuf, sizeof(obuf), 0, 0);
 }
 
-iwrc _oncopy(struct IWDLSNR *self, off_t off, uint64_t len, off_t noff, int flags) {
-  return 0;
+iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
+  uint8_t obuf[1 + sizeof(off) + sizeof(len) + sizeof(noff)];
+  uint8_t *wp = obuf;
+  *wp = WOP_COPY;
+  ++wp;
+  memcpy(wp, &off, sizeof(off));
+  wp += sizeof(off);
+  memcpy(wp, &len, sizeof(len));
+  wp += sizeof(len);
+  memcpy(wp, &noff, sizeof(noff));
+  return _write((IWAL*) self, obuf, sizeof(obuf), 0, 0);
 }
 
-iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, uint64_t len, int flags) {
-  return 0;
+iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
+  uint8_t obuf[1 + sizeof(len)];
+  uint8_t *wp = obuf;
+  *wp = WOP_WRITE;
+  ++wp;
+  memcpy(wp, &len, sizeof(len));
+  return _write((IWAL*) self, obuf, sizeof(obuf), buf, len);
 }
 
-iwrc _onresize(struct IWDLSNR *self, uint64_t osize, uint64_t nsize, int flags) {
-  return 0;
+iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags) {
+  uint8_t obuf[1 + sizeof(osize) + sizeof(nsize)];
+  uint8_t *wp = obuf;
+  *wp = WOP_RESIZE;
+  ++wp;
+  memcpy(wp, &osize, sizeof(osize));
+  wp += sizeof(osize);
+  memcpy(wp, &nsize, sizeof(nsize));
+  return _write((IWAL*) self, obuf, sizeof(obuf), 0, 0);
 }
 
 iwrc _onsynced(struct IWDLSNR *self, int flags) {
+  return 0;
+}
+
+iwrc iwal_checkpoint(IWKV iwkv, bool force) {
+  return 0;
+}
+
+iwrc _recover_lk(IWKV iwkv, IWAL *wal) {
   return 0;
 }
 
@@ -179,6 +270,9 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->wal_buffer_sz =
     opts->wal.wal_buffer_sz > 0 ?
     opts->wal.wal_buffer_sz  : 16 * 4096; // 64Kb
+  if (wal->wal_buffer_sz < 4096) {
+    wal->wal_buffer_sz = 4096;
+  }
 
   wal->checkpoint_buffer_sz
     = opts->wal.checkpoint_buffer_sz > 0 ?
@@ -209,7 +303,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
     rc = iwp_ftruncate(wal->fh, 0);
   }
 
-  // Start recovery procedure
+  // Start recovery
   rc = _recover_lk(iwkv, wal);
 
 finish:

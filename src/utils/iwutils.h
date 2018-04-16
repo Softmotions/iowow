@@ -333,6 +333,8 @@ IW_EXPORT int iwlog2_32(uint32_t val);
 
 IW_EXPORT int iwlog2_64(uint64_t val);
 
+IW_EXPORT uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init);
+
 IW_EXTERN_C_END
 
 #endif

@@ -24,22 +24,22 @@ typedef struct IWDLSNR {
   /**
    * @brief After file closed.
    */
-  iwrc (*onclosed)(struct IWDLSNR *self, const char *path);
+  iwrc(*onclosed)(struct IWDLSNR *self, const char *path);
 
   /**
    * @brief Write @a val value starting at @a off @a len bytes
    */
-  iwrc(*onset)(struct IWDLSNR *self, off_t off, uint8_t val, uint64_t len, int flags);
+  iwrc(*onset)(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags);
 
   /**
    * @brief Copy @a len bytes from @a off offset to @a noff offset
    */
-  iwrc(*oncopy)(struct IWDLSNR *self, off_t off, uint64_t len, off_t noff, int flags);
+  iwrc(*oncopy)(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags);
 
   /**
    * @brief Write @buf of @a len bytes at @a off
    */
-  iwrc(*onwrite)(struct IWDLSNR *self, off_t off, const void *buf, uint64_t len, int flags);
+  iwrc(*onwrite)(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags);
 
   /**
    * @brief File need to be resized.
@@ -48,7 +48,7 @@ typedef struct IWDLSNR {
    * @param nsize New file size
    * @param [out] handled File resizing handled by llistener.
    */
-  iwrc(*onresize)(struct IWDLSNR *self, uint64_t osize, uint64_t nsize, int flags);
+  iwrc(*onresize)(struct IWDLSNR *self, off_t osize, off_t nsize, int flags);
 
   /**
    * @brief File sync successful
