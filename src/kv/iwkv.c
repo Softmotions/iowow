@@ -968,7 +968,7 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   off_t msz;    // max available free space
   off_t rsz;    // required size to add new key/value pair
   off_t noff;   // offset of new kvpair from end of block
-  uint8_t *mm, *wp;
+  uint8_t *mm, *wp, *sptr;
   size_t i, sp;
   KVP *kvp;
   IWDB db = kb->db;
@@ -978,10 +978,6 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   IWDLSNR *dlsnr = kb->db->iwkv->dlsnr;
   IWKV_val *uval = (IWKV_val *) val, sval;
   off_t psz = IW_VNUMSIZE(key->size) + key->size + uval->size; // required KVP size
-
-#ifndef NDEBUG
-  uint8_t *sptr;
-#endif
 
   if (kb->zidx < 0) {
     return _IWKV_ERROR_KVBLOCK_FULL;
