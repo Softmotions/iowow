@@ -15,6 +15,9 @@
 // IWKV magic number
 #define IWKV_MAGIC 0x69776b76
 
+// IWKV file format version
+#define IWKV_FORMAT 0
+
 // IWDB magic number
 #define IWDB_MAGIC 0x69776462
 
@@ -232,6 +235,7 @@ struct IWKV {
   iwkv_openflags oflags;      /**< Open flags */
   pthread_cond_t wk_cond;     /**< Workers cond variable */
   pthread_mutex_t wk_mtx;     /**< Workers cond mutext */
+  int32_t fmt_version;        /**< Database format version */
   volatile int32_t wk_count;  /**< Number of active workers */
   atomic_bool open;           /**< True if kvstore is in OPEN state */
 };
@@ -3138,6 +3142,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
     return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
   case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
     return "Incompatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
+  case IWKV_ERROR_INCOMPATIBLE_DB_FORMAT:
+    return "Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT)";
   }
   return 0;
 }
@@ -3167,6 +3173,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
   IWKV iwkv = *iwkvp;
+  iwkv->fmt_version = IWKV_FORMAT;
   rci = pthread_rwlock_init(&iwkv->rwl, 0);
   if (rci) {
     free(*iwkvp);
@@ -3222,32 +3229,39 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   rc = fsm->state(fsm, &fsmstate);
   RCGO(rc, finish);
 
+  // Database header: [magic:u4, first_addr:u8, db_format_version:u4]
   if (fsmstate.exfile.file.ostatus & IWFS_OPEN_NEW) {
-    // Write magic number
-    lv = IWKV_MAGIC;
-    lv = IW_HTOIL(lv);
-    rc = fsm->writehdr(fsm, 0, &lv, sizeof(lv));
+    uint8_t hdr[KVHDRSZ] = {0};
+    uint8_t *wp = hdr;
+    IW_WRITELV(wp, lv, IWKV_MAGIC);
+    wp += sizeof(llv); // skip first db addr
+    IW_WRITELV(wp, lv, iwkv->fmt_version);
+    rc = fsm->writehdr(fsm, 0, hdr, sizeof(hdr));
     RCGO(rc, finish);
     rc = fsm->sync(fsm, 0);
     RCGO(rc, finish);
   } else {
+    off_t dbaddr; // first database address
     uint8_t hdr[KVHDRSZ];
     rc = fsm->readhdr(fsm, 0, hdr, KVHDRSZ);
     RCGO(rc, finish);
     rp = hdr;
-    memcpy(&lv, rp, sizeof(lv));
-    rp += sizeof(lv);
-    lv = IW_ITOHL(lv);
-    if (lv != IWKV_MAGIC) {
+    IW_READLV(rp, lv, lv);
+    IW_READLLV(rp, llv, dbaddr);
+    if (lv != IWKV_MAGIC || dbaddr < 0) {
       rc = IWKV_ERROR_CORRUPTED;
       iwlog_ecode_error3(rc);
       goto finish;
     }
-    memcpy(&llv, rp, sizeof(llv));
-    llv = IW_ITOHLL(llv);
+    IW_READLV(rp, lv, iwkv->fmt_version);
+    if ((iwkv->fmt_version != IWKV_FORMAT)) {
+      rc = IWKV_ERROR_INCOMPATIBLE_DB_FORMAT;
+      iwlog_ecode_error3(rc);
+      goto finish;
+    }
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCGO(rc, finish);
-    rc = _db_load_chain(iwkv, llv, mm);
+    rc = _db_load_chain(iwkv, dbaddr, mm);
     fsm->release_mmap(fsm);
   }
   (*iwkvp)->open = true;

@@ -916,7 +916,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
     bmoffset = IW_ROUNDUP(bmoffset, impl->psize);
   }
   if (!impl->mmap_all) {
-    rc = pool->add_mmap(pool, bmoffset, bmlen);
+    rc = pool->add_mmap(pool, bmoffset, bmlen, 0);
     RCRET(rc);
   }
   rc = _fsm_init_lw(impl, bmoffset, bmlen);
@@ -1067,7 +1067,7 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
     offset = offset << impl->bpow;
     length = length << impl->bpow;
     assert(offset != impl->bmoff);
-    impl->pool.add_mmap(&impl->pool, offset, length);
+    impl->pool.add_mmap(&impl->pool, offset, length, 0);
     rc = _fsm_init_lw(impl, offset, length);
     RCGO(rc, finish);
   } else {
@@ -1250,14 +1250,14 @@ static iwrc _fsm_init_new_lw(FSM *impl, const IWFS_FSM_OPTS *opts) {
 
   if (impl->mmap_all) {
     /* mmap whole file */
-    rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
+    rc = pool->add_mmap(pool, 0, SIZE_T_MAX, 0);
     RCRET(rc);
   } else {
     /* mmap header */
-    rc = pool->add_mmap(pool, 0, impl->hdrlen);
+    rc = pool->add_mmap(pool, 0, impl->hdrlen, 0);
     RCRET(rc);
     /* mmap the fsm bitmap index */
-    rc = pool->add_mmap(pool, bmoff, bmlen);
+    rc = pool->add_mmap(pool, bmoff, bmlen, 0);
     RCRET(rc);
   }
   return _fsm_init_lw(impl, bmoff, bmlen);
@@ -1275,7 +1275,7 @@ static iwrc _fsm_init_existing_lw(FSM *impl) {
 
   if (impl->mmap_all) {
     /* mmap whole file */
-    rc = pool->add_mmap(pool, 0, SIZE_T_MAX);
+    rc = pool->add_mmap(pool, 0, SIZE_T_MAX, 0);
     RCGO(rc, finish);
     rc = pool->probe_mmap(pool, 0, &mm, &sp);
     RCGO(rc, finish);
@@ -1287,10 +1287,10 @@ static iwrc _fsm_init_existing_lw(FSM *impl) {
     }
   } else {
     /* mmap the header part of file */
-    rc = pool->add_mmap(pool, 0, impl->hdrlen);
+    rc = pool->add_mmap(pool, 0, impl->hdrlen, 0);
     RCGO(rc, finish);
     /* mmap the fsm bitmap index */
-    rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen);
+    rc = pool->add_mmap(pool, impl->bmoff, impl->bmlen, 0);
     RCGO(rc, finish);
     rc = pool->probe_mmap(pool, impl->bmoff, &mm, &sp);
     RCGO(rc, finish);
@@ -1436,7 +1436,7 @@ finish:
 
 static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen) {
   FSM_ENSURE_OPEN2(f);
-  return f->impl->pool.add_mmap(&f->impl->pool, off, maxlen);
+  return f->impl->pool.add_mmap(&f->impl->pool, off, maxlen, 0);
 }
 
 iwrc _fsm_acquire_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
@@ -1641,7 +1641,7 @@ static iwrc _fsm_clear(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags) {
   }
   bmoff = IW_ROUNDUP(impl->hdrlen, impl->psize);
   if (!impl->mmap_all) {
-    IWRC(impl->pool.add_mmap(&impl->pool, bmoff, bmlen), rc);
+    IWRC(impl->pool.add_mmap(&impl->pool, bmoff, bmlen, 0), rc);
   }
   RCGO(rc, finish);
   impl->bmlen = 0;

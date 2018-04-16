@@ -59,13 +59,14 @@ IW_EXTERN_C_START
  */
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
-  IWKV_ERROR_NOTFOUND,             /**< Key not found (IWKV_ERROR_NOTFOUND) */
-  IWKV_ERROR_KEY_EXISTS,           /**< Key already exists (IWKV_ERROR_KEY_EXISTS) */
-  IWKV_ERROR_MAXKVSZ,              /**< Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
-  IWKV_ERROR_CORRUPTED,            /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
-  IWKV_ERROR_DUP_VALUE_SIZE,       /**< Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE) */
-  IWKV_ERROR_KEY_NUM_VALUE_SIZE,   /**< Given key is not compatible to storage as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)  */
-  IWKV_ERROR_INCOMPATIBLE_DB_MODE, /**< Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE) */
+  IWKV_ERROR_NOTFOUND,                /**< Key not found (IWKV_ERROR_NOTFOUND) */
+  IWKV_ERROR_KEY_EXISTS,              /**< Key already exists (IWKV_ERROR_KEY_EXISTS) */
+  IWKV_ERROR_MAXKVSZ,                 /**< Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ) */
+  IWKV_ERROR_CORRUPTED,               /**< Database file invalid or corrupted (IWKV_ERROR_CORRUPTED) */
+  IWKV_ERROR_DUP_VALUE_SIZE,          /**< Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE) */
+  IWKV_ERROR_KEY_NUM_VALUE_SIZE,      /**< Given key is not compatible to storage as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)  */
+  IWKV_ERROR_INCOMPATIBLE_DB_MODE,    /**< Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE) */
+  IWKV_ERROR_INCOMPATIBLE_DB_FORMAT,  /**< Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT) */
   _IWKV_ERROR_END,
   /* Internal error codes */
   _IWKV_ERROR_KVBLOCK_FULL,

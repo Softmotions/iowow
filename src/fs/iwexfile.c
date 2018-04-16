@@ -42,7 +42,7 @@ typedef struct IWFS_EXT_IMPL {
   void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
   struct MMAPSLOT *mmslots;  /**< Memory mapping slots */
   IWDLSNR *dlsnr;            /**< Data events listener */
-  int use_locks;             /**< Use rwlocks to guard method access */
+  bool use_locks;            /**< Use rwlocks to guard method access */
   off_t maxoff;              /**< Maximum allowed file offset. Unlimited if zero.
                                   If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
   iwfs_omode omode;          /**< File open mode */
@@ -480,7 +480,7 @@ static iwrc _exfile_truncate(struct IWFS_EXT *f, off_t sz) {
   return rc;
 }
 
-static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen) {
+static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen, iwfs_ext_mmap_opts_t opts) {
   assert(f && off >= 0);
   iwrc rc;
   size_t tmp;

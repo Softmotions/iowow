@@ -127,16 +127,20 @@ IW_EXPORT off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize,
 typedef struct IWFS_EXT_OPTS {
   IWFS_FILE_OPTS file; /**< Underlying file options */
   off_t initial_size;  /**< Initial file size */
-  int use_locks;       /**< If `1` file operations will be guarded by rw lock.
-                            Default: `0` */
+  bool use_locks;      /**< If `true` file operations will be guarded by rw lock. Default: `false` */
+
   IW_EXT_RSPOLICY rspolicy; /**< File resize policy function ptr. Default:
                                `exact size policy`  */
   void *rspolicy_ctx;       /**< Custom opaque data for policy functions.
                                  Default: `0` */
   off_t maxoff;             /**< Maximum allowed file offset. Unlimited if zero.
                                  If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
-
 } IWFS_EXT_OPTS;
+
+
+typedef enum {
+  IWFS_MMAP_PRIVATE       /**< Use private mmap */
+} iwfs_ext_mmap_opts_t;
 
 /**
  * @struct IWFS_EXT_STATE
@@ -204,7 +208,7 @@ typedef struct IWFS_EXT {
    * @param len Length of mmaped region
    * @return `0` on success or error code.
    */
-  iwrc(*add_mmap)(struct IWFS_EXT *f, off_t off, size_t len);
+  iwrc(*add_mmap)(struct IWFS_EXT *f, off_t off, size_t len, iwfs_ext_mmap_opts_t opts);
 
   /**
    * @brief Retrieve mmaped region by its offset @a off and keep file as read locked.
