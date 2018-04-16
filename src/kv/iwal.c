@@ -238,7 +238,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   if (!opts) {
     return IW_ERROR_INVALID_ARGS;
   }
-  if (opts->oflags & IWKV_RDONLY) {
+  if ((opts->oflags & IWKV_RDONLY) || !opts->wal.enabled) {
     return 0;
   }
   iwrc rc = 0;
