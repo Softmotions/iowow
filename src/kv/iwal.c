@@ -307,6 +307,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
 
   if (wal->oflags & IWKV_TRUNC) {
     rc = iwp_ftruncate(wal->fh, 0);
+    RCGO(rc, finish);
   }
 
   // Start recovery
