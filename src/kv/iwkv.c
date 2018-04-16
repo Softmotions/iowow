@@ -22,12 +22,12 @@
 // Max database file size on 32 bit systems: 2Gb
 # define IWKV_MAX_DBSZ 0x7fffffff
 #else
-// Max database file size: ~255Gb
-# define IWKV_MAX_DBSZ 0x3fffffffc0
+// Max database file size: ~512Gb
+# define IWKV_MAX_DBSZ 0x7fffffff80
 #endif
 
 // Size of KV fsm block as power of 2
-#define IWKV_FSM_BPOW 6
+#define IWKV_FSM_BPOW 7
 
 // Length of KV fsm header in bytes
 #define KVHDRSZ 255
@@ -46,10 +46,10 @@
 #define LKPAD 0
 
 // Size of database start block in bytes
-#define DB_SZ (4 * (1 << IWKV_FSM_BPOW))
+#define DB_SZ (2 * (1 << IWKV_FSM_BPOW))
 
 // Size of `SBLK` in bytes
-#define SBLK_SZ (4 * (1 << IWKV_FSM_BPOW))
+#define SBLK_SZ (2 * (1 << IWKV_FSM_BPOW))
 
 // Number of `KV` blocks in KVBLK
 #define KVBLK_IDXNUM 32
