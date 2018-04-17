@@ -2,6 +2,7 @@
 #include "iwp.h"
 
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 
 typedef enum {
@@ -46,11 +47,11 @@ typedef struct WBRESIZE {
 } WBRESIZE;
 
 union WBOP {
-  WBSEP wbsep;
-  WBSET wbset;
-  WBCOPY wbcopy;
-  WBWRITE wbwrite;
-  WBRESIZE wbresize;
+  WBSEP sep;
+  WBSET set;
+  WBCOPY copy;
+  WBWRITE write;
+  WBRESIZE resize;
 };
 
 typedef struct IWAL {
@@ -66,6 +67,7 @@ typedef struct IWAL {
   atomic_uint mbytes;               /**< Estimated size of modifed private mmaped memory bytes */
   HANDLE fh;                        /**< File handle */
   pthread_mutex_t *mtx;             /**< Global thread mutex */
+  IWKV iwkv;
 } IWAL;
 
 IW_INLINE iwrc _lock(IWAL *wal) {
@@ -78,7 +80,7 @@ IW_INLINE iwrc _unlock(IWAL *wal) {
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
-iwrc _init_locks(IWAL *wal) {
+static iwrc _init_locks(IWAL *wal) {
   assert(!wal->mtx);
   if (wal->oflags & IWKV_NOLOCKS) {
     return 0;
@@ -96,7 +98,7 @@ iwrc _init_locks(IWAL *wal) {
   return 0;
 }
 
-iwrc _destroy_locks(IWAL *wal) {
+static iwrc _destroy_locks(IWAL *wal) {
   if (!wal->mtx) {
     return 0;
   }
@@ -110,7 +112,7 @@ iwrc _destroy_locks(IWAL *wal) {
   return rc;
 }
 
-void _iwal_destroy(IWAL *wal) {
+static void _iwal_destroy(IWAL *wal) {
   if (wal) {
     if (!INVALIDHANDLE(wal->fh)) {
       iwp_unlock(wal->fh);
@@ -128,7 +130,7 @@ void _iwal_destroy(IWAL *wal) {
   }
 }
 
-iwrc _flush_lk(IWAL *wal, bool sync) {
+static iwrc _flush_lk(IWAL *wal, bool sync) {
   if (wal->bufpos) {
     uint32_t crc = iwu_crc32(wal->buf, wal->bufpos, 0);
     WBSEP sep = {
@@ -151,7 +153,16 @@ iwrc _flush_lk(IWAL *wal, bool sync) {
   return 0;
 }
 
-iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len) {
+IW_INLINE iwrc _truncate(IWAL *wal) {
+  iwrc rc = iwp_ftruncate(wal->fh, 0);
+  RCRET(rc);
+  if (fsync(wal->fh)) {
+    rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  }
+  return rc;
+}
+
+static iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len) {
   iwrc rc = _lock(wal);
   RCRET(rc);
   ssize_t sz;
@@ -195,15 +206,15 @@ iwrc iwal_sync(IWKV iwkv) {
   return rc;
 }
 
-iwrc _onopen(struct IWDLSNR *self, const char *path, int mode) {
+static iwrc _onopen(struct IWDLSNR *self, const char *path, int mode) {
   return 0;
 }
 
-iwrc _onclosed(struct IWDLSNR *self, const char *path) {
+static iwrc _onclosed(struct IWDLSNR *self, const char *path) {
   return 0;
 }
 
-iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
+static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
   WBSET wb = {
     .id = WOP_SET,
     .val = val,
@@ -213,7 +224,7 @@ iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) 
   return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
 }
 
-iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
+static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
   WBCOPY wb = {
     .id = WOP_COPY,
     .off = off,
@@ -223,7 +234,7 @@ iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) 
   return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
 }
 
-iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
+static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
   IWAL *wal = (IWAL *) self;
   assert(len <= (size_t)(-1));
   WBWRITE wb = {
@@ -236,7 +247,7 @@ iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int f
   return _write((IWAL *) self, &wb, sizeof(wb), buf, len);
 }
 
-iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags) {
+static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags) {
   WBRESIZE wb = {
     .id = WOP_RESIZE,
     .osize = osize,
@@ -245,7 +256,7 @@ iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags) {
   return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
 }
 
-iwrc _onsynced(struct IWDLSNR *self, int flags) {
+static iwrc _onsynced(struct IWDLSNR *self, int flags) {
   IWAL *wal = (IWAL *) self;
   iwrc rc = _lock(wal);
   RCRET(rc);
@@ -254,10 +265,53 @@ iwrc _onsynced(struct IWDLSNR *self, int flags) {
   return rc;
 }
 
+static bool _need_checkpoint(IWAL *wal) {
+  // TODO:
+  return true;
+}
+
 iwrc iwal_checkpoint(IWKV iwkv, bool force) {
+  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  if (!wal) {
+    return 0;
+  }
+  assert(iwkv == wal->iwkv);
+  bool ncp = _need_checkpoint(wal);
+  if (!ncp && force) {
+    return 0;
+  }
+  iwrc rc = _flush_lk(wal, true);
+  RCRET(rc);
+
+  IWFS_FSM_STATE fst;
+  rc = iwkv->fsm.state(&iwkv->fsm, &fst);
+  RCRET(rc);
+
+  int rci = 0;
+  size_t psize = iwp_page_size();
+  off_t fsize = fst.exfile.fsize;
+  HANDLE fh = fst.exfile.file.fh;
+  assert(!(fsize & (psize - 1)));
+  uint8_t *mm = mmap(0, fsize, PROT_WRITE, MAP_SHARED, fh, 0);
+  if (mm == MAP_FAILED) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+  // apply changes to main file
+  // TODO:
 
 
-  return 0;
+  // sync
+  rci = msync(mm, fsize, MS_SYNC);
+  if (rci) {
+    rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+  munmap(mm, fsize);
+  wal->mbytes = 0;
+  IWRC(iwkv->fsm.remap_all(&iwkv->fsm), rc);
+  if (!rc) {
+    rc = _truncate(wal);
+  }
+  return rc;
 }
 
 iwrc _recover_lk(IWKV iwkv, IWAL *wal) {
@@ -298,6 +352,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->fh = INVALID_HANDLE_VALUE;
   wal->path = wpath;
   wal->oflags = opts->oflags;
+  wal->iwkv = iwkv;
 
   rc = _init_locks(wal);
   RCGO(rc, finish);

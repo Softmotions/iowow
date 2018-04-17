@@ -1440,6 +1440,11 @@ static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen, iwfs_ext
   return f->impl->pool.add_mmap(&f->impl->pool, off, maxlen, opts);
 }
 
+static iwrc _fsm_remap_all(struct IWFS_FSM *f) {
+  FSM_ENSURE_OPEN2(f);
+  return f->impl->pool.remap_all(&f->impl->pool);
+}
+
 iwrc _fsm_acquire_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
   return f->impl->pool.acquire_mmap(&f->impl->pool, off, mm, sp);
 }
@@ -1692,6 +1697,7 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
 
   f->ensure_size = _fsm_ensure_size;
   f->add_mmap = _fsm_add_mmap;
+  f->remap_all = _fsm_remap_all;
   f->acquire_mmap = _fsm_acquire_mmap;
   f->probe_mmap = _fsm_probe_mmap;
   f->release_mmap = _fsm_release_mmap;

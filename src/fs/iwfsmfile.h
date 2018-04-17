@@ -293,6 +293,10 @@ typedef struct IWFS_FSM {
   /** @see IWFS_EXT::add_mmap */
   iwrc(*add_mmap)(struct IWFS_FSM *f, off_t off, size_t maxlen, iwfs_ext_mmap_opts_t opts);
 
+
+  /** @see IWFS_EXT::remap_all */
+  iwrc(*remap_all)(struct IWFS_FSM *f);
+
   /**
    * @brief Get a pointer to the registered mmap area starting at `off`.
    *
