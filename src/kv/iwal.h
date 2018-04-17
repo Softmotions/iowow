@@ -40,7 +40,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts);
 
 iwrc iwal_sync(IWKV iwkv);
 
-iwrc iwal_checkpoint(IWKV iwkv, bool force);
+iwrc iwal_checkpoint(IWKV iwkv, uint64_t ts, bool force);
 
 iwrc iwal_close(IWKV iwkv);
 

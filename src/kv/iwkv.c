@@ -2946,7 +2946,7 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   }
   API_UNLOCK(iwkv, rci, rc);
   if (!rc) {
-    rc = iwal_checkpoint(iwkv, true);
+    rc = iwal_checkpoint(iwkv, 0, true);
   }
   return rc;
 }
@@ -2999,7 +2999,7 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
 
 finish:
   if (!rc) {
-    rc = iwal_checkpoint(iwkv, true);
+    rc = iwal_checkpoint(iwkv, 0, true);
   }
   return rc;
 }
@@ -3040,7 +3040,7 @@ finish:
     if (lx.opflags & IWKV_SYNC) {
       rc = iwkv_sync(iwkv, 0);
     } else {
-      rc = iwal_checkpoint(iwkv, false);
+      rc = iwal_checkpoint(iwkv, lx.ts, false);
     }
   }
   return rc;
@@ -3103,7 +3103,7 @@ finish:
     if (lx.opflags & IWKV_SYNC) {
       rc = iwkv_sync(iwkv, 0);
     } else {
-      rc = iwal_checkpoint(iwkv, false);
+      rc = iwal_checkpoint(iwkv, lx.ts, false);
     }
   }
   return rc;
@@ -3197,7 +3197,7 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
   free(cur);
   *curp = 0;
   if (!rc) {
-    rc = iwal_checkpoint(iwkv, false);
+    rc = iwal_checkpoint(iwkv, cur->lx.ts, false);
   }
   return rc;
 }
@@ -3215,7 +3215,7 @@ iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op) {
   iwrc rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   if (!rc) {
-    rc = iwal_checkpoint(iwkv, false);
+    rc = iwal_checkpoint(iwkv, cur->lx.ts, false);
   }
   return rc;
 }
@@ -3234,7 +3234,7 @@ iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key)
   iwrc rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   if (!rc) {
-    rc = iwal_checkpoint(iwkv, false);
+    rc = iwal_checkpoint(iwkv, cur->lx.ts, false);
   }
   return rc;
 }
@@ -3361,7 +3361,7 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val, opflags);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   if (!rc) {
-    rc = iwal_checkpoint(iwkv, false);
+    rc = iwal_checkpoint(iwkv, cur->lx.ts, false);
   }
   return rc;
 }
