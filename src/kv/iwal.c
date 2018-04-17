@@ -46,14 +46,6 @@ typedef struct WBRESIZE {
   off_t nsize;
 } WBRESIZE;
 
-union WBOP {
-  WBSEP sep;
-  WBSET set;
-  WBCOPY copy;
-  WBWRITE write;
-  WBRESIZE resize;
-};
-
 typedef struct IWAL {
   IWDLSNR lsnr;
   iwkv_openflags oflags;            /**< File open flags */
@@ -266,15 +258,48 @@ static iwrc _onsynced(struct IWDLSNR *self, int flags) {
   return rc;
 }
 
+static iwrc _roll_changes(IWAL *wal, uint8_t *mm) {
+  assert(wal->bufpos == 0);
+  iwrc rc = 0;
+  int rci = 0;
+  const HANDLE fh = wal->fh;
+  const size_t psz = iwp_page_size();
+  const off_t fsz = lseek(fh, 0, SEEK_END);
+  if (fsz < 0) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  } else if (!fsz) {
+    return 0; // empty wal log
+  }
+  const off_t pfsz = IW_ROUNDUP(fsz, psz);
+  uint8_t *wmm = mmap(0, pfsz, PROT_READ, MAP_PRIVATE, fh, 0);
+  if (wmm == MAP_FAILED) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+  rci = madvise(wmm, fsz, MADV_SEQUENTIAL);
+  if (rci) {
+    rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    goto finish;
+  }
+  uint8_t *rp = wmm;
+  for (int i = 0; rp - wmm < fsz; ++i) {
+    uint8_t opid;
+    memcpy(&opid, rp++, 1);
+
+    // TODO:
+  }
+
+finish:
+  madvise(wmm, fsz, MADV_DONTNEED);
+  munmap(wmm, pfsz);
+  if (!rc) {
+    rc = _truncate(wal);
+  }
+  return rc;
+}
+
 static iwrc _recover_lk(IWKV iwkv, IWAL *wal) {
   // TODO:
   return 0;
-}
-
-static iwrc _roll_changes(IWAL *wal, uint8_t *mm, HANDLE fh) {
-  iwrc rc = 0;
-
-  return rc;
 }
 
 static bool _need_checkpoint(IWAL *wal, uint64_t ts) {
@@ -283,7 +308,7 @@ static bool _need_checkpoint(IWAL *wal, uint64_t ts) {
     return true;
   }
   uint64_t checkpoint_ts = wal->checkpoint_ts;
-  if (ts == 0) {
+  if (!ts) {
     iwp_current_time_ms(&ts);
   }
   if (ts < checkpoint_ts) {
@@ -323,7 +348,7 @@ iwrc iwal_checkpoint(IWKV iwkv, uint64_t ts, bool force) {
   }
 
   // apply changes to main file
-  rc = _roll_changes(wal, mm, fh);
+  rc = _roll_changes(wal, mm);
   RCGO(rc, finish);
 
   // sync

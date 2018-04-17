@@ -2899,12 +2899,15 @@ iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
   }
-  iwrc rc = 0;
+  iwrc rc;
   IWFS_FSM *fsm  = &iwkv->fsm;
   pthread_rwlock_wrlock(&iwkv->rwl);
-  // TODO:
-  iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
-  IWRC(fsm->sync(fsm, flags), rc);
+  if (iwkv->dlsnr) {
+    rc = iwal_sync(iwkv);
+  } else {
+    iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
+    rc = fsm->sync(fsm, flags);
+  }
   pthread_rwlock_unlock(&iwkv->rwl);
   return rc;
 }
