@@ -5,12 +5,53 @@
 #include <fcntl.h>
 
 typedef enum {
-  WOP_SEP = 1, /**< WAL file separator */
-  WOP_SET,
+  WOP_SET = 1,
   WOP_COPY,
   WOP_WRITE,
-  WOP_RESIZE
+  WOP_RESIZE,
+  WOP_SEP = 127, /**< WAL file separator */
 } wop_t;
+
+typedef struct WBSEP {
+  uint8_t id;
+  uint32_t crc;
+  uint32_t len;
+} WBSEP;
+
+typedef struct WBSET {
+  uint8_t id;
+  uint8_t val;
+  off_t off;
+  off_t len;
+} WBSET;
+
+typedef struct WBCOPY {
+  uint8_t id;
+  off_t off;
+  off_t len;
+  off_t noff;
+} WBCOPY;
+
+typedef struct WBWRITE {
+  uint8_t id;
+  uint32_t crc;
+  uint32_t len;
+  off_t off;
+} WBWRITE;
+
+typedef struct WBRESIZE {
+  uint8_t id;
+  off_t osize;
+  off_t nsize;
+} WBRESIZE;
+
+union WBOP {
+  WBSEP wbsep;
+  WBSET wbset;
+  WBCOPY wbcopy;
+  WBWRITE wbwrite;
+  WBRESIZE wbresize;
+};
 
 typedef struct IWAL {
   IWDLSNR lsnr;
@@ -80,6 +121,7 @@ void _iwal_destroy(IWAL *wal) {
       free(wal->path);
     }
     if (wal->buf) {
+      wal->buf -= sizeof(WBSEP);
       free(wal->buf);
     }
     free(wal);
@@ -88,24 +130,20 @@ void _iwal_destroy(IWAL *wal) {
 
 iwrc _flush_lk(IWAL *wal, bool sync) {
   if (wal->bufpos) {
-    uint8_t sep[1 + sizeof(wal->bufpos) + sizeof(uint32_t)];
     uint32_t crc = iwu_crc32(wal->buf, wal->bufpos, 0);
-    uint8_t *wp = sep;
-    *wp = WOP_SEP;
-    ++wp;
-    memcpy(wp, &wal->bufpos, sizeof(wal->bufpos));
-    wp += sizeof(wal->bufpos);
-    memcpy(wp, &crc, sizeof(crc));
-
-    ssize_t sz = write(wal->fh, sep, sizeof(sep));
-    if (sz != sizeof(sep)) {
-      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-    }
-    sz = write(wal->fh, wal->buf, wal->bufpos);
-    if (sz != wal->bufpos) {
-      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-    }
+    WBSEP sep = {
+      .id = WOP_SEP,
+      .crc = crc,
+      .len = wal->bufpos
+    };
+    ssize_t wz = wal->bufpos + sizeof(WBSEP);
+    uint8_t *wp = wal->buf - sizeof(WBSEP);
     wal->bufpos = 0;
+    memcpy(wp, &sep, sizeof(WBSEP));
+    ssize_t sz = write(wal->fh, wp, wz);
+    if (wz != sz) {
+      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    }
   }
   if (sync && fsync(wal->fh)) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
@@ -113,30 +151,34 @@ iwrc _flush_lk(IWAL *wal, bool sync) {
   return 0;
 }
 
-iwrc _write(IWAL *wal, const uint8_t *op, off_t oplen, const uint8_t *data, off_t len) {
+iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len) {
   iwrc rc = _lock(wal);
   RCRET(rc);
+  ssize_t sz;
   const off_t bufsz = wal->bufsz;
-  const uint8_t *wp = data;
-  uint8_t *buf = wal->buf;
   if (bufsz - wal->bufpos < oplen) {
     rc = _flush_lk(wal, false);
     RCGO(rc, finish);
   }
   assert(bufsz - wal->bufpos >= oplen);
-  memcpy(buf + wal->bufpos, op, oplen);
+  memcpy(wal->buf + wal->bufpos, op, oplen);
   wal->bufpos += oplen;
-  while (len > 0) {
-    off_t wlen = MIN(bufsz - wal->bufpos, len);
-    if (!wlen) {
+  if (bufsz < len) {
+    rc = _flush_lk(wal, false);
+    RCGO(rc, finish);
+    sz = write(wal->fh, data, len);
+    if (sz != len) {
+      rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+      goto finish;
+    }
+  } else {
+    if (bufsz - wal->bufpos < len) {
       rc = _flush_lk(wal, false);
       RCGO(rc, finish);
-      wlen = MIN(bufsz - wal->bufpos, len);
     }
-    memcpy(buf, wp, wlen);
-    wal->bufpos += wlen;
-    wp += wlen;
-    len -= wlen;
+    assert(bufsz - wal->bufpos >= len);
+    memcpy(wal->buf + wal->bufpos, data, len);
+    wal->bufpos += len;
   }
 
 finish:
@@ -162,62 +204,59 @@ iwrc _onclosed(struct IWDLSNR *self, const char *path) {
 }
 
 iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
-  IWAL *wal = (IWAL*) self;
-  uint8_t obuf[1 + sizeof(off) + sizeof(val) + sizeof(len)];
-  uint8_t *wp = obuf;
-  *wp = WOP_SET;
-  ++wp;
-  memcpy(wp, &off, sizeof(off));
-  wp += sizeof(off);
-  memcpy(wp, &val, sizeof(val));
-  wp += sizeof(val);
-  memcpy(wp, &len, sizeof(len));
-  wal->mbytes += len;
-  return _write((IWAL*) self, obuf, sizeof(obuf), 0, 0);
+  WBSET wb = {
+    .id = WOP_SET,
+    .val = val,
+    .off = off,
+    .len = len
+  };
+  return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
 }
 
 iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
-  IWAL *wal = (IWAL*) self;
-  uint8_t obuf[1 + sizeof(off) + sizeof(len) + sizeof(noff)];
-  uint8_t *wp = obuf;
-  *wp = WOP_COPY;
-  ++wp;
-  memcpy(wp, &off, sizeof(off));
-  wp += sizeof(off);
-  memcpy(wp, &len, sizeof(len));
-  wp += sizeof(len);
-  memcpy(wp, &noff, sizeof(noff));
-  wal->mbytes += len;
-  return _write((IWAL*) self, obuf, sizeof(obuf), 0, 0);
+  WBCOPY wb = {
+    .id = WOP_COPY,
+    .off = off,
+    .len = len,
+    .noff = noff
+  };
+  return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
 }
 
 iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
-  IWAL *wal = (IWAL*) self;
-  uint8_t obuf[1 + sizeof(len)];
-  uint8_t *wp = obuf;
-  *wp = WOP_WRITE;
-  ++wp;
-  memcpy(wp, &len, sizeof(len));
+  IWAL *wal = (IWAL *) self;
+  assert(len <= (size_t)(-1));
+  WBWRITE wb = {
+    .id = WOP_WRITE,
+    .crc = iwu_crc32(buf, len, 0),
+    .len = len,
+    .off = off
+  };
   wal->mbytes += len;
-  return _write((IWAL*) self, obuf, sizeof(obuf), buf, len);
+  return _write((IWAL *) self, &wb, sizeof(wb), buf, len);
 }
 
 iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags) {
-  uint8_t obuf[1 + sizeof(osize) + sizeof(nsize)];
-  uint8_t *wp = obuf;
-  *wp = WOP_RESIZE;
-  ++wp;
-  memcpy(wp, &osize, sizeof(osize));
-  wp += sizeof(osize);
-  memcpy(wp, &nsize, sizeof(nsize));
-  return _write((IWAL*) self, obuf, sizeof(obuf), 0, 0);
+  WBRESIZE wb = {
+    .id = WOP_RESIZE,
+    .osize = osize,
+    .nsize = nsize
+  };
+  return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
 }
 
 iwrc _onsynced(struct IWDLSNR *self, int flags) {
-  return 0;
+  IWAL *wal = (IWAL *) self;
+  iwrc rc = _lock(wal);
+  RCRET(rc);
+  rc = _flush_lk(wal, true);
+  IWRC(_unlock(wal), rc);
+  return rc;
 }
 
 iwrc iwal_checkpoint(IWKV iwkv, bool force) {
+
+
   return 0;
 }
 
@@ -287,6 +326,14 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->checkpoint_timeout_ms
     = opts->wal.checkpoint_timeout_ms > 0 ?
       opts->wal.checkpoint_timeout_ms : 60 * 1000; // 1 min
+
+  wal->buf = malloc(wal->wal_buffer_sz);
+  if (!wal->buf) {
+    rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    goto finish;
+  }
+  wal->buf += sizeof(WBSEP);
+  wal->bufsz -= sizeof(WBSEP);
 
   // Now force all fsm data to be privately mmaped.
   // We will apply wal log to main database file
