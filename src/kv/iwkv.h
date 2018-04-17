@@ -42,7 +42,7 @@
  * - Support of record values represented as sorted array of integers
  *
  * <strong>Limitations:<strong>
- * - Maximum iwkv storage file size: 255 GB (0x3fffffffc0)
+ * - Maximum iwkv storage file size: 512 GB (0x7fffffff80)
  * - Total size of a single key+value record must be not greater than 255Mb (0xfffffff)
  * - In-memory cache for every opened database takes ~130Kb, cache can be disposed by `iwkv_db_cache_release()`
  */
