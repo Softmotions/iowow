@@ -383,7 +383,7 @@ static iwrc _default_logfn(locale_t locale,
     ecode_msg = _ecode_explained(locale, ecode);
   }
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#ifdef IW_HAVE_BASENAME_R
   char bfile[MAXPATHLEN];
   if (file && line > 0) {
     file = basename_r(file, bfile);

@@ -73,7 +73,6 @@ foreach(HF IN ITEMS stdlib stddef stdint stdbool stdatomic unistd dirent)
 endforeach(HF)
 
 add_definitions(-D_GNU_SOURCE)
-#add_definitions(-D_POSIX_C_SOURCE=200809L)
 add_definitions(-D_LARGEFILE_SOURCE)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
@@ -124,7 +123,7 @@ if (BUILD_SHARED_LIBS)
 endif()
 
 # -pg -no-pie
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers -Wno-missing-braces -Wno-deprecated-declarations")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers -Wno-missing-braces")
 if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
@@ -148,7 +147,7 @@ endif()
 if (CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
     if (BUILD_SHARED_LIBS)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
     endif(BUILD_SHARED_LIBS)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
