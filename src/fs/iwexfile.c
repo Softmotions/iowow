@@ -173,6 +173,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   EXF *impl = f->impl;
   iwfs_omode omode = impl->omode;
   off_t old_size = impl->fsize;
+  bool rsh = false;
   if (impl->fsize == size) {
     return 0;
   }
@@ -185,33 +186,35 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
       return IWFS_ERROR_MAXOFF;
     }
     if (impl->dlsnr) {
-      rc = impl->dlsnr->onresize(impl->dlsnr, impl->fsize, size, 0);
+      rc = impl->dlsnr->onresize(impl->dlsnr, old_size, size, 0, &rsh);
       RCGO(rc, truncfail);
     }
     impl->fsize = size;
-    rc = iwp_fallocate(impl->fh, size);
-    RCGO(rc, truncfail);
-    rc = _exfile_initmmap_lw(f);
+    if (!rsh) {
+      rc = iwp_fallocate(impl->fh, size);
+      RCGO(rc, truncfail);
+      rc = _exfile_initmmap_lw(f);
+    }
   } else if (old_size > size) {
     if (!(omode & IWFS_OWRITE)) {
       return IW_ERROR_READONLY;
     }
     if (impl->dlsnr) {
-      rc = impl->dlsnr->onresize(impl->dlsnr, impl->fsize, size, 0);
+      rc = impl->dlsnr->onresize(impl->dlsnr, old_size, size, 0, &rsh);
       RCGO(rc, truncfail);
     }
     impl->fsize = size;
-    rc = _exfile_initmmap_lw(f);
-    RCGO(rc, truncfail);
-    rc = iwp_ftruncate(impl->fh, size);
-    RCGO(rc, truncfail);
+    if (!rsh) {
+      rc = _exfile_initmmap_lw(f);
+      RCGO(rc, truncfail);
+      rc = iwp_ftruncate(impl->fh, size);
+      RCGO(rc, truncfail);
+    }
   }
   return rc;
 
 truncfail:
-  // restore old size
   impl->fsize = old_size;
-  // try to reinit mmap slots
   IWRC(_exfile_initmmap_lw(f), rc);
   return rc;
 }
@@ -843,16 +846,16 @@ static const char *_exfile_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-  case IWFS_ERROR_MMAP_OVERLAP:
-    return "Region is mmaped already, mmaping overlaps. "
-           "(IWFS_ERROR_MMAP_OVERLAP)";
-  case IWFS_ERROR_NOT_MMAPED:
-    return "Region is not mmaped. (IWFS_ERROR_NOT_MMAPED)";
-  case IWFS_ERROR_RESIZE_POLICY_FAIL:
-    return "Invalid result of resize policy function. "
-           "(IWFS_ERROR_RESIZE_POLICY_FAIL)";
-  case IWFS_ERROR_MAXOFF:
-    return "Maximum file offset reached. (IWFS_ERROR_MAXOFF)";
+    case IWFS_ERROR_MMAP_OVERLAP:
+      return "Region is mmaped already, mmaping overlaps. "
+             "(IWFS_ERROR_MMAP_OVERLAP)";
+    case IWFS_ERROR_NOT_MMAPED:
+      return "Region is not mmaped. (IWFS_ERROR_NOT_MMAPED)";
+    case IWFS_ERROR_RESIZE_POLICY_FAIL:
+      return "Invalid result of resize policy function. "
+             "(IWFS_ERROR_RESIZE_POLICY_FAIL)";
+    case IWFS_ERROR_MAXOFF:
+      return "Maximum file offset reached. (IWFS_ERROR_MAXOFF)";
   }
   return 0;
 }

@@ -221,6 +221,7 @@ KHASH_MAP_INIT_INT(DBS, IWDB)
 struct IWKV {
   IWFS_FSM fsm;               /**< FSM pool */
   pthread_rwlock_t rwl;       /**< API RW lock */
+  iwrc fatalrc;               /**< Fatal error occuried, no farther operations can be performed */
   IWDB first_db;              /**< First database in chain */
   IWDB last_db;               /**< Last database in chain */
   IWDLSNR *dlsnr;             /**< WAL data events listener */
@@ -275,7 +276,8 @@ struct IWKV_cursor {
 };
 
 #define ENSURE_OPEN(iwkv_) \
-  if (!iwkv_ || !(iwkv_->open)) return IW_ERROR_INVALID_STATE
+  if (!iwkv_ || !(iwkv_->open)) return IW_ERROR_INVALID_STATE; \
+  if (iwkv_->fatalrc) return iwkv_->fatalrc
 
 #define ENSURE_OPEN_DB(db_) \
   if (!(db_) || !(db_)->iwkv || !(db_)->open || !((db_)->iwkv->open)) return IW_ERROR_INVALID_STATE

@@ -86,7 +86,8 @@
     "slist": "c",
     "array": "c",
     "initializer_list": "c",
-    "utility": "c"
+    "utility": "c",
+    "*.ipp": "c"
   },
   "python.pythonPath": "/usr/bin/python3",
   "python.linting.pylintEnabled": false,

@@ -67,6 +67,7 @@ typedef enum {
   IWKV_ERROR_KEY_NUM_VALUE_SIZE,      /**< Given key is not compatible to storage as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)  */
   IWKV_ERROR_INCOMPATIBLE_DB_MODE,    /**< Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE) */
   IWKV_ERROR_INCOMPATIBLE_DB_FORMAT,  /**< Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT) */
+  IWKV_ERROR_CORRUPTED_WAL_FILE,      /**< Corrupted WAL file (IWKV_ERROR_CORRUPTED_WAL_FILE) */
   _IWKV_ERROR_END,
   /* Internal error codes */
   _IWKV_ERROR_KVBLOCK_FULL,

@@ -48,7 +48,7 @@ typedef struct IWDLSNR {
    * @param nsize New file size
    * @param [out] handled File resizing handled by llistener.
    */
-  iwrc(*onresize)(struct IWDLSNR *self, off_t osize, off_t nsize, int flags);
+  iwrc(*onresize)(struct IWDLSNR *self, off_t osize, off_t nsize, int flags, bool *handled);
 
   /**
    * @brief File sync successful

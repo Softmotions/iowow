@@ -344,6 +344,9 @@ typedef struct IWFS_FSM {
   /** @see IWFS_FILE::state */
   iwrc(*state)(struct IWFS_FSM *f, IWFS_FSM_STATE *state);
 
+  /** get access to the underlying iwextfile instance */
+  iwrc (*extfile)(struct IWFS_FSM *f, IWFS_EXT **ext);
+
 } IWFS_FSM;
 
 /**

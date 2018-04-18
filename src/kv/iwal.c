@@ -63,6 +63,8 @@ typedef struct IWAL {
   IWKV iwkv;
 } IWAL;
 
+iwrc iwal_checkpoint(IWKV iwkv, uint64_t ts, bool force);
+
 IW_INLINE iwrc _lock(IWAL *wal) {
   int rci = wal->mtx ? pthread_mutex_lock(wal->mtx) : 0;
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
@@ -240,13 +242,17 @@ static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len
   return _write((IWAL *) self, &wb, sizeof(wb), buf, len);
 }
 
-static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags) {
+static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags, bool *handled) {
+  *handled = true;
+  IWAL *wal = (IWAL *) self;
   WBRESIZE wb = {
     .id = WOP_RESIZE,
     .osize = osize,
     .nsize = nsize
   };
-  return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
+  iwrc rc = _write(wal, &wb, sizeof(wb), 0, 0);
+  RCRET(rc);
+  return iwal_checkpoint(wal->iwkv, 0, true);
 }
 
 static iwrc _onsynced(struct IWDLSNR *self, int flags) {
@@ -258,48 +264,156 @@ static iwrc _onsynced(struct IWDLSNR *self, int flags) {
   return rc;
 }
 
-static iwrc _roll_changes(IWAL *wal, uint8_t *mm) {
+static iwrc _rollforward_wal(IWAL *wal, IWFS_EXT *extf, bool strict) {
   assert(wal->bufpos == 0);
-  iwrc rc = 0;
   int rci = 0;
-  const HANDLE fh = wal->fh;
+  iwrc rc = 0;
   const size_t psz = iwp_page_size();
-  const off_t fsz = lseek(fh, 0, SEEK_END);
+  const off_t fsz = lseek(wal->fh, 0, SEEK_END);
   if (fsz < 0) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   } else if (!fsz) {
     return 0; // empty wal log
   }
+
+  size_t sp;
+  uint8_t *mm;
   const off_t pfsz = IW_ROUNDUP(fsz, psz);
-  uint8_t *wmm = mmap(0, pfsz, PROT_READ, MAP_PRIVATE, fh, 0);
+  uint8_t *wmm = mmap(0, pfsz, PROT_READ, MAP_PRIVATE, wal->fh, 0);
   if (wmm == MAP_FAILED) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
   rci = madvise(wmm, fsz, MADV_SEQUENTIAL);
   if (rci) {
     rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-    goto finish;
+    munmap(wmm, pfsz);
+    return rc;
   }
+  // Remap fsm in MAP_SHARED mode
+  extf->remove_mmap(extf, 0);
+  rc = extf->add_mmap(extf, 0, SIZE_T_MAX, 0);
+  if (rc) {
+    munmap(wmm, pfsz);
+    return rc;
+  }
+
+#define _WAL_CORRUPTED() do { \
+    rc = IWKV_ERROR_CORRUPTED_WAL_FILE; \
+    iwlog_ecode_error3(rc); \
+    goto finish; \
+  } while(0)
+
   uint8_t *rp = wmm;
   for (int i = 0; rp - wmm < fsz; ++i) {
     uint8_t opid;
+    off_t avail = fsz - (rp - wmm);
     memcpy(&opid, rp++, 1);
-
-    // TODO:
+    if (i == 0 && opid != WOP_SEP) {
+      rc = IWKV_ERROR_CORRUPTED_WAL_FILE;
+      goto finish;
+    }
+    switch (opid) {
+      case WOP_SEP: {
+        WBSEP wb;
+        if (avail < sizeof(wb)) _WAL_CORRUPTED();
+        memcpy(&wb, rp, sizeof(wb));
+        rp += sizeof(wb);
+        if (wb.len > avail) _WAL_CORRUPTED();
+        uint32_t crc = iwu_crc32(rp, wb.len, 0);
+        if (crc != wb.crc) {
+          _WAL_CORRUPTED();
+        }
+        break;
+      }
+      case WOP_SET: {
+        WBSET wb;
+        if (avail < sizeof(wb)) _WAL_CORRUPTED();
+        memcpy(&wb, rp, sizeof(wb));
+        rp += sizeof(wb);
+        rc = extf->ensure_size(extf, wb.off + wb.len);
+        RCGO(rc, finish);
+        rc = extf->probe_mmap(extf, 0, &mm, &sp);
+        RCGO(rc, finish);
+        memset(mm + wb.off, wb.val, wb.len);
+        break;
+      }
+      case WOP_COPY: {
+        WBCOPY wb;
+        if (avail < sizeof(wb)) _WAL_CORRUPTED();
+        memcpy(&wb, rp, sizeof(wb));
+        rp += sizeof(wb);
+        rc = extf->ensure_size(extf, wb.noff + wb.len);
+        RCGO(rc, finish);
+        rc = extf->probe_mmap(extf, 0, &mm, &sp);
+        RCGO(rc, finish);
+        memmove(mm + wb.noff, mm + wb.off, wb.len);
+        break;
+      }
+      case WOP_WRITE: {
+        WBWRITE wb;
+        if (avail < sizeof(wb)) _WAL_CORRUPTED();
+        memcpy(&wb, rp, sizeof(wb));
+        rp += sizeof(wb);
+        if (avail < wb.len) _WAL_CORRUPTED();
+        uint32_t crc = iwu_crc32(rp, wb.len, 0);
+        if (crc != wb.crc) _WAL_CORRUPTED();
+        rc = extf->ensure_size(extf, wb.off + wb.len);
+        RCGO(rc, finish);
+        rc = extf->probe_mmap(extf, 0, &mm, &sp);
+        RCGO(rc, finish);
+        memmove(mm, rp, wb.len);
+        rp += wb.len;
+        break;
+      }
+      case WOP_RESIZE: {
+        WBRESIZE wb;
+        if (avail < sizeof(wb)) _WAL_CORRUPTED();
+        memcpy(&wb, rp, sizeof(wb));
+        rp += sizeof(wb);
+        rc = extf->truncate(extf, wb.nsize);
+        RCGO(rc, finish);
+        break;
+      }
+      default: {
+        _WAL_CORRUPTED();
+        break;
+      }
+    }
   }
+#undef _WAL_CORRUPTED
+
+  rc = extf->sync_mmap(extf, 0, 0);
+  RCGO(rc, finish);
 
 finish:
-  madvise(wmm, fsz, MADV_DONTNEED);
   munmap(wmm, pfsz);
+  // Restore private mapping
+  extf->remove_mmap(extf, 0);
+  IWRC(extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
   if (!rc) {
     rc = _truncate(wal);
   }
   return rc;
 }
 
-static iwrc _recover_lk(IWKV iwkv, IWAL *wal) {
-  // TODO:
-  return 0;
+static iwrc _recover_lk(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
+  const off_t fsz = lseek(wal->fh, 0, SEEK_END);
+  if (fsz < 0) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  } else if (!fsz) {
+    return 0; // empty wal log
+  }
+  IWFS_EXT extf;
+  IWFS_EXT_OPTS extopts;
+  memcpy(&extopts, &fsmopts->exfile, sizeof(extopts));
+  extopts.use_locks = false;
+  iwrc rc = iwfs_exfile_open(&extf, &extopts);
+  RCRET(rc);
+  rc = _rollforward_wal(wal, &extf, false);
+  RCGO(rc, finish);
+finish:
+  IWRC(extf.close(&extf), rc);
+  return rc;
 }
 
 static bool _need_checkpoint(IWAL *wal, uint64_t ts) {
@@ -329,44 +443,22 @@ iwrc iwal_checkpoint(IWKV iwkv, uint64_t ts, bool force) {
   if (!bv && force) {
     return 0;
   }
-
-  int rci = 0;
+  IWFS_EXT *extf;
   iwrc rc = _flush_lk(wal, true);
-  RCRET(rc);
-
-  IWFS_FSM_STATE fst;
-  rc = iwkv->fsm.state(&iwkv->fsm, &fst);
-  RCRET(rc);
-
-  size_t psize = iwp_page_size();
-  off_t fsize = fst.exfile.fsize;
-  HANDLE fh = fst.exfile.file.fh;
-  assert(!(fsize & (psize - 1)));
-  uint8_t *mm = mmap(0, fsize, PROT_WRITE, MAP_SHARED, fh, 0);
-  if (mm == MAP_FAILED) {
-    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
-  }
-
-  // apply changes to main file
-  rc = _roll_changes(wal, mm);
+  RCGO(rc, finish);
+  rc = iwkv->fsm.extfile(&iwkv->fsm, &extf);
   RCGO(rc, finish);
 
-  // sync
-  rci = msync(mm, fsize, MS_SYNC);
-  if (rci) {
-    rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
-  }
-  munmap(mm, fsize);
+  rc = _rollforward_wal(wal, extf, true);
 
-finish:
-  IWRC(iwkv->fsm.remap_all(&iwkv->fsm), rc);
-  if (!rc) {
-    rc = _truncate(wal);
-  }
   // Reset modified bytes counter and last checkpoint timestamp
   wal->mbytes = 0;
   iwp_current_time_ms(&wal->checkpoint_ts);
 
+finish:
+  if (rc) {
+    iwkv->fatalrc = rc;
+  }
   return rc;
 }
 
@@ -443,13 +535,6 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->buf += sizeof(WBSEP);
   wal->bufsz -= sizeof(WBSEP);
 
-  // Now force all fsm data to be privately mmaped.
-  // We will apply wal log to main database file
-  // then re-read our private mmaps
-  fsmopts->mmap_all = true;
-  fsmopts->mmap_opts = IWFS_MMAP_PRIVATE;
-  fsmopts->exfile.file.dlsnr = iwkv->dlsnr;
-
   // Now open WAL file
   HANDLE fh = open(wal->path, O_CREAT | O_RDWR, IWFS_DEFAULT_FILEMODE);
   if (INVALIDHANDLE(fh)) {
@@ -463,16 +548,20 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   if (wal->oflags & IWKV_TRUNC) {
     rc = _truncate(wal);
     RCGO(rc, finish);
+  } else {
+    rc = _recover_lk(iwkv, wal, fsmopts);
+    RCGO(rc, finish);
   }
-
-  // Start recovery
-  rc = _recover_lk(iwkv, wal);
+  // Now force all fsm data to be privately mmaped.
+  // We will apply wal log to main database file
+  // then re-read our private mmaps
+  fsmopts->mmap_opts = IWFS_MMAP_PRIVATE;
+  fsmopts->exfile.file.dlsnr = iwkv->dlsnr;
 
 finish:
   if (rc) {
+    iwkv->fatalrc = rc;
     iwkv->dlsnr = 0;
-    fsmopts->exfile.file.dlsnr = 0;
-    fsmopts->mmap_opts = 0;
     _iwal_destroy(wal);
   }
   return rc;

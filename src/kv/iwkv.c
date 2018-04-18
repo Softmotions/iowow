@@ -2714,22 +2714,24 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-  case IWKV_ERROR_NOTFOUND:
-    return "Key not found. (IWKV_ERROR_NOTFOUND)";
-  case IWKV_ERROR_KEY_EXISTS:
-    return "Key exists. (IWKV_ERROR_KEY_EXISTS)";
-  case IWKV_ERROR_MAXKVSZ:
-    return "Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
-  case IWKV_ERROR_CORRUPTED:
-    return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
-  case IWKV_ERROR_DUP_VALUE_SIZE:
-    return "Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE)";
-  case IWKV_ERROR_KEY_NUM_VALUE_SIZE:
-    return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
-  case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
-    return "Incompatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
-  case IWKV_ERROR_INCOMPATIBLE_DB_FORMAT:
-    return "Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT)";
+    case IWKV_ERROR_NOTFOUND:
+      return "Key not found. (IWKV_ERROR_NOTFOUND)";
+    case IWKV_ERROR_KEY_EXISTS:
+      return "Key exists. (IWKV_ERROR_KEY_EXISTS)";
+    case IWKV_ERROR_MAXKVSZ:
+      return "Size of Key+value must be not greater than 0xfffffff bytes (IWKV_ERROR_MAXKVSZ)";
+    case IWKV_ERROR_CORRUPTED:
+      return "Database file invalid or corrupted (IWKV_ERROR_CORRUPTED)";
+    case IWKV_ERROR_DUP_VALUE_SIZE:
+      return "Value size is not compatible for insertion into sorted values array (IWKV_ERROR_DUP_VALUE_SIZE)";
+    case IWKV_ERROR_KEY_NUM_VALUE_SIZE:
+      return "Given key is not compatible to store as number (IWKV_ERROR_KEY_NUM_VALUE_SIZE)";
+    case IWKV_ERROR_INCOMPATIBLE_DB_MODE:
+      return "Incompatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE)";
+    case IWKV_ERROR_INCOMPATIBLE_DB_FORMAT:
+      return "Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT)";
+    case IWKV_ERROR_CORRUPTED_WAL_FILE:
+      return "Corrupted WAL file (IWKV_ERROR_CORRUPTED_WAL_FILE)";
   }
   return 0;
 }
@@ -2815,6 +2817,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   // Now open main database file
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
+
   IWFS_FSM *fsm  = &iwkv->fsm;
   iwkv->dbs = kh_init(DBS);
   rc = fsm->state(fsm, &fsmstate);

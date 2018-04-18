@@ -68,18 +68,18 @@ static bool _test5dup5visitor(uint64_t dv, void *op) {
   CU_ASSERT_PTR_NOT_NULL_FATAL(op);
   struct Test5DUP1 *s = op;
   switch (dv) {
-  case -1ULL:
-    s->_mv = true;
-    break;
-  case 1ULL:
-    s->_1v = true;
-    break;
-  case 10ULL:
-    s->_10v = true;
-    break;
-  default:
-    CU_FAIL("Invalid dup value");
-    break;
+    case -1ULL:
+      s->_mv = true;
+      break;
+    case 1ULL:
+      s->_1v = true;
+      break;
+    case 10ULL:
+      s->_10v = true;
+      break;
+    default:
+      CU_FAIL("Invalid dup value");
+      break;
   }
   return false;
 }

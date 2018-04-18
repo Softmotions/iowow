@@ -1662,6 +1662,12 @@ finish:
   return rc;
 }
 
+static iwrc _fsm_extfile(struct IWFS_FSM *f, IWFS_EXT **ext) {
+  FSM_ENSURE_OPEN2(f);
+  *ext = &f->impl->pool;
+  return 0;
+}
+
 static iwrc _fsm_state(struct IWFS_FSM *f, IWFS_FSM_STATE *state) {
   FSM_ENSURE_OPEN2(f);
   FSM *impl = f->impl;
@@ -1711,6 +1717,7 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   f->writehdr = _fsm_writehdr;
   f->readhdr = _fsm_readhdr;
   f->clear = _fsm_clear;
+  f->extfile = _fsm_extfile;
 
   if (!path) {
     return IW_ERROR_INVALID_ARGS;
@@ -1761,23 +1768,23 @@ static const char *_fsmfile_ecodefn(locale_t locale, uint32_t ecode) {
     return 0;
   }
   switch (ecode) {
-  case IWFS_ERROR_NO_FREE_SPACE:
-    return "No free space. (IWFS_ERROR_NO_FREE_SPACE)";
-  case IWFS_ERROR_INVALID_BLOCK_SIZE:
-    return "Invalid block size specified. (IWFS_ERROR_INVALID_BLOCK_SIZE)";
-  case IWFS_ERROR_RANGE_NOT_ALIGNED:
-    return "Specified range/offset is not aligned with page/block. "
-           "(IWFS_ERROR_RANGE_NOT_ALIGNED)";
-  case IWFS_ERROR_FSM_SEGMENTATION:
-    return "Free-space map segmentation error. (IWFS_ERROR_FSM_SEGMENTATION)";
-  case IWFS_ERROR_INVALID_FILEMETA:
-    return "Invalid file metadata. (IWFS_ERROR_INVALID_FILEMETA)";
-  case IWFS_ERROR_PLATFORM_PAGE:
-    return "The block size incompatible with platform page size, data "
-           "migration required. (IWFS_ERROR_PLATFORM_PAGE)";
-  case IWFS_ERROR_RESIZE_FAIL:
-    return "Failed to resize file, "
-           "conflicting with free-space map location (IWFS_ERROR_RESIZE_FAIL)";
+    case IWFS_ERROR_NO_FREE_SPACE:
+      return "No free space. (IWFS_ERROR_NO_FREE_SPACE)";
+    case IWFS_ERROR_INVALID_BLOCK_SIZE:
+      return "Invalid block size specified. (IWFS_ERROR_INVALID_BLOCK_SIZE)";
+    case IWFS_ERROR_RANGE_NOT_ALIGNED:
+      return "Specified range/offset is not aligned with page/block. "
+             "(IWFS_ERROR_RANGE_NOT_ALIGNED)";
+    case IWFS_ERROR_FSM_SEGMENTATION:
+      return "Free-space map segmentation error. (IWFS_ERROR_FSM_SEGMENTATION)";
+    case IWFS_ERROR_INVALID_FILEMETA:
+      return "Invalid file metadata. (IWFS_ERROR_INVALID_FILEMETA)";
+    case IWFS_ERROR_PLATFORM_PAGE:
+      return "The block size incompatible with platform page size, data "
+             "migration required. (IWFS_ERROR_PLATFORM_PAGE)";
+    case IWFS_ERROR_RESIZE_FAIL:
+      return "Failed to resize file, "
+             "conflicting with free-space map location (IWFS_ERROR_RESIZE_FAIL)";
   }
   return 0;
 }
