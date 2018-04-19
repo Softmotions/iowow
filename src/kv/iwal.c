@@ -130,11 +130,11 @@ static void _iwal_destroy(IWAL *wal) {
 static iwrc _flush_lk(IWAL *wal, bool sync) {
   if (wal->bufpos) {
     uint32_t crc = iwu_crc32(wal->buf, wal->bufpos, 0);
-    WBSEP sep = {
-      .id = WOP_SEP,
-      .crc = crc,
-      .len = wal->bufpos
-    };
+    WBSEP sep = {0};
+    sep.id = WOP_SEP,
+    sep.crc = crc;
+    sep.len = wal->bufpos;
+    
     ssize_t wz = wal->bufpos + sizeof(WBSEP);
     uint8_t *wp = wal->buf - sizeof(WBSEP);
     wal->bufpos = 0;
@@ -224,12 +224,11 @@ static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int 
   if (wal->applying) {
     return 0;
   }
-  WBSET wb = {
-    .id = WOP_SET,
-    .val = val,
-    .off = off,
-    .len = len
-  };
+  WBSET wb = {0}; 
+  wb.id = WOP_SET;
+  wb.val = val;
+  wb.off = off;
+  wb.len = len;  
   return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
 }
 
@@ -238,12 +237,11 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
   if (wal->applying) {
     return 0;
   }
-  WBCOPY wb = {
-    .id = WOP_COPY,
-    .off = off,
-    .len = len,
-    .noff = noff
-  };
+  WBCOPY wb = {0};
+  wb.id = WOP_COPY;
+  wb.off = off;
+  wb.len = len;
+  wb.noff = noff;  
   return _write(wal, &wb, sizeof(wb), 0, 0);
 }
 
@@ -253,12 +251,11 @@ static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len
   if (wal->applying) {
     return 0;
   }
-  WBWRITE wb = {
-    .id = WOP_WRITE,
-    .crc = iwu_crc32(buf, len, 0),
-    .len = len,
-    .off = off
-  };
+  WBWRITE wb = {0}; // Avoid uninitialized padding bytes  
+  wb.id = WOP_WRITE,
+  wb.crc = iwu_crc32(buf, len, 0);
+  wb.len = len;
+  wb.off = off;  
   wal->mbytes += len;
   return _write(wal, &wb, sizeof(wb), buf, len);
 }
@@ -270,11 +267,10 @@ static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags,
     return 0;
   }
   *handled = true;
-  WBRESIZE wb = {
-    .id = WOP_RESIZE,
-    .osize = osize,
-    .nsize = nsize
-  };
+  WBRESIZE wb = {0};
+  wb.id = WOP_RESIZE;
+  wb.osize = osize;
+  wb.nsize = nsize;
   iwrc rc = _write(wal, &wb, sizeof(wb), 0, 0);
   RCRET(rc);
   return iwal_checkpoint(wal->iwkv, 0, true);
