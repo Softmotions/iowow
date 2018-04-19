@@ -387,7 +387,7 @@ static iwrc _rollforward_wal(IWAL *wal, IWFS_EXT *extf, bool strict) {
         RCGO(rc, finish);
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
-        memmove(mm, rp, wb.len);
+        memmove(mm + wb.off, rp, wb.len);
         rp += wb.len;
         break;
       }
