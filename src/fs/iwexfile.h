@@ -139,7 +139,8 @@ typedef struct IWFS_EXT_OPTS {
 
 
 typedef enum {
-  IWFS_MMAP_PRIVATE       /**< Use private mmap */
+  IWFS_MMAP_SHARED = 0,    /**< Use shared mmaping synchronized with file data */
+  IWFS_MMAP_PRIVATE = 1    /**< Use private mmap */
 } iwfs_ext_mmap_opts_t;
 
 /**

@@ -5,7 +5,9 @@
   </VirtualDirectory>
   <Reconciliation>
     <Regexes/>
-    <Excludepaths/>
+    <Excludepaths>
+      <Path>/home/adam/Projects/softmotions/iowow/build</Path>
+    </Excludepaths>
     <Ignorefiles/>
     <Extensions>
       <![CDATA[*.cpp;*.c;*.h;*.hpp;*.xrc;*.wxcp;*.fbp;*.txt;*.md;*.txt]]>
@@ -64,6 +66,7 @@
       <File Name="src/fs/iwrwlfile.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="log">
+      <File Name="src/log/CMakeLists.txt"/>
       <VirtualDirectory Name="tests">
         <File Name="src/log/tests/CMakeLists.txt"/>
         <File Name="src/log/tests/iwlog_test1.c"/>
@@ -114,6 +117,9 @@
     <File Name="src/basedefs.h"/>
     <File Name="src/iowow.c"/>
     <VirtualDirectory Name="kv">
+      <File Name="src/kv/iwkv_internal.h"/>
+      <File Name="src/kv/iwal.h"/>
+      <File Name="src/kv/iwal.c"/>
       <VirtualDirectory Name="dbg">
         <File Name="src/kv/dbg/iwkvdbg.c"/>
       </VirtualDirectory>
@@ -134,6 +140,7 @@
       <File Name="src/kv/data-format.txt"/>
       <File Name="src/kv/iwkv.h"/>
       <VirtualDirectory Name="tests">
+        <File Name="src/kv/tests/iwkv_test4.c"/>
         <File Name="src/kv/tests/iwkv_test1.c"/>
         <File Name="src/kv/tests/CMakeLists.txt"/>
         <VirtualDirectory Name="refs">
@@ -157,16 +164,18 @@
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug_Linux" CompilerType="GCC ( 4.7 )" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug_Linux" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-Wall" C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="$(ProjectPath)/build/src/generated"/>
         <IncludePath Value="$(ProjectPath)/build/src/extern_leveldb/include"/>
         <IncludePath Value="$(ProjectPath)/build/src/extern_lmdb/libraries/liblmdb"/>
         <IncludePath Value="$(ProjectPath)/build/src/extern_kyc/install/include"/>
+        <Preprocessor Value="IW_64=1"/>
+        <Preprocessor Value="IW_TESTS=1"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/benchmark" IntermediateDirectory="$(ProjectPath)/build/src/kv/benchmark" Command="$(IntermediateDirectory)/iwkv_benchmark" CommandArguments="-b fillrandom2 -vz 200 -n 10000000 -rs 1513195152" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/benchmark" IntermediateDirectory="$(ProjectPath)/build/src/kv/tests" Command="$(IntermediateDirectory)/iwkv_test4" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="CMake">-DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON</BuildSystem>
       <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
