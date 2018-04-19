@@ -130,7 +130,7 @@ static void _iwal_destroy(IWAL *wal) {
 static iwrc _flush_lk(IWAL *wal, bool sync) {
   if (wal->bufpos) {
     uint32_t crc = iwu_crc32(wal->buf, wal->bufpos, 0);
-    WBSEP sep = {0};
+    WBSEP sep = {0}; // Avoid uninitialized padding bytes  
     sep.id = WOP_SEP,
     sep.crc = crc;
     sep.len = wal->bufpos;
@@ -224,7 +224,7 @@ static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int 
   if (wal->applying) {
     return 0;
   }
-  WBSET wb = {0}; 
+  WBSET wb = {0}; // Avoid uninitialized padding bytes  
   wb.id = WOP_SET;
   wb.val = val;
   wb.off = off;
@@ -237,7 +237,7 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
   if (wal->applying) {
     return 0;
   }
-  WBCOPY wb = {0};
+  WBCOPY wb = {0}; // Avoid uninitialized padding bytes  
   wb.id = WOP_COPY;
   wb.off = off;
   wb.len = len;
@@ -267,7 +267,7 @@ static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags,
     return 0;
   }
   *handled = true;
-  WBRESIZE wb = {0};
+  WBRESIZE wb = {0}; // Avoid uninitialized padding bytes  
   wb.id = WOP_RESIZE;
   wb.osize = osize;
   wb.nsize = nsize;
