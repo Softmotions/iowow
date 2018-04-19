@@ -449,8 +449,11 @@ static iwrc _exfile_close(struct IWFS_EXT *f) {
     return 0;
   }
   iwrc rc = _exfile_wlock(f);
-  RCRET(rc);
+  RCRET(rc);    
   EXF *impl = f->impl;
+  if (impl->dlsnr) {
+    rc = impl->dlsnr->onclosing(impl->dlsnr);  
+  }  
   MMAPSLOT *s = impl->mmslots, *next;
   while (s) {
     next = s->next;

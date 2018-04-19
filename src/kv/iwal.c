@@ -207,8 +207,12 @@ static iwrc _onopen(struct IWDLSNR *self, const char *path, int mode) {
   return 0;
 }
 
-static iwrc _onclosed(struct IWDLSNR *self, const char *path) {
-  return 0;
+static iwrc _onclosing(struct IWDLSNR *self) {
+  IWAL *wal = (IWAL *) self;
+  if (wal->applying) {
+    return 0;
+  }
+  return iwal_checkpoint(wal->iwkv, 0, true);
 }
 
 static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
@@ -303,19 +307,19 @@ static iwrc _rollforward_wal(IWAL *wal, IWFS_EXT *extf, bool strict) {
   if (wmm == MAP_FAILED) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
-  madvise(wmm, fsz, MADV_SEQUENTIAL);    
-   
-  // Temporary turn off extf locking  
-  wal->applying = true;    
-  bool eul = extfile_use_locks(extf, false); 
-   
-  // Remap fsm in MAP_SHARED mode  
+  madvise(wmm, fsz, MADV_SEQUENTIAL);
+  
+  // Temporary turn off extf locking
+  wal->applying = true;
+  bool eul = extfile_use_locks(extf, false);
+  
+  // Remap fsm in MAP_SHARED mode
   extf->remove_mmap(extf, 0);
   rc = extf->add_mmap(extf, 0, SIZE_T_MAX, 0);
   if (rc) {
     munmap(wmm, pfsz);
     extfile_use_locks(extf, eul);
-    wal->applying = false;    
+    wal->applying = false;
     return rc;
   }
   
@@ -323,8 +327,8 @@ static iwrc _rollforward_wal(IWAL *wal, IWFS_EXT *extf, bool strict) {
     rc = IWKV_ERROR_CORRUPTED_WAL_FILE; \
     iwlog_ecode_error2(rc, msg_); \
     goto finish; \
-  } while(0); 
-
+  } while(0);
+  
   uint8_t *rp = wmm;
   for (int i = 0; rp - wmm < fsz; ++i) {
     uint8_t opid;
@@ -430,7 +434,7 @@ static iwrc _recover_lk(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
   iwrc rc;
   IWFS_EXT extf;
   IWFS_EXT_OPTS extopts;
-  memcpy(&extopts, &fsmopts->exfile, sizeof(extopts));  
+  memcpy(&extopts, &fsmopts->exfile, sizeof(extopts));
   extopts.use_locks = false;
   
   rc = iwfs_exfile_open(&extf, &extopts);
@@ -438,7 +442,7 @@ static iwrc _recover_lk(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
   
   rc = _rollforward_wal(wal, &extf, false);
   RCGO(rc, finish);
-
+  
 finish:
   IWRC(extf.close(&extf), rc);
   return rc;
@@ -532,7 +536,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   
   IWDLSNR *dlsnr = &wal->lsnr;
   dlsnr->onopen = _onopen;
-  dlsnr->onclosed = _onclosed;
+  dlsnr->onclosing = _onclosing;
   dlsnr->onset = _onset;
   dlsnr->oncopy = _oncopy;
   dlsnr->onwrite = _onwrite;
@@ -586,7 +590,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
     rc = _recover_lk(iwkv, wal, fsmopts);
     RCGO(rc, finish);
   }
-    
+  
 finish:
   if (rc) {
     iwkv->dlsnr = 0;

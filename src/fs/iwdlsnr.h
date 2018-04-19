@@ -22,9 +22,9 @@ typedef struct IWDLSNR {
   iwrc(*onopen)(struct IWDLSNR *self, const char *path, int mode);
 
   /**
-   * @brief After file closed.
+   * @brief Before file been closed.
    */
-  iwrc(*onclosed)(struct IWDLSNR *self, const char *path);
+  iwrc(*onclosing)(struct IWDLSNR *self);
 
   /**
    * @brief Write @a val value starting at @a off @a len bytes
