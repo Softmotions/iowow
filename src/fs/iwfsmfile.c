@@ -1401,8 +1401,10 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
   IWRC(_fsm_ctrl_wlock(impl), rc);
   if (impl->omode & IWFS_OWRITE) {
     IWRC(_fsm_trim_tail_lw(impl), rc);
-    IWRC(_fsm_write_meta_lw(impl), rc);        
-    IWRC(impl->pool.sync(&impl->pool, 0), rc);        
+    IWRC(_fsm_write_meta_lw(impl), rc);
+    if (!impl->dlsnr) {
+      IWRC(impl->pool.sync(&impl->pool, 0), rc);
+    }
   }
   IWRC(impl->pool.close(&impl->pool), rc);
   if (impl->fsm) {

@@ -136,7 +136,8 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
   }
   if (s->len) {  // unmap me first
     assert(s->mmap);
-    if (msync(s->mmap, s->len, 0) == -1) {
+    if (!(s->mmopts & IWFS_MMAP_PRIVATE)
+        && msync(s->mmap, s->len, 0) == -1) {
       s->len = 0;
       return iwrc_set_errno(IW_ERROR_ERRNO, errno);
     }
@@ -195,7 +196,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
     if (impl->dlsnr) {
       rc = impl->dlsnr->onresize(impl->dlsnr, old_size, size, 0, &rsh);
       RCGO(rc, truncfail);
-    }    
+    }
     if (!rsh) {
       impl->fsize = size;
       rc = iwp_fallocate(impl->fh, size);
@@ -209,7 +210,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
     if (impl->dlsnr) {
       rc = impl->dlsnr->onresize(impl->dlsnr, old_size, size, 0, &rsh);
       RCGO(rc, truncfail);
-    }    
+    }
     if (!rsh) {
       impl->fsize = size;
       rc = _exfile_initmmap_lw(f);
@@ -252,10 +253,10 @@ static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   int mflags = MS_SYNC;
   MMAPSLOT *s = impl->mmslots;
   while (s) {
-    if (s->mmap && s->mmap != MAP_FAILED) {
-      if (msync(s->mmap, s->len, mflags)) {
-        rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-      }
+    if (s->mmap && s->mmap != MAP_FAILED
+        && !(s->mmopts & IWFS_MMAP_PRIVATE)
+        && msync(s->mmap, s->len, mflags) == -1) {
+      rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
     s = s->next;
   }
@@ -449,11 +450,11 @@ static iwrc _exfile_close(struct IWFS_EXT *f) {
     return 0;
   }
   iwrc rc = _exfile_wlock(f);
-  RCRET(rc);    
+  RCRET(rc);
   EXF *impl = f->impl;
   if (impl->dlsnr) {
-    rc = impl->dlsnr->onclosing(impl->dlsnr);  
-  }  
+    rc = impl->dlsnr->onclosing(impl->dlsnr);
+  }
   MMAPSLOT *s = impl->mmslots, *next;
   while (s) {
     next = s->next;
@@ -462,7 +463,7 @@ static iwrc _exfile_close(struct IWFS_EXT *f) {
   }
   IWRC(impl->file.close(&impl->file), rc);
   f->impl = 0;
-  if (impl->rspolicy) {  // deactivate resize policy function
+  if (impl->rspolicy) {  // dispose resize policy function
     impl->rspolicy(-1, impl->fsize, f, &impl->rspolicy_ctx);
   }
   IWRC(_exfile_unlock2(impl), rc);
@@ -674,7 +675,8 @@ static iwrc _exfile_sync_mmap(struct IWFS_EXT *f, off_t off, iwfs_sync_flags fla
         break;
       }
       if (s->mmap && s->mmap != MAP_FAILED) {
-        if (msync(s->mmap, s->len, mflags)) {
+        if (!(s->mmopts & IWFS_MMAP_PRIVATE)
+            && msync(s->mmap, s->len, mflags) == -1) {
           rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
         }
         break;

@@ -135,10 +135,10 @@ static iwrc _flush_lk(IWAL *wal, bool sync) {
       .crc = crc,
       .len = wal->bufpos
     };
-    ssize_t wz = wal->bufpos + sizeof(sep);
-    uint8_t *wp = wal->buf - sizeof(sep);
+    ssize_t wz = wal->bufpos + sizeof(WBSEP);
+    uint8_t *wp = wal->buf - sizeof(WBSEP);
     wal->bufpos = 0;
-    memcpy(wp, &sep, sizeof(sep));
+    memcpy(wp, &sep, sizeof(WBSEP));
     ssize_t sz = write(wal->fh, wp, wz);
     if (wz != sz) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
@@ -153,6 +153,10 @@ static iwrc _flush_lk(IWAL *wal, bool sync) {
 IW_INLINE iwrc _truncate(IWAL *wal) {
   iwrc rc = iwp_ftruncate(wal->fh, 0);
   RCRET(rc);
+  if (lseek(wal->fh, 0, SEEK_SET) < 0) {
+    rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    RCRET(rc);
+  }
   if (fsync(wal->fh)) {
     rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
@@ -471,8 +475,8 @@ iwrc iwal_checkpoint(IWKV iwkv, uint64_t ts, bool force) {
     return 0;
   }
   assert(iwkv == wal->iwkv);
-  bool bv = _need_checkpoint(wal, ts);
-  if (!bv && !force) {
+  bool ncp = _need_checkpoint(wal, ts);
+  if (!ncp && !force) {
     return 0;
   }
   IWFS_EXT *extf;
