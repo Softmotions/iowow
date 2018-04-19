@@ -276,8 +276,8 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
  * @param opts        Operation options
  */
 static iwrc _fsm_set_bit_status_lw(FSM *impl,
-                                   uint64_t offset_bits,
-                                   uint64_t length_bits_,
+                                   const uint64_t offset_bits,
+                                   const uint64_t length_bits_,
                                    const int bit_status,
                                    const fsm_bmopts_t opts) {
   iwrc rc;
@@ -356,9 +356,9 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
   }
   if (!rc && impl->dlsnr) {
     off_t ds = offset_bits / 8;
-    off_t dl = length_bits / 8 + 1;
-    if (ds + dl > impl->bmlen) {
-      --dl;
+    off_t dl = length_bits_ / 8;
+    if (length_bits_ % 8) {
+      ++dl;
     }
     rc = impl->dlsnr->onwrite(impl->dlsnr, impl->bmoff + ds, mm + ds, dl, 0);
   }
@@ -1608,7 +1608,10 @@ static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t 
   rc = impl->pool.acquire_mmap(&impl->pool, 0, &mm, 0);
   if (!rc) {
     memmove(mm + FSM_CUSTOM_HDR_DATA_OFFSET + off, buf, siz);
-    rc = impl->pool.release_mmap(&impl->pool);
+    if (impl->dlsnr) {      
+      rc = impl->dlsnr->onwrite(impl->dlsnr, FSM_CUSTOM_HDR_DATA_OFFSET, buf, siz, 0);      
+    }
+    IWRC(impl->pool.release_mmap(&impl->pool), rc);
   }
   return rc;
 }
