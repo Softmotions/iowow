@@ -140,6 +140,7 @@
       <File Name="src/kv/data-format.txt"/>
       <File Name="src/kv/iwkv.h"/>
       <VirtualDirectory Name="tests">
+        <File Name="src/kv/tests/iwkv_tests.h"/>
         <File Name="src/kv/tests/iwkv_test4.c"/>
         <File Name="src/kv/tests/iwkv_test1.c"/>
         <File Name="src/kv/tests/CMakeLists.txt"/>

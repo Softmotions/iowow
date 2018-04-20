@@ -2,7 +2,7 @@
 #include "iwlog.h"
 #include "iwutils.h"
 #include "iwcfg.h"
-#include <CUnit/Basic.h>
+#include "iwkv_tests.h"
 
 #define KBUFSZ 128
 #define VBUFSZ 128
@@ -10,28 +10,6 @@ char kbuf[KBUFSZ];
 char vbuf[VBUFSZ];
 
 extern int8_t iwkv_next_level;
-
-static int cmp_files(FILE *f1, FILE *f2) {
-  CU_ASSERT_TRUE_FATAL(f1 && f2);
-  fseek(f1, 0, SEEK_SET);
-  fseek(f2, 0, SEEK_SET);
-  char c1 = getc(f1);
-  char c2 = getc(f2);
-  int pos = 0, line = 1;
-  while (c1 != EOF && c2 != EOF) {
-    pos++;
-    if (c1 == '\n' && c2 == '\n') {
-      line++;
-      pos = 0;
-    } else if (c1 != c2) {
-      fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
-      return (c1 - c2);
-    }
-    c1 = getc(f1);
-    c2 = getc(f2);
-  }
-  return (c1 - c2);
-}
 
 static int logstage(FILE *f, const char *name, IWDB db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);

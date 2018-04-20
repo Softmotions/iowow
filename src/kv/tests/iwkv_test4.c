@@ -25,7 +25,8 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
     .path = path,
     .oflags = IWKV_TRUNC,
     .wal = {
-      .enabled = (walpath != NULL)
+      .enabled = (walpath != NULL),
+      .checkpoint_timeout_ms = 0
     }
   };
   rc = iwkv_open(&opts, &iwkv);
