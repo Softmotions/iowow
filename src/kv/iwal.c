@@ -494,8 +494,7 @@ iwrc iwal_checkpoint(IWKV iwkv, bool force) {
     return 0;
   }
   int rci;
-  iwrc rc;  
-  API_WLOCK(iwkv, rci);
+  iwrc rc = iwkv_exclusive_lock(iwkv);  
   rc = _checkpoint(wal);
   API_UNLOCK(iwkv, rci, rc);
   return rc;

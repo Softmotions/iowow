@@ -66,8 +66,8 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
   rc = iwkv_del(db2, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   
-  //rc = iwkv_db_destroy(&db2);
-  //CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db_destroy(&db2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
   
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);

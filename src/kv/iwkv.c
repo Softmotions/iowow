@@ -2908,12 +2908,16 @@ finish:
   return rc;
 }
 
+iwrc iwkv_exclusive_lock(IWKV iwkv) {
+  return _wnw(iwkv, _wnw_iwkw_wl);
+}
+
 iwrc iwkv_close(IWKV *iwkvp) {
   ENSURE_OPEN((*iwkvp));
   int rci;
   IWKV iwkv = *iwkvp;
   iwkv->open = false;
-  iwrc rc = _wnw(iwkv, _wnw_iwkw_wl);
+  iwrc rc = iwkv_exclusive_lock(iwkv);
   RCRET(rc);
   IWDB db = iwkv->first_db;
   while (db) {
@@ -2989,8 +2993,8 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   }
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
-  }
-  API_WLOCK(iwkv, rci);
+  }  
+  rc = iwkv_exclusive_lock(iwkv);
   ki = kh_get(DBS, iwkv->dbs, dbid);
   if (ki != kh_end(iwkv->dbs)) {
     db = kh_value(iwkv->dbs, ki);
@@ -3048,7 +3052,7 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
   }
-  iwrc rc = _wnw(iwkv, _wnw_iwkw_wl);
+  iwrc rc = iwkv_exclusive_lock(iwkv);
   RCGO(rc, finish);
   rc = _iwkv_worker_inc_nolk(iwkv);
   if (!rc) {
@@ -3057,9 +3061,9 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   API_UNLOCK(iwkv, rci, rc);
   
 finish:
-  if (!rc) {
-    rc = iwal_checkpoint(iwkv, true);
-  }
+//  if (!rc) {
+//    rc = iwal_checkpoint(iwkv, true);
+//  }
   return rc;
 }
 

@@ -390,7 +390,8 @@ static_assert(DB_SZ >= DOFF_END, "DB_SZ >= DOFF_END");
 // [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps32,pl32]____[[_KV],...]] // KVBLK
 #define KBLK_SZPOW_OFF   0
 
-// IWKVD defs
+
+iwrc iwkv_exclusive_lock(IWKV iwkv);
 void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen);
 iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
 void iwkvd_db(FILE *f, IWDB db, int flags, int plvl);
