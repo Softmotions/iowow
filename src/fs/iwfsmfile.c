@@ -354,11 +354,11 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
     }
   }
   if (!rc && impl->dlsnr) {
-    uint64_t so = offset_bits / 8;    
-    uint64_t lb = (length_bits_ + (offset_bits % 8));
-    uint64_t dl = lb / 8;    
-    if (lb % 8) ++dl;    
-    rc = impl->dlsnr->onwrite(impl->dlsnr, impl->bmoff + so, mm + so, dl, 0);    
+    uint64_t so = offset_bits / 8;
+    uint64_t lb = length_bits_ + offset_bits % 8;
+    uint64_t dl = lb / 8;
+    if (lb % 8) ++dl;
+    rc = impl->dlsnr->onwrite(impl->dlsnr, impl->bmoff + so, mm + so, dl, 0);
   }
   return rc;
 }
