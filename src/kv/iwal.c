@@ -57,7 +57,7 @@ typedef struct IWAL {
   atomic_bool applying;             /**< WAL log applying */
   uint32_t bufsz;                   /**< Size of buffer */
   uint32_t bufpos;                  /**< Current position in buffer */
-  atomic_uint mbytes;               /**< Estimated size of modifed private mmaped memory bytes */
+  atomic_uint_fast64_t mbytes;      /**< Estimated size of modifed private mmaped memory bytes */
   uint64_t checkpoint_ts;           /**< Last checkpoint timestamp */
   HANDLE fh;                        /**< File handle */
   pthread_mutex_t *mtx;             /**< Global thread mutex */
@@ -134,8 +134,7 @@ static iwrc _flush_wl(IWAL *wal, bool sync) {
     WBSEP sep = {0}; // Avoid uninitialized padding bytes
     sep.id = WOP_SEP;
     sep.crc = crc;
-    sep.len = wal->bufpos;
-    
+    sep.len = wal->bufpos;    
     ssize_t wz = wal->bufpos + sizeof(WBSEP);
     uint8_t *wp = wal->buf - sizeof(WBSEP);
     wal->bufpos = 0;
@@ -288,8 +287,7 @@ static iwrc _onsynced(struct IWDLSNR *self, int flags) {
 }
 
 static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool strict) {
-  assert(wal->bufpos == 0);
-  int rci = 0;
+  assert(wal->bufpos == 0);  
   iwrc rc = 0;
   const size_t psz = iwp_page_size();
   const off_t fsz = lseek(wal->fh, 0, SEEK_END);
@@ -354,9 +352,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool strict) {
         WBSET wb;
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBSET)");
         memcpy(&wb, rp, sizeof(wb));
-        rp += sizeof(wb);
-        rc = extf->ensure_size(extf, wb.off + wb.len);
-        RCGO(rc, finish);
+        rp += sizeof(wb);        
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memset(mm + wb.off, wb.val, wb.len);
@@ -366,9 +362,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool strict) {
         WBCOPY wb;
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBCOPY)");
         memcpy(&wb, rp, sizeof(wb));
-        rp += sizeof(wb);
-        rc = extf->ensure_size(extf, wb.noff + wb.len);
-        RCGO(rc, finish);
+        rp += sizeof(wb);        
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memmove(mm + wb.noff, mm + wb.off, wb.len);
@@ -383,9 +377,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool strict) {
         uint32_t crc = iwu_crc32(rp, wb.len, 0);
         if (crc != wb.crc) {
           _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBWRITE)");
-        }
-        rc = extf->ensure_size(extf, wb.off + wb.len);
-        RCGO(rc, finish);
+        }        
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memmove(mm + wb.off, rp, wb.len);
@@ -450,7 +442,7 @@ finish:
 }
 
 IW_INLINE bool _need_checkpoint(IWAL *wal) {
-  uint mbytes = wal->mbytes;
+  uint64_t mbytes = wal->mbytes;
   if (mbytes >= wal->checkpoint_buffer_sz) {
     return true;
   }
@@ -561,7 +553,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   
   wal->checkpoint_buffer_sz
     = opts->wal.checkpoint_buffer_sz > 0 ?
-      opts->wal.checkpoint_buffer_sz : 1024 * 1024 * 32; // 32Mb
+      opts->wal.checkpoint_buffer_sz : 1024 * 1024 * 128; // 128Mb
       
   wal->checkpoint_timeout_ms
     = opts->wal.checkpoint_timeout_ms > 0 ?

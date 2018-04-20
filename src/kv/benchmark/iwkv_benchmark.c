@@ -32,8 +32,16 @@ static void *db_open(BMCTX *ctx) {
   if (ctx->db) {
     return 0; // db is not closed properly
   }
-  IWKV_OPTS opts = {0};
+  IWKV_OPTS opts = {
+    .wal = {
+      .enabled = false,
+      .checkpoint_timeout_ms = 0,
+      .wal_buffer_sz = 64 * 1024,
+      .checkpoint_buffer_sz = 128 * 1024 * 1024
+    }
+  };
   opts.path = bm.param_db ? bm.param_db : DEFAULT_DB;
+  
   if (ctx->freshdb) {
     opts.oflags = IWKV_TRUNC;
   }
