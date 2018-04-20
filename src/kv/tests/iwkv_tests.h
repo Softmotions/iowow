@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <CUnit/Basic.h>
 
+
 static int cmp_files(FILE *f1, FILE *f2) {
   CU_ASSERT_TRUE_FATAL(f1 && f2);
   fseek(f1, 0, SEEK_SET);

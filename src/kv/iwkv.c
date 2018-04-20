@@ -3058,12 +3058,8 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   if (!rc) {
     rc = _db_destroy_lw(dbp);
   }
-  API_UNLOCK(iwkv, rci, rc);
-  
+  API_UNLOCK(iwkv, rci, rc);  
 finish:
-//  if (!rc) {
-//    rc = iwal_checkpoint(iwkv, true);
-//  }
   return rc;
 }
 

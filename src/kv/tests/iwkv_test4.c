@@ -2,8 +2,7 @@
 #include "iwlog.h"
 #include "iwutils.h"
 #include "iwcfg.h"
-
-#include <CUnit/Basic.h>
+#include "iwkv_tests.h"
 
 int init_suite(void) {
   iwrc rc = iwkv_init();
@@ -76,6 +75,14 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
 static void iwkv_test1(void) {
   iwkv_test1_impl("iwkv_test4_1.db", NULL);
   iwkv_test1_impl("iwkv_test4_1wal.db", "iwkv_test4_1wal.db-wal");
+  FILE *iw1 = fopen("iwkv_test4_1.db", "rb");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(iw1);
+  FILE *iw2 = fopen("iwkv_test4_1wal.db", "rb");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(iw2);
+  int ret = cmp_files(iw1, iw2);  
+  CU_ASSERT_FALSE(ret);
+  fclose(iw1);
+  fclose(iw2);  
 }
 
 int main() {
