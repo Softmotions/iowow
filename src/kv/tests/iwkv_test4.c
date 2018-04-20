@@ -21,6 +21,8 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
   if (walpath) {
     unlink(walpath);    
   }
+  IWKV_val key = {0};
+  IWKV_val val = {0};
   IWKV_OPTS opts = {
     .path = path,
     .oflags = IWKV_TRUNC,
@@ -30,6 +32,9 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
     }
   };
   rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   
   rc = iwkv_close(&iwkv);

@@ -54,7 +54,7 @@ typedef struct IWAL {
   uint64_t checkpoint_timeout_ms;   /**< Checkpoint timeout millesconds */
   char *path;                       /**< WAL file path */
   uint8_t *buf;                     /**< File buffer */
-  bool applying;                    /**< WAL log applying */
+  atomic_bool applying;             /**< WAL log applying */  
   uint32_t bufsz;                   /**< Size of buffer */
   uint32_t bufpos;                  /**< Current position in buffer */
   atomic_uint mbytes;               /**< Estimated size of modifed private mmaped memory bytes */
@@ -131,9 +131,9 @@ static iwrc _flush_wl(IWAL *wal, bool sync) {
   if (wal->bufpos) {
     uint32_t crc = iwu_crc32(wal->buf, wal->bufpos, 0);
     WBSEP sep = {0}; // Avoid uninitialized padding bytes
-    sep.id = WOP_SEP,
-        sep.crc = crc;
-    sep.len = wal->bufpos;
+    sep.id = WOP_SEP;
+    sep.crc = crc;
+    sep.len = wal->bufpos;    
     
     ssize_t wz = wal->bufpos + sizeof(WBSEP);
     uint8_t *wp = wal->buf - sizeof(WBSEP);
@@ -452,10 +452,7 @@ finish:
   return rc;
 }
 
-IW_INLINE bool _need_checkpoint(IWAL *wal) {
-  if (!wal) {
-    return false;
-  }
+IW_INLINE bool _need_checkpoint(IWAL *wal) {  
   uint mbytes = wal->mbytes;
   if (mbytes >= wal->checkpoint_buffer_sz) {
     return true;
@@ -465,7 +462,7 @@ IW_INLINE bool _need_checkpoint(IWAL *wal) {
 
 iwrc _checkpoint_wl(IWKV iwkv) {    
   IWFS_EXT *extf;
-  IWAL *wal = (IWAL *) iwkv->dlsnr;  
+  IWAL *wal = (IWAL *) iwkv->dlsnr;    
   assert(iwkv == wal->iwkv);
   iwrc rc = _flush_wl(wal, true);
   RCGO(rc, finish);
@@ -482,8 +479,11 @@ finish:
   return rc;
 }
 
-iwrc iwal_checkpoint(IWKV iwkv, bool force) {
+iwrc iwal_checkpoint(IWKV iwkv, bool force) {  
   IWAL *wal = (IWAL *) iwkv->dlsnr;  
+  if (!wal) {
+    return 0;
+  }
   int rci;
   bool ncp = _need_checkpoint(wal);
   if (!ncp && !force) {
@@ -496,9 +496,9 @@ iwrc iwal_checkpoint(IWKV iwkv, bool force) {
 }
 
 iwrc iwal_close(IWKV iwkv) {
-  IWAL *iwal = (IWAL *) iwkv->dlsnr;
-  if (iwal) {
-    _iwal_destroy(iwal);
+  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  if (wal) {     
+    _iwal_destroy(wal);
   }
   return 0;
 }
@@ -547,7 +547,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   
   wal->wal_buffer_sz =
     opts->wal.wal_buffer_sz > 0 ?
-    opts->wal.wal_buffer_sz  : 16 * 4096; // 64Kb
+    opts->wal.wal_buffer_sz  : 64 * 1024; // 64Kb
   if (wal->wal_buffer_sz < 4096) {
     wal->wal_buffer_sz = 4096;
   }
@@ -597,6 +597,6 @@ finish:
     iwkv->dlsnr = 0;
     iwkv->fatalrc = rc;
     _iwal_destroy(wal);
-  }
+  }   
   return rc;
 }

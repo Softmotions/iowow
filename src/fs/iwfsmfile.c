@@ -1611,7 +1611,7 @@ static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t 
   if (!rc) {
     memmove(mm + FSM_CUSTOM_HDR_DATA_OFFSET + off, buf, siz);
     if (impl->dlsnr) {
-      rc = impl->dlsnr->onwrite(impl->dlsnr, FSM_CUSTOM_HDR_DATA_OFFSET, buf, siz, 0);
+      rc = impl->dlsnr->onwrite(impl->dlsnr, FSM_CUSTOM_HDR_DATA_OFFSET + off, buf, siz, 0);
     }
     IWRC(impl->pool.release_mmap(&impl->pool), rc);
   }

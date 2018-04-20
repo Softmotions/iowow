@@ -730,9 +730,7 @@ off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXT *f, void
   if (res > OFF_T_MAX) {
     res = OFF_T_MAX;
   }
-  ctx->prev_sz = csize;
-  //TODO: FIXME
-  fprintf(stderr, "iw_exfile_szpolicy_fibo csize=%ld res=%ld\n", csize, res);
+  ctx->prev_sz = csize;  
   return res;
 }
 
