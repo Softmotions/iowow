@@ -54,7 +54,7 @@ typedef struct IWAL {
   uint64_t checkpoint_timeout_ms;   /**< Checkpoint timeout millesconds */
   char *path;                       /**< WAL file path */
   uint8_t *buf;                     /**< File buffer */
-  atomic_bool applying;             /**< WAL log applying */  
+  atomic_bool applying;             /**< WAL log applying */
   uint32_t bufsz;                   /**< Size of buffer */
   uint32_t bufpos;                  /**< Current position in buffer */
   atomic_uint mbytes;               /**< Estimated size of modifed private mmaped memory bytes */
@@ -65,7 +65,8 @@ typedef struct IWAL {
 } IWAL;
 
 bool extfile_use_locks(IWFS_EXT *f, bool use_locks);
-iwrc _checkpoint_wl(IWKV iwkv);
+static iwrc _checkpoint(IWAL *wal);
+static iwrc _checkpoint_wl(IWAL *wal);
 
 IW_INLINE iwrc _lock(IWAL *wal) {
   int rci = wal->mtx ? pthread_mutex_lock(wal->mtx) : 0;
@@ -133,7 +134,7 @@ static iwrc _flush_wl(IWAL *wal, bool sync) {
     WBSEP sep = {0}; // Avoid uninitialized padding bytes
     sep.id = WOP_SEP;
     sep.crc = crc;
-    sep.len = wal->bufpos;    
+    sep.len = wal->bufpos;
     
     ssize_t wz = wal->bufpos + sizeof(WBSEP);
     uint8_t *wp = wal->buf - sizeof(WBSEP);
@@ -163,7 +164,7 @@ IW_INLINE iwrc _truncate(IWAL *wal) {
   return rc;
 }
 
-static iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len) {
+static iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len, bool checkpoint) {
   iwrc rc = _lock(wal);
   RCRET(rc);
   ssize_t sz;
@@ -192,7 +193,9 @@ static iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, 
     memcpy(wal->buf + wal->bufpos, data, len);
     wal->bufpos += len;
   }
-  
+  if (checkpoint) {
+    rc = _checkpoint_wl(wal);
+  }
 finish:
   IWRC(_unlock(wal), rc);
   return rc;
@@ -215,8 +218,8 @@ static iwrc _onclosing(struct IWDLSNR *self) {
   IWAL *wal = (IWAL *) self;
   if (wal->applying) {
     return 0;
-  }  
-  return _checkpoint_wl(wal->iwkv);
+  }
+  return _checkpoint(wal);
 }
 
 static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
@@ -229,7 +232,7 @@ static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int 
   wb.val = val;
   wb.off = off;
   wb.len = len;
-  return _write((IWAL *) self, &wb, sizeof(wb), 0, 0);
+  return _write((IWAL *) self, &wb, sizeof(wb), 0, 0, false);
 }
 
 static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
@@ -242,7 +245,7 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
   wb.off = off;
   wb.len = len;
   wb.noff = noff;
-  return _write(wal, &wb, sizeof(wb), 0, 0);
+  return _write(wal, &wb, sizeof(wb), 0, 0, false);
 }
 
 static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
@@ -257,7 +260,7 @@ static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len
   wb.len = len;
   wb.off = off;
   wal->mbytes += len;
-  return _write(wal, &wb, sizeof(wb), buf, len);
+  return _write(wal, &wb, sizeof(wb), buf, len, false);
 }
 
 static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags, bool *handled) {
@@ -271,13 +274,7 @@ static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags,
   wb.id = WOP_RESIZE;
   wb.osize = osize;
   wb.nsize = nsize;
-  iwrc rc = _write(wal, &wb, sizeof(wb), 0, 0);
-  RCRET(rc);
-  if (wal->iwkv->open) {
-    return iwal_checkpoint(wal->iwkv, true);  
-  } else {
-    return _checkpoint_wl(wal->iwkv);
-  }
+  return _write(wal, &wb, sizeof(wb), 0, 0, true);  
 }
 
 static iwrc _onsynced(struct IWDLSNR *self, int flags) {
@@ -452,7 +449,7 @@ finish:
   return rc;
 }
 
-IW_INLINE bool _need_checkpoint(IWAL *wal) {  
+IW_INLINE bool _need_checkpoint(IWAL *wal) {
   uint mbytes = wal->mbytes;
   if (mbytes >= wal->checkpoint_buffer_sz) {
     return true;
@@ -460,16 +457,14 @@ IW_INLINE bool _need_checkpoint(IWAL *wal) {
   return false;
 }
 
-iwrc _checkpoint_wl(IWKV iwkv) {    
+static iwrc _checkpoint_wl(IWAL *wal) {
   IWFS_EXT *extf;
-  IWAL *wal = (IWAL *) iwkv->dlsnr;    
-  assert(iwkv == wal->iwkv);
+  IWKV iwkv = wal->iwkv;  
   iwrc rc = _flush_wl(wal, true);
   RCGO(rc, finish);
   rc = iwkv->fsm.extfile(&iwkv->fsm, &extf);
   RCGO(rc, finish);
-  rc = _rollforward_wl(wal, extf, true);
-  // Reset modified bytes counter and last checkpoint timestamp
+  rc = _rollforward_wl(wal, extf, true);  
   wal->mbytes = 0;
   iwp_current_time_ms(&wal->checkpoint_ts);
 finish:
@@ -479,25 +474,37 @@ finish:
   return rc;
 }
 
-iwrc iwal_checkpoint(IWKV iwkv, bool force) {  
-  IWAL *wal = (IWAL *) iwkv->dlsnr;  
+IW_INLINE iwrc _checkpoint(IWAL *wal) {
+  iwrc rc = _lock(wal);
+  RCRET(rc);
+  rc = _checkpoint_wl(wal);
+  _unlock(wal);
+  return rc;
+}
+
+//--------------------------------------- Public API
+
+iwrc iwal_checkpoint(IWKV iwkv, bool force) {
+  IWAL *wal = (IWAL *) iwkv->dlsnr;
   if (!wal) {
     return 0;
   }
-  int rci;
   bool ncp = _need_checkpoint(wal);
   if (!ncp && !force) {
     return 0;
   }
-  API_WLOCK(iwkv, rci);  
-  iwrc rc = _checkpoint_wl(iwkv);
+  int rci;
+  iwrc rc;  
+  API_WLOCK(iwkv, rci);
+  rc = _checkpoint(wal);
   API_UNLOCK(iwkv, rci, rc);
   return rc;
 }
 
-iwrc iwal_close(IWKV iwkv) {
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
-  if (wal) {     
+iwrc iwal_close(IWKV iwkv) {  
+  IWAL *wal = (IWAL *) iwkv->dlsnr;  
+  if (wal) {
+    assert(!wal->bufpos);
     _iwal_destroy(wal);
   }
   return 0;
@@ -597,6 +604,6 @@ finish:
     iwkv->dlsnr = 0;
     iwkv->fatalrc = rc;
     _iwal_destroy(wal);
-  }   
+  }
   return rc;
 }

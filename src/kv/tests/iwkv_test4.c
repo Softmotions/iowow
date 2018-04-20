@@ -17,9 +17,9 @@ int clean_suite(void) {
 static void iwkv_test1_impl(char *path, const char *walpath)  {
   iwrc rc;
   IWKV iwkv;
-  IWDB db1;
+  IWDB db1, db2;
   if (walpath) {
-    unlink(walpath);    
+    unlink(walpath);
   }
   IWKV_val key = {0};
   IWKV_val val = {0};
@@ -36,6 +36,38 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
   
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  rc = iwkv_db(iwkv, 2, 0, &db2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  key.data = "foo";
+  key.size = strlen(key.data);
+  val.data = "bar";
+  val.size = strlen(val.data);
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  key.data = "foozz";
+  key.size = strlen(key.data);
+  val.data = "bazz";
+  val.size = strlen(val.data);
+  rc = iwkv_put(db2, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  key.data = "foozz2";
+  key.size = strlen(key.data);
+  val.data = "bazzbazzbazzbazz";
+  val.size = strlen(val.data);
+  rc = iwkv_put(db2, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+    
+  key.data = "foozz";
+  key.size = strlen(key.data);
+  rc = iwkv_del(db2, &key);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  //rc = iwkv_db_destroy(&db2);
+  //CU_ASSERT_EQUAL_FATAL(rc, 0);
   
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);

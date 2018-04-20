@@ -809,16 +809,16 @@ static WUR iwrc _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
     wp += sp;
     IW_SETVNUMBUF(sp, wp, kvp->len);
     wp += sp;
-  }
-  if (dlsnr) {
-    rc = dlsnr->onwrite(dlsnr, kb->addr, sptr, wp - sptr, 0);
-  }
+  }  
   sp = wp - szp - sizeof(uint16_t);
   kb->idxsz = sp;
   assert(kb->idxsz <= KVBLK_MAX_IDX_SZ);
   sp = IW_HTOIS(sp);
   memcpy(szp, &sp, sizeof(uint16_t));
   assert(wp - (mm + kb->addr) <= (1ULL << kb->szpow));
+  if (dlsnr) {
+    rc = dlsnr->onwrite(dlsnr, kb->addr, sptr, wp - sptr, 0);
+  }
   kb->flags &= ~KVBLK_DURTY;
   return rc;
 }
@@ -1520,11 +1520,12 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     IWDLSNR *dlsnr = lx->db->iwkv->dlsnr;
     sblk->flags &= ~SBLK_DURTY;
     if (IW_UNLIKELY(sblk->flags & SBLK_DB)) {
+      uint8_t *sp;
       uint8_t *wp = mm + sblk->db->addr;
-      uint8_t *sp = wp;
       if (sblk->addr) {
         assert(sblk->addr == sblk->db->addr);
         wp += DOFF_N0_U4;
+        sp = wp;
         // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
         for (int i = 0; i < SLEVELS; ++i) {
           IW_WRITELV(wp, lv, sblk->n[i]);
@@ -1535,6 +1536,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
         }
       } else { // Database tail
         wp += DOFF_P0_U4;
+        sp = wp;
         IW_WRITELV(wp, lv, sblk->p0);
         assert(wp - (mm + sblk->db->addr) <= SBLK_SZ);
       }
@@ -1543,12 +1545,11 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       }
       return rc;
     } else {
-      uint8_t *wp = mm + sblk->addr;
-      uint8_t *sp = wp;
+      uint8_t *wp = mm + sblk->addr;      
       sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
       assert(sblk->lkl <= SBLK_LKLEN);
       // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
-      wp += SOFF_FLAGS_U1;
+      wp += SOFF_FLAGS_U1;      
       memcpy(wp++, &flags, 1);
       memcpy(wp++, &sblk->lvl, 1);
       memcpy(wp++, &sblk->lkl, 1);
@@ -1556,6 +1557,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       IW_WRITELV(wp, lv, sblk->p0);
       IW_WRITELV(wp, lv, sblk->kvblkn);
       memcpy(wp, sblk->pi, KVBLK_IDXNUM);
+      
       wp = mm + sblk->addr + SOFF_N0_U4;
       for (int i = 0; i <= sblk->lvl; ++i) {
         IW_WRITELV(wp, lv, sblk->n[i]);
@@ -1564,7 +1566,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       memcpy(wp, sblk->lk, sblk->lkl);
       wp += sblk->lkl;
       if (dlsnr) {
-        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, wp - sp, 0);
+        rc = dlsnr->onwrite(dlsnr, sblk->addr, mm + sblk->addr, SOFF_END, 0);
         RCRET(rc);
       }
     }
@@ -2932,6 +2934,19 @@ iwrc iwkv_close(IWKV *iwkvp) {
   pthread_cond_destroy(&iwkv->wk_cond);
   free(iwkv);
   *iwkvp = 0;
+  return rc;
+}
+
+static iwrc _sync_nlock(IWDB db) {  
+  iwrc rc = 0;
+  IWKV iwkv = db->iwkv;
+  IWFS_FSM *fsm  = &iwkv->fsm;
+  if (iwkv->dlsnr) {
+    rc = iwal_sync(iwkv);
+  } else {
+    iwfs_sync_flags flags = IWFS_FDATASYNC;
+    rc = fsm->sync(fsm, flags);
+  }
   return rc;
 }
 

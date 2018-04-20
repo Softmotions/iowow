@@ -311,7 +311,6 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
     }
   }
   
-  sp = impl->bmlen;
   p = ((uint64_t *) mm) + offset_bits / 64;
   set_bits = 64 - (offset_bits & (64 - 1));
   set_mask = (~((uint64_t) 0) << (offset_bits & (64 - 1)));
@@ -355,12 +354,11 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
     }
   }
   if (!rc && impl->dlsnr) {
-    off_t ds = offset_bits / 8;
-    off_t dl = length_bits_ / 8;
-    if (length_bits_ % 8) {
-      ++dl;
-    }
-    rc = impl->dlsnr->onwrite(impl->dlsnr, impl->bmoff + ds, mm + ds, dl, 0);
+    uint64_t so = offset_bits / 8;    
+    uint64_t lb = (length_bits_ + (offset_bits % 8));
+    uint64_t dl = lb / 8;    
+    if (lb % 8) ++dl;    
+    rc = impl->dlsnr->onwrite(impl->dlsnr, impl->bmoff + so, mm + so, dl, 0);    
   }
   return rc;
 }
