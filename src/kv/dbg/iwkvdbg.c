@@ -1,7 +1,7 @@
 //--------------------------  DEBUG STAFF
 
 
-void iwkvd_trigger(bool val) {
+void iwkvd_trigger(uint64_t val) {
   g_trigger = val;
 }
 

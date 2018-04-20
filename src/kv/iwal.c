@@ -176,7 +176,7 @@ static iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, 
   assert(bufsz - wal->bufpos >= oplen);
   memcpy(wal->buf + wal->bufpos, op, oplen);
   wal->bufpos += oplen;
-  if (bufsz < len) {
+  if (bufsz - wal->bufpos < len) {
     rc = _flush_wl(wal, false);
     RCGO(rc, finish);
     sz = write(wal->fh, data, len);
@@ -184,11 +184,7 @@ static iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, 
       rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
       goto finish;
     }
-  } else {
-    if (bufsz - wal->bufpos < len) {
-      rc = _flush_wl(wal, false);
-      RCGO(rc, finish);
-    }
+  } else {    
     assert(bufsz - wal->bufpos >= len);
     memcpy(wal->buf + wal->bufpos, data, len);
     wal->bufpos += len;
@@ -232,6 +228,7 @@ static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int 
   wb.val = val;
   wb.off = off;
   wb.len = len;
+  wal->mbytes += len;
   return _write((IWAL *) self, &wb, sizeof(wb), 0, 0, false);
 }
 
@@ -245,6 +242,7 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
   wb.off = off;
   wb.len = len;
   wb.noff = noff;
+  wal->mbytes += len;
   return _write(wal, &wb, sizeof(wb), 0, 0, false);
 }
 
@@ -255,8 +253,8 @@ static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len
     return 0;
   }
   WBWRITE wb = {0}; // Avoid uninitialized padding bytes
-  wb.id = WOP_WRITE,
-     wb.crc = iwu_crc32(buf, len, 0);
+  wb.id = WOP_WRITE;
+  wb.crc = iwu_crc32(buf, len, 0);
   wb.len = len;
   wb.off = off;
   wal->mbytes += len;
@@ -274,7 +272,7 @@ static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags,
   wb.id = WOP_RESIZE;
   wb.osize = osize;
   wb.nsize = nsize;
-  return _write(wal, &wb, sizeof(wb), 0, 0, true);  
+  return _write(wal, &wb, sizeof(wb), 0, 0, true);
 }
 
 static iwrc _onsynced(struct IWDLSNR *self, int flags) {
@@ -383,7 +381,9 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool strict) {
         rp += sizeof(wb);
         if (avail < wb.len) _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
         uint32_t crc = iwu_crc32(rp, wb.len, 0);
-        if (crc != wb.crc) _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBWRITE)");
+        if (crc != wb.crc) {
+          _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBWRITE)");
+        }
         rc = extf->ensure_size(extf, wb.off + wb.len);
         RCGO(rc, finish);
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
@@ -458,13 +458,14 @@ IW_INLINE bool _need_checkpoint(IWAL *wal) {
 }
 
 static iwrc _checkpoint_wl(IWAL *wal) {
+  //fprintf(stderr, "_checkpoint_wl\n");
   IWFS_EXT *extf;
-  IWKV iwkv = wal->iwkv;  
+  IWKV iwkv = wal->iwkv;
   iwrc rc = _flush_wl(wal, true);
   RCGO(rc, finish);
   rc = iwkv->fsm.extfile(&iwkv->fsm, &extf);
   RCGO(rc, finish);
-  rc = _rollforward_wl(wal, extf, true);  
+  rc = _rollforward_wl(wal, extf, true);
   wal->mbytes = 0;
   iwp_current_time_ms(&wal->checkpoint_ts);
 finish:
@@ -494,14 +495,14 @@ iwrc iwal_checkpoint(IWKV iwkv, bool force) {
     return 0;
   }
   int rci;
-  iwrc rc = iwkv_exclusive_lock(iwkv);  
+  iwrc rc = iwkv_exclusive_lock(iwkv);
   rc = _checkpoint(wal);
   API_UNLOCK(iwkv, rci, rc);
   return rc;
 }
 
-iwrc iwal_close(IWKV iwkv) {  
-  IWAL *wal = (IWAL *) iwkv->dlsnr;  
+iwrc iwal_close(IWKV iwkv) {
+  IWAL *wal = (IWAL *) iwkv->dlsnr;
   if (wal) {
     assert(!wal->bufpos);
     _iwal_destroy(wal);

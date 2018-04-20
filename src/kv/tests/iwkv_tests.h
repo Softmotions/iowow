@@ -21,5 +21,8 @@ static int cmp_files(FILE *f1, FILE *f2) {
     c1 = getc(f1);
     c2 = getc(f2);
   }
+  if (c1 - c2) {
+    fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
+  }
   return (c1 - c2);
 }

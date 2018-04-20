@@ -4,14 +4,107 @@
 #include "iwcfg.h"
 #include "iwkv_tests.h"
 
+uint32_t g_seed;
+uint32_t g_rnd_data_pos;
+#define RND_DATA_SZ (10*1048576)
+char RND_DATA[RND_DATA_SZ];
+
+static void *rndbuf_next(uint32_t len) {
+  assert(len <= RND_DATA_SZ);
+  if (g_rnd_data_pos + len > RND_DATA_SZ) {
+    g_rnd_data_pos = 0;
+  }
+  const char *ret = RND_DATA + g_rnd_data_pos;
+  g_rnd_data_pos += len;
+  return (void *) ret;
+}
+
 int init_suite(void) {
   iwrc rc = iwkv_init();
+  RCRET(rc);
+  uint64_t ts;
+  iwp_current_time_ms(&ts);
+  ts = IW_SWAB64(ts);
+  ts >>= 32;
+  g_seed = ts;
+  
+  //g_seed = 3223813347;
+  
+  fprintf(stderr, "\nRandom seed: %u\n", g_seed);
+  iwu_rand_seed(g_seed);
+  srandom(g_seed);
+  for (int i = 0; i < RND_DATA_SZ; ++i) {
+    RND_DATA[i] = ' ' + iwu_rand_range(95); // ascii space ... ~
+  }
   return rc;
 }
 
 int clean_suite(void) {
   return 0;
 }
+
+static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint32_t vrange) {
+  g_rnd_data_pos = 0;
+  char kbuf[100];
+  iwrc rc;
+  IWKV iwkv;
+  IWDB db1;
+  if (walpath) {
+    unlink(walpath);
+  }
+  IWKV_val key = {0};
+  IWKV_val val = {0};
+  IWKV_OPTS opts = {
+    .path = path,
+    .oflags = IWKV_TRUNC,
+    .random_seed = g_seed,
+    .wal = {
+      .enabled = (walpath != NULL),
+      .checkpoint_timeout_ms = 0,
+      .wal_buffer_sz = 64 * 1024,
+      .checkpoint_buffer_sz = 32 * 1024 * 1024
+    }
+  };
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  key.data = kbuf;
+  
+  for (int i = 0; i < num; ++i) {
+    int k = iwu_rand_range(num);
+    snprintf(key.data, sizeof(kbuf), "%016d", k);
+    key.size = strlen(key.data);
+    uint32_t value_size = iwu_rand_range(vrange + 1);
+    if (value_size == 0) {
+      value_size = 1;
+    }
+    val.data = rndbuf_next(value_size);
+    val.size = value_size;        
+    rc = iwkv_put(db1, &key, &val, 0);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+}
+
+static void iwkv_test2(void) {
+  uint32_t num = 1000;
+  uint32_t vrange = 100000;  
+  iwkv_test2_impl("iwkv_test4_2.db", NULL, num, vrange);
+  iwkv_test2_impl("iwkv_test4_2wal.db", "iwkv_test4_2wal.db-wal", num, vrange);
+  FILE *iw1 = fopen("iwkv_test4_2.db", "rb");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(iw1);
+  FILE *iw2 = fopen("iwkv_test4_2wal.db", "rb");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(iw2);
+  int ret = cmp_files(iw1, iw2);
+  CU_ASSERT_FALSE(ret);
+  fclose(iw1);
+  fclose(iw2);
+}
+
 
 static void iwkv_test1_impl(char *path, const char *walpath)  {
   iwrc rc;
@@ -59,7 +152,7 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
   val.size = strlen(val.data);
   rc = iwkv_put(db2, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-    
+  
   key.data = "foozz";
   key.size = strlen(key.data);
   rc = iwkv_del(db2, &key);
@@ -79,10 +172,10 @@ static void iwkv_test1(void) {
   CU_ASSERT_PTR_NOT_NULL_FATAL(iw1);
   FILE *iw2 = fopen("iwkv_test4_1wal.db", "rb");
   CU_ASSERT_PTR_NOT_NULL_FATAL(iw2);
-  int ret = cmp_files(iw1, iw2);  
+  int ret = cmp_files(iw1, iw2);
   CU_ASSERT_FALSE(ret);
   fclose(iw1);
-  fclose(iw2);  
+  fclose(iw2);
 }
 
 int main() {
@@ -100,8 +193,11 @@ int main() {
   }
   
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1))
-     )  {
+  if (
+    //(NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))
+    
+  )  {
     CU_cleanup_registry();
     return CU_get_error();
   }

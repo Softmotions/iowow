@@ -4,6 +4,10 @@
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
 
+#define RND_DATA_SZ (10*1048576)
+char RND_DATA[RND_DATA_SZ];
+
+
 int init_suite(void) {
   iwrc rc = iwkv_init();
   return rc;

@@ -12,7 +12,7 @@ static void _dbcache_destroy_lw(IWDB db);
 #ifdef IW_TESTS
 volatile int8_t iwkv_next_level = -1;
 #endif
-atomic_bool g_trigger;
+atomic_uint_fast64_t g_trigger;
 
 //-------------------------- UTILS
 
