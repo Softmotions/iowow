@@ -60,6 +60,7 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
     .random_seed = g_seed,
     .wal = {
       .enabled = (walpath != NULL),
+      .check_crc_on_checkpoint = true,
       .checkpoint_timeout_ms = 0,
       .wal_buffer_sz = 64 * 1024,
       .checkpoint_buffer_sz = 32 * 1024 * 1024

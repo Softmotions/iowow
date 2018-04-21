@@ -115,8 +115,9 @@ typedef struct IWDB *IWDB;
  */
 typedef struct IWKV_WAL_OPTS {
   bool enabled;                     /**< WAL enabled */
+  bool check_crc_on_checkpoint;     /**< Check CRC32 sum of data blocks during checkpoint. Default: false */
   size_t wal_buffer_sz;             /**< WAL file intermediate buffer size */
-  uint64_t checkpoint_buffer_sz;      /**< Checkpoint buffer size in bytes. */
+  uint64_t checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. */
   uint64_t checkpoint_timeout_ms;   /**< Checkpoint timeout millesconds */
 } IWKV_WAL_OPTS;
 
