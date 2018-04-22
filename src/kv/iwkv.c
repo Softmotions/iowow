@@ -2920,7 +2920,7 @@ iwrc iwkv_exclusive_unlock(IWKV iwkv) {
 }
 
 iwrc iwkv_close(IWKV *iwkvp) {
-  ENSURE_OPEN((*iwkvp));  
+  ENSURE_OPEN((*iwkvp));
   IWKV iwkv = *iwkvp;
   iwkv->open = false;
   iwrc rc = iwkv_exclusive_lock(iwkv);
@@ -2937,7 +2937,7 @@ iwrc iwkv_close(IWKV *iwkvp) {
   if (iwkv->dbs) {
     kh_destroy(DBS, iwkv->dbs);
     iwkv->dbs = 0;
-  }  
+  }
   iwkv_exclusive_unlock(iwkv);
   pthread_rwlock_destroy(&iwkv->rwl);
   pthread_mutex_destroy(&iwkv->wk_mtx);
@@ -2966,11 +2966,15 @@ iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
     return IW_ERROR_READONLY;
   }
   iwrc rc;
-  IWFS_FSM *fsm  = &iwkv->fsm;
-  pthread_rwlock_wrlock(&iwkv->rwl);
-  iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
-  rc = fsm->sync(fsm, flags);
-  pthread_rwlock_unlock(&iwkv->rwl);
+  if (iwkv->dlsnr) {
+    rc = iwal_savepoint(iwkv, true);
+  } else {
+    IWFS_FSM *fsm  = &iwkv->fsm;
+    pthread_rwlock_wrlock(&iwkv->rwl);
+    iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
+    rc = fsm->sync(fsm, flags);
+    pthread_rwlock_unlock(&iwkv->rwl);
+  }
   return rc;
 }
 
@@ -3016,7 +3020,7 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
     *dbp = db;
   } else {
     rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
-  }  
+  }
   iwkv_exclusive_unlock(iwkv);
   if (!rc) {
     rc = iwal_checkpoint(iwkv, true);
@@ -3055,7 +3059,7 @@ iwrc iwkv_db_last_access_time(const IWDB db, uint64_t *ts) {
 iwrc iwkv_db_destroy(IWDB *dbp) {
   if (!dbp || !*dbp) {
     return IW_ERROR_INVALID_ARGS;
-  }  
+  }
   IWDB db = *dbp;
   IWKV iwkv = db->iwkv;
   if (iwkv->oflags & IWKV_RDONLY) {

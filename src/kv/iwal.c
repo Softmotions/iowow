@@ -454,6 +454,10 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBSET)");
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
+        if (recover) {
+          rc = extf->ensure_size(extf, wb.off + wb.len);
+          RCGO(rc, finish);
+        }
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memset(mm + wb.off, wb.val, wb.len);
@@ -464,6 +468,10 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBCOPY)");
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
+        if (recover) {
+          rc = extf->ensure_size(extf, wb.noff + wb.len);
+          RCGO(rc, finish);
+        }
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memmove(mm + wb.noff, mm + wb.off, wb.len);
@@ -475,6 +483,10 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
         if (avail < wb.len) _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
+        if (recover) {
+          rc = extf->ensure_size(extf, wb.off + wb.len);
+          RCGO(rc, finish);
+        }
         if (ccrc) {
           uint32_t crc = iwu_crc32(rp, wb.len, 0);
           if (crc != wb.crc) {
@@ -498,6 +510,9 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
       }
       case WOP_FIXPOINT:
         if (fpos == rp - wmm) { // last fixpoint to recover
+          WBFIXPOINT wb;
+          memcpy(&wb, rp, sizeof(wb));
+          iwlog_warn("Database recovered at point of time: %" PRIu64 " ms since epoch\n", wb.ts);
           goto finish;
         }
         rp += sizeof(WBFIXPOINT);
@@ -538,6 +553,7 @@ static iwrc _recover_wl(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
   memcpy(&extopts, &fsmopts->exfile, sizeof(extopts));
   extopts.use_locks = false;
   extopts.file.omode = IWFS_OCREATE | IWFS_OWRITE;
+  extopts.file.dlsnr = 0;
   rc = iwfs_exfile_open(&extf, &extopts);
   RCRET(rc);
   rc = _rollforward_wl(wal, &extf, true);
@@ -595,9 +611,36 @@ iwrc iwal_checkpoint(IWKV iwkv, bool force) {
   bool ncp = _need_checkpoint(wal);
   if (!ncp && !force) {
     return 0;
-  }  
+  }
   iwrc rc = iwkv_exclusive_lock(iwkv);
   rc = _checkpoint(wal);
+  iwkv_exclusive_unlock(iwkv);
+  return rc;
+}
+
+iwrc iwal_savepoint(IWKV iwkv, bool sync) {
+  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  if (!wal) {
+    return 0;
+  }
+  iwrc rc = iwkv_exclusive_lock(iwkv);
+  RCRET(rc);
+  rc = _lock(wal);
+  if (rc) {
+    iwkv_exclusive_unlock(iwkv);
+    return rc;
+  }
+  WBFIXPOINT wbfp = {0};
+  wbfp.id = WOP_FIXPOINT;
+  rc = iwp_current_time_ms(&wbfp.ts);
+  RCGO(rc, finish);
+  rc = _write_wl(wal, &wbfp, sizeof(wbfp), 0, 0, false);
+  RCRET(rc);
+  rc = _flush_wl(wal, sync);
+  RCGO(rc, finish);
+  
+finish:
+  _unlock(wal);
   iwkv_exclusive_unlock(iwkv);
   return rc;
 }
@@ -605,7 +648,6 @@ iwrc iwal_checkpoint(IWKV iwkv, bool force) {
 iwrc iwal_close(IWKV iwkv) {
   IWAL *wal = (IWAL *) iwkv->dlsnr;
   if (wal) {
-    assert(!wal->bufpos);
     _iwal_destroy(wal);
   }
   return 0;
