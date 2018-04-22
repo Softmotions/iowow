@@ -454,10 +454,6 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBSET)");
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (recover) {
-          rc = extf->ensure_size(extf, wb.off + wb.len);
-          RCGO(rc, finish);
-        }
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memset(mm + wb.off, wb.val, wb.len);
@@ -468,10 +464,6 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBCOPY)");
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (recover) {
-          rc = extf->ensure_size(extf, wb.noff + wb.len);
-          RCGO(rc, finish);
-        }
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memmove(mm + wb.noff, mm + wb.off, wb.len);
@@ -483,10 +475,6 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
         if (avail < wb.len) _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
-        if (recover) {
-          rc = extf->ensure_size(extf, wb.off + wb.len);
-          RCGO(rc, finish);
-        }
         if (ccrc) {
           uint32_t crc = iwu_crc32(rp, wb.len, 0);
           if (crc != wb.crc) {
@@ -698,14 +686,14 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   
   wal->wal_buffer_sz =
     opts->wal.wal_buffer_sz > 0 ?
-    opts->wal.wal_buffer_sz  : 64 * 1024; // 64Kb
+    opts->wal.wal_buffer_sz  : 8 * 1024 * 1024; // 8M
   if (wal->wal_buffer_sz < 4096) {
     wal->wal_buffer_sz = 4096;
   }
   
   wal->checkpoint_buffer_sz
     = opts->wal.checkpoint_buffer_sz > 0 ?
-      opts->wal.checkpoint_buffer_sz : 1024 * 1024 * 128; // 128Mb
+      opts->wal.checkpoint_buffer_sz : 1ULL * 1024 * 1024 * 1024; // 1G
       
   wal->checkpoint_timeout_ms
     = opts->wal.checkpoint_timeout_ms > 0 ?

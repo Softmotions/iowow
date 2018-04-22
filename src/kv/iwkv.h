@@ -194,7 +194,7 @@ IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
  *       calls after first call for particular database,
  *       otherwise `IWKV_ERROR_INCOMPATIBLE_DB_MODE` will be reported.
  *
- * @param iwkv Pointer to @ref IWKV storage handler
+ * @param iwkv Pointer to @ref IWKV handler
  * @param dbid Database identifier
  * @param flags Database initialization flags
  * @param [out] dbp Pointer to database opaque structure.
@@ -229,11 +229,15 @@ IW_EXPORT iwrc iwkv_db_destroy(IWDB *dbp);
 /**
  * @brief Sync iwkv storage state with disk.
  *
- * @param iwkv Storage handler.
+ * @param iwkv IWKV handler.
  * @param flags Sync flags.
  */
 IW_EXPORT iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags flags);
 
+/**
+ * @brief Perform full WAL checkpoint. Make sence on in WAL enabled mode.
+ * @param iwkv IWKV handler.
+ */
 IW_EXPORT iwrc iwkv_checkpoint(IWKV iwkv);
 
 /**

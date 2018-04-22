@@ -34,11 +34,11 @@ static void *db_open(BMCTX *ctx) {
   }
   IWKV_OPTS opts = {
     .wal = {
-      .enabled = false,
+      .enabled = true,
       .check_crc_on_checkpoint = false,
       .checkpoint_timeout_ms = 0,
-      .wal_buffer_sz = 64 * 1024,
-      .checkpoint_buffer_sz = 128 * 1024 * 1024
+      .wal_buffer_sz = 8 * 1024 * 1024, // 8M
+      .checkpoint_buffer_sz = 1ULL * 1024 * 1024 * 1024 // 1G
     }
   };
   opts.path = bm.param_db ? bm.param_db : DEFAULT_DB;
