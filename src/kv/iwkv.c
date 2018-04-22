@@ -809,7 +809,7 @@ static WUR iwrc _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
     wp += sp;
     IW_SETVNUMBUF(sp, wp, kvp->len);
     wp += sp;
-  }  
+  }
   sp = wp - szp - sizeof(uint16_t);
   kb->idxsz = sp;
   assert(kb->idxsz <= KVBLK_MAX_IDX_SZ);
@@ -1545,11 +1545,11 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       }
       return rc;
     } else {
-      uint8_t *wp = mm + sblk->addr;      
+      uint8_t *wp = mm + sblk->addr;
       sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
       assert(sblk->lkl <= SBLK_LKLEN);
       // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
-      wp += SOFF_FLAGS_U1;      
+      wp += SOFF_FLAGS_U1;
       memcpy(wp++, &flags, 1);
       memcpy(wp++, &sblk->lvl, 1);
       memcpy(wp++, &sblk->lkl, 1);
@@ -2768,10 +2768,10 @@ static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx
   }
   uint64_t res;
   if (csize < 0x2000000) { // doubled alloc up to 32M
-    res = csize ? csize : psize;        
-    while(res < nsize) {
+    res = csize ? csize : psize;
+    while (res < nsize) {
       res <<= 1;
-    }      
+    }
   } else {
     res = csize + ctx->prev_sz;
     res = MAX(res, nsize);
@@ -2780,7 +2780,7 @@ static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx
   if (res > OFF_T_MAX) {
     res = OFF_T_MAX;
   }
-  ctx->prev_sz = csize;  
+  ctx->prev_sz = csize;
   return res;
 }
 
@@ -2912,9 +2912,15 @@ iwrc iwkv_exclusive_lock(IWKV iwkv) {
   return _wnw(iwkv, _wnw_iwkw_wl);
 }
 
-iwrc iwkv_close(IWKV *iwkvp) {
-  ENSURE_OPEN((*iwkvp));
+iwrc iwkv_exclusive_unlock(IWKV iwkv) {
   int rci;
+  iwrc rc = 0;
+  API_UNLOCK(iwkv, rci, rc);
+  return rc;
+}
+
+iwrc iwkv_close(IWKV *iwkvp) {
+  ENSURE_OPEN((*iwkvp));  
   IWKV iwkv = *iwkvp;
   iwkv->open = false;
   iwrc rc = iwkv_exclusive_lock(iwkv);
@@ -2931,8 +2937,8 @@ iwrc iwkv_close(IWKV *iwkvp) {
   if (iwkv->dbs) {
     kh_destroy(DBS, iwkv->dbs);
     iwkv->dbs = 0;
-  }
-  API_UNLOCK(iwkv, rci, rc);
+  }  
+  iwkv_exclusive_unlock(iwkv);
   pthread_rwlock_destroy(&iwkv->rwl);
   pthread_mutex_destroy(&iwkv->wk_mtx);
   pthread_cond_destroy(&iwkv->wk_cond);
@@ -2941,7 +2947,7 @@ iwrc iwkv_close(IWKV *iwkvp) {
   return rc;
 }
 
-static iwrc _sync_nlock(IWDB db) {  
+static iwrc _sync_nlock(IWDB db) {
   iwrc rc = 0;
   IWKV iwkv = db->iwkv;
   IWFS_FSM *fsm  = &iwkv->fsm;
@@ -2962,14 +2968,18 @@ iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
   iwrc rc;
   IWFS_FSM *fsm  = &iwkv->fsm;
   pthread_rwlock_wrlock(&iwkv->rwl);
-  if (iwkv->dlsnr) {
-    rc = iwal_sync(iwkv);
-  } else {
-    iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
-    rc = fsm->sync(fsm, flags);
-  }
+  iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
+  rc = fsm->sync(fsm, flags);
   pthread_rwlock_unlock(&iwkv->rwl);
   return rc;
+}
+
+iwrc iwkv_checkpoint(IWKV iwkv) {
+  if (iwkv->dlsnr) {
+    return iwal_checkpoint(iwkv, true);
+  } else {
+    return iwkv_sync(iwkv, IWFS_FDATASYNC);
+  }
 }
 
 iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
@@ -2993,7 +3003,7 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   }
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
-  }  
+  }
   rc = iwkv_exclusive_lock(iwkv);
   ki = kh_get(DBS, iwkv->dbs, dbid);
   if (ki != kh_end(iwkv->dbs)) {
@@ -3006,8 +3016,8 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
     *dbp = db;
   } else {
     rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
-  }
-  API_UNLOCK(iwkv, rci, rc);
+  }  
+  iwkv_exclusive_unlock(iwkv);
   if (!rc) {
     rc = iwal_checkpoint(iwkv, true);
   }
@@ -3045,8 +3055,7 @@ iwrc iwkv_db_last_access_time(const IWDB db, uint64_t *ts) {
 iwrc iwkv_db_destroy(IWDB *dbp) {
   if (!dbp || !*dbp) {
     return IW_ERROR_INVALID_ARGS;
-  }
-  int rci;
+  }  
   IWDB db = *dbp;
   IWKV iwkv = db->iwkv;
   if (iwkv->oflags & IWKV_RDONLY) {
@@ -3058,7 +3067,8 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   if (!rc) {
     rc = _db_destroy_lw(dbp);
   }
-  API_UNLOCK(iwkv, rci, rc);  
+  iwkv_exclusive_unlock(iwkv);
+  
 finish:
   return rc;
 }

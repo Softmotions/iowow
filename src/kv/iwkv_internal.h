@@ -392,6 +392,13 @@ static_assert(DB_SZ >= DOFF_END, "DB_SZ >= DOFF_END");
 
 
 iwrc iwkv_exclusive_lock(IWKV iwkv);
+iwrc iwkv_exclusive_unlock(IWKV iwkv);
+void iwkvd_trigger_xor(uint64_t val);
 void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen);
 iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
 void iwkvd_db(FILE *f, IWDB db, int flags, int plvl);
+
+// IWKVD Trigger commands 
+#ifdef IW_TESTS
+#define IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE 1UL
+#endif

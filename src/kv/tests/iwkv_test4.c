@@ -3,6 +3,7 @@
 #include "iwutils.h"
 #include "iwcfg.h"
 #include "iwkv_tests.h"
+#include "iwkv_internal.h"
 
 uint32_t g_seed;
 uint32_t g_rnd_data_pos;
@@ -41,6 +42,50 @@ int init_suite(void) {
 
 int clean_suite(void) {
   return 0;
+}
+
+
+static void iwkv_test3(void) {  
+  char *path = "iwkv_test4_3.db";
+  //char *walpath = "iwkv_test4_3.db-wal";
+  IWKV iwkv;
+  IWDB db1;
+  IWKV_val key = {0};
+  IWKV_val val = {0};
+  IWKV_OPTS opts = {
+    .path = path,
+    .oflags = IWKV_TRUNC,
+    .random_seed = g_seed,
+    .wal = {
+      .enabled = true,
+      .check_crc_on_checkpoint = true,
+      .checkpoint_timeout_ms = 0
+    }
+  };
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  key.data = "key00001";
+  key.size = strlen(key.data);
+  val.data = "value00001";
+  val.size = strlen(key.data);  
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  key.data = "key00002";
+  key.size = strlen(key.data);
+  val.data = "value00002";
+  val.size = strlen(key.data);  
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  // TODO: 
+  // iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
+  
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);  
 }
 
 static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint32_t vrange) {
@@ -83,7 +128,7 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
       value_size = 1;
     }
     val.data = rndbuf_next(value_size);
-    val.size = value_size;        
+    val.size = value_size;
     rc = iwkv_put(db1, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
@@ -93,7 +138,7 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
 
 static void iwkv_test2(void) {
   uint32_t num = 1000;
-  uint32_t vrange = 100000;  
+  uint32_t vrange = 100000;
   iwkv_test2_impl("iwkv_test4_2.db", NULL, num, vrange);
   iwkv_test2_impl("iwkv_test4_2wal.db", "iwkv_test4_2wal.db-wal", num, vrange);
   FILE *iw1 = fopen("iwkv_test4_2.db", "rb");
@@ -195,8 +240,9 @@ int main() {
   
   /* Add the tests to the suite */
   if (
-    //(NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2))
+    (NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3))
     
   )  {
     CU_cleanup_registry();

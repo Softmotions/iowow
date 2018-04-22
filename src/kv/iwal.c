@@ -5,12 +5,14 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+extern atomic_uint_fast64_t g_trigger;
+
 typedef enum {
   WOP_SET = 1,
   WOP_COPY,
   WOP_WRITE,
   WOP_RESIZE,
-  WOP_CHECKPOINT,
+  WOP_FIXPOINT,
   WOP_SEP = 127, /**< WAL file separator */
 } wop_t;
 
@@ -47,10 +49,10 @@ typedef struct WBRESIZE {
   off_t nsize;
 } WBRESIZE;
 
-typedef struct WBCHECKPOINT {
+typedef struct WBFIXPOINT {
   uint8_t id;
   uint64_t ts;
-} WBCHECKPOINT;
+} WBFIXPOINT;
 
 typedef struct IWAL {
   IWDLSNR lsnr;
@@ -227,6 +229,13 @@ static iwrc _onclosing(struct IWDLSNR *self) {
   if (wal->applying) {
     return 0;
   }
+#ifdef IW_TESTS
+  uint64_t tv = g_trigger;
+  if (tv & IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE) {
+    fprintf(stderr, "Skip _onclosing checkpoint\n")  ;
+    return 0;
+  }
+#endif
   return _checkpoint(wal);
 }
 
@@ -299,9 +308,9 @@ static iwrc _onsynced(struct IWDLSNR *self, int flags) {
   return rc;
 }
 
-static iwrc _find_last_checkpoint(IWAL *wal, uint8_t *wmm, off_t fsz, off_t *pcpos) {
+static iwrc _find_last_fixpoint(IWAL *wal, uint8_t *wmm, off_t fsz, off_t *pfpos) {
   uint8_t *rp = wmm;
-  *pcpos = 0;
+  *pfpos = 0;
   
 #define _WAL_CORRUPTED(msg_) do { \
     iwrc rc = IWKV_ERROR_CORRUPTED_WAL_FILE; \
@@ -357,9 +366,9 @@ static iwrc _find_last_checkpoint(IWAL *wal, uint8_t *wmm, off_t fsz, off_t *pcp
         rp += sizeof(WBRESIZE);
         break;
       }
-      case WOP_CHECKPOINT:
-        *pcpos = (rp - wmm);
-        rp += sizeof(WBCHECKPOINT);
+      case WOP_FIXPOINT:
+        *pfpos = (rp - wmm);
+        rp += sizeof(WBFIXPOINT);
         break;
       default: {
         _WAL_CORRUPTED("Invalid WAL command");
@@ -383,7 +392,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   size_t sp;
   uint8_t *mm;
   const bool ccrc = wal->check_cp_crc;
-  off_t cpos = 0; // checkpoint
+  off_t fpos = 0; // checkpoint
   off_t pfsz = IW_ROUNDUP(fsz, wal->page_size);
   uint8_t *wmm = mmap(0, pfsz, PROT_READ, MAP_PRIVATE, wal->fh, 0);
   if (wmm == MAP_FAILED) {
@@ -405,8 +414,10 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
     return rc;
   }
   if (recover) {
-    rc = _find_last_checkpoint(wal, wmm, fsz, &cpos);
-    RCGO(rc, finish);
+    rc = _find_last_fixpoint(wal, wmm, fsz, &fpos);
+    if (rc || !fpos) {
+      goto finish;
+    }
   }
 #define _WAL_CORRUPTED(msg_) do { \
     rc = IWKV_ERROR_CORRUPTED_WAL_FILE; \
@@ -485,12 +496,11 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         RCGO(rc, finish);
         break;
       }
-      case WOP_CHECKPOINT:
-        if (cpos == rp - wmm) { // last checkpoint to recover
+      case WOP_FIXPOINT:
+        if (fpos == rp - wmm) { // last fixpoint to recover
           goto finish;
-          break;
         }
-        rp += sizeof(WBCHECKPOINT);
+        rp += sizeof(WBFIXPOINT);
         break;
       default: {
         _WAL_CORRUPTED("Invalid WAL command");
@@ -505,7 +515,6 @@ finish:
     rc = extf->sync_mmap(extf, 0, 0);
   }
   munmap(wmm, pfsz);
-  // Restore private mapping
   extf->remove_mmap(extf, 0);
   IWRC(extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
   if (!rc) {
@@ -548,11 +557,11 @@ static iwrc _checkpoint_wl(IWAL *wal) {
   //fprintf(stderr, "_checkpoint_wl\n");
   IWFS_EXT *extf;
   IWKV iwkv = wal->iwkv;
-  WBCHECKPOINT wbcp = {0};
-  wbcp.id = WOP_CHECKPOINT;
-  iwrc rc = iwp_current_time_ms(&wbcp.ts);
+  WBFIXPOINT wbfp = {0};
+  wbfp.id = WOP_FIXPOINT;
+  iwrc rc = iwp_current_time_ms(&wbfp.ts);
   RCRET(rc);
-  rc = _write_wl(wal, &wbcp, sizeof(wbcp), 0, 0, false);
+  rc = _write_wl(wal, &wbfp, sizeof(wbfp), 0, 0, false);
   RCRET(rc);
   rc = _flush_wl(wal, true);
   RCGO(rc, finish);
@@ -586,11 +595,10 @@ iwrc iwal_checkpoint(IWKV iwkv, bool force) {
   bool ncp = _need_checkpoint(wal);
   if (!ncp && !force) {
     return 0;
-  }
-  int rci;
+  }  
   iwrc rc = iwkv_exclusive_lock(iwkv);
   rc = _checkpoint(wal);
-  API_UNLOCK(iwkv, rci, rc);
+  iwkv_exclusive_unlock(iwkv);
   return rc;
 }
 

@@ -1,8 +1,8 @@
 //--------------------------  DEBUG STAFF
 
 
-void iwkvd_trigger(uint64_t val) {
-  g_trigger = val;
+void iwkvd_trigger_xor(uint64_t val) {
+  g_trigger ^= val;
 }
 
 void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {

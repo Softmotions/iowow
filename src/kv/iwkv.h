@@ -234,6 +234,8 @@ IW_EXPORT iwrc iwkv_db_destroy(IWDB *dbp);
  */
 IW_EXPORT iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags flags);
 
+IW_EXPORT iwrc iwkv_checkpoint(IWKV iwkv);
+
 /**
  * @brief Close iwkv storage.
  * @details Upon successfull call of iwkv_close()
