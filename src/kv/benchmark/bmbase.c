@@ -237,7 +237,7 @@ static bool _bm_init(int argc, char *argv[]) {
   }
   if (!bm.param_seed) {
     uint64_t ts;
-    iwp_current_time_ms(&ts);
+    iwp_current_time_ms(&ts, false);
     ts = IW_SWAB64(ts);
     ts >>= 32;
     bm.param_seed = ts;
@@ -284,13 +284,13 @@ static void _bm_run(BMCTX *ctx) {
     ctx->success = false;
     return;
   }
-  iwp_current_time_ms(&llv);
+  iwp_current_time_ms(&llv, false);
   ctx->start_ms = llv;
   ctx->success = ctx->method(ctx);
   if (!bm.db_close(ctx)) {
     ctx->success = false;
   }
-  iwp_current_time_ms(&llv);
+  iwp_current_time_ms(&llv, false);
   ctx->end_ms = llv;
 }
 
