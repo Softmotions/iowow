@@ -56,7 +56,7 @@ typedef struct WBFIXPOINT {
 typedef struct IWAL {
   IWDLSNR lsnr;
   atomic_bool applying;             /**< WAL log applying */
-  atomic_bool opened;               /**< WAL is opened */
+  atomic_bool open;                 /**< WAL log applying */
   bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
   iwkv_openflags oflags;            /**< File open flags */
   size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. */
@@ -102,19 +102,9 @@ static iwrc _init_locks(IWAL *wal) {
   return 0;
 }
 
-
-static void _iwal_destroy(IWAL *wal) {
+static void _destroy(IWAL *wal) {
   if (wal) {
-    wal->opened = false;
-    if (wal->mtxp && wal->cpt_condp) {
-      pthread_mutex_lock(wal->mtxp);
-      pthread_cond_broadcast(wal->cpt_condp);
-      pthread_mutex_unlock(wal->mtxp);
-    }
-    if (wal->cptp) {
-      pthread_join(wal->cpt, 0);
-      wal->cpt = 0;
-    }
+    wal->open = false;
     if (!INVALIDHANDLE(wal->fh)) {
       iwp_unlock(wal->fh);
       iwp_closefh(wal->fh);
@@ -226,9 +216,6 @@ static iwrc _onopen(struct IWDLSNR *self, const char *path, int mode) {
 
 static iwrc _onclosing(struct IWDLSNR *self) {
   IWAL *wal = (IWAL *) self;
-  if (wal->applying) {
-    return 0;
-  }
 #ifdef IW_TESTS
   uint64_t tv = g_trigger;
   if (tv & IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE) {
@@ -236,7 +223,9 @@ static iwrc _onclosing(struct IWDLSNR *self) {
     return 0;
   }
 #endif
-  return _checkpoint(wal);
+  iwrc rc = _checkpoint(wal);
+  _destroy(wal);
+  return rc;
 }
 
 static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
@@ -574,9 +563,14 @@ static iwrc _checkpoint_wl(IWAL *wal) {
   rc = _rollforward_wl(wal, extf, false);
   wal->mbytes = 0;
   iwp_current_time_ms(&wal->checkpoint_ts, true);
+  
 finish:
   if (rc) {
-    iwkv->fatalrc = rc;
+    if (iwkv->fatalrc) {
+      iwlog_ecode_error3(rc);
+    } else {
+      iwkv->fatalrc = rc;
+    }
   }
   return rc;
 }
@@ -601,6 +595,7 @@ WUR iwrc iwal_checkpoint(IWKV iwkv, bool force) {
     return 0;
   }
   iwrc rc = iwkv_exclusive_lock(iwkv);
+  RCRET(rc);
   rc = _checkpoint(wal);
   iwkv_exclusive_unlock(iwkv);
   return rc;
@@ -634,55 +629,79 @@ finish:
   return rc;
 }
 
-iwrc iwal_close(IWKV iwkv) {
+void iwal_shutdown(IWKV iwkv) {
   IWAL *wal = (IWAL *) iwkv->dlsnr;
-  if (wal) {
-    _iwal_destroy(wal);
+  if (!wal) {
+    return;
   }
-  return 0;
+  wal->open = false;
+  if (wal->mtxp && wal->cpt_condp) {
+    pthread_mutex_lock(wal->mtxp);
+    pthread_cond_broadcast(wal->cpt_condp);
+    pthread_mutex_unlock(wal->mtxp);
+  }
+  if (wal->cptp) {
+    pthread_join(wal->cpt, 0);
+    wal->cpt = 0;
+  }
 }
 
-static void *_cpt_worker(void *op) {
-  IWAL *wal = op;
+static void *_cpt_worker_fn(void *op) {
   int rci;
+  iwrc rc = 0;
+  IWAL *wal = op;
+  IWKV iwkv = wal->iwkv;
+  IWP_FILE_STAT fs;
   uint64_t sec = wal->checkpoint_timeout_sec;
-  while (wal->opened) {
+  
+  while (wal->open) {
     struct timespec tp;
-    bool needcp = false;
-    rci = pthread_mutex_lock(wal->mtxp);
-    if (rci) {      
-      wal->iwkv->fatalrc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-    }
+    bool iscp = false;
+    rc = _lock(wal);
+    RCBREAK(rc);
     if (clock_gettime(CLOCK_MONOTONIC, &tp)) {
-      iwrc rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
-      iwlog_ecode_error2(rc, "WAL checkpoint worker error");
-      wal->iwkv->fatalrc = rc;
-    }
-    tp.tv_sec += sec;
-    pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
-    fprintf(stderr, "pthread_cond_timedwait awake\n");
-    if (!wal->opened || wal->iwkv->fatalrc) {
+      rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+      _unlock(wal);
       break;
     }
-    uint64_t ts;
-    uint64_t cpts = wal->checkpoint_ts;
-    iwp_current_time_ms(&ts, true);
-    if (ts - cpts > sec * 1000) {
-      fprintf(stderr, "Old checkpoint found\n");
-      needcp = wal->bufpos || (lseek(wal->fh, 0, SEEK_END) > 0); // not empty WAL log/buffer
-      pthread_mutex_unlock(wal->mtxp);
-      if (needcp) {
-        fprintf(stderr, "Perform checkpoint\n");
-        iwrc rc = iwal_checkpoint(wal->iwkv, true);
-        if (rc) {
-          iwlog_ecode_error2(rc, "WAL checkpoint worker error");
-          wal->iwkv->fatalrc = rc;
-          break;
+    tp.tv_sec += (sec / 2 + 1);
+    rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
+    if (rci && rci != ETIMEDOUT) {
+      rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+      _unlock(wal);
+      break;
+    }
+    if (!wal->open || iwkv->fatalrc) {
+      _unlock(wal);
+      break;
+    }
+    rc = iwp_fstath(wal->fh, &fs);
+    iscp = !rc && iwkv->open && (wal->bufpos || fs.size);
+    rc = 0;
+    _unlock(wal);
+    if (iscp) {
+      uint64_t ts;
+      uint64_t cpts = wal->checkpoint_ts;
+      iwp_current_time_ms(&ts, true);
+      if (ts - cpts >= sec * 1000) {
+        rc = iwkv_exclusive_lock(iwkv);
+        RCBREAK(rc);
+        rc = iwp_fstath(wal->fh, &fs);
+        iscp = !rc && iwkv->open && (wal->bufpos || fs.size);
+        rc = 0;
+        if (iscp) {
+          rc = _checkpoint(wal);
         }
+        iwkv_exclusive_unlock(iwkv);
       }
     }
   }
-  fprintf(stderr, "WAL checkpoint worker exited\n");
+  if (rc) {
+    iwkv->fatalrc = iwkv->fatalrc ? iwkv->fatalrc : rc;
+    iwlog_ecode_error2(rc, "WAL checkpoint worker exited with error\n");
+  } else {
+    fprintf(stderr, "WAL checkpoint worker exited\n");
+  }
   return 0;
 }
 
@@ -698,7 +717,7 @@ iwrc _init_cpt(IWAL *wal) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   rci = pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
-  if (rci) {    
+  if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   rci = pthread_cond_init(&wal->cpt_cond, &cattr);
@@ -711,7 +730,7 @@ iwrc _init_cpt(IWAL *wal) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   pthread_attr_setdetachstate(&pattr, PTHREAD_CREATE_JOINABLE);
-  rci = pthread_create(&wal->cpt, &pattr, _cpt_worker, wal);
+  rci = pthread_create(&wal->cpt, &pattr, _cpt_worker_fn, wal);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
@@ -811,15 +830,16 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
     RCGO(rc, finish);
   }
   
-  wal->opened = true;
+  wal->open = true;
   // Start checkpoint thread
   rc = _init_cpt(wal);
   
 finish:
   if (rc) {
     iwkv->dlsnr = 0;
-    iwkv->fatalrc = rc;
-    _iwal_destroy(wal);
+    iwkv->fatalrc = iwkv->fatalrc ? iwkv->fatalrc : rc;
+    iwal_shutdown(iwkv);
+    _destroy(wal);
   }
   return rc;
 }

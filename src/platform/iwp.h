@@ -118,6 +118,8 @@ typedef struct IWP_FILE_STAT {
  */
 IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *stat);
 
+IW_EXPORT iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *stat);
+
 /**
  * @brief Lock the file.
  *

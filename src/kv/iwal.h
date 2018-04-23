@@ -44,7 +44,7 @@ iwrc iwal_checkpoint(IWKV iwkv, bool force);
 
 iwrc iwal_savepoint(IWKV iwkv, bool sync);
 
-iwrc iwal_close(IWKV iwkv);
+void iwal_shutdown(IWKV iwkv);
 
 IW_EXTERN_C_END
 #endif

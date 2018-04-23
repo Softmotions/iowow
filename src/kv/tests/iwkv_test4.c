@@ -46,6 +46,7 @@ int clean_suite(void) {
 
 static void iwkv_test4(void) {
   char *path = "iwkv_test4_4.db";
+  char *wpath = "iwkv_test4_4.db-wal";
   IWKV iwkv;
   IWDB db1;
   IWKV_val key = {0};
@@ -56,19 +57,38 @@ static void iwkv_test4(void) {
     .random_seed = g_seed,
     .wal = {
       .enabled = true,
-      .checkpoint_timeout_sec = 10
+      .checkpoint_timeout_sec = 2
     }
   };
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
   
+  key.data = "key00001";
+  key.size = strlen(key.data);
+  val.data = "value00001";
+  val.size = strlen(val.data);
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
   
+  // Flush WAL
+  rc = iwkv_sync(iwkv, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
   
+  IWP_FILE_STAT fs;
+  rc = iwp_fstat(wpath, &fs);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_TRUE_FATAL(fs.size > 0);
   
+  sleep(4);
   
-
+  rc = iwp_fstat(wpath, &fs);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_TRUE_FATAL(fs.size == 0); // WAL truncated during CP
+  
   rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);  
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 
@@ -310,9 +330,9 @@ int main() {
   
   /* Add the tests to the suite */
   if (
-    //(NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
-    //(NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-    //(NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4))
     
   )  {

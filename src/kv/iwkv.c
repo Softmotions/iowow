@@ -2923,6 +2923,7 @@ iwrc iwkv_close(IWKV *iwkvp) {
   ENSURE_OPEN((*iwkvp));
   IWKV iwkv = *iwkvp;
   iwkv->open = false;
+  iwal_shutdown(iwkv);
   iwrc rc = iwkv_exclusive_lock(iwkv);
   RCRET(rc);
   IWDB db = iwkv->first_db;
@@ -2932,7 +2933,6 @@ iwrc iwkv_close(IWKV *iwkvp) {
     db = ndb;
   }
   IWRC(iwkv->fsm.close(&iwkv->fsm), rc);
-  IWRC(iwal_close(iwkv), rc);
   // Below the memory cleanup only
   if (iwkv->dbs) {
     kh_destroy(DBS, iwkv->dbs);

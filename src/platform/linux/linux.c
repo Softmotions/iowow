@@ -58,31 +58,43 @@ iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   return 0;
 }
 
-IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fstat) {
-  assert(path && fstat);
+iwrc _fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
+  assert(fs);
   iwrc rc = 0;
   struct stat st = {0};
-  
-  memset(fstat, 0, sizeof(*fstat));
-  if (stat(path, &st)) {
-    return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
+  memset(fs, 0, sizeof(*fs));
+  if (path) {
+    if (stat(path, &st)) {
+      return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
+    }
+  } else {
+    if (fstat(fd, &st)) {
+      return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
+    }
   }
-  
-  fstat->atime = _IW_TIMESPEC2MS(st.st_atim);
-  fstat->mtime = _IW_TIMESPEC2MS(st.st_mtim);
-  fstat->ctime = _IW_TIMESPEC2MS(st.st_ctim);
-  fstat->size = st.st_size;
+  fs->atime = _IW_TIMESPEC2MS(st.st_atim);
+  fs->mtime = _IW_TIMESPEC2MS(st.st_mtim);
+  fs->ctime = _IW_TIMESPEC2MS(st.st_ctim);
+  fs->size = st.st_size;
   
   if (S_ISREG(st.st_mode)) {
-    fstat->ftype = IWP_TYPE_FILE;
+    fs->ftype = IWP_TYPE_FILE;
   } else if (S_ISDIR(st.st_mode)) {
-    fstat->ftype = IWP_TYPE_DIR;
+    fs->ftype = IWP_TYPE_DIR;
   } else if (S_ISLNK(st.st_mode)) {
-    fstat->ftype = IWP_LINK;
+    fs->ftype = IWP_LINK;
   } else {
-    fstat->ftype = IWP_OTHER;
+    fs->ftype = IWP_OTHER;
   }
   return rc;
+}
+
+iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fs) {
+  return _fstat(path, 0, fs);
+}
+
+iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *fs) {
+  return _fstat(0, fh, fs);
 }
 
 iwrc iwp_flock(HANDLE fd, iwp_lockmode lmode) {
