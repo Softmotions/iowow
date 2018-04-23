@@ -37,6 +37,7 @@
 #include "basedefs.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #define IWCPU_SSE     0x1
 #define IWCPU_SSE2    0x2
@@ -84,7 +85,7 @@ typedef enum {
  * @param [out] time Time returned
  * @return `0` for success, or error code
  */
-IW_EXPORT iwrc iwp_current_time_ms(uint64_t *time);
+IW_EXPORT iwrc iwp_current_time_ms(uint64_t *time, bool monotonic);
 
 /**
  * @enum iwp_file_type

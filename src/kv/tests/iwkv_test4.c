@@ -24,7 +24,7 @@ int init_suite(void) {
   iwrc rc = iwkv_init();
   RCRET(rc);
   uint64_t ts;
-  iwp_current_time_ms(&ts);
+  iwp_current_time_ms(&ts, false);
   ts = IW_SWAB64(ts);
   ts >>= 32;
   g_seed = ts;
@@ -44,10 +44,36 @@ int clean_suite(void) {
   return 0;
 }
 
+static void iwkv_test4(void) {
+  char *path = "iwkv_test4_4.db";
+  IWKV iwkv;
+  IWDB db1;
+  IWKV_val key = {0};
+  IWKV_val val = {0};
+  IWKV_OPTS opts = {
+    .path = path,
+    .oflags = IWKV_TRUNC,
+    .random_seed = g_seed,
+    .wal = {
+      .enabled = true,
+      .checkpoint_timeout_sec = 10
+    }
+  };
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  
+  
+  
+  
+  
+
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);  
+}
+
 
 static void iwkv_test3(void) {
   char *path = "iwkv_test4_3.db";
-  //char *walpath = "iwkv_test4_3.db-wal";
   IWKV iwkv;
   IWDB db1;
   IWKV_val key = {0};
@@ -59,7 +85,7 @@ static void iwkv_test3(void) {
     .wal = {
       .enabled = true,
       .check_crc_on_checkpoint = true,
-      .checkpoint_timeout_ms = 0
+      .checkpoint_timeout_sec = UINT32_MAX
     }
   };
   iwrc rc = iwkv_open(&opts, &iwkv);
@@ -108,7 +134,7 @@ static void iwkv_test3(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-
+  
   key.data = "key00001";
   key.size = strlen(key.data);
   rc = iwkv_get(db1, &key, &val);
@@ -150,7 +176,7 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
     .wal = {
       .enabled = (walpath != NULL),
       .check_crc_on_checkpoint = true,
-      .checkpoint_timeout_ms = 0,
+      .checkpoint_timeout_sec = UINT32_MAX,
       .wal_buffer_sz = 64 * 1024,
       .checkpoint_buffer_sz = 32 * 1024 * 1024
     }
@@ -210,7 +236,7 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
     .oflags = IWKV_TRUNC,
     .wal = {
       .enabled = (walpath != NULL),
-      .checkpoint_timeout_ms = 0
+      .checkpoint_timeout_sec = UINT32_MAX
     }
   };
   rc = iwkv_open(&opts, &iwkv);
@@ -286,7 +312,8 @@ int main() {
   if (
     //(NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
     //(NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3))
+    //(NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4))
     
   )  {
     CU_cleanup_registry();

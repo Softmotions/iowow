@@ -45,7 +45,7 @@ int init_suite(void) {
 
   off_t addr = 0;
   uint64_t ts;
-  rc = iwp_current_time_ms(&ts);
+  rc = iwp_current_time_ms(&ts, false);
   RCRET(rc);
   ts = IW_SWAB64(ts);
   ts >>= 32;

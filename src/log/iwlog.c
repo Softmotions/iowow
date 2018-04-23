@@ -89,7 +89,7 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char 
   locale_t locale = uselocale(0);
   uint64_t ts;
 
-  if (iwp_current_time_ms(&ts)) {
+  if (iwp_current_time_ms(&ts, false)) {
     return -1;
   }
   pthread_mutex_lock(&_mtx);

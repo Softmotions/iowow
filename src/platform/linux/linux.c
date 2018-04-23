@@ -48,9 +48,9 @@
 
 #define _IW_TIMESPEC2MS(IW_ts) ((IW_ts).tv_sec * 1000) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6)
 
-iwrc iwp_current_time_ms(uint64_t *time) {
+iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   struct timespec spec;
-  if (clock_gettime(CLOCK_REALTIME, &spec) < 0) {
+  if (clock_gettime(monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME, &spec) < 0) {
     *time = 0;
     return IW_ERROR_ERRNO;
   }
@@ -62,17 +62,17 @@ IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fstat) {
   assert(path && fstat);
   iwrc rc = 0;
   struct stat st = {0};
-
+  
   memset(fstat, 0, sizeof(*fstat));
   if (stat(path, &st)) {
     return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
   }
-
+  
   fstat->atime = _IW_TIMESPEC2MS(st.st_atim);
   fstat->mtime = _IW_TIMESPEC2MS(st.st_mtim);
   fstat->ctime = _IW_TIMESPEC2MS(st.st_ctim);
   fstat->size = st.st_size;
-
+  
   if (S_ISREG(st.st_mode)) {
     fstat->ftype = IWP_TYPE_FILE;
   } else if (S_ISDIR(st.st_mode)) {
@@ -243,7 +243,7 @@ iwrc iwp_exec_path(char *opath) {
   pid_t pid;
   char path[PATH_MAX];
   char epath[PATH_MAX];
-
+  
   memset(epath, 0, sizeof(epath));
   pid = getpid();
   sprintf(path, "/proc/%d/exe", pid);

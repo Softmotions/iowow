@@ -116,9 +116,9 @@ typedef struct IWDB *IWDB;
 typedef struct IWKV_WAL_OPTS {
   bool enabled;                     /**< WAL enabled */
   bool check_crc_on_checkpoint;     /**< Check CRC32 sum of data blocks during checkpoint. Default: false */
-  size_t wal_buffer_sz;             /**< WAL file intermediate buffer size */
-  uint64_t checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. */
-  uint64_t checkpoint_timeout_ms;   /**< Checkpoint timeout millesconds */
+  uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 30 sec */
+  size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. Default: 8Mb */
+  uint64_t checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. Default: 1Gb */
 } IWKV_WAL_OPTS;
 
 /**
@@ -211,7 +211,7 @@ IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *d
 IW_EXPORT iwrc iwkv_db_cache_release(IWDB db);
 
 /**
- * @brief Get last access time (ms since epoch) of database get/put/cursor operation.
+ * @brief Get system MONOTONIC time (ms) of last access to database get/put/cursor operation.
  * @details Returns `0` if database was not used before: no get/put/cursor operations used.
  *
  * @param db Database handler

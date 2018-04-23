@@ -3099,7 +3099,7 @@ iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags op
     .op = IWLCTX_PUT,
     .opflags = opflags
   };
-  iwp_current_time_ms(&lx.ts);
+  iwp_current_time_ms(&lx.ts, true);
   API_DB_WLOCK(db, rci);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
@@ -3131,7 +3131,7 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     .val = oval,
     .nlvl = -1
   };
-  iwp_current_time_ms(&lx.ts);
+  iwp_current_time_ms(&lx.ts, true);
   oval->size = 0;
   if (IW_LIKELY(db->cache.open)) {
     API_DB_RLOCK(db, rci);
@@ -3162,7 +3162,7 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
     .nlvl = -1,
     .op = IWLCTX_DEL
   };
-  iwp_current_time_ms(&lx.ts);
+  iwp_current_time_ms(&lx.ts, true);
   API_DB_WLOCK(db, rci);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
@@ -3230,7 +3230,7 @@ iwrc iwkv_cursor_open(IWDB db,
   cur->lx.db = db;
   cur->lx.key = key;
   cur->lx.nlvl = -1;
-  iwp_current_time_ms(&cur->lx.ts);
+  iwp_current_time_ms(&cur->lx.ts, true);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&cur->lx);
     RCGO(rc, finish);
