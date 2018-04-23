@@ -34,9 +34,9 @@ static void *db_open(BMCTX *ctx) {
   }
   IWKV_OPTS opts = {
     .wal = {
-      .enabled = false,
+      .enabled = true,
       .check_crc_on_checkpoint = false,
-      .checkpoint_timeout_sec = 0,
+      .checkpoint_timeout_sec = 5,
       .wal_buffer_sz = 8 * 1024 * 1024, // 8M
       .checkpoint_buffer_sz = 1ULL * 1024 * 1024 * 1024 // 1G
     }

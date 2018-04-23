@@ -699,8 +699,6 @@ static void *_cpt_worker_fn(void *op) {
   if (rc) {
     iwkv->fatalrc = iwkv->fatalrc ? iwkv->fatalrc : rc;
     iwlog_ecode_error2(rc, "WAL checkpoint worker exited with error\n");
-  } else {
-    fprintf(stderr, "WAL checkpoint worker exited\n");
   }
   return 0;
 }
