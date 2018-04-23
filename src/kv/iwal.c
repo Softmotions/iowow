@@ -219,7 +219,7 @@ static iwrc _onclosing(struct IWDLSNR *self) {
 #ifdef IW_TESTS
   uint64_t tv = g_trigger;
   if (tv & IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE) {
-    fprintf(stderr, "Skip _onclosing checkpoint\n")  ;
+    _destroy(wal);
     return 0;
   }
 #endif
