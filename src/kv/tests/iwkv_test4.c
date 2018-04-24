@@ -57,7 +57,7 @@ static void iwkv_test4(void) {
     .random_seed = g_seed,
     .wal = {
       .enabled = true,
-      .checkpoint_timeout_sec = 2
+      .savepoint_timeout_sec = 2
     }
   };
   iwrc rc = iwkv_open(&opts, &iwkv);
@@ -72,25 +72,15 @@ static void iwkv_test4(void) {
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   
-  // Flush WAL
-  rc = iwkv_sync(iwkv, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
-  IWP_FILE_STAT fs;
-  rc = iwp_fstat(wpath, &fs);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_TRUE_FATAL(fs.size > 0);
+  CU_ASSERT_FALSE(iwal_synched(iwkv));
   
   sleep(4);
   
-  rc = iwp_fstat(wpath, &fs);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_TRUE_FATAL(fs.size == 0); // WAL truncated during CP
+  CU_ASSERT_TRUE(iwal_synched(iwkv));
   
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
-
 
 static void iwkv_test3(void) {
   char *path = "iwkv_test4_3.db";
@@ -105,7 +95,7 @@ static void iwkv_test3(void) {
     .wal = {
       .enabled = true,
       .check_crc_on_checkpoint = true,
-      .checkpoint_timeout_sec = UINT32_MAX
+      .savepoint_timeout_sec = UINT32_MAX
     }
   };
   iwrc rc = iwkv_open(&opts, &iwkv);
@@ -196,7 +186,7 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
     .wal = {
       .enabled = (walpath != NULL),
       .check_crc_on_checkpoint = true,
-      .checkpoint_timeout_sec = UINT32_MAX,
+      .savepoint_timeout_sec = UINT32_MAX,
       .wal_buffer_sz = 64 * 1024,
       .checkpoint_buffer_sz = 32 * 1024 * 1024
     }
@@ -256,7 +246,7 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
     .oflags = IWKV_TRUNC,
     .wal = {
       .enabled = (walpath != NULL),
-      .checkpoint_timeout_sec = UINT32_MAX
+      .savepoint_timeout_sec = UINT32_MAX
     }
   };
   rc = iwkv_open(&opts, &iwkv);

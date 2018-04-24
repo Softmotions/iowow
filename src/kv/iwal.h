@@ -46,5 +46,7 @@ iwrc iwal_savepoint(IWKV iwkv, bool sync);
 
 void iwal_shutdown(IWKV iwkv);
 
+bool iwal_synched(IWKV iwkv);
+
 IW_EXTERN_C_END
 #endif

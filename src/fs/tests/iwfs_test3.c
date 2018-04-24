@@ -48,10 +48,7 @@ int init_suite(void) {
   rc = iwp_current_time_ms(&ts, false);
   RCRET(rc);
   ts = IW_SWAB64(ts);
-  ts >>= 32;
-  // ts = 3131111721;
-  // ts = 1165688361;
-  // ts = 11291434;
+  ts >>= 32;  
   iwu_rand_seed(ts);
 
   printf("Generating stress data file: test_fsm_stress1.data, random seed: %" PRIx64, ts);
