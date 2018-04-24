@@ -685,7 +685,7 @@ static void *_cpt_worker_fn(void *op) {
       _unlock(wal);
       break;
     }
-    tp.tv_sec += (sec / 2 + 1);
+    tp.tv_sec += sec;
     rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
     if (rci && rci != ETIMEDOUT) {
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
