@@ -78,7 +78,7 @@ void iwlog2(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *f
 
 iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, va_list argp) {
   assert(_current_logfn);
-
+  
 #ifdef _WIN32
   werror_code = iwrc_strip_werror(&ecode);
 #else
@@ -88,7 +88,7 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char 
   iwrc rc;
   locale_t locale = uselocale(0);
   uint64_t ts;
-
+  
   if (iwp_current_time_ms(&ts, false)) {
     return -1;
   }
@@ -96,7 +96,7 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char 
   IWLOG_FN logfn = _current_logfn;
   void *opts = _current_logfn_options;
   pthread_mutex_unlock(&_mtx);
-
+  
   rc = logfn(locale, lvl, ecode, errno_code, werror_code, file, line, ts, opts, fmt, argp);
   if (rc) {
     fprintf(stderr, "Logging function returned with error: %" PRIu64 IW_LINE_SEP, rc);
@@ -158,13 +158,13 @@ void iwrc_strip_code(iwrc *rc) {
 
 void iwlog_set_logfn(IWLOG_FN fp) {
   pthread_mutex_lock(&_mtx);
-
+  
   if (!fp) {
     _current_logfn = _default_logfn;
   } else {
     _current_logfn = fp;
   }
-
+  
   pthread_mutex_unlock(&_mtx);
 }
 
@@ -294,7 +294,7 @@ static iwrc _default_logfn(locale_t locale,
                            va_list argp) {
 #define TBUF_SZ 96
 #define EBUF_SZ 128
-
+                           
   iwrc rc = 0;
   IWLOG_DEFAULT_OPTS myopts = {0};
   FILE *out = stderr;
@@ -304,7 +304,10 @@ static iwrc _default_logfn(locale_t locale,
   char tbuf[TBUF_SZ], ebuf[EBUF_SZ];
   char *errno_msg = 0, *werror_msg = 0;
   const char *ecode_msg = 0, *cat;
-
+  char fnamebuf[PATH_MAX];
+  char *fnameptr = fnamebuf;
+  char *fname = 0;
+  
   if (errno_code) {
 #if defined(__APPLE__) || defined(__FreeBSD__)
     int rci = strerror_r(errno_code, ebuf, EBUF_SZ);
@@ -315,29 +318,29 @@ static iwrc _default_logfn(locale_t locale,
     errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ);
 #endif
   }
-
+  
 #ifdef _WIN32
-
+  
   if (werror_code) {
     LPTSTR out = NULL;
     DWORD ret = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, werror_code,
                               MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &out, 0, NULL);
-
+                              
     if (ret == 0) {
       if (out) {
         LocalFree(out);
         out = NULL;
       }
     }
-
+    
     werror_msg = out;
   }
-
+  
 #endif
-
+  
   // cppcheck-suppress portability
   localtime_r(&ts_sec, &timeinfo);
-
+  
   if (opts) {
     myopts = *(IWLOG_DEFAULT_OPTS *) opts;
     if (myopts.out) {
@@ -354,7 +357,7 @@ static iwrc _default_logfn(locale_t locale,
       tbuf[sz] = '\0';
     }
   }
-
+  
   switch (lvl) {
     case IWLOG_DEBUG:
       cat = "DEBUG";
@@ -374,7 +377,7 @@ static iwrc _default_logfn(locale_t locale,
       assert(0);
       break;
   }
-
+  
   if (pthread_mutex_lock(&_mtx)) {
     rc = IW_ERROR_THREADING_ERRNO;
     goto finish;
@@ -382,51 +385,61 @@ static iwrc _default_logfn(locale_t locale,
   if (ecode) {
     ecode_msg = _ecode_explained(locale, ecode);
   }
-
+  
 #ifdef IW_HAVE_BASENAME_R
   char bfile[MAXPATHLEN];
   if (file && line > 0) {
-    file = basename_r(file, bfile);
+    fname = basename_r(file, bfile);
   }
 #else
   if (file && line > 0) {
-    file = basename(file);
+    size_t len = strlen(file);
+    if (len < sizeof(fnamebuf)) {
+      memcpy(fnameptr, file, len);
+      fnameptr[len] = '\0';
+    } else {
+      fnameptr = strdup(file);
+    }
+    fname = basename(fnameptr);
   }
 #endif
-
+  
   if (ecode || errno_code || werror_code) {
-    if (file && line > 0) {
-      fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, file, line, ecode, errno_code,
+    if (fname && line > 0) {
+      fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, fname, line, ecode, errno_code,
               werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
               (werror_msg ? werror_msg : ""));
-
+              
     } else {
       fprintf(out, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, ecode, errno_code, werror_code,
               (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
     }
   } else {
-    if (file && line > 0) {
-      fprintf(out, "%s %s %s:%d: ", tbuf, cat, file, line);
+    if (fname && line > 0) {
+      fprintf(out, "%s %s %s:%d: ", tbuf, cat, fname, line);
     } else {
       fprintf(out, "%s %s: ", tbuf, cat);
     }
   }
-
+  
   if (fmt) {
     vfprintf(out, fmt, argp);
   }
   fprintf(out, IW_LINE_SEP);
   pthread_mutex_unlock(&_mtx);
   fflush(out);
-
+  
 finish:
-
+  if (fnameptr != fnamebuf) {
+    free(fnameptr);
+  }
+  
 #ifdef _WIN32
   if (werror_msg) {
     LocalFree(werror_msg);
   }
 #endif
-
+  
 #undef TBUF_SZ
 #undef EBUF_SZ
   return rc;
