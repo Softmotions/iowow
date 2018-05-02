@@ -5,7 +5,6 @@ iowow (1.1.0) UNRELEASED; urgency=medium
     Database format is incompatible with previous versions
   * Better basename/basename_r detection in iwlog.c #4
 
-
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 18:17:39 +0700
 
 iowow (1.0.6) testing; urgency=medium
