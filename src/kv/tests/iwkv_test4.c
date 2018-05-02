@@ -45,8 +45,7 @@ int clean_suite(void) {
 }
 
 static void iwkv_test4(void) {
-  char *path = "iwkv_test4_4.db";
-  char *wpath = "iwkv_test4_4.db-wal";
+  char *path = "iwkv_test4_4.db";  
   IWKV iwkv;
   IWDB db1;
   IWKV_val key = {0};
