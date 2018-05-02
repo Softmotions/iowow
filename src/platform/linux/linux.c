@@ -58,7 +58,7 @@ iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   return 0;
 }
 
-iwrc _fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
+static iwrc _iwp_fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
   assert(fs);
   iwrc rc = 0;
   struct stat st = {0};
@@ -90,11 +90,11 @@ iwrc _fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
 }
 
 iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fs) {
-  return _fstat(path, 0, fs);
+  return _iwp_fstat(path, 0, fs);
 }
 
 iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *fs) {
-  return _fstat(0, fh, fs);
+  return _iwp_fstat(0, fh, fs);
 }
 
 iwrc iwp_flock(HANDLE fd, iwp_lockmode lmode) {
