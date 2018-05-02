@@ -57,7 +57,8 @@ static void iwkv_test4(void) {
     .random_seed = g_seed,
     .wal = {
       .enabled = true,
-      .savepoint_timeout_sec = 2
+      .savepoint_timeout_sec = 2,
+      .checkpoint_timeout_sec = 300
     }
   };
   iwrc rc = iwkv_open(&opts, &iwkv);

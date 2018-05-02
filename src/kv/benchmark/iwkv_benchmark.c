@@ -36,7 +36,8 @@ static void *db_open(BMCTX *ctx) {
     .wal = {
       .enabled = false,
       .check_crc_on_checkpoint = false,
-      .savepoint_timeout_sec = 10,
+      .savepoint_timeout_sec = 10, // 10 sec
+      .checkpoint_timeout_sec = 300, // 5 min
       .wal_buffer_sz = 8 * 1024 * 1024, // 8M
       .checkpoint_buffer_sz = 1ULL * 1024 * 1024 * 1024 // 1G
     }
