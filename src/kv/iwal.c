@@ -693,7 +693,7 @@ static void *_cpt_worker_fn(void *op) {
       break;
     }
     tp.tv_sec += 1; // one sec tic
-    tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);
+    tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);    
     rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
     if (rci && rci != ETIMEDOUT) {
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -746,7 +746,7 @@ iwrc _init_cpt(IWAL *wal) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-#ifdef IW_HAVE_CLOCK_MONOTONIC  
+#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)  
   rci = pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);

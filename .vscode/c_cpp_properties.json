@@ -60,7 +60,9 @@
             ],
             "defines": [
                 "_GNU_SOURCE",
-                "IW_64=1"
+                "IW_64=1",
+                "IW_HAVE_CLOCK_MONOTONIC=1",
+                "IW_HAVE_PTHREAD_CONDATTR_SETCLOCK=1"
             ],
             "intelliSenseMode": "clang-x64",
             "browse": {

@@ -175,6 +175,7 @@
         <Preprocessor Value="IW_64=1"/>
         <Preprocessor Value="IW_TESTS=1"/>
         <Preprocessor Value="IW_HAVE_CLOCK_MONOTONIC=1"/>
+        <Preprocessor Value="IW_HAVE_PTHREAD_CONDATTR_SETCLOCK=1"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>

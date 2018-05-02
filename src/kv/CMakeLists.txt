@@ -1,5 +1,5 @@
 include(CheckSymbolExists)
-check_symbol_exists(CLOCK_MONOTONIC time.h HAVE_CLOCK_MONOTONIC)
-if (HAVE_CLOCK_MONOTONIC)
-  set_source_files_properties(iwal.c PROPERTIES COMPILE_FLAGS -DIW_HAVE_CLOCK_MONOTONIC)
+check_symbol_exists(pthread_condattr_setclock pthread.h HAVE_PTHREAD_CONDATTR_SETCLOCK)
+if (HAVE_PTHREAD_COND_TIMEDWAIT)
+  set_source_files_properties(iwal.c PROPERTIES COMPILE_FLAGS -DIW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
 endif()
