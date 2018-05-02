@@ -384,14 +384,7 @@ static iwrc _default_logfn(locale_t locale,
   }
   if (ecode) {
     ecode_msg = _ecode_explained(locale, ecode);
-  }
-  
-#ifdef IW_HAVE_BASENAME_R
-  char bfile[MAXPATHLEN];
-  if (file && line > 0) {
-    fname = basename_r(file, bfile);
-  }
-#else
+  }  
   if (file && line > 0) {
     size_t len = strlen(file);
     if (len < sizeof(fnamebuf)) {
@@ -400,10 +393,12 @@ static iwrc _default_logfn(locale_t locale,
     } else {
       fnameptr = strdup(file);
     }
+#ifdef IW_HAVE_BASENAME_R
+    fname = basename_r(file, fnameptr);
+#else
     fname = basename(fnameptr);
-  }
-#endif
-  
+#endif 
+  }    
   if (ecode || errno_code || werror_code) {
     if (fname && line > 0) {
       fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, fname, line, ecode, errno_code,
