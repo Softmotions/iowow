@@ -304,7 +304,7 @@ static iwrc _default_logfn(locale_t locale,
   char tbuf[TBUF_SZ], ebuf[EBUF_SZ];
   char *errno_msg = 0, *werror_msg = 0;
   const char *ecode_msg = 0, *cat;
-  char fnamebuf[PATH_MAX];
+  char fnamebuf[MAXPATHLEN];
   char *fnameptr = fnamebuf;
   char *fname = 0;
   

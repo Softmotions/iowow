@@ -253,16 +253,16 @@ iwrc iwp_removedir(const char *path) {
 
 iwrc iwp_exec_path(char *opath) {
   pid_t pid;
-  char path[PATH_MAX];
-  char epath[PATH_MAX];
+  char path[MAXPATHLEN];
+  char epath[MAXPATHLEN];
   
   memset(epath, 0, sizeof(epath));
   pid = getpid();
   sprintf(path, "/proc/%d/exe", pid);
-  if (readlink(path, epath, PATH_MAX - 1) == -1) {
+  if (readlink(path, epath, MAXPATHLEN - 1) == -1) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   } else {
-    strncpy(opath, epath, PATH_MAX);
+    strncpy(opath, epath, MAXPATHLEN);
   }
   return 0;
 }

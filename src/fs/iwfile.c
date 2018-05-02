@@ -181,7 +181,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     }
   }
 
-  opts->path = strndup(_opts->path, PATH_MAX);
+  opts->path = strndup(_opts->path, MAXPATHLEN);
   if (!opts->path) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     goto finish;
