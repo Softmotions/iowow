@@ -34,6 +34,8 @@ unsigned int iwcpuflags = 0;
 
 #if defined(__linux) || defined(__unix) || defined(__APPLE__)
 #include "linux/linux.c"
+#elif defined(_WIN32)
+#include "win32/win32.c"
 #else
 #error Unsupported platform
 #endif
