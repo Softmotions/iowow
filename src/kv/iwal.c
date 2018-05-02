@@ -682,7 +682,12 @@ static void *_cpt_worker_fn(void *op) {
     bool sp = false, cp = false;
     rc = _lock(wal);
     RCBREAK(rc);
-    if (clock_gettime(CLOCK_MONOTONIC, &tp)) {
+#ifdef IW_HAVE_CLOCK_MONOTONIC          
+    clockid_t clockid = CLOCK_MONOTONIC;
+#else    
+    clockid_t clockid = CLOCK_REALTIME;
+#endif  
+    if (clock_gettime(clockid, &tp)) {
       rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
       _unlock(wal);
       break;
@@ -741,10 +746,12 @@ iwrc _init_cpt(IWAL *wal) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
+#ifdef IW_HAVE_CLOCK_MONOTONIC  
   rci = pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
+#endif    
   rci = pthread_cond_init(&wal->cpt_cond, &cattr);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);

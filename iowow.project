@@ -117,6 +117,7 @@
     <File Name="src/basedefs.h"/>
     <File Name="src/iowow.c"/>
     <VirtualDirectory Name="kv">
+      <File Name="src/kv/CMakeLists.txt"/>
       <File Name="src/kv/iwkv_internal.h"/>
       <File Name="src/kv/iwal.h"/>
       <File Name="src/kv/iwal.c"/>
@@ -173,6 +174,7 @@
         <IncludePath Value="$(ProjectPath)/build/src/extern_kyc/install/include"/>
         <Preprocessor Value="IW_64=1"/>
         <Preprocessor Value="IW_TESTS=1"/>
+        <Preprocessor Value="IW_HAVE_CLOCK_MONOTONIC=1"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>

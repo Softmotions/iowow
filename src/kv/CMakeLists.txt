@@ -1,0 +1,5 @@
+include(CheckSymbolExists)
+check_symbol_exists(CLOCK_MONOTONIC time.h HAVE_CLOCK_MONOTONIC)
+if (HAVE_CLOCK_MONOTONIC)
+  set_source_files_properties(iwal.c PROPERTIES COMPILE_FLAGS -DIW_HAVE_CLOCK_MONOTONIC)
+endif()

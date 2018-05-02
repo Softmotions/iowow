@@ -1,3 +1,5 @@
+include(CheckSymbolExists)
+
 if (NOT CMAKE_BUILD_TYPE)
     message(FATAL_ERROR "Please specify the build type -DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo")
 endif()
@@ -63,6 +65,12 @@ if (NOT M_LIB)
 	message(FATAL_ERROR "Library 'libm' not FOUND")
 endif(NOT M_LIB)
 list(APPEND PROJECT_LLIBRARIES "${M_LIB}")
+
+include(CheckSymbolExists)
+check_symbol_exists(CLOCK_MONOTONIC time.h HAVE_CLOCK_MONOTONIC)
+if (HAVE_CLOCK_MONOTONIC)  
+  add_definitions(-DIW_HAVE_CLOCK_MONOTONIC)  
+endif()
 
 foreach(HF IN ITEMS stdlib stddef stdint stdbool stdatomic unistd dirent)
     string(TOUPPER "${HF}" UHF)

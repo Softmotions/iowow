@@ -50,7 +50,13 @@
 
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   struct timespec spec;
-  if (clock_gettime(monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME, &spec) < 0) {
+  
+#ifdef IW_HAVE_CLOCK_MONOTONIC          
+    clockid_t clockid = monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME;
+#else    
+    clockid_t clockid = CLOCK_REALTIME;
+#endif    
+  if (clock_gettime(clockid, &spec) < 0) {
     *time = 0;
     return IW_ERROR_ERRNO;
   }
