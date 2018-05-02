@@ -57,7 +57,7 @@ typedef struct IWAL {
   IWDLSNR lsnr;
   atomic_bool applying;             /**< WAL log applying */
   atomic_bool open;                 /**< WAL log applying */
-  bool synched;                     /**< WAL is synched or WBFIXPOINT is the last write operation */  
+  bool synched;                     /**< WAL is synched or WBFIXPOINT is the last write operation */
   bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
   iwkv_openflags oflags;            /**< File open flags */
   size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. */
@@ -71,7 +71,8 @@ typedef struct IWAL {
   pthread_mutex_t *mtxp;            /**< Global WAL mutex */
   pthread_cond_t *cpt_condp;        /**< Checkpoint thread cond variable */
   pthread_t *cptp;                  /**< Checkpoint thread */
-  uint32_t savepoint_timeout_sec;  /**< Checkpoint timeout seconds */
+  uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds */
+  uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds */
   atomic_uint_fast64_t mbytes;      /**< Estimated size of modifed private mmaped memory bytes */
   uint64_t checkpoint_ts;           /**< Last checkpoint timestamp milliseconds */
   pthread_mutex_t mtx;              /**< Global WAL mutex */
@@ -137,13 +138,13 @@ static iwrc _flush_wl(IWAL *wal, bool sync) {
     sep.crc = crc;
     sep.len = wal->bufpos;
     ssize_t wz = wal->bufpos + sizeof(WBSEP);
-    uint8_t *wp = wal->buf - sizeof(WBSEP);
-    wal->bufpos = 0;
+    uint8_t *wp = wal->buf - sizeof(WBSEP);    
     memcpy(wp, &sep, sizeof(WBSEP));
     ssize_t sz = write(wal->fh, wp, wz);
     if (wz != sz) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
+    wal->bufpos = 0;
   }
   if (sync && fsync(wal->fh)) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
@@ -511,7 +512,7 @@ finish:
   munmap(wmm, pfsz);
   extf->remove_mmap(extf, 0);
   IWRC(extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
-  if (!rc) {    
+  if (!rc) {
     rc = _truncate(wal);
   }
   wal->synched = true;
@@ -549,7 +550,7 @@ IW_INLINE bool _need_checkpoint(IWAL *wal) {
   return false;
 }
 
-static iwrc _checkpoint_wl(IWAL *wal) {  
+static iwrc _checkpoint_wl(IWAL *wal) {
   IWFS_EXT *extf;
   IWKV iwkv = wal->iwkv;
   
@@ -563,7 +564,7 @@ static iwrc _checkpoint_wl(IWAL *wal) {
   
   rc = _flush_wl(wal, true);
   RCGO(rc, finish);
-  wal->synched = true;  
+  wal->synched = true;
   
   rc = iwkv->fsm.extfile(&iwkv->fsm, &extf);
   RCGO(rc, finish);
@@ -578,7 +579,7 @@ finish:
     } else {
       iwkv->fatalrc = rc;
     }
-  }  
+  }
   return rc;
 }
 
@@ -621,7 +622,7 @@ iwrc _savepoint_wl(IWAL *wal, bool sync) {
   RCRET(rc);
   
   rc = _flush_wl(wal, sync);
-  RCGO(rc, finish);  
+  RCGO(rc, finish);
   
   if (sync) {
     wal->synched = true;
@@ -636,7 +637,7 @@ bool iwal_synched(IWKV iwkv) {
   if (!wal) {
     return false;
   }
-  return wal->synched;  
+  return wal->synched;
 }
 
 WUR iwrc iwal_savepoint(IWKV iwkv, bool sync) {
@@ -672,12 +673,13 @@ static void *_cpt_worker_fn(void *op) {
   int rci;
   iwrc rc = 0;
   IWAL *wal = op;
-  IWKV iwkv = wal->iwkv;  
-  uint64_t sec = wal->savepoint_timeout_sec;
+  IWKV iwkv = wal->iwkv;
+  uint64_t savepoint_ts = 0;
   
-  while (wal->open) {    
+  while (wal->open) {
     struct timespec tp;
-    bool spoint = false;
+    uint64_t tick_ts;
+    bool sp = false, cp = false;
     rc = _lock(wal);
     RCBREAK(rc);
     if (clock_gettime(CLOCK_MONOTONIC, &tp)) {
@@ -685,7 +687,8 @@ static void *_cpt_worker_fn(void *op) {
       _unlock(wal);
       break;
     }
-    tp.tv_sec += sec;
+    tp.tv_sec += 1; // one sec tic
+    tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);
     rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
     if (rci && rci != ETIMEDOUT) {
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -695,32 +698,40 @@ static void *_cpt_worker_fn(void *op) {
     if (!wal->open || iwkv->fatalrc) {
       _unlock(wal);
       break;
-    }    
-    spoint = iwkv->open && !wal->synched;    
+    }
+    sp = (tick_ts - savepoint_ts) >= wal->savepoint_timeout_sec * 1000;
+    cp = (tick_ts - wal->checkpoint_ts) >= wal->checkpoint_timeout_sec * 1000;
     _unlock(wal);
     
-    if (spoint) {
-      uint64_t ts;      
-      iwp_current_time_ms(&ts, true);
-      if (ts - wal->checkpoint_ts >= sec * 1000) {
-        rc = iwkv_exclusive_lock(iwkv);
-        RCBREAK(rc);                
-        if (iwkv->open && !wal->synched) {
+    if (cp || sp) {
+      rc = iwkv_exclusive_lock(iwkv);
+      RCBREAK(rc);
+      if (iwkv->open && !wal->synched) {
+        if (cp) {
+          rc = _checkpoint_wl(wal);          
+          savepoint_ts = wal->checkpoint_ts;          
+        } else {          
           rc = _savepoint_wl(wal, true);
+          IWRC(iwp_current_time_ms(&savepoint_ts, true), rc);
         }
-        iwkv_exclusive_unlock(iwkv);
+      }
+      iwkv_exclusive_unlock(iwkv);
+      if (rc) {
+        iwlog_ecode_error2(rc, "WAL worker savepoint/checkpoint error\n");
+        rc = 0;
       }
     }
-  }  
+  }
   if (rc) {
     iwkv->fatalrc = iwkv->fatalrc ? iwkv->fatalrc : rc;
-    iwlog_ecode_error2(rc, "WAL checkpoint worker exited with error\n");
+    iwlog_ecode_error2(rc, "WAL worker exited with error\n");
   }
   return 0;
 }
 
 iwrc _init_cpt(IWAL *wal) {
-  if (!wal->savepoint_timeout_sec || wal->savepoint_timeout_sec == UINT32_MAX) {
+  if (wal->savepoint_timeout_sec == UINT32_MAX
+      && wal->checkpoint_timeout_sec == UINT32_MAX) {
     // do not start checkpoint thread
     return 0;
   }
@@ -809,6 +820,10 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->savepoint_timeout_sec
     = opts->wal.savepoint_timeout_sec > 0 ?
       opts->wal.savepoint_timeout_sec : 10; // 10 sec
+      
+  wal->checkpoint_timeout_sec
+    = opts->wal.checkpoint_timeout_sec > 0 ?
+      opts->wal.checkpoint_timeout_sec : 300; // 5 min
       
   wal->check_cp_crc = opts->wal.check_crc_on_checkpoint;
   

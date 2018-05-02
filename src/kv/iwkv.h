@@ -117,6 +117,7 @@ typedef struct IWKV_WAL_OPTS {
   bool enabled;                     /**< WAL enabled */
   bool check_crc_on_checkpoint;     /**< Check CRC32 sum of data blocks during checkpoint. Default: false */
   uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds. Default: 10 sec */
+  uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 300 (5 min); */
   size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. Default: 8Mb */
   uint64_t checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. Default: 1Gb */
 } IWKV_WAL_OPTS;
