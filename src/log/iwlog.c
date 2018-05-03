@@ -42,6 +42,8 @@
 
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #include <libgen.h>
+#elif defined(_WIN32)
+#include <libiberty/libiberty.h>
 #else
 #include <string.h>
 #endif
@@ -80,13 +82,14 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char 
   assert(_current_logfn);
   
 #ifdef _WIN32
-  werror_code = iwrc_strip_werror(&ecode);
+  int werror_code = iwrc_strip_werror(&ecode);
+  locale_t locale = _get_current_locale();
 #else
   int werror_code = 0;
+  locale_t locale = uselocale(0);
 #endif
   int errno_code = iwrc_strip_errno(&ecode);
   iwrc rc;
-  locale_t locale = uselocale(0);
   uint64_t ts;
   
   if (iwp_current_time_ms(&ts, false)) {
@@ -314,13 +317,17 @@ static iwrc _default_logfn(locale_t locale,
     if (!rci) {
       errno_msg = ebuf;
     }
+#elif defined(_WIN32)
+    int rci = strerror_s(ebuf, EBUF_SZ, errno_code);
+    if (!rci) {
+      errno_msg = ebuf;
+    }
 #else
     errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ);
 #endif
   }
   
 #ifdef _WIN32
-  
   if (werror_code) {
     LPTSTR out = NULL;
     DWORD ret = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, werror_code,
@@ -332,10 +339,8 @@ static iwrc _default_logfn(locale_t locale,
         out = NULL;
       }
     }
-    
     werror_msg = out;
   }
-  
 #endif
   
   // cppcheck-suppress portability

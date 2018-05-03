@@ -127,6 +127,10 @@ typedef int HANDLE;
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef _WIN32
+typedef _locale_t locale_t;
+#endif
+
 /**
  * @brief The operation result status code.
  *

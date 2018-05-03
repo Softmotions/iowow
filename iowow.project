@@ -31,6 +31,7 @@
   </VirtualDirectory>
   <VirtualDirectory Name="cmake">
     <VirtualDirectory Name="Modules">
+      <File Name="cmake/Modules/FindLibIberty.cmake"/>
       <File Name="cmake/Modules/UploadPPA.cmake"/>
       <File Name="cmake/Modules/Win32LIBTools.cmake"/>
       <File Name="cmake/Modules/ProjectUtils.cmake"/>
@@ -218,16 +219,15 @@
         <SearchPaths/>
       </Completion>
     </Configuration>
-    <Configuration Name="Debug_windows" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug_windows" CompilerType="Cross GCC ( x86_64-w64 )" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-Wall" C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="$(ProjectPath)/build/src/generated"/>
-        <IncludePath Value="$(ProjectPath)/build/src/extern_leveldb/include"/>
-        <IncludePath Value="$(ProjectPath)/build/src/extern_lmdb/libraries/liblmdb"/>
-        <IncludePath Value="$(ProjectPath)/build/src/extern_kyc/install/include"/>
+        <IncludePath Value="$(ProjectPath)/mxe/usr/x86_64-w64-mingw32.static/include"/>
         <Preprocessor Value="IW_64=1"/>
         <Preprocessor Value="IW_TESTS=1"/>
         <Preprocessor Value="IW_HAVE_CLOCK_MONOTONIC=1"/>
         <Preprocessor Value="IW_HAVE_PTHREAD_CONDATTR_SETCLOCK=1"/>
+        <Preprocessor Value="_WIN32"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
@@ -244,7 +244,7 @@
       <PreBuild/>
       <PostBuild/>
       <CustomBuild Enabled="yes">
-        <Target Name="cmake">cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=1</Target>
+        <Target Name="cmake">cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=../win64-tc.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1</Target>
         <RebuildCommand>make clean &amp;&amp; make -j4</RebuildCommand>
         <CleanCommand>make clean</CleanCommand>
         <BuildCommand>make -j4</BuildCommand>

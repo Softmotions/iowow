@@ -34,11 +34,12 @@ endforeach(WINTOOLS_EXEC)
 add_custom_target(wintools_init 
 				  DEPENDS ${WINTOOLS_EXECS})
 			
-if (${PROJECT_ARCH} STREQUAL "x86_64")
+if (CMAKE_SIZEOF_VOID_P MATCHES 8)
 	set(WINTOOLS_LIB_MACHINE "X64")
 else()
 	set(WINTOOLS_LIB_MACHINE "X86")
 endif()	
+message("${PROJECT_NAME} WINTOOLS_LIB_MACHINE: ${WINTOOLS_LIB_MACHINE}")
 	
 macro(add_w32_importlib tgt libname wdir)
 	add_custom_command(
