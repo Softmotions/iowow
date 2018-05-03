@@ -115,7 +115,7 @@ if(CPACK_GENERATORS)
             "/\\\\.vscode/"
             "/\\\\.codelite/"
             "/\\\\.idea/"
-            "/cmake-.*/"
+            "/cmake-.*/"            
             "\\\\.sh$"
             "\\\\.project$"
             "\\\\.workspace$"
