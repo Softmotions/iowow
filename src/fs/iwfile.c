@@ -98,11 +98,11 @@ static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
 #else
-    if (fdatasync(impl->fh) == -1) {
+    if (iwp_fdatasync(impl->fh) == -1) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
 #endif
-  } else if (fsync(impl->fh) == -1) {
+  } else if (iwp_fsync(impl->fh) == -1) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
   if (impl->opts.dlsnr) {

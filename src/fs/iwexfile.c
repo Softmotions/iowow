@@ -30,7 +30,11 @@
 #include "iwexfile.h"
 
 #include <pthread.h>
+#ifdef _WIN32
+#include "win32/mman/mman.h"
+#else
 #include <sys/mman.h>
+#endif
 
 struct MMAPSLOT;
 typedef struct IWFS_EXT_IMPL {

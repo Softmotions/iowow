@@ -78,7 +78,12 @@
       <File Name="src/log/iwlog.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="platform">
+      <File Name="src/platform/CMakeLists.txt"/>
       <VirtualDirectory Name="win32">
+        <VirtualDirectory Name="mman">
+          <File Name="src/platform/win32/mman/mman.c"/>
+          <File Name="src/platform/win32/mman/mman.h"/>
+        </VirtualDirectory>
         <File Name="src/platform/win32/win32.c"/>
       </VirtualDirectory>
       <VirtualDirectory Name="linux">
@@ -228,6 +233,7 @@
         <Preprocessor Value="IW_HAVE_CLOCK_MONOTONIC=1"/>
         <Preprocessor Value="IW_HAVE_PTHREAD_CONDATTR_SETCLOCK=1"/>
         <Preprocessor Value="_WIN32"/>
+        <Preprocessor Value="_WIN64"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>

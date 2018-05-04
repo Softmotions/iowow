@@ -237,4 +237,9 @@ IW_EXPORT uint16_t iwp_num_cpu_cores();
  */
 IW_EXPORT WUR iwrc iwp_init(void);
 
+
+IW_EXPORT iwrc iwp_fsync(HANDLE fh);
+
+IW_EXPORT iwrc iwp_fdatasync(HANDLE fh);
+
 #endif

@@ -277,3 +277,13 @@ uint16_t iwp_num_cpu_cores() {
   long res = sysconf(_SC_NPROCESSORS_ONLN);
   return res > 0 ? res : 1;
 }
+
+iwrc iwp_fsync(HANDLE fh) {
+  int rci = fsync(fh);
+  return rci ? iwrc_set_errno(IW_ERROR_IO_ERRNO, errno) : 0;
+}
+
+iwrc iwp_fdatasync(HANDLE fh) {
+  int rci = fdatasync(fh);
+  return rci ? iwrc_set_errno(IW_ERROR_IO_ERRNO, errno) : 0;
+}
