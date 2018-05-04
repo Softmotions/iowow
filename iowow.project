@@ -6,8 +6,8 @@
   <Reconciliation>
     <Regexes/>
     <Excludepaths>
-      <Path>/home/adam/Projects/softmotions/iowow/mxe</Path>
       <Path>/home/adam/Projects/softmotions/iowow/build</Path>
+      <Path>/home/adam/Projects/softmotions/iowow/mxe</Path>
     </Excludepaths>
     <Ignorefiles/>
     <Extensions>
@@ -100,10 +100,8 @@
         <File Name="src/utils/tests/iwrlock_test1.c"/>
         <File Name="src/utils/tests/iwarr_test1.c"/>
       </VirtualDirectory>
-      <File Name="src/utils/iwrlock.c"/>
       <File Name="src/utils/iwutils.c"/>
       <File Name="src/utils/khash.h"/>
-      <File Name="src/utils/iwrlock.h"/>
       <File Name="src/utils/kbtree.h"/>
       <File Name="src/utils/iwutils.h"/>
       <File Name="src/utils/iwbits.h"/>
@@ -117,7 +115,6 @@
       <File Name="src/utils/iwarr.c"/>
       <File Name="src/utils/mt19937ar.h"/>
       <File Name="src/utils/mt19937ar.c"/>
-      <File Name="src/utils/rwticket.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="tmpl">
       <File Name="src/tmpl/libiowow.pc.in"/>
