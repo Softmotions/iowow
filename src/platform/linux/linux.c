@@ -179,6 +179,7 @@ iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
         break;
     }
   } while (size > 0);
+  return 0;
 }
 
 iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
@@ -188,7 +189,7 @@ iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
   } else if (origin == IWP_SEEK_END) {
     whence = SEEK_END;
   }
-  off_t off = lseek(fd, offset, whence);
+  off_t off = lseek(fh, offset, whence);
   if (off < 0) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   } else {
