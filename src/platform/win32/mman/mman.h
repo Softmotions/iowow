@@ -1,12 +1,14 @@
+#pragma once
 /*
  * sys/mman.h
  * mman-win32
- * 
- * https://github.com/witwall/mman-win32
+ *
+ * Based on https://github.com/witwall/mman-win32
  */
-
 #ifndef _SYS_MMAN_H_
 #define _SYS_MMAN_H_
+
+#include "basedefs.h"
 
 #ifndef _WIN32_WINNT    // Allow use of features specific to Windows XP or later.                   
 #define _WIN32_WINNT 0x0501 // Change this to the appropriate value to target other versions of Windows.
@@ -57,9 +59,8 @@ extern "C" {
 #define MS_SYNC         2
 #define MS_INVALIDATE   4
 
-void   *mmap(void *addr, size_t len, int prot, int flags, int fildes, OffsetType off);
+void   *mmap(void *addr, size_t len, int prot, int flags, HANDLE fh, OffsetType off);
 int     munmap(void *addr, size_t len);
-int     _mprotect(void *addr, size_t len, int prot);
 int     msync(void *addr, size_t len, int flags);
 int     mlock(const void *addr, size_t len);
 int     munlock(const void *addr, size_t len);

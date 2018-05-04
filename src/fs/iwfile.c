@@ -33,6 +33,10 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <unistd.h>
+#ifdef _WIN32
+#include <libiberty/libiberty.h>
+#define strndup xstrndup
+#endif
 
 typedef struct IWFS_FILE_IMPL {
   HANDLE fh;               /**< File handle. */
@@ -49,7 +53,7 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t 
   if (!(impl->opts.omode & IWFS_OWRITE)) {
     return IW_ERROR_READONLY;
   }
-  iwrc rc = iwp_write(impl->fh, off, buf, siz, sp);
+  iwrc rc = iwp_pwrite(impl->fh, off, buf, siz, sp);
   if (!rc && impl->opts.dlsnr) {
     rc = impl->opts.dlsnr->onwrite(impl->opts.dlsnr, off, buf, siz, 0);
   }
@@ -62,7 +66,7 @@ static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, si
   if (!impl) {
     return IW_ERROR_INVALID_STATE;
   }
-  return iwp_read(impl->fh, off, buf, siz, sp);
+  return iwp_pread(impl->fh, off, buf, siz, sp);
 }
 
 static iwrc _iwfs_close(struct IWFS_FILE *f) {
@@ -145,33 +149,33 @@ static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
 iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   assert(f);
   assert(_opts && _opts->path);
-
+  
   IWFS_FILE_OPTS *opts;
   IWF *impl;
   IWP_FILE_STAT fstat;
   iwfs_omode omode;
   iwrc rc;
   int mode;
-
+  
   memset(f, 0, sizeof(*f));
   rc = iwfs_file_init();
   RCRET(rc);
-
+  
   f->write = _iwfs_write;
   f->read = _iwfs_read;
   f->close = _iwfs_close;
   f->sync = _iwfs_sync;
   f->state = _iwfs_state;
   f->copy = _iwfs_copy;
-
+  
   impl = f->impl = calloc(sizeof(IWF), 1);
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-
+  
   impl->opts = *_opts;
   opts = &impl->opts;
-
+  
   if (opts->dlsnr) {
     IWDLSNR *l = opts->dlsnr;
     if (!l->onopen || !l->onclosing || !l->oncopy || !l->onresize ||
@@ -180,13 +184,13 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
       return IW_ERROR_INVALID_ARGS;
     }
   }
-
+  
   opts->path = strndup(_opts->path, MAXPATHLEN);
   if (!opts->path) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     goto finish;
   }
-
+  
   if (!opts->lock_mode) {
     opts->lock_mode = IWFS_DEFAULT_LOCKMODE;
   }
@@ -205,11 +209,11 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     opts->omode |= IWFS_OWRITE;
   }
   omode = opts->omode;
-
+  
   if (!(opts->omode & IWFS_OWRITE) && (opts->lock_mode & IWP_WLOCK)) {
     opts->lock_mode &= ~IWP_WLOCK;
   }
-
+  
   rc = iwp_fstat(opts->path, &fstat);
   if (!rc && !(opts->omode & IWFS_OTRUNC)) {
     impl->ostatus = IWFS_OPEN_EXISTING;
@@ -225,11 +229,31 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     if (omode & IWFS_OTRUNC)
       mode |= O_TRUNC;
   }
+#ifndef _WIN32
   impl->fh = open(opts->path, mode, opts->filemode);
   if (INVALIDHANDLE(impl->fh)) {
     rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     goto finish;
   }
+#else
+  DWORD womode = GENERIC_READ;
+  DWORD wcmode = OPEN_EXISTING;
+  if (omode & IWFS_OWRITE) {
+    womode |= GENERIC_WRITE;
+    if (omode & IWFS_OTRUNC) {
+      wcmode = CREATE_ALWAYS;
+    } else if (omode & IWFS_OCREATE) {
+      wcmode = OPEN_ALWAYS;
+    }
+  }
+  impl->fh = CreateFile(opts->path, womode,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        NULL, wcmode, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (INVALIDHANDLE(impl->fh)) {
+    rc = iwrc_set_werror(IW_ERROR_IO_ERRNO, GetLastError());
+    goto finish;
+  }
+#endif
   if (opts->lock_mode != IWP_NOLOCK) {
     rc = iwp_flock(impl->fh, opts->lock_mode);
     RCGO(rc, finish);

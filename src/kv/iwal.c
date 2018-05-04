@@ -1,8 +1,12 @@
 #include "iwkv_internal.h"
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 #include <time.h>
+#ifdef _WIN32
+#include "win32/mman/mman.h"
+#else
+#include <sys/mman.h>
+#endif
 
 extern atomic_uint_fast64_t g_trigger;
 
@@ -131,6 +135,7 @@ static void _destroy(IWAL *wal) {
 }
 
 static iwrc _flush_wl(IWAL *wal, bool sync) {
+  iwrc rc = 0;
   if (wal->bufpos) {
     uint32_t crc = iwu_crc32(wal->buf, wal->bufpos, 0);
     WBSEP sep = {0}; // Avoid uninitialized padding bytes
@@ -138,30 +143,25 @@ static iwrc _flush_wl(IWAL *wal, bool sync) {
     sep.crc = crc;
     sep.len = wal->bufpos;
     ssize_t wz = wal->bufpos + sizeof(WBSEP);
-    uint8_t *wp = wal->buf - sizeof(WBSEP);    
+    uint8_t *wp = wal->buf - sizeof(WBSEP);
     memcpy(wp, &sep, sizeof(WBSEP));
-    ssize_t sz = write(wal->fh, wp, wz);
-    if (wz != sz) {
-      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-    }
+    iwrc rc = iwp_write(wal->fh, wp, wz);
+    RCRET(rc);
     wal->bufpos = 0;
   }
-  if (sync && fsync(wal->fh)) {
-    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  if (sync) {
+    rc = iwp_fsync(wal->fh);
   }
-  return 0;
+  return rc;
 }
 
 IW_INLINE iwrc _truncate(IWAL *wal) {
   iwrc rc = iwp_ftruncate(wal->fh, 0);
   RCRET(rc);
-  if (lseek(wal->fh, 0, SEEK_SET) < 0) {
-    rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-    RCRET(rc);
-  }
-  if (fsync(wal->fh)) {
-    rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-  }
+  rc = iwp_lseek(wal->fh, 0, IWP_SEEK_SET, 0);
+  RCRET(rc);
+  rc = iwp_fsync(wal->fh);
+  RCRET(rc);
   return rc;
 }
 
@@ -180,10 +180,8 @@ static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *dat
   if (bufsz - wal->bufpos < len) {
     rc = _flush_wl(wal, false);
     RCRET(rc);
-    sz = write(wal->fh, data, len);
-    if (sz != len) {
-      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-    }
+    iwrc rc = iwp_write(wal->fh, data, len);
+    RCRET(rc);
   } else {
     assert(bufsz - wal->bufpos >= len);
     memcpy(wal->buf + wal->bufpos, data, len);
@@ -195,8 +193,7 @@ static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *dat
   return rc;
 }
 
-
-IW_INLINE iwrc _write(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len, bool checkpoint) {
+IW_INLINE iwrc _write_op(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len, bool checkpoint) {
   iwrc rc = _lock(wal);
   RCRET(rc);
   rc = _write_wl(wal, op, oplen, data, len, checkpoint);
@@ -242,7 +239,7 @@ static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int 
   wb.off = off;
   wb.len = len;
   wal->mbytes += len;
-  return _write((IWAL *) self, &wb, sizeof(wb), 0, 0, false);
+  return _write_op((IWAL *) self, &wb, sizeof(wb), 0, 0, false);
 }
 
 static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
@@ -256,7 +253,7 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
   wb.len = len;
   wb.noff = noff;
   wal->mbytes += len;
-  return _write(wal, &wb, sizeof(wb), 0, 0, false);
+  return _write_op(wal, &wb, sizeof(wb), 0, 0, false);
 }
 
 static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
@@ -271,7 +268,7 @@ static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len
   wb.len = len;
   wb.off = off;
   wal->mbytes += len;
-  return _write(wal, &wb, sizeof(wb), buf, len, false);
+  return _write_op(wal, &wb, sizeof(wb), buf, len, false);
 }
 
 static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags, bool *handled) {
@@ -285,7 +282,7 @@ static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags,
   wb.id = WOP_RESIZE;
   wb.osize = osize;
   wb.nsize = nsize;
-  return _write(wal, &wb, sizeof(wb), 0, 0, true);
+  return _write_op(wal, &wb, sizeof(wb), 0, 0, true);
 }
 
 static iwrc _onsynced(struct IWDLSNR *self, int flags) {
@@ -374,12 +371,11 @@ static iwrc _find_last_fixpoint(IWAL *wal, uint8_t *wmm, off_t fsz, off_t *pfpos
 
 static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   assert(wal->bufpos == 0);
-  iwrc rc = 0;
-  const off_t fsz = lseek(wal->fh, 0, SEEK_END);
-  if (fsz < 0) {
-    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-  } else if (!fsz) {
-    return 0; // empty wal log
+  off_t fsz = 0;
+  iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
+  RCRET(rc);
+  if (!fsz) { // empty wal log
+    return 0;
   }
   size_t sp;
   uint8_t *mm;
@@ -390,8 +386,9 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   if (wmm == MAP_FAILED) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
+#ifndef _WIN32
   madvise(wmm, fsz, MADV_SEQUENTIAL);
-  
+#endif
   // Temporary turn off extf locking
   wal->applying = true;
   bool eul = extfile_use_locks(extf, false);
@@ -522,13 +519,12 @@ finish:
 }
 
 static iwrc _recover_wl(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
-  const off_t fsz = lseek(wal->fh, 0, SEEK_END);
-  if (fsz < 0) {
-    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-  } else if (!fsz) {
-    return 0; // empty wal log
+  off_t fsz = 0;
+  iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
+  RCRET(rc);
+  if (!fsz) { // empty wal log
+    return 0;
   }
-  iwrc rc;
   IWFS_EXT extf;
   IWFS_EXT_OPTS extopts;
   memcpy(&extopts, &fsmopts->exfile, sizeof(extopts));
@@ -682,18 +678,18 @@ static void *_cpt_worker_fn(void *op) {
     bool sp = false, cp = false;
     rc = _lock(wal);
     RCBREAK(rc);
-#ifdef IW_HAVE_CLOCK_MONOTONIC          
+#ifdef IW_HAVE_CLOCK_MONOTONIC
     clockid_t clockid = CLOCK_MONOTONIC;
-#else    
+#else
     clockid_t clockid = CLOCK_REALTIME;
-#endif  
+#endif
     if (clock_gettime(clockid, &tp)) {
       rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
       _unlock(wal);
       break;
     }
     tp.tv_sec += 1; // one sec tic
-    tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);    
+    tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);
     rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
     if (rci && rci != ETIMEDOUT) {
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -713,9 +709,9 @@ static void *_cpt_worker_fn(void *op) {
       RCBREAK(rc);
       if (iwkv->open && !wal->synched) {
         if (cp) {
-          rc = _checkpoint_wl(wal);          
-          savepoint_ts = wal->checkpoint_ts;          
-        } else {          
+          rc = _checkpoint_wl(wal);
+          savepoint_ts = wal->checkpoint_ts;
+        } else {
           rc = _savepoint_wl(wal, true);
           IWRC(iwp_current_time_ms(&savepoint_ts, true), rc);
         }
@@ -746,12 +742,12 @@ iwrc _init_cpt(IWAL *wal) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)  
+#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
   rci = pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-#endif    
+#endif
   rci = pthread_cond_init(&wal->cpt_cond, &cattr);
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -842,12 +838,23 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->buf += sizeof(WBSEP);
   wal->bufsz = wal->wal_buffer_sz - sizeof(WBSEP);
   
-  // Now open WAL file
+// Now open WAL file
+  
+#ifndef _WIN32
   HANDLE fh = open(wal->path, O_CREAT | O_RDWR, IWFS_DEFAULT_FILEMODE);
   if (INVALIDHANDLE(fh)) {
     rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     goto finish;
   }
+#else
+  HANDLE fh = CreateFile(wal->path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
+                         NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (INVALIDHANDLE(fh)) {
+    rc = iwrc_set_werror(IW_ERROR_IO_ERRNO, GetLastError());
+    goto finish;
+  }
+#endif
+
   wal->fh = fh;
   rc = iwp_flock(wal->fh, IWP_WLOCK);
   RCGO(rc, finish);

@@ -2,7 +2,6 @@
 #ifndef IWP_H
 #define IWP_H
 
-//
 /**************************************************************************************************
  * IOWOW library
  *
@@ -109,6 +108,13 @@ typedef struct IWP_FILE_STAT {
   iwp_file_type ftype; /**< File type. */
 } IWP_FILE_STAT;
 
+
+typedef enum {
+  IWP_SEEK_SET = 1,
+  IWP_SEEK_CUR,
+  IWP_SEEK_END
+} iwp_seek_origin;
+
 /**
  * @brief Stat the file specified by @a path.
  *
@@ -153,8 +159,7 @@ IW_EXPORT iwrc iwp_closefh(HANDLE fh);
  * @param [out] sp  Number of bytes read actually
  * @return `0` on sucess or error code.
  */
-IW_EXPORT iwrc iwp_read(HANDLE fh, off_t off, void *buf, size_t siz,
-                        size_t *sp);
+IW_EXPORT iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp);
 
 /**
  * @brief Write @a siz bytes into file @a fh
@@ -168,9 +173,11 @@ IW_EXPORT iwrc iwp_read(HANDLE fh, off_t off, void *buf, size_t siz,
  * @param [out] sp   Number of bytes written.
  * @return `0` on sucess or error code.
  */
-IW_EXPORT iwrc iwp_write(HANDLE fh, off_t off,
-                         const void *buf, size_t siz,
-                         size_t *sp);
+IW_EXPORT iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp);
+
+IW_EXPORT iwrc iwp_write(HANDLE fh, const void *buf, size_t count);
+
+IW_EXPORT iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos);
 
 /**
   * @brief Copy data within a file
@@ -181,7 +188,6 @@ IW_EXPORT iwrc iwp_write(HANDLE fh, off_t off,
 IW_EXPORT iwrc iwp_copy_bytes(HANDLE fh,
                               off_t off, size_t siz,
                               off_t noff);
-
 /**
  * @brief Get system page size.
  */
@@ -210,7 +216,6 @@ IW_EXPORT iwrc iwp_fallocate(HANDLE fh, off_t len);
  */
 IW_EXPORT iwrc iwp_sleep(uint64_t ms);
 
-
 /**
  * @brief Recursive directory removal specified by @a path.
  * @param path Directory path
@@ -224,19 +229,16 @@ IW_EXPORT iwrc iwp_removedir(const char *path);
  */
 IW_EXPORT iwrc iwp_exec_path(char *opath);
 
-
 /**
  * @brief Return number of CPU cores.
  */
 IW_EXPORT uint16_t iwp_num_cpu_cores();
-
 
 /**
  * @brief Init iwp module.
  * @return `0` on success or error code.
  */
 IW_EXPORT WUR iwrc iwp_init(void);
-
 
 IW_EXPORT iwrc iwp_fsync(HANDLE fh);
 

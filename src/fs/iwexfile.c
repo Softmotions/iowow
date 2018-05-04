@@ -58,9 +58,6 @@ typedef struct MMAPSLOT {
   size_t len;    /**< Actual size of memory mapped region. */
   size_t maxlen; /**< Maximum length of memory mapped region */
   iwfs_ext_mmap_opts_t mmopts;
-#ifdef _WIN32
-  HANDLE mmapfh; /**< Win32 file mapping handle. */
-#endif
   struct MMAPSLOT *prev; /**< Previous mmap slot. */
   struct MMAPSLOT *next; /**< Next mmap slot. */
   uint8_t *mmap;          /**< Pointer to a mmaped address space
@@ -140,8 +137,7 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
   }
   if (s->len) {  // unmap me first
     assert(s->mmap);
-    if (!(s->mmopts & IWFS_MMAP_PRIVATE)
-        && msync(s->mmap, s->len, 0) == -1) {
+    if (!(s->mmopts & IWFS_MMAP_PRIVATE) && msync(s->mmap, s->len, 0) == -1) {
       s->len = 0;
       return iwrc_set_errno(IW_ERROR_ERRNO, errno);
     }
@@ -153,7 +149,7 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
   }
   if (nlen > 0) {
     int flags = (s->mmopts & IWFS_MMAP_PRIVATE) ? MAP_PRIVATE : MAP_SHARED;
-    int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE | PROT_READ) : (PROT_READ);
+    int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE | PROT_READ) : PROT_READ;
     s->len = nlen;
     s->mmap = mmap(0, s->len, prot, flags, impl->fh, s->off);
     if (s->mmap == MAP_FAILED) {
@@ -535,9 +531,6 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen, iwfs_
   ns->len = 0;
   ns->maxlen = maxlen;
   ns->mmopts = mmopts;
-#ifdef _WIN32
-  ns->mmapfh = INVALIDHANDLE;
-#endif
   rc = _exfile_initmmap_slot_lw(f, ns);
   RCGO(rc, finish);
   if (impl->mmslots == 0) {

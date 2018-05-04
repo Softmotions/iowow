@@ -54,12 +54,25 @@ else()
 endif(CMAKE_USE_WIN32_THREADS_INIT)
 
 if (NOT WIN32)
-    list(APPEND PROJECT_LLIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+  list(APPEND PROJECT_LLIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 else()
   include(Win32LIBTools)
+  
+  check_include_file(windows.h HAVE_WINDOWS_H)
+	if (NOT HAVE_WINDOWS_H)
+		message(FATAL_ERROR "Unable to find windows.h include file")
+	endif()
+  
   set(IBERTY_FIND_REQUIRED, ON)
   include(FindLibIberty)
   list(APPEND PROJECT_LLIBRARIES ${IBERTY_LIBRARIES})
+  
+  check_library_exists(winpthread pthread_exit "" HAVE_WINPTHREAD)
+	if (NOT HAVE_WINPTHREAD)
+		message(FATAL_ERROR "Unable to winpthread lib")
+	endif()
+	list(INSERT PROJECT_LLIBRARIES 0 -lwinpthread)
+  add_definitions(-D_POSIX_THREAD_SAFE_FUNCTIONS)
 endif()
 
 find_library(M_LIB m)
@@ -117,26 +130,13 @@ list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)
 list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
 include_directories(${PROJECT_INCLUDE_DIRS})
 
-if (NOT BUILD_SHARED_LIBS)
-    add_definitions(-DIW_NODLL)
-    add_library(iowow STATIC ${ALL_SRC})
-    add_library(iowow_s ALIAS iowow)
-else()
-    add_library(iowow SHARED ${ALL_SRC})
-    add_library(iowow_s STATIC ${ALL_SRC})
-endif()
-
-target_link_libraries(iowow ${PROJECT_LLIBRARIES})
-if (BUILD_SHARED_LIBS)
-    target_link_libraries(iowow_s ${PROJECT_LLIBRARIES})
-endif()
-
 # -pg -no-pie
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers -Wno-missing-braces")
 if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-format")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pedantic-ms-format")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
 endif()
 
 if (ASAN)
@@ -187,8 +187,31 @@ foreach(MODULE IN LISTS MODULES)
     endif()
 endforeach(MODULE)
 
+if (NOT BUILD_SHARED_LIBS)
+    add_definitions(-DIW_NODLL)
+    add_library(iowow STATIC ${ALL_SRC})
+    add_library(iowow_s ALIAS iowow)
+else()
+    add_library(iowow SHARED ${ALL_SRC})
+    add_library(iowow_s STATIC ${ALL_SRC})
+endif()
+
+target_link_libraries(iowow ${PROJECT_LLIBRARIES})
+if (BUILD_SHARED_LIBS)
+    target_link_libraries(iowow_s ${PROJECT_LLIBRARIES})
+endif()
 
 if (BUILD_SHARED_LIBS)
+    if (WIN32)
+      add_dependencies(iowow wintools_init)
+      set_target_properties(iowow PROPERTIES LINK_FLAGS "-Wl,--output-def,libiowow.def")
+      add_w32_importlib(iowow libiowow ${CMAKE_CURRENT_BINARY_DIR})
+      install(FILES 
+        ${CMAKE_CURRENT_BINARY_DIR}/libiowow.def
+        ${CMAKE_CURRENT_BINARY_DIR}/libiowow.lib
+        ${CMAKE_CURRENT_BINARY_DIR}/libiowow.exp
+              DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    endif(WIN32)
 
     set_target_properties(iowow PROPERTIES
                           VERSION ${PROJECT_VERSION}
@@ -199,8 +222,8 @@ if (BUILD_SHARED_LIBS)
     set_target_properties(iowow_s PROPERTIES
                           VERSION ${PROJECT_VERSION}
                           COMPILE_FLAGS "-DIW_NODLL"
-                          OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})
-else (BUILD_SHARED_LIBS)
+                          OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})                          
+else()
 
     set_target_properties(iowow PROPERTIES
                           VERSION ${PROJECT_VERSION}

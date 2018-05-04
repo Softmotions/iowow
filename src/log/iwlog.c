@@ -83,7 +83,7 @@ iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char 
   
 #ifdef _WIN32
   int werror_code = iwrc_strip_werror(&ecode);
-  locale_t locale = _get_current_locale();
+  locale_t locale = NULL;
 #else
   int werror_code = 0;
   locale_t locale = uselocale(0);

@@ -51,11 +51,11 @@
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   struct timespec spec;
   
-#ifdef IW_HAVE_CLOCK_MONOTONIC          
-    clockid_t clockid = monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME;
-#else    
-    clockid_t clockid = CLOCK_REALTIME;
-#endif    
+#ifdef IW_HAVE_CLOCK_MONOTONIC
+  clockid_t clockid = monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME;
+#else
+  clockid_t clockid = CLOCK_REALTIME;
+#endif
   if (clock_gettime(clockid, &spec) < 0) {
     *time = 0;
     return IW_ERROR_ERRNO;
@@ -138,7 +138,7 @@ iwrc iwp_closefh(HANDLE fh) {
   return 0;
 }
 
-iwrc iwp_read(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
+iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
   assert(buf && sp);
   ssize_t rs = pread(fh, buf, siz, off);
   if (rs == -1) {
@@ -150,7 +150,7 @@ iwrc iwp_read(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
   }
 }
 
-iwrc iwp_write(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
+iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
   assert(buf && sp);
   ssize_t ws = pwrite(fh, buf, siz, off);
   if (ws == -1) {
@@ -158,6 +158,43 @@ iwrc iwp_write(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   } else {
     *sp = ws;
+    return 0;
+  }
+}
+
+iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
+  do {
+    const char *rp = buf;
+    int wb = write(fh, rp, size);
+    switch (wb) {
+      case -1:
+        if (errno != EINTR) {
+          return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+        }
+      case 0:
+        break;
+      default:
+        rp += wb;
+        size -= wb;
+        break;
+    }
+  } while (size > 0);
+}
+
+iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
+  int whence = SEEK_SET;
+  if (origin == IWP_SEEK_CUR) {
+    whence = SEEK_CUR;
+  } else if (origin == IWP_SEEK_END) {
+    whence = SEEK_END;
+  }
+  off_t off = lseek(fd, offset, whence);
+  if (off < 0) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  } else {
+    if (pos) {
+      *pos = off;
+    }
     return 0;
   }
 }
@@ -178,11 +215,11 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
   }
 #endif
   while (pos < siz) {
-    rc = iwp_read(fh, off + pos, buf, MIN(sizeof(buf), (siz - pos)), &sp);
+    rc = iwp_pread(fh, off + pos, buf, MIN(sizeof(buf), (siz - pos)), &sp);
     if (rc || !sp) {
       break;
     } else {
-      rc = iwp_write(fh, noff + pos, buf, sp, &sp2);
+      rc = iwp_pwrite(fh, noff + pos, buf, sp, &sp2);
       pos += sp;
       if (rc) {
         break;
