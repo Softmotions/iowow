@@ -28,12 +28,9 @@ int init_suite(void) {
   ts = IW_SWAB64(ts);
   ts >>= 32;
   g_seed = ts;
-  
-  //g_seed = 3223813347;
-  
+    
   fprintf(stderr, "\nRandom seed: %u\n", g_seed);
-  iwu_rand_seed(g_seed);
-  srandom(g_seed);
+  iwu_rand_seed(g_seed);  
   for (int i = 0; i < RND_DATA_SZ; ++i) {
     RND_DATA[i] = ' ' + iwu_rand_range(95); // ascii space ... ~
   }

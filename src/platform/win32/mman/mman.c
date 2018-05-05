@@ -25,11 +25,9 @@ static DWORD __map_mmap_prot_page(const int prot, const int flags) {
     return protect;
   }
   if ((prot & PROT_EXEC)) {
-    protect = ((prot & PROT_WRITE)) ?
-              PAGE_EXECUTE_READWRITE : PAGE_EXECUTE_READ;
+    protect = ((prot & PROT_WRITE)) ? PAGE_EXECUTE_READWRITE : PAGE_EXECUTE_READ;
   } else {
-    protect = ((prot & PROT_WRITE) && !(flags & MAP_PRIVATE)) ?
-              PAGE_READWRITE : PAGE_READONLY;
+    protect = ((prot & PROT_WRITE) && !(flags & MAP_PRIVATE)) ? PAGE_READWRITE : PAGE_READONLY;
   }
   return protect;
 }

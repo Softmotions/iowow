@@ -1356,10 +1356,6 @@ IW_INLINE uint8_t _sblk_genlevel(IWDB db) {
     iwkv_next_level = -1;
     assert(lvl >= 0 && lvl < SLEVELS);
     return lvl;
-  } else if (iwkv_next_level == -2) {
-    uint32_t r = random(); // up to 0x7fffffff (not 0xffffffff)
-    for (lvl = 0; lvl < SLEVELS && !(r & 1); ++lvl) r >>= 1;
-    return IW_UNLIKELY(lvl >= SLEVELS) ? SLEVELS - 1 : lvl;
   }
 #endif
   uint8_t ret;

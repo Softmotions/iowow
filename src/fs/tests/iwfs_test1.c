@@ -193,7 +193,6 @@ void test_mmap1(void) {
   rc = iwfs_exfile_open(&ef, &opts);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  // iwrc(*add_mmap)(struct IWFS_EXT* f, off_t off, size_t maxlen);
   rc = ef.add_mmap(&ef, 2 * psize, psize, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -206,6 +205,10 @@ void test_mmap1(void) {
   rc = ef.add_mmap(&ef, psize, 2 * psize, 0);
   CU_ASSERT_EQUAL_FATAL(rc, IWFS_ERROR_MMAP_OVERLAP);
 
+#ifdef _WIN32
+  rc = ef.add_mmap(&ef, 3 * psize, 10 * psize, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+#else
 #ifndef IW_32
   rc = ef.add_mmap(&ef, 3 * psize, UINT64_MAX, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -213,9 +216,8 @@ void test_mmap1(void) {
   rc = ef.add_mmap(&ef, 3 * psize, UINT32_MAX >> 1, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 #endif
+#endif
 
-  // iwrc(*write)(struct IWFS_EXT* f, off_t off, const void *buf, size_t siz,
-  // size_t *sp);
   rc = ef.write(&ef, psize / 2, data, psize, &sp);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL_FATAL(sp, psize);
@@ -310,6 +312,8 @@ void test_mmap1(void) {
 
 int main() {
   CU_pSuite pSuite = NULL;
+
+
 
   /* Initialize the CUnit test registry */
   if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();

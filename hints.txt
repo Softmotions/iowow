@@ -7,7 +7,7 @@ sudo apt-get install bison flex libtool ruby scons intltool libtool-bin p7zip-fu
 
 JOBS := 1
 MXE_TARGETS := x86_64-w64-mingw32.static
-LOCAL_PKG_LIST := cunit libiberty
+LOCAL_PKG_LIST := cunit libiberty gdb	
 .DEFAULT local-pkg-list:
 local-pkg-list: $(LOCAL_PKG_LIST)
 

@@ -30,6 +30,7 @@
 #include "log/iwlog.h"
 #include "fs/iwfsmfile.h"
 #include "utils/iwutils.h"
+#include "platform/iwp.h"
 
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
@@ -370,9 +371,10 @@ void test_fsm_uniform_alloc_impl(int mmap_all) {
   CU_ASSERT_FALSE_FATAL(rc);
 
   if (iwp_page_size() == 4096) {
-    struct stat st;
-    CU_ASSERT_EQUAL(lstat("test_fsm_uniform_alloc.fsm", &st), 0);
-    CU_ASSERT_EQUAL(st.st_size, iwp_page_size() * 3);
+    IWP_FILE_STAT st;
+    rc = iwp_fstat("test_fsm_uniform_alloc.fsm", &st);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);        
+    CU_ASSERT_EQUAL(st.size, iwp_page_size() * 3);
   }
 }
 

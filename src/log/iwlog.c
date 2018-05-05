@@ -160,14 +160,12 @@ void iwrc_strip_code(iwrc *rc) {
 }
 
 void iwlog_set_logfn(IWLOG_FN fp) {
-  pthread_mutex_lock(&_mtx);
-  
+  pthread_mutex_lock(&_mtx);  
   if (!fp) {
     _current_logfn = _default_logfn;
   } else {
     _current_logfn = fp;
-  }
-  
+  }  
   pthread_mutex_unlock(&_mtx);
 }
 
