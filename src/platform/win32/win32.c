@@ -61,7 +61,7 @@ iwrc iwp_fdatasync(HANDLE fh) {
 }
 
 size_t iwp_page_size(void) {
-  static off_t _iwp_pagesize = 0;
+  static DWORD _iwp_pagesize = 0;
   if (!_iwp_pagesize) {
     SYSTEM_INFO system_info;
     GetSystemInfo(&system_info);
@@ -71,7 +71,7 @@ size_t iwp_page_size(void) {
 }
 
 uint16_t iwp_num_cpu_cores() {
-  static uint16_t _iwp_numcores = 0;
+  static DWORD _iwp_numcores = 0;
   if (!_iwp_numcores) {
     SYSTEM_INFO system_info;
     GetSystemInfo(&system_info);
@@ -166,7 +166,7 @@ iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode) {
   OVERLAPPED offset = {0};
   if (lmode & IWP_WLOCK) type = LOCKFILE_EXCLUSIVE_LOCK;
   if (lmode & IWP_NBLOCK) type |= LOCKFILE_FAIL_IMMEDIATELY;
-  if (LockFileEx(fh, type, 0, ULONG_MAX, ULONG_MAX, &offset)) {
+  if (!LockFileEx(fh, type, 0, ULONG_MAX, ULONG_MAX, &offset)) {
     return iwrc_set_werror(IW_ERROR_ERRNO, GetLastError());
   }
   return 0;
@@ -177,7 +177,7 @@ iwrc iwp_unlock(HANDLE fh) {
     return IW_ERROR_INVALID_HANDLE;
   }
   OVERLAPPED offset = {0};
-  if (UnlockFileEx(fh, 0, ULONG_MAX, ULONG_MAX, &offset)) {
+  if (!UnlockFileEx(fh, 0, ULONG_MAX, ULONG_MAX, &offset)) {
     return iwrc_set_werror(IW_ERROR_ERRNO, GetLastError());
   } else {
     return 0;
