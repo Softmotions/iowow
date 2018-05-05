@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="iowow" Version="10.0.0" InternalType="Console">
+  <VirtualDirectory Name="tools">
+    <File Name="tools/win32/run-gedb-server.sh"/>
+  </VirtualDirectory>
   <VirtualDirectory Name="man">
     <File Name="man/CMakeLists.txt"/>
   </VirtualDirectory>
@@ -239,7 +242,7 @@
       <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>
-      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+      <Debugger IsRemote="yes" RemoteHostName="localhost" RemoteHostPort="6667" DebuggerPath="/usr/bin/x86_64-w64-mingw32-gdb" IsExtended="yes">
         <DebuggerSearchPaths/>
         <PostConnectCommands/>
         <StartupCommands/>

@@ -2,6 +2,7 @@
 .codelite/
 .cmaketools.json
 *.tags
+*.dll
 #iowow.project
 #iowow.workspace
 build/
