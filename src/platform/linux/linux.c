@@ -71,11 +71,11 @@ static iwrc _iwp_fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
   memset(fs, 0, sizeof(*fs));
   if (path) {
     if (stat(path, &st)) {
-      return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
+      return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
   } else {
     if (fstat(fd, &st)) {
-      return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : IW_ERROR_IO_ERRNO;
+      return (errno == ENOENT) ? IW_ERROR_NOT_EXISTS : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
   }
   fs->atime = _IW_TIMESPEC2MS(st.st_atim);
@@ -103,13 +103,15 @@ iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *fs) {
   return _iwp_fstat(0, fh, fs);
 }
 
-iwrc iwp_flock(HANDLE fd, iwp_lockmode lmode) {
-  assert(!INVALIDHANDLE(fd));
+iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode) {  
+  if (INVALIDHANDLE(fh)) {
+     return IW_ERROR_INVALID_HANDLE;
+  }  
   if (lmode == IWP_NOLOCK) {
     return 0;
   }
   struct flock lock = {.l_type = (lmode & IWP_WLOCK) ? F_WRLCK : F_RDLCK, .l_whence = SEEK_SET};
-  while (fcntl(fd, (lmode & IWP_NBLOCK) ? F_SETLK : F_SETLKW, &lock) == -1) {
+  while (fcntl(fh, (lmode & IWP_NBLOCK) ? F_SETLK : F_SETLKW, &lock) == -1) {
     if (errno != EINTR) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
@@ -117,10 +119,12 @@ iwrc iwp_flock(HANDLE fd, iwp_lockmode lmode) {
   return 0;
 }
 
-iwrc iwp_unlock(HANDLE fd) {
-  assert(!INVALIDHANDLE(fd));
+iwrc iwp_unlock(HANDLE fh) {
+  if (INVALIDHANDLE(fh)) {
+     return IW_ERROR_INVALID_HANDLE;
+  }  
   struct flock lock = {.l_type = F_UNLCK, .l_whence = SEEK_SET};
-  while (fcntl(fd, F_SETLKW, &lock) == -1) {
+  while (fcntl(fh, F_SETLKW, &lock) == -1) {
     if (errno != EINTR) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
@@ -139,7 +143,12 @@ iwrc iwp_closefh(HANDLE fh) {
 }
 
 iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
-  assert(buf && sp);
+  if (INVALIDHANDLE(fh)) {
+    return IW_ERROR_INVALID_HANDLE;
+  }
+  if (!buf || !sp) {
+    return IW_ERROR_INVALID_ARGS;
+  }
   ssize_t rs = pread(fh, buf, siz, off);
   if (rs == -1) {
     *sp = 0;
@@ -150,8 +159,13 @@ iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
   }
 }
 
-iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
-  assert(buf && sp);
+iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {  
+  if (INVALIDHANDLE(fh)) {
+    return IW_ERROR_INVALID_HANDLE;
+  }
+  if (!buf || !sp) {
+    return IW_ERROR_INVALID_ARGS;
+  }
   ssize_t ws = pwrite(fh, buf, siz, off);
   if (ws == -1) {
     *sp = 0;
@@ -163,6 +177,9 @@ iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
 }
 
 iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
+  if (INVALIDHANDLE(fh)) {
+    return IW_ERROR_INVALID_HANDLE;
+  }
   do {
     const char *rp = buf;
     int wb = write(fh, rp, size);
@@ -183,6 +200,9 @@ iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
 }
 
 iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
+  if (INVALIDHANDLE(fh)) {
+    return IW_ERROR_INVALID_HANDLE;
+  }
   int whence = SEEK_SET;
   if (origin == IWP_SEEK_CUR) {
     whence = SEEK_CUR;
@@ -198,45 +218,6 @@ iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
     }
     return 0;
   }
-}
-
-iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
-  int overlap = IW_RANGES_OVERLAP(off, off + siz, noff, noff + siz);
-  size_t sp, sp2;
-  iwrc rc = 0;
-  off_t pos = 0;
-  uint8_t buf[4096];
-  if (overlap && noff > off) {
-    // todo resolve it!!
-    return IW_ERROR_OVERFLOW;
-  }
-#ifndef __APPLE__
-  if (siz > sizeof(buf)) {
-    posix_fadvise(fh, off, siz, POSIX_FADV_SEQUENTIAL);
-  }
-#endif
-  while (pos < siz) {
-    rc = iwp_pread(fh, off + pos, buf, MIN(sizeof(buf), (siz - pos)), &sp);
-    if (rc || !sp) {
-      break;
-    } else {
-      rc = iwp_pwrite(fh, noff + pos, buf, sp, &sp2);
-      pos += sp;
-      if (rc) {
-        break;
-      }
-      if (sp != sp2) {
-        rc = IW_ERROR_INVALID_STATE;
-        break;
-      }
-    }
-  }
-#ifndef __APPLE__
-  if (siz > sizeof(buf)) {
-    posix_fadvise(fh, off, siz, POSIX_FADV_NORMAL);
-  }
-#endif
-  return rc;
 }
 
 size_t iwp_page_size(void) {
@@ -295,11 +276,11 @@ iwrc iwp_removedir(const char *path) {
   return 0;
 }
 
-iwrc iwp_exec_path(char *opath) {
+iwrc iwp_exec_path(char *opath) {  
+#ifdef __linux  
   pid_t pid;
   char path[MAXPATHLEN];
-  char epath[MAXPATHLEN];
-  
+  char epath[MAXPATHLEN];  
   memset(epath, 0, sizeof(epath));
   pid = getpid();
   sprintf(path, "/proc/%d/exe", pid);
@@ -309,6 +290,10 @@ iwrc iwp_exec_path(char *opath) {
     strncpy(opath, epath, MAXPATHLEN);
   }
   return 0;
+#else 
+  // todo
+  return IW_ERROR_NOT_IMPLEMENTED;
+#endif  
 }
 
 uint16_t iwp_num_cpu_cores() {

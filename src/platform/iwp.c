@@ -28,6 +28,7 @@
 
 #include "log/iwlog.h"
 #include "platform/iwp.h"
+#include "utils/iwutils.h"
 #include <stdio.h>
 
 unsigned int iwcpuflags = 0;
@@ -64,6 +65,48 @@ static unsigned int x86_simd(void) {
 #else
   return 0;
 #endif
+}
+
+iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
+  if (INVALIDHANDLE(fh)) {
+    return IW_ERROR_INVALID_HANDLE;
+  }
+  int overlap = IW_RANGES_OVERLAP(off, off + siz, noff, noff + siz);
+  size_t sp, sp2;
+  iwrc rc = 0;
+  off_t pos = 0;
+  uint8_t buf[4096];
+  if (overlap && noff > off) {
+    // todo resolve it!!
+    return IW_ERROR_OVERFLOW;
+  }
+#if !defined(__APPLE__) && !defined(_WIN32)
+  if (siz > sizeof(buf)) {
+    posix_fadvise(fh, off, siz, POSIX_FADV_SEQUENTIAL);
+  }
+#endif
+  while (pos < siz) {
+    rc = iwp_pread(fh, off + pos, buf, MIN(sizeof(buf), (siz - pos)), &sp);
+    if (rc || !sp) {
+      break;
+    } else {
+      rc = iwp_pwrite(fh, noff + pos, buf, sp, &sp2);
+      pos += sp;
+      if (rc) {
+        break;
+      }
+      if (sp != sp2) {
+        rc = IW_ERROR_INVALID_STATE;
+        break;
+      }
+    }
+  }
+#if !defined(__APPLE__) && !defined(_WIN32)
+  if (siz > sizeof(buf)) {
+    posix_fadvise(fh, off, siz, POSIX_FADV_NORMAL);
+  }
+#endif
+  return rc;
 }
 
 iwrc iwp_init(void) {
