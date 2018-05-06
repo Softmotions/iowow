@@ -311,7 +311,7 @@ iwrc iwp_fsync(HANDLE fh) {
 
 iwrc iwp_fdatasync(HANDLE fh) {
 #ifdef __APPLE__
-  if (fcntl(impl->fh, F_FULLFSYNC) == -1) {
+  if (fcntl(fh, F_FULLFSYNC) == -1) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
 #else
