@@ -3,7 +3,7 @@
 #define IWRDB_H
 
 #include "basedefs.h"
-#include <unistd.h>
+#include <stdio.h>
 
 IW_EXTERN_C_START
 

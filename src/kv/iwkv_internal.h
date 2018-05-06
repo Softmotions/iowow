@@ -81,8 +81,8 @@
 
 #define BLK2ADDR(blk_) (((off_t) (blk_)) << IWKV_FSM_BPOW)
 
-struct IWKV;
-struct IWDB;
+struct _IWKV;
+struct _IWDB;
 
 typedef uint32_t blkn_t;
 typedef uint32_t dbid_t;
@@ -178,7 +178,7 @@ typedef struct DBCACHE {
 } DBCACHE;
 
 /* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209 */
-struct IWDB {
+struct _IWDB {
   // SBH
   IWDB db;                    /**< Database ref */
   off_t addr;                 /**< Database block address */
@@ -188,8 +188,8 @@ struct IWDB {
   DBCACHE cache;              /**< SBLK nodes cache */
   pthread_rwlock_t rwl;       /**< Database API RW lock */
   uint64_t next_db_addr;      /**< Next IWDB addr */
-  struct IWDB *next;          /**< Next IWDB meta */
-  struct IWDB *prev;          /**< Prev IWDB meta */
+  struct _IWDB *next;          /**< Next IWDB meta */
+  struct _IWDB *prev;          /**< Prev IWDB meta */
   dbid_t id;                  /**< Database ID */
   volatile int32_t wk_count;  /**< Number of active database workers */
   iwdb_flags_t dbflg;         /**< Database specific flags */
@@ -218,7 +218,7 @@ typedef struct SBLK {
 KHASH_MAP_INIT_INT(DBS, IWDB)
 
 /** IWKV instance */
-struct IWKV {
+struct _IWKV {
   IWFS_FSM fsm;               /**< FSM pool */
   pthread_rwlock_t rwl;       /**< API RW lock */
   iwrc fatalrc;               /**< Fatal error occuried, no farther operations can be performed */
@@ -267,7 +267,7 @@ typedef struct IWLCTX {
 } IWLCTX;
 
 /** Cursor context */
-struct IWKV_cursor {
+struct _IWKV_cursor {
   SBLK *cn;                   /**< Current `SBLK` node */
   off_t dbaddr;               /**< Database address used as `cn` */
   uint8_t cnpos;              /**< Position in the current `SBLK` node */

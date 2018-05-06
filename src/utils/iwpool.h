@@ -40,8 +40,8 @@ IW_EXTERN_C_START
 #define IWPOOL_ALIGN_SIZE (8)
 #endif
 
-struct IWPOOL;
-typedef struct IWPOOL IWPOOL;
+struct _IWPOOL;
+typedef struct _IWPOOL IWPOOL;
 
 IW_EXPORT IWPOOL *iwpool_create(size_t siz);
 

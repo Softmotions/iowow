@@ -9,7 +9,7 @@ char *g_program;
 
 uint32_t _execsize();
 
-typedef struct BMCTX BMCTX;
+typedef struct _BMCTX BMCTX;
 
 typedef bool (bench_method(BMCTX *bmctx));
 
@@ -38,7 +38,7 @@ struct BM {
   uint64_t (*db_size_bytes)(BMCTX *ctx);
 } bm = {0};
 
-struct BMCTX {
+struct _BMCTX {
   bool success;
   bool freshdb;
   bool logdbsize;

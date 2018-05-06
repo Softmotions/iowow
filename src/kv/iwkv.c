@@ -250,7 +250,7 @@ static WUR iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   uint8_t *rp;
   uint32_t lv;
   int rci;
-  IWDB db = calloc(1, sizeof(struct IWDB));
+  IWDB db = calloc(1, sizeof(struct _IWDB));
   *dbp = 0;
   if (!db) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -471,7 +471,7 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   off_t baddr = 0, blen;
   IWFS_FSM *fsm = &iwkv->fsm;
   *odb = 0;
-  IWDB db = calloc(1, sizeof(struct IWDB));
+  IWDB db = calloc(1, sizeof(struct _IWDB));
   if (!db) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -2792,7 +2792,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   if (opts->random_seed) {
     iwu_rand_seed(opts->random_seed);
   }
-  *iwkvp = calloc(1, sizeof(struct IWKV));
+  *iwkvp = calloc(1, sizeof(struct _IWKV));
   if (!*iwkvp) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }

@@ -1,7 +1,8 @@
-iowow (1.2.1) testing; urgency=medium
+iowow (1.2.1) UNRELEASED; urgency=medium
 
-  * Removed unistd.h from src/fs/iwdlsnr.h since it is unused and not portable. 
-
+  * Removed unistd.h from src/fs/iwdlsnr.h since it is not portable. 
+  * C++ friendly header files
+  
  -- Anton Adamansky <adamansky@gmail.com>  Sun, 06 May 2018 23:30:09 +0700
 
 iowow (1.2.0) testing; urgency=medium

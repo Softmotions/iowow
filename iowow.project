@@ -67,9 +67,7 @@
       <File Name="src/fs/iwfs.c"/>
       <File Name="src/fs/iwfsmfile.c"/>
       <File Name="src/fs/iwfsmfile.h"/>
-      <File Name="src/fs/iwrwlfile.c"/>
       <File Name="src/fs/iwfile.c"/>
-      <File Name="src/fs/iwrwlfile.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="log">
       <File Name="src/log/CMakeLists.txt"/>

@@ -104,11 +104,11 @@ typedef enum {
   IWKV_SYNC =         0x4    /**< Flush changes on disk after operation */
 } iwkv_opflags;
 
-struct IWKV;
-typedef struct IWKV *IWKV;
+struct _IWKV;
+typedef struct _IWKV *IWKV;
 
-struct IWDB;
-typedef struct IWDB *IWDB;
+struct _IWDB;
+typedef struct _IWDB *IWDB;
 
 /**
  * @brief WAL oprions.
@@ -146,8 +146,8 @@ typedef struct IWKV_val {
 /**
  * @brief Cursor opaque handler.
  */
-struct IWKV_cursor;
-typedef struct IWKV_cursor *IWKV_cursor;
+struct _IWKV_cursor;
+typedef struct _IWKV_cursor *IWKV_cursor;
 
 /**
  * @brief Database cursor operations and position flags.

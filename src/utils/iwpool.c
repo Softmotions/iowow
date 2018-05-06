@@ -17,7 +17,7 @@ typedef struct IWPOOL_UNIT {
 } IWPOOL_UNIT;
 
 /** Memory pool */
-struct IWPOOL {
+struct _IWPOOL {
   IWPOOL_UNIT *head;   /**< First heap unit */
   char        *heap;   /**< Heap of current heap unit */
   size_t       usiz;   /**< Used size */
