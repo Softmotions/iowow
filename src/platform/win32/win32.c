@@ -60,24 +60,22 @@ iwrc iwp_fdatasync(HANDLE fh) {
   return iwp_fsync(fh);
 }
 
-size_t iwp_page_size(void) {
-  static DWORD _iwp_pagesize = 0;
-  if (!_iwp_pagesize) {
-    SYSTEM_INFO system_info;
-    GetSystemInfo(&system_info);
-    _iwp_pagesize = system_info.dwPageSize;
-  }
-  return _iwp_pagesize;
+static SYSTEM_INFO sysinfo;
+
+static void _iwp_getsysinfo() {  
+  GetSystemInfo(&sysinfo);  
 }
 
-uint16_t iwp_num_cpu_cores() {
-  static DWORD _iwp_numcores = 0;
-  if (!_iwp_numcores) {
-    SYSTEM_INFO system_info;
-    GetSystemInfo(&system_info);
-    _iwp_numcores = system_info.dwNumberOfProcessors;
-  }
-  return _iwp_numcores;
+size_t iwp_page_size(void) {  
+  return sysinfo.dwPageSize;
+}
+
+size_t iwp_alloc_unit(void) {  
+  return sysinfo.dwAllocationGranularity;  
+}
+
+uint16_t iwp_num_cpu_cores() {  
+  return sysinfo.dwNumberOfProcessors;
 }
 
 iwrc iwp_ftruncate(HANDLE fh, off_t len) {
@@ -257,5 +255,10 @@ iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
   if (pos) {
     *pos = noff.QuadPart;
   }
+  return 0;
+}
+
+static iwrc _iwp_init_impl() {
+  _iwp_getsysinfo();
   return 0;
 }

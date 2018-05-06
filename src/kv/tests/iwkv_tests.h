@@ -4,7 +4,7 @@
 void iwkvd_trigger_xor(uint64_t val);
 
 
-static int cmp_files(FILE *f1, FILE *f2) {
+static int cmp_files(FILE *f1, FILE *f2) {  
   CU_ASSERT_TRUE_FATAL(f1 && f2);
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);

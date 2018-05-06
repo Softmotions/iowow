@@ -51,7 +51,7 @@ int init_suite(void) {
   ts >>= 32;  
   iwu_rand_seed(ts);
 
-  printf("Generating stress data file: test_fsm_stress1.data, random seed: %" PRIx64, ts);
+  printf("Generating stress data file: test_fsm_stress1.data, random seed: %" PRIu64, ts);
   fstress1 = fopen("test_fsm_stress.data", "w+");
   char *buf = malloc(RECSZ + 1);
   for (int i = 0, j; i < NRECS; ++i) {

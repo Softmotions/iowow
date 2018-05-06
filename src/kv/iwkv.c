@@ -2755,16 +2755,16 @@ static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx
     }
     return 0;
   }
-  const size_t psize = iwp_page_size();
+  const size_t aunit = iwp_alloc_unit();
   if (!ctx) {
     *_ctx = ctx = calloc(1, sizeof(*ctx));
     if (!ctx) {
-      return IW_ROUNDUP(nsize, psize);
+      return IW_ROUNDUP(nsize, aunit);
     }
   }
   uint64_t res;
   if (csize < 0x2000000) { // doubled alloc up to 32M
-    res = csize ? csize : psize;
+    res = csize ? csize : aunit;
     while (res < nsize) {
       res <<= 1;
     }
@@ -2772,7 +2772,7 @@ static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx
     res = csize + ctx->prev_sz;
     res = MAX(res, nsize);
   }
-  res = IW_ROUNDUP(res, psize);
+  res = IW_ROUNDUP(res, aunit);
   if (res > OFF_T_MAX) {
     res = OFF_T_MAX;
   }

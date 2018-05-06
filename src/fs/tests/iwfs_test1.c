@@ -84,7 +84,7 @@ void iwfs_exfile_test1(void) {
   IWRC(iwp_fstat(path, &fstat), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL(sp, 0);
-  CU_ASSERT_EQUAL(fstat.size, iwp_page_size());
+  CU_ASSERT_EQUAL(fstat.size, iwp_alloc_unit());
 
   IWRC(ef.write(&ef, 1, data, sizeof(data), &sp), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -110,7 +110,7 @@ void iwfs_exfile_test1(void) {
   rc = ef.write(&ef, 1, data, sizeof(data), &sp);
   CU_ASSERT_EQUAL(IW_ERROR_READONLY, rc);
 
-  size_t ps = iwp_page_size();
+  size_t ps = iwp_alloc_unit();
   rc = 0;
   IWRC(ef.read(&ef, ps - 1, rdata, 2, &sp2), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -144,7 +144,7 @@ void test_fibo_inc(void) {
   IWRC(ef.write(&ef, 0, &wd, 1, &sp), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  size_t psize = iwp_page_size();
+  size_t psize = iwp_alloc_unit();
   IWP_FILE_STAT fstat;
   IWRC(iwp_fstat(path, &fstat), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -177,7 +177,7 @@ void test_fibo_inc(void) {
 
 void test_mmap1(void) {
   iwrc rc = 0;
-  size_t psize = iwp_page_size();
+  size_t psize = iwp_alloc_unit();
   size_t sp;
   const int dsize = psize * 4;
   uint8_t *data = malloc(dsize);

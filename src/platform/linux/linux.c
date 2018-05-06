@@ -228,6 +228,10 @@ size_t iwp_page_size(void) {
   return _iwp_pagesize;
 }
 
+size_t iwp_alloc_unit(void) {
+  return iwp_page_size();
+}
+
 iwrc iwp_ftruncate(HANDLE fh, off_t len) {
   int rci = ftruncate(fh, len);
   return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
@@ -259,7 +263,6 @@ iwrc iwp_sleep(uint64_t ms) {
   }
   return rc;
 }
-
 
 static int _rmfile(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
   if (remove(pathname) < 0) {
@@ -309,4 +312,9 @@ iwrc iwp_fsync(HANDLE fh) {
 iwrc iwp_fdatasync(HANDLE fh) {
   int rci = fdatasync(fh);
   return rci ? iwrc_set_errno(IW_ERROR_IO_ERRNO, errno) : 0;
+}
+
+static iwrc _iwp_init_impl() {
+  iwp_page_size(); // init statics
+  return 0;
 }

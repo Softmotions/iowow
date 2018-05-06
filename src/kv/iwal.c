@@ -65,8 +65,7 @@ typedef struct IWAL {
   bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
   iwkv_openflags oflags;            /**< File open flags */
   size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. */
-  size_t checkpoint_buffer_sz;      /**< Checkpoint buffer size in bytes. */
-  size_t page_size;                 /**< System page size */
+  size_t checkpoint_buffer_sz;      /**< Checkpoint buffer size in bytes. */    
   uint32_t bufpos;                  /**< Current position in buffer */
   uint32_t bufsz;                   /**< Size of buffer */
   HANDLE fh;                        /**< File handle */
@@ -380,15 +379,18 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   size_t sp;
   uint8_t *mm;
   const bool ccrc = wal->check_cp_crc;
-  off_t fpos = 0; // checkpoint
-  off_t pfsz = IW_ROUNDUP(fsz, wal->page_size);
+  off_t fpos = 0; // checkpoint  
+#ifndef _WIN32  
+  off_t pfsz = IW_ROUNDUP(fsz, iwp_page_size());
   uint8_t *wmm = mmap(0, pfsz, PROT_READ, MAP_PRIVATE, wal->fh, 0);
+  madvise(wmm, fsz, MADV_SEQUENTIAL);
+#else
+  off_t pfsz = fsz;
+  uint8_t *wmm = mmap(0, 0, PROT_READ, MAP_PRIVATE, wal->fh, 0);  
+#endif    
   if (wmm == MAP_FAILED) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
-#ifndef _WIN32
-  madvise(wmm, fsz, MADV_SEQUENTIAL);
-#endif
   // Temporary turn off extf locking
   wal->applying = true;
   bool eul = extfile_use_locks(extf, false);
@@ -789,7 +791,6 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   memcpy(wpath + sz, "-wal", 4);
   wpath[sz + 4] = '\0';
   
-  wal->page_size = iwp_page_size();
   wal->fh = INVALID_HANDLE_VALUE;
   wal->path = wpath;
   wal->oflags = opts->oflags;

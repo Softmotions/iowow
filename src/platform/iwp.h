@@ -193,6 +193,12 @@ IW_EXPORT iwrc iwp_copy_bytes(HANDLE fh,
  */
 IW_EXPORT size_t iwp_page_size(void);
 
+
+/**
+ * @brief Minimal address space aligment for memory mapping.
+ */
+IW_EXPORT size_t iwp_alloc_unit(void);
+
 /**
  * @brief Truncate a file specified by @a fh to a size of @a len bytes
  * @param fh File handle

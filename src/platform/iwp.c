@@ -32,6 +32,7 @@
 #include <stdio.h>
 
 unsigned int iwcpuflags = 0;
+static iwrc _iwp_init_impl(void);
 
 #if defined(__linux) || defined(__unix) || defined(__APPLE__)
 #include "linux/linux.c"
@@ -111,5 +112,6 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
 
 iwrc iwp_init(void) {
   iwcpuflags = x86_simd();
+  _iwp_init_impl();
   return 0;
 }

@@ -105,7 +105,9 @@ struct IWFS_FSM_IMPL {
   IWDLSNR *dlsnr;            /**< Data events listener */
   kbtree_t(fsm) *fsm;        /**< Free-space tree */
   pthread_rwlock_t *ctlrwlk; /**< Methods RW lock */
-  size_t psize;              /**< System page size */
+  size_t aunit;              /**< System allocation unit size.  
+                                  - Page size on *NIX
+                                  - Minimal allocation unit for WIN32 */
   iwfs_fsm_openflags oflags; /**< Operation mode flags. */
   iwfs_omode omode;          /**< Open mode. */
   uint8_t bpow;              /**< Block size power for 2 */
@@ -383,7 +385,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
                                          const iwfs_fsm_aflags opts) {
   FSMBK *nk;
   fsm_bmopts_t bopts = 0;
-  off_t psize_blk = (impl->psize >> impl->bpow);
+  off_t aunit_blk = (impl->aunit >> impl->bpow);
   
   assert(impl && impl->fsm && length_blk > 0);
   if (impl->oflags & IWFSM_STRICT) {
@@ -393,7 +395,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
   *offset_blk = 0;
   
   /* First attempt */
-  nk = _fsm_find_matching_fblock_lw(impl, 0, length_blk + psize_blk, opts);
+  nk = _fsm_find_matching_fblock_lw(impl, 0, length_blk + aunit_blk, opts);
   if (!nk) {
     nk = _fsm_find_matching_fblock_lw(impl, 0, length_blk, opts);
     if (!nk) {
@@ -402,7 +404,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
   }
   uint64_t akoff = FSMBK_OFFSET(nk);
   uint64_t aklen = FSMBK_LENGTH(nk);
-  uint64_t noff = IW_ROUNDUP(akoff, psize_blk);
+  uint64_t noff = IW_ROUNDUP(akoff, aunit_blk);
   if (noff <= max_offset_blk && (noff < aklen + akoff) && (aklen - (noff - akoff) >= length_blk)) {
     aklen = aklen - (noff - akoff);
     if (noff > akoff) {
@@ -424,7 +426,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
     uint64_t koff = FSMBK_OFFSET(k);                                                                        \
     if (koff < akoff) {                                                                                      \
       uint64_t klen;                                                                                         \
-      noff = IW_ROUNDUP(koff, psize_blk);                                                                    \
+      noff = IW_ROUNDUP(koff, aunit_blk);                                                                    \
       klen = FSMBK_LENGTH(k);                                                                               \
       if (noff <= max_offset_blk && (noff < klen + akoff) && (klen - (noff - koff) >= length_blk)) {         \
         akoff = koff;                                                                                        \
@@ -438,7 +440,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
   if (akoff == UINT64_MAX) {
     return IWFS_ERROR_NO_FREE_SPACE;
   }
-  noff = IW_ROUNDUP(akoff, psize_blk);
+  noff = IW_ROUNDUP(akoff, aunit_blk);
   aklen = aklen - (noff - akoff);
   if (noff > akoff) {
     _fsm_put_fbk(impl, akoff, noff - akoff);
@@ -771,7 +773,7 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
   uint64_t old_bmoff, old_bmlen;
   IWFS_EXT *pool = &impl->pool;
   
-  if ((bmlen & ((1 << impl->bpow) - 1)) || (bmoff & ((1 << impl->bpow) - 1)) || (bmoff & (impl->psize - 1))) {
+  if ((bmlen & ((1 << impl->bpow) - 1)) || (bmoff & ((1 << impl->bpow) - 1)) || (bmoff & (impl->aunit - 1))) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
   }
   if (bmlen < impl->bmlen) {
@@ -903,7 +905,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
   if (impl->bmlen >= size) {
     return 0;
   }
-  bmlen = IW_ROUNDUP(size, impl->psize); /* align to the system page size. */
+  bmlen = IW_ROUNDUP(size, impl->aunit); /* align to the system page size. */
   rc = _fsm_blk_allocate_aligned_lw(
          impl, (bmlen >> impl->bpow), &bmoffset, &sp, UINT64_MAX,
          IWFSM_ALLOC_NO_STATS | IWFSM_ALLOC_NO_EXTEND | IWFSM_ALLOC_NO_OVERALLOCATE);
@@ -912,7 +914,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
     bmlen = sp << impl->bpow;
   } else if (rc == IWFS_ERROR_NO_FREE_SPACE) {
     bmoffset = 8 * impl->bmlen * (1 << impl->bpow);
-    bmoffset = IW_ROUNDUP(bmoffset, impl->psize);
+    bmoffset = IW_ROUNDUP(bmoffset, impl->aunit);
   }
   if (!impl->mmap_all) {
     rc = pool->add_mmap(pool, bmoffset, bmlen, impl->mmap_opts);
@@ -1095,14 +1097,14 @@ finish:
 
 static iwrc _fsm_init_impl(FSM *impl, const IWFS_FSM_OPTS *opts) {
   impl->oflags = opts->oflags;
-  impl->psize = iwp_page_size();
+  impl->aunit = iwp_alloc_unit();
   impl->bpow = opts->bpow;
   impl->mmap_all = opts->mmap_all;
   if (!impl->bpow) {
     impl->bpow = 6;  // 64bit block
   } else if (impl->bpow > FSM_MAX_BLOCK_POW) {
     return IWFS_ERROR_INVALID_BLOCK_SIZE;
-  } else if ((1 << impl->bpow) > impl->psize) {
+  } else if ((1 << impl->bpow) > impl->aunit) {
     return IWFS_ERROR_PLATFORM_PAGE;
   }
   return 0;
@@ -1182,10 +1184,10 @@ static iwrc _fsm_read_meta_lr(FSM *impl) {
     iwlog_ecode_error(rc, "Invalid file blocks pow: %u", impl->bpow);
     return rc;
   }
-  if ((1 << impl->bpow) > impl->psize) {
+  if ((1 << impl->bpow) > impl->aunit) {
     rc = IWFS_ERROR_PLATFORM_PAGE;
     iwlog_ecode_error(rc, "Block size: %d must not be greater than the system page size: %d",
-                      (int)(1 << impl->bpow), (int) impl->psize);
+                      (int)(1 << impl->bpow), (int) impl->aunit);
   }
   
   /* Free-space bitmap offset */
@@ -1240,12 +1242,12 @@ static iwrc _fsm_init_new_lw(FSM *impl, const IWFS_FSM_OPTS *opts) {
   iwrc rc;
   uint64_t bmlen, bmoff;
   IWFS_EXT *pool = &impl->pool;
-  assert(impl->psize && impl->bpow);
+  assert(impl->aunit && impl->bpow);
   
   impl->hdrlen = opts->hdrlen + FSM_CUSTOM_HDR_DATA_OFFSET;
   impl->hdrlen = IW_ROUNDUP(impl->hdrlen, 1 << impl->bpow);
-  bmlen = opts->bmlen > 0 ? IW_ROUNDUP(opts->bmlen, impl->psize) : impl->psize;
-  bmoff = IW_ROUNDUP(impl->hdrlen, impl->psize);
+  bmlen = opts->bmlen > 0 ? IW_ROUNDUP(opts->bmlen, impl->aunit) : impl->aunit;
+  bmoff = IW_ROUNDUP(impl->hdrlen, impl->aunit);
   
   if (impl->mmap_all) {
     /* mmap whole file */
@@ -1648,7 +1650,7 @@ static iwrc _fsm_clear(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags) {
   if (!impl->mmap_all && impl->bmoff) {
     IWRC(impl->pool.remove_mmap(&impl->pool, impl->bmoff), rc);
   }
-  bmoff = IW_ROUNDUP(impl->hdrlen, impl->psize);
+  bmoff = IW_ROUNDUP(impl->hdrlen, impl->aunit);
   if (!impl->mmap_all) {
     IWRC(impl->pool.add_mmap(&impl->pool, bmoff, bmlen, impl->mmap_opts), rc);
   }
@@ -1880,7 +1882,7 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f) {
     return rc;
   }
   int i = ((impl->hdrlen >> impl->bpow) >> 3);
-  // if (impl->bmoff == impl->psize) {
+  // if (impl->bmoff == impl->aunit) {
   //   i += ((impl->bmlen >> impl->bpow) >> 3);
   // }
   for (; i < sp && i < impl->bmlen; ++i) {
