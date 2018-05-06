@@ -149,7 +149,7 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
   }
   if (nlen > 0) {
     int flags = (s->mmopts & IWFS_MMAP_PRIVATE) ? MAP_PRIVATE : MAP_SHARED;
-    int prot = (impl->omode & IWFS_OWRITE) ? PROT_WRITE : PROT_READ;
+    int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE | PROT_READ) : (PROT_READ);
     s->len = nlen;
     s->mmap = mmap(0, s->len, prot, flags, impl->fh, s->off);
     if (s->mmap == MAP_FAILED) {

@@ -36,16 +36,15 @@ static DWORD __map_mmap_prot_file(const int prot, const int flags) {
   DWORD desiredAccess = 0;
   if (prot == PROT_NONE) {
     return desiredAccess;
-  }
-  if ((prot & PROT_READ)) {
-    desiredAccess |= FILE_MAP_READ;
-  }
+  }  
   if ((prot & PROT_WRITE)) {
     if (flags & MAP_PRIVATE) {
       desiredAccess |= FILE_MAP_COPY;
     } else {
       desiredAccess |= FILE_MAP_WRITE;
     }
+  } else if ((prot & PROT_READ)) {
+    desiredAccess |= FILE_MAP_READ;
   }
   if ((prot & PROT_EXEC)) {
     desiredAccess |= FILE_MAP_EXECUTE;
