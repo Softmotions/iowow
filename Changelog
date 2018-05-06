@@ -1,3 +1,9 @@
+iowow (1.2.0) testing; urgency=medium
+
+  * IOWOW ported to Windows x86-64 platform #1
+
+ -- Anton Adamansky <adamansky@gmail.com>  Sun, 06 May 2018 20:35:14 +0700
+
 iowow (1.1.0) testing; urgency=medium
 
   * Write Ahead Log (WAL) implemented #2
