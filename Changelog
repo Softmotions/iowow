@@ -1,11 +1,11 @@
-iowow (1.1.0) UNRELEASED; urgency=medium
+iowow (1.1.0) testing; urgency=medium
 
   * Write Ahead Log (WAL) implemented #2
   * Changed database block size to 128 bytes so max db size 512Gb
     WARNING: Database format of version 1.1.x is incompatible with previous versions.
   * Better basename/basename_r detection in iwlog.c #4
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 18:17:39 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 02 May 2018 17:28:14 +0700
 
 iowow (1.0.6) testing; urgency=medium
 
