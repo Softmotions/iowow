@@ -1,8 +1,8 @@
-iowow (1.2.1) UNRELEASED; urgency=medium
+iowow (1.2.1) testing; urgency=medium
 
   * Removed unistd.h from src/fs/iwdlsnr.h since it is unused and not portable. 
 
- -- Anton Adamansky <adamansky@gmail.com>  Sun, 06 May 2018 23:28:13 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Sun, 06 May 2018 23:30:09 +0700
 
 iowow (1.2.0) testing; urgency=medium
 
