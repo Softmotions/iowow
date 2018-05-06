@@ -10,7 +10,7 @@
 #define IWXSTR_AUNIT 16
 #endif
 
-struct IWXSTR {
+struct _IWXSTR {
   char *ptr;      /**< Data buffer */
   int size;       /**< Actual data size */
   int asize;      /**< Allocated buffer size */

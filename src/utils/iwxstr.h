@@ -32,7 +32,7 @@
 
 IW_EXTERN_C_START
 
-typedef struct IWXSTR IWXSTR;
+typedef struct _IWXSTR IWXSTR;
 
 IW_EXPORT IWXSTR *iwxstr_new(void);
 
