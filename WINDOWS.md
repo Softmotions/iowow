@@ -35,6 +35,9 @@ make
 ```
 mkdir ./build
 cd  ./build
+
+export MXE_HOME=<path to project>/mxe
+
 cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=../win64-tc.cmake \
          -DBUILD_TESTS=OFF -DTEST_TOOL_CMD=wine
 
