@@ -103,10 +103,10 @@ iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *fs) {
   return _iwp_fstat(0, fh, fs);
 }
 
-iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode) {  
+iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode) {
   if (INVALIDHANDLE(fh)) {
-     return IW_ERROR_INVALID_HANDLE;
-  }  
+    return IW_ERROR_INVALID_HANDLE;
+  }
   if (lmode == IWP_NOLOCK) {
     return 0;
   }
@@ -121,8 +121,8 @@ iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode) {
 
 iwrc iwp_unlock(HANDLE fh) {
   if (INVALIDHANDLE(fh)) {
-     return IW_ERROR_INVALID_HANDLE;
-  }  
+    return IW_ERROR_INVALID_HANDLE;
+  }
   struct flock lock = {.l_type = F_UNLCK, .l_whence = SEEK_SET};
   while (fcntl(fh, F_SETLKW, &lock) == -1) {
     if (errno != EINTR) {
@@ -159,7 +159,7 @@ iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
   }
 }
 
-iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {  
+iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
   if (INVALIDHANDLE(fh)) {
     return IW_ERROR_INVALID_HANDLE;
   }
@@ -279,11 +279,11 @@ iwrc iwp_removedir(const char *path) {
   return 0;
 }
 
-iwrc iwp_exec_path(char *opath) {  
-#ifdef __linux  
+iwrc iwp_exec_path(char *opath) {
+#ifdef __linux
   pid_t pid;
   char path[MAXPATHLEN];
-  char epath[MAXPATHLEN];  
+  char epath[MAXPATHLEN];
   memset(epath, 0, sizeof(epath));
   pid = getpid();
   sprintf(path, "/proc/%d/exe", pid);
@@ -293,10 +293,10 @@ iwrc iwp_exec_path(char *opath) {
     strncpy(opath, epath, MAXPATHLEN);
   }
   return 0;
-#else 
+#else
   // todo
   return IW_ERROR_NOT_IMPLEMENTED;
-#endif  
+#endif
 }
 
 uint16_t iwp_num_cpu_cores() {
@@ -310,8 +310,16 @@ iwrc iwp_fsync(HANDLE fh) {
 }
 
 iwrc iwp_fdatasync(HANDLE fh) {
-  int rci = fdatasync(fh);
-  return rci ? iwrc_set_errno(IW_ERROR_IO_ERRNO, errno) : 0;
+#ifdef __APPLE__
+  if (fcntl(impl->fh, F_FULLFSYNC) == -1) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  }
+#else
+  if (fdatasync(fh) == -1) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  }  
+#endif
+  return 0;
 }
 
 static iwrc _iwp_init_impl() {
