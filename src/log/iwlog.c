@@ -329,7 +329,7 @@ static iwrc _default_logfn(locale_t locale,
   if (werror_code) {
     LPTSTR out = NULL;
     DWORD ret = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, werror_code,
-                              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &out, 0, NULL);
+                              MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPTSTR) &out, 0, NULL);
                               
     if (ret == 0) {
       if (out) {

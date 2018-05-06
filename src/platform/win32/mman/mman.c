@@ -14,7 +14,7 @@ static int __map_mman_error(const DWORD err, const int deferr) {
     return 0;
   }
   iwrc rc = IW_ERROR_FAIL;
-  iwrc_set_werror(rc, err);
+  rc = iwrc_set_werror(rc, err);
   iwlog_ecode_error3(rc);
   return deferr;
 }

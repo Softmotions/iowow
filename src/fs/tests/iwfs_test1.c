@@ -205,17 +205,12 @@ void test_mmap1(void) {
   rc = ef.add_mmap(&ef, psize, 2 * psize, 0);
   CU_ASSERT_EQUAL_FATAL(rc, IWFS_ERROR_MMAP_OVERLAP);
 
-#ifdef _WIN32
-  rc = ef.add_mmap(&ef, 3 * psize, 10 * psize, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-#else
 #ifndef IW_32
   rc = ef.add_mmap(&ef, 3 * psize, UINT64_MAX, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 #else
   rc = ef.add_mmap(&ef, 3 * psize, UINT32_MAX >> 1, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-#endif
 #endif
 
   rc = ef.write(&ef, psize / 2, data, psize, &sp);
@@ -312,8 +307,6 @@ void test_mmap1(void) {
 
 int main() {
   CU_pSuite pSuite = NULL;
-
-
 
   /* Initialize the CUnit test registry */
   if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
