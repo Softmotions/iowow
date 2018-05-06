@@ -194,7 +194,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
       return IWFS_ERROR_MAXOFF;
     }
     if (impl->dlsnr) {
-      rc = impl->dlsnr->onresize(impl->dlsnr, old_size, size, 0, &rsh);
+      rc = impl->dlsnr->onresize(impl->dlsnr, old_size, size, 0, &rsh);      
       RCGO(rc, truncfail);
     }
     if (!rsh) {
@@ -482,7 +482,7 @@ static iwrc _exfile_ensure_size(struct IWFS_EXT *f, off_t sz) {
   RCRET(rc);
   rc = _exfile_wlock(f);
   RCRET(rc);
-  rc = _exfile_ensure_size_lw(f, sz);
+  rc = _exfile_ensure_size_lw(f, sz);  
   IWRC(_exfile_unlock2(f->impl), rc);
   return rc;
 }

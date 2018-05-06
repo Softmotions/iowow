@@ -79,12 +79,8 @@ void *mmap(void *addr, size_t len, int prot, int flags, HANDLE fh, OffsetType of
 #endif
                               
   errno = 0;
-  if (len == 0
-      /* Unsupported flag combinations */
-      || (flags & MAP_FIXED) != 0
-      /* Usupported protection combinations */
-      || prot == PROT_EXEC) {
-    errno = EINVAL;
+  if ((flags & MAP_FIXED) != 0 || prot == PROT_EXEC) {
+    errno = EINVAL;    
     return MAP_FAILED;
   }
   if (!(flags & MAP_ANONYMOUS) && fh == INVALID_HANDLE_VALUE) {

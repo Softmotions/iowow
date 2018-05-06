@@ -2847,11 +2847,11 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
 #endif
   
   // Init WAL
-  rc = iwal_create(iwkv, opts, &fsmopts);
+  rc = iwal_create(iwkv, opts, &fsmopts);  
   RCGO(rc, finish);
   
   // Now open main database file
-  rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
+  rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);  
   RCGO(rc, finish);
   
   IWFS_FSM *fsm  = &iwkv->fsm;

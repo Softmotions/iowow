@@ -319,7 +319,7 @@ int main() {
   if (
     (NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) || 
     (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4))
     
   )  {

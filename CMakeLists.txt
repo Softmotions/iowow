@@ -125,6 +125,11 @@ if(CPACK_GENERATORS)
             "\\\\.editorconfig$"
             "/Makefile$"
     )
+    if(CMAKE_SIZEOF_VOID_P MATCHES 8)
+      set(PROJECT_ARCH "x86_64")
+    else()
+      set(PROJECT_ARCH "x86")
+    endif()
     add_subdirectory(installer)
 endif(CPACK_GENERATORS)
 

@@ -790,7 +790,7 @@ static iwrc _fsm_init_lw(FSM *impl, uint64_t bmoff, uint64_t bmlen) {
                       bmlen);
     return rc;
   }
-  rc = _fsm_ensure_size_lw(impl, bmoff + bmlen);
+  rc = _fsm_ensure_size_lw(impl, bmoff + bmlen);  
   RCRET(rc);
   if (impl->mmap_all) {
     // get mmap area without locking, since we ensured what pool file will not be remapped
@@ -1251,7 +1251,7 @@ static iwrc _fsm_init_new_lw(FSM *impl, const IWFS_FSM_OPTS *opts) {
   
   if (impl->mmap_all) {
     /* mmap whole file */
-    rc = pool->add_mmap(pool, 0, SIZE_T_MAX, impl->mmap_opts);
+    rc = pool->add_mmap(pool, 0, SIZE_T_MAX, impl->mmap_opts);    
     RCRET(rc);
   } else {
     /* mmap header */
@@ -1419,7 +1419,7 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
 }
 
 IW_INLINE iwrc _fsm_ensure_size_lw(FSM *impl, off_t size) {
-  return impl->pool.ensure_size(&impl->pool, size);
+  return impl->pool.ensure_size(&impl->pool, size);    
 }
 
 static iwrc _fsm_ensure_size(struct IWFS_FSM *f, off_t size) {
@@ -1744,7 +1744,7 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   rc = _fsm_init_locks(impl, opts);
   RCGO(rc, finish);
   
-  rc = iwfs_exfile_open(&impl->pool, &rwl_opts);
+  rc = iwfs_exfile_open(&impl->pool, &rwl_opts);  
   RCGO(rc, finish);
   
   rc = impl->pool.state(&impl->pool, &fstate);
@@ -1753,10 +1753,10 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   impl->omode = fstate.file.opts.omode;
   
   if (fstate.file.ostatus & IWFS_OPEN_NEW) {
-    rc = _fsm_init_new_lw(impl, opts);
+    rc = _fsm_init_new_lw(impl, opts);    
   } else {
     rc = _fsm_init_existing_lw(impl);
-  }
+  }  
   
 finish:
   if (rc) {

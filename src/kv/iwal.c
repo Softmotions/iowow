@@ -164,22 +164,21 @@ IW_INLINE iwrc _truncate(IWAL *wal) {
   return rc;
 }
 
-static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len, bool checkpoint) {
-  ssize_t sz;
+static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len, bool checkpoint) {  
   iwrc rc = 0;
   const off_t bufsz = wal->bufsz;
   wal->synched = false;
   if (bufsz - wal->bufpos < oplen) {
-    rc = _flush_wl(wal, false);
+    rc = _flush_wl(wal, false);    
     RCRET(rc);
   }
   assert(bufsz - wal->bufpos >= oplen);
   memcpy(wal->buf + wal->bufpos, op, oplen);
   wal->bufpos += oplen;
   if (bufsz - wal->bufpos < len) {
-    rc = _flush_wl(wal, false);
+    rc = _flush_wl(wal, false);       
     RCRET(rc);
-    iwrc rc = iwp_write(wal->fh, data, len);
+    iwrc rc = iwp_write(wal->fh, data, len);        
     RCRET(rc);
   } else {
     assert(bufsz - wal->bufpos >= len);
@@ -187,7 +186,7 @@ static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *dat
     wal->bufpos += len;
   }
   if (checkpoint) {
-    rc = _checkpoint_wl(wal);
+    rc = _checkpoint_wl(wal);        
   }
   return rc;
 }
@@ -195,7 +194,7 @@ static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *dat
 IW_INLINE iwrc _write_op(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len, bool checkpoint) {
   iwrc rc = _lock(wal);
   RCRET(rc);
-  rc = _write_wl(wal, op, oplen, data, len, checkpoint);
+  rc = _write_wl(wal, op, oplen, data, len, checkpoint);    
   IWRC(_unlock(wal), rc);
   return rc;
 }
@@ -371,7 +370,7 @@ static iwrc _find_last_fixpoint(IWAL *wal, uint8_t *wmm, off_t fsz, off_t *pfpos
 static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   assert(wal->bufpos == 0);
   off_t fsz = 0;
-  iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
+  iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);    
   RCRET(rc);
   if (!fsz) { // empty wal log
     return 0;
@@ -388,7 +387,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   off_t pfsz = fsz;
   uint8_t *wmm = mmap(0, 0, PROT_READ, MAP_PRIVATE, wal->fh, 0);  
 #endif    
-  if (wmm == MAP_FAILED) {
+  if (wmm == MAP_FAILED) {        
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
   // Temporary turn off extf locking
@@ -397,7 +396,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   
   // Remap fsm in MAP_SHARED mode
   extf->remove_mmap(extf, 0);
-  rc = extf->add_mmap(extf, 0, SIZE_T_MAX, 0);
+  rc = extf->add_mmap(extf, 0, SIZE_T_MAX, 0);  
   if (rc) {
     munmap(wmm, pfsz);
     extfile_use_locks(extf, eul);
@@ -405,7 +404,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
     return rc;
   }
   if (recover) {
-    rc = _find_last_fixpoint(wal, wmm, fsz, &fpos);
+    rc = _find_last_fixpoint(wal, wmm, fsz, &fpos);    
     if (rc || !fpos) {
       goto finish;
     }
@@ -504,16 +503,16 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   }
 #undef _WAL_CORRUPTED
   
-finish:
-  if (!rc) {
+finish:  
+  if (!rc) {    
     rc = extf->sync_mmap(extf, 0, 0);
-  }
+  }  
   munmap(wmm, pfsz);
   extf->remove_mmap(extf, 0);
-  IWRC(extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
+  IWRC(extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);  
   if (!rc) {
     rc = _truncate(wal);
-  }
+  }  
   wal->synched = true;
   wal->applying = false;
   extfile_use_locks(extf, eul);
@@ -554,23 +553,23 @@ static iwrc _checkpoint_wl(IWAL *wal) {
   
   WBFIXPOINT wbfp = {0};
   wbfp.id = WOP_FIXPOINT;
-  iwrc rc = iwp_current_time_ms(&wbfp.ts, false);
+  iwrc rc = iwp_current_time_ms(&wbfp.ts, false);  
   RCRET(rc);
   
-  rc = _write_wl(wal, &wbfp, sizeof(wbfp), 0, 0, false);
+  rc = _write_wl(wal, &wbfp, sizeof(wbfp), 0, 0, false);  
   RCRET(rc);
   
-  rc = _flush_wl(wal, true);
+  rc = _flush_wl(wal, true);  
   RCGO(rc, finish);
   wal->synched = true;
   
   rc = iwkv->fsm.extfile(&iwkv->fsm, &extf);
   RCGO(rc, finish);
-  rc = _rollforward_wl(wal, extf, false);
+  rc = _rollforward_wl(wal, extf, false);    
   wal->mbytes = 0;
   iwp_current_time_ms(&wal->checkpoint_ts, true);
   
-finish:
+finish:  
   if (rc) {
     if (iwkv->fatalrc) {
       iwlog_ecode_error3(rc);
@@ -881,7 +880,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
 finish:
   if (rc) {
     iwkv->dlsnr = 0;
-    iwkv->fatalrc = iwkv->fatalrc ? iwkv->fatalrc : rc;
+    iwkv->fatalrc = iwkv->fatalrc ? iwkv->fatalrc : rc;    
     iwal_shutdown(iwkv);
     _destroy(wal);
   }
