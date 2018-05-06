@@ -480,7 +480,9 @@ static void iwkv_test1(void) {
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_TRUE_FATAL(rc);
   iwrc_strip_errno(&rc);
+#ifdef _WIN32  
   iwrc_strip_werror(&rc);  
+#endif  
   CU_ASSERT_EQUAL(rc, IW_ERROR_IO_ERRNO);
 
   // Open in read-only mode and acquire not existing db
