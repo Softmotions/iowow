@@ -3,7 +3,6 @@
 #define IWDLSNR_H
 
 #include "basedefs.h"
-#include <unistd.h>
 #include <stdbool.h>
 
 IW_EXTERN_C_START

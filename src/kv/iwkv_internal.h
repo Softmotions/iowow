@@ -9,7 +9,7 @@
 #include "ksort.h"
 #include <pthread.h>
 #include <stdatomic.h>
-
+#include <unistd.h>
 #include "iwcfg.h"
 
 // IWKV magic number
