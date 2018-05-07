@@ -126,7 +126,7 @@ typedef struct IWKV_WAL_OPTS {
  * @brief IWKV storage open options.
  */
 typedef struct IWKV_OPTS {
-  char *path;                       /**< Path to database file */
+  const char *path;                 /**< Path to database file */
   int32_t random_seed;              /**< Random seed used for iwu random generator */
   iwkv_openflags oflags;            /**< Bitmask of database file open modes */
   size_t wal_buffer_sz;             /**< Size of in-memory WAL file buffer */
