@@ -59,8 +59,8 @@ typedef struct WBFIXPOINT {
 
 typedef struct IWAL {
   IWDLSNR lsnr;
-  atomic_bool applying;             /**< WAL log applying */
-  atomic_bool open;                 /**< WAL log applying */
+  atomic_bool applying;             /**< WAL applying */
+  atomic_bool open;                 /**< Is WAL in use */
   bool synched;                     /**< WAL is synched or WBFIXPOINT is the last write operation */
   bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
   iwkv_openflags oflags;            /**< File open flags */

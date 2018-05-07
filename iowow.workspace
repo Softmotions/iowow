@@ -6,7 +6,7 @@
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
-      <Project Name="iowow" ConfigName="Debug_windows"/>
+      <Project Name="iowow" ConfigName="Debug_Linux"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
