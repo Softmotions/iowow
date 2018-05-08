@@ -1,8 +1,8 @@
-iowow (1.2.2) UNRELEASED; urgency=medium
+iowow (1.2.2) testing; urgency=medium
 
   * Added static iowow_s libraries to the default CMake exports.
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 08 May 2018 22:55:54 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Tue, 08 May 2018 22:58:41 +0700
 
 iowow (1.2.1) testing; urgency=medium
 
