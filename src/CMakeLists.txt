@@ -63,7 +63,7 @@ else()
 		message(FATAL_ERROR "Unable to find windows.h include file")
 	endif()
 
-  set(IBERTY_FIND_REQUIRED, ON)
+  set(IBERTY_FIND_REQUIRED ON)
   include(FindLibIberty)
   list(APPEND PROJECT_LLIBRARIES ${IBERTY_LIBRARIES})
 
