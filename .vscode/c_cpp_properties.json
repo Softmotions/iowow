@@ -86,7 +86,8 @@
                     "/usr/include/c++/7/backward",
                     "/usr/include/c++/6/backward",
                     "/usr/include/c++/5/backward",
-                    "${workspaceRoot}"
+                    "${workspaceRoot}",
+                    "${workspaceRoot}/src"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
@@ -117,5 +118,5 @@
             }
         }
     ],
-    "version": 3
+    "version": 4
 }
