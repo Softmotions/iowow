@@ -57,16 +57,16 @@ if (NOT WIN32)
   list(APPEND PROJECT_LLIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 else()
   include(Win32LIBTools)
-  
+
   check_include_file(windows.h HAVE_WINDOWS_H)
 	if (NOT HAVE_WINDOWS_H)
 		message(FATAL_ERROR "Unable to find windows.h include file")
 	endif()
-  
+
   set(IBERTY_FIND_REQUIRED, ON)
   include(FindLibIberty)
   list(APPEND PROJECT_LLIBRARIES ${IBERTY_LIBRARIES})
-  
+
   check_library_exists(winpthread pthread_exit "" HAVE_WINPTHREAD)
 	if (NOT HAVE_WINPTHREAD)
 		message(FATAL_ERROR "Unable to winpthread lib")
@@ -82,8 +82,8 @@ endif(NOT M_LIB)
 list(APPEND PROJECT_LLIBRARIES "${M_LIB}")
 
 check_symbol_exists(CLOCK_MONOTONIC time.h HAVE_CLOCK_MONOTONIC)
-if (HAVE_CLOCK_MONOTONIC)  
-  add_definitions(-DIW_HAVE_CLOCK_MONOTONIC)  
+if (HAVE_CLOCK_MONOTONIC)
+  add_definitions(-DIW_HAVE_CLOCK_MONOTONIC)
 endif()
 
 foreach(HF IN ITEMS stdlib stddef stdint stdbool stdatomic unistd dirent)
@@ -206,7 +206,7 @@ if (BUILD_SHARED_LIBS)
       add_dependencies(iowow wintools_init)
       set_target_properties(iowow PROPERTIES LINK_FLAGS "-Wl,--output-def,libiowow.def")
       add_w32_importlib(iowow libiowow ${CMAKE_CURRENT_BINARY_DIR})
-      install(FILES 
+      install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/libiowow.def
         ${CMAKE_CURRENT_BINARY_DIR}/libiowow.lib
         ${CMAKE_CURRENT_BINARY_DIR}/libiowow.exp
@@ -222,7 +222,7 @@ if (BUILD_SHARED_LIBS)
     set_target_properties(iowow_s PROPERTIES
                           VERSION ${PROJECT_VERSION}
                           COMPILE_FLAGS "-DIW_NODLL"
-                          OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})                          
+                          OUTPUT_NAME iowow-${PROJECT_VERSION_MAJOR})
 else()
 
     set_target_properties(iowow PROPERTIES
@@ -251,6 +251,9 @@ if (BUILD_SHARED_LIBS)
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+
+    install(EXPORT iowow-static-exports
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME})
 endif()
 
 
