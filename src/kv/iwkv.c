@@ -1576,6 +1576,19 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
   return rc;
 }
 
+IW_INLINE WUR iwrc _sblk_sync(IWLCTX *lx, SBLK *sblk) {
+  if ((sblk->flags & SBLK_DURTY) || (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY))) {
+    uint8_t *mm;
+    IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+    iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCRET(rc);
+    rc = _sblk_sync_mm(lx, sblk, mm);
+    fsm->release_mmap(fsm);
+    return rc;
+  }
+  return 0;
+}
+
 IW_INLINE WUR iwrc _sblk_sync_and_release_mm(IWLCTX *lx, SBLK **sblkp, uint8_t *mm) {
   iwrc rc = 0;
   if (mm) {
@@ -1586,21 +1599,9 @@ IW_INLINE WUR iwrc _sblk_sync_and_release_mm(IWLCTX *lx, SBLK **sblkp, uint8_t *
 }
 
 IW_INLINE WUR iwrc _sblk_sync_and_release(IWLCTX *lx, SBLK **sblkp) {
-  assert(sblkp && *sblkp);
-  SBLK *sblk = *sblkp;
-  if ((sblk->flags & SBLK_DURTY) || (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY))) {
-    uint8_t *mm;
-    IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-    iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCRET(rc);
-    rc = _sblk_sync_mm(lx, *sblkp, mm);
-    _sblk_release(lx, sblkp);
-    fsm->release_mmap(fsm);
-    return rc;
-  } else {
-    _sblk_release(lx, sblkp);
-    return 0;
-  }
+  iwrc rc = _sblk_sync(lx, *sblkp);
+  _sblk_release(lx, sblkp);
+  return rc;
 }
 
 static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, const IWKV_val *key, const uint8_t *mm, bool *found, uint8_t *idxp) {
@@ -2613,8 +2614,7 @@ IW_INLINE WUR iwrc _cursor_to_lr(IWKV_cursor cur, IWKV_cursor_op op) {
   blkn_t dblk = ADDR2BLK(db->addr);
   if (op < IWKV_CURSOR_NEXT) { // IWKV_CURSOR_BEFORE_FIRST | IWKV_CURSOR_AFTER_LAST
     if (cur->cn) {
-      rc = _sblk_sync_and_release(lx, &cur->cn);
-      RCRET(rc);
+     _sblk_release(lx, &cur->cn);
     }
     if (op == IWKV_CURSOR_BEFORE_FIRST) {
       cur->dbaddr = db->addr;
@@ -2645,8 +2645,7 @@ start:
           rc = IWKV_ERROR_NOTFOUND;
           goto finish;
         }
-        rc = _sblk_sync_and_release(lx, &cur->cn);
-        RCGO(rc, finish);
+        _sblk_release(lx, &cur->cn);
         rc = _sblk_at(lx, BLK2ADDR(n), 0, &cur->cn);
         RCGO(rc, finish);
         cur->cnpos = 0;
@@ -2667,7 +2666,7 @@ start:
           rc = IWKV_ERROR_NOTFOUND;
           goto finish;
         }
-        rc = _sblk_sync_and_release(lx, &cur->cn);
+        _sblk_release(lx, &cur->cn);
         RCGO(rc, finish);
         rc = _sblk_at(lx, BLK2ADDR(n), 0, &cur->cn);
         RCGO(rc, finish);
@@ -3428,6 +3427,9 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   IWKV iwkv = db->iwkv;
   API_DB_WLOCK(db, rci);
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val, opflags);
+  RCGO(rc, finish);
+  rc = _sblk_sync(&cur->lx, cur->cn);
+finish:
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   if (!rc) {
     rc = iwal_checkpoint(iwkv, false);
