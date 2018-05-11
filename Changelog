@@ -1,8 +1,8 @@
-iowow (1.2.3) UNRELEASED; urgency=medium
+iowow (1.2.3) testing; urgency=medium
 
   *  Fixed race conditions in iwkv_cursor_set()
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 11 May 2018 23:14:15 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Fri, 11 May 2018 23:17:13 +0700
 
 iowow (1.2.2) testing; urgency=medium
 
