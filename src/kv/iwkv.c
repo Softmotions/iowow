@@ -2234,7 +2234,7 @@ finish:
   return rc;
 }
 
-IW_INLINE WUR iwrc _lx_del_lw(IWLCTX *lx) {
+IW_INLINE WUR iwrc _lx_del_lw(IWLCTX *lx, bool exclusive) {
   iwrc rc;
   bool found;
   uint8_t *mm = 0, idx;
@@ -2243,6 +2243,9 @@ IW_INLINE WUR iwrc _lx_del_lw(IWLCTX *lx) {
   rc = _lx_find_bounds(lx);
   RCRET(rc);
   sblk = lx->lower;
+  if (sblk->pnum == 1 && !exclusive) {
+    return _IWKV_ERROR_ACQUIRE_EXCLUSIVE;
+  }
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   rc = _sblk_loadkvblk_mm(lx, sblk, mm);
@@ -2614,7 +2617,7 @@ IW_INLINE WUR iwrc _cursor_to_lr(IWKV_cursor cur, IWKV_cursor_op op) {
   blkn_t dblk = ADDR2BLK(db->addr);
   if (op < IWKV_CURSOR_NEXT) { // IWKV_CURSOR_BEFORE_FIRST | IWKV_CURSOR_AFTER_LAST
     if (cur->cn) {
-     _sblk_release(lx, &cur->cn);
+      _sblk_release(lx, &cur->cn);
     }
     if (op == IWKV_CURSOR_BEFORE_FIRST) {
       cur->dbaddr = db->addr;
@@ -2846,11 +2849,11 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
 #endif
   
   // Init WAL
-  rc = iwal_create(iwkv, opts, &fsmopts);  
+  rc = iwal_create(iwkv, opts, &fsmopts);
   RCGO(rc, finish);
   
   // Now open main database file
-  rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);  
+  rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
   
   IWFS_FSM *fsm  = &iwkv->fsm;
@@ -3150,6 +3153,7 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
   }
   int rci;
   iwrc rc = 0;
+  bool exclusive = false;
   IWKV iwkv = db->iwkv;
   IWLCTX lx = {
     .db = db,
@@ -3158,13 +3162,24 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key) {
     .op = IWLCTX_DEL
   };
   iwp_current_time_ms(&lx.ts, true);
-  API_DB_WLOCK(db, rci);
+start:
+  if (exclusive) {
+    rc = _wnw_db(db, _wnw_db_wl);
+    RCRET(rc);
+  } else {
+    API_DB_WLOCK(db, rci);
+  }
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
     RCGO(rc, finish);
   }
-  rc = _lx_del_lw(&lx);
-  
+  rc = _lx_del_lw(&lx, exclusive);
+  if (rc == _IWKV_ERROR_ACQUIRE_EXCLUSIVE) {
+    rc = 0;
+    pthread_rwlock_unlock(&db->rwl);
+    exclusive = true;
+    goto start;
+  }
 finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc) {

@@ -72,6 +72,7 @@ typedef enum {
   /* Internal error codes */
   _IWKV_ERROR_KVBLOCK_FULL,
   _IWKV_ERROR_REQUIRE_NLEVEL,
+  _IWKV_ERROR_ACQUIRE_EXCLUSIVE,
 } iwkv_ecode;
 
 /**
