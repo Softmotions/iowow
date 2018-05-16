@@ -2826,6 +2826,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   }
   if (!(oflags & IWKV_RDONLY)) {
     omode |= IWFS_OWRITE;
+    omode |= IWFS_OCREATE;
   }
   iwkv->oflags = oflags;
   IWFS_FSM_STATE fsmstate;
