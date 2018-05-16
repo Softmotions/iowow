@@ -1,8 +1,8 @@
-iowow (1.2.6) UNRELEASED; urgency=medium
+iowow (1.2.6) testing; urgency=medium
 
   * Fixed: database file is not created automatically if no open modes specified in opts
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 16 May 2018 19:55:46 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 16 May 2018 19:57:35 +0700
 
 iowow (1.2.5) testing; urgency=medium
 
