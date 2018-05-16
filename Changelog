@@ -1,8 +1,8 @@
-iowow (1.2.5) UNRELEASED; urgency=medium
+iowow (1.2.5) testing; urgency=medium
 
   * Added iwkv_opflags opflags into iwkv_del
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 16 May 2018 19:30:51 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 16 May 2018 19:33:16 +0700
 
 iowow (1.2.4) testing; urgency=medium
 
