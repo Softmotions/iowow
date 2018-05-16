@@ -28,9 +28,9 @@ int init_suite(void) {
   ts = IW_SWAB64(ts);
   ts >>= 32;
   g_seed = ts;
-    
+
   fprintf(stderr, "\nRandom seed: %u\n", g_seed);
-  iwu_rand_seed(g_seed);  
+  iwu_rand_seed(g_seed);
   for (int i = 0; i < RND_DATA_SZ; ++i) {
     RND_DATA[i] = ' ' + iwu_rand_range(95); // ascii space ... ~
   }
@@ -42,7 +42,7 @@ int clean_suite(void) {
 }
 
 static void iwkv_test4(void) {
-  char *path = "iwkv_test4_4.db";  
+  char *path = "iwkv_test4_4.db";
   IWKV iwkv;
   IWDB db1;
   IWKV_val key = {0};
@@ -61,20 +61,20 @@ static void iwkv_test4(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "key00001";
   key.size = strlen(key.data);
   val.data = "value00001";
   val.size = strlen(val.data);
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   CU_ASSERT_FALSE(iwal_synched(iwkv));
-  
+
   sleep(4);
-  
+
   CU_ASSERT_TRUE(iwal_synched(iwkv));
-  
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
@@ -99,68 +99,68 @@ static void iwkv_test3(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "key00001";
   key.size = strlen(key.data);
   val.data = "value00001";
   val.size = strlen(val.data);
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_sync(iwkv, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "key00002";
   key.size = strlen(key.data);
   val.data = "value00002";
   val.size = strlen(val.data);
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_sync(iwkv, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "key00003";
   key.size = strlen(key.data);
   val.data = "value00003";
   val.size = strlen(val.data);
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
-  
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   // Now reopen and roll WAL log
-  
+
   iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
-  
+
   opts.oflags &= ~IWKV_TRUNC;
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "key00001";
   key.size = strlen(key.data);
   rc = iwkv_get(db1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_NSTRING_EQUAL(val.data, "value00001", val.size);
   iwkv_kv_dispose(0, &val);
-  
+
   key.data = "key00002";
   key.size = strlen(key.data);
   rc = iwkv_get(db1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_NSTRING_EQUAL(val.data, "value00002", val.size);
   iwkv_kv_dispose(0, &val);
-  
+
   key.data = "key00003";
   key.size = strlen(key.data);
   rc = iwkv_get(db1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
-  
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
@@ -190,12 +190,12 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
   };
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = kbuf;
-  
+
   for (int i = 0; i < num; ++i) {
     int k = iwu_rand_range(num);
     snprintf(key.data, sizeof(kbuf), "%016d", k);
@@ -248,42 +248,42 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
   };
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_db(iwkv, 1, 0, &db1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_db(iwkv, 2, 0, &db2);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "foo";
   key.size = strlen(key.data);
   val.data = "bar";
   val.size = strlen(val.data);
   rc = iwkv_put(db1, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "foozz";
   key.size = strlen(key.data);
   val.data = "bazz";
   val.size = strlen(val.data);
   rc = iwkv_put(db2, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "foozz2";
   key.size = strlen(key.data);
   val.data = "bazzbazzbazzbazz";
   val.size = strlen(val.data);
   rc = iwkv_put(db2, &key, &val, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   key.data = "foozz";
   key.size = strlen(key.data);
-  rc = iwkv_del(db2, &key);
+  rc = iwkv_del(db2, &key, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_db_destroy(&db2);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  
+
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
@@ -303,30 +303,30 @@ static void iwkv_test1(void) {
 
 int main() {
   CU_pSuite pSuite = NULL;
-  
+
   /* Initialize the CUnit test registry */
   if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
-  
+
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test4", init_suite, clean_suite);
-  
+
   if (NULL == pSuite) {
     CU_cleanup_registry();
     return CU_get_error();
   }
-  
+
   /* Add the tests to the suite */
   if (
     (NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) || 
+    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4))
-    
+
   )  {
     CU_cleanup_registry();
     return CU_get_error();
   }
-  
+
   /* Run all tests using the CUnit Basic interface */
   CU_basic_set_mode(CU_BRM_VERBOSE);
   CU_basic_run_tests();

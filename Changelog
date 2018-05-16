@@ -1,3 +1,9 @@
+iowow (1.2.5) UNRELEASED; urgency=medium
+
+  * Added iwkv_opflags opflags into iwkv_del
+
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 16 May 2018 19:30:51 +0700
+
 iowow (1.2.4) testing; urgency=medium
 
   * Fixed race conditions in iwkv_cursor_to()

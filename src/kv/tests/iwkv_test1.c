@@ -303,12 +303,12 @@ static void iwkv_test3(void) {
 
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  // Compare logs with referenced  
-#ifndef _WIN32  
+  // Compare logs with referenced
+#ifndef _WIN32
   FILE *r = fopen("iwkv_test1_3.ref", "r+");
 #else
   FILE *r = fopen("iwkv_test1_3w.ref", "r+");
-#endif    
+#endif
   CU_ASSERT_PTR_NOT_NULL(r);
   int rci = cmp_files(r, f);
   CU_ASSERT_EQUAL_FATAL(rci, 0);
@@ -418,12 +418,12 @@ static void iwkv_test2(void) {
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  // Compare logs with referenced  
-#ifndef _WIN32  
+  // Compare logs with referenced
+#ifndef _WIN32
   FILE *r = fopen("iwkv_test1_2.ref", "r+");
 #else
   FILE *r = fopen("iwkv_test1_2w.ref", "r+");
-#endif    
+#endif
   CU_ASSERT_PTR_NOT_NULL(r);
   int rci = cmp_files(r, f);
   CU_ASSERT_EQUAL_FATAL(rci, 0);
@@ -480,9 +480,9 @@ static void iwkv_test1(void) {
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_TRUE_FATAL(rc);
   iwrc_strip_errno(&rc);
-#ifdef _WIN32  
-  iwrc_strip_werror(&rc);  
-#endif  
+#ifdef _WIN32
+  iwrc_strip_werror(&rc);
+#endif
   CU_ASSERT_EQUAL(rc, IW_ERROR_IO_ERRNO);
 
   // Open in read-only mode and acquire not existing db
@@ -576,7 +576,7 @@ static void iwkv_test1(void) {
   logstage(f, "put foo:bar", db1);
 
   // remove key/value
-  rc = iwkv_del(db1, &key);
+  rc = iwkv_del(db1, &key, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_get(db1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
@@ -825,11 +825,11 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Compare logs with referenced
-#ifndef _WIN32  
+#ifndef _WIN32
   FILE *r = fopen("iwkv_test1_1.ref", "r+");
 #else
   FILE *r = fopen("iwkv_test1_1w.ref", "r+");
-#endif  
+#endif
   CU_ASSERT_PTR_NOT_NULL(r);
   int rci = cmp_files(r, f);
   CU_ASSERT_EQUAL_FATAL(rci, 0);

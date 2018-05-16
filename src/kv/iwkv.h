@@ -289,7 +289,7 @@ IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
  * @param db Database handler
  * @param key Key data container
  */
-IW_EXPORT iwrc iwkv_del(IWDB db, const IWKV_val *key);
+IW_EXPORT iwrc iwkv_del(IWDB db, const IWKV_val *key, iwkv_opflags opflags);
 
 /**
  * @brief Destroy key/value data container.

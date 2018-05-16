@@ -43,7 +43,7 @@ static void *db_open(BMCTX *ctx) {
     }
   };
   opts.path = bm.param_db ? bm.param_db : DEFAULT_DB;
-  
+
   if (ctx->freshdb) {
     opts.oflags = IWKV_TRUNC;
   }
@@ -102,7 +102,7 @@ static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) 
 
 static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync) {
   BM_IWKVDB *bmdb = ctx->db;
-  iwrc rc = iwkv_del(bmdb->db, key);
+  iwrc rc = iwkv_del(bmdb->db, key, sync ? IWKV_SYNC : 0);
   if (rc == IWKV_ERROR_NOTFOUND) {
     rc = 0;
   }
