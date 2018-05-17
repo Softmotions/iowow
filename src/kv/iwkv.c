@@ -3171,6 +3171,7 @@ start:
     lx.nlvl = -1;
     lx.op = IWLCTX_DEL;
     lx.opflags = opflags;
+    iwp_current_time_ms(&lx.ts, true);
     rc = _wnw_db(db, _wnw_db_wl);
     RCRET(rc);
   } else {
