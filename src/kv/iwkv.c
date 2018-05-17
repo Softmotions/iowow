@@ -3164,6 +3164,13 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key, iwkv_opflags opflags) {
   iwp_current_time_ms(&lx.ts, true);
 start:
   if (exclusive) {
+    // Reset lx context
+    memset(&lx, 0, sizeof(lx));
+    lx.db = db;
+    lx.key = key;
+    lx.nlvl = -1;
+    lx.op = IWLCTX_DEL;
+    lx.opflags = opflags;
     rc = _wnw_db(db, _wnw_db_wl);
     RCRET(rc);
   } else {
