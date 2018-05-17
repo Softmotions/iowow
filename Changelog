@@ -1,3 +1,9 @@
+iowow (1.2.7) testing; urgency=medium
+
+  * Fixed incorrect exclusive locking in iwkv_del()"
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 17 May 2018 11:27:58 +0700
+
 iowow (1.2.6) testing; urgency=medium
 
   * Fixed: database file is not created automatically if no open modes specified in opts
