@@ -196,11 +196,9 @@ static WUR iwrc _wnw_iwkw_wl(IWKV iwkv) {
   return 0;
 }
 
-static WUR iwrc _wnw_db_wl(IWDB db) {
-  int rci = pthread_rwlock_wrlock(&db->rwl);
-  if (rci) {
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  }
+static WUR iwrc _wnw_db_wl(IWDB db) {  
+  int rci;
+  API_DB_WLOCK(db, rci);
   return 0;
 }
 
@@ -3178,12 +3176,14 @@ start:
   rc = _lx_del_lw(&lx, exclusive);
   if (rc == _IWKV_ERROR_ACQUIRE_EXCLUSIVE) {
     rc = 0;
-    pthread_rwlock_unlock(&db->rwl);
+    API_DB_UNLOCK(db, rci, rc);
+    RCGO(rc, finish2);
     exclusive = true;
     goto start;
   }
 finish:
   API_DB_UNLOCK(db, rci, rc);
+finish2:  
   if (!rc) {
     if (lx.opflags & IWKV_SYNC) {
       rc = iwkv_sync(iwkv, 0);
