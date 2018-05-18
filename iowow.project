@@ -34,6 +34,7 @@
   </VirtualDirectory>
   <VirtualDirectory Name="cmake">
     <VirtualDirectory Name="Modules">
+      <File Name="cmake/Modules/FindAtomic.cmake"/>
       <File Name="cmake/Modules/FindLibIberty.cmake"/>
       <File Name="cmake/Modules/UploadPPA.cmake"/>
       <File Name="cmake/Modules/Win32LIBTools.cmake"/>

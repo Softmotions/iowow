@@ -168,7 +168,11 @@ static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
 
 /** Tallest SBLK nodes cache */
 typedef struct DBCACHE {
+#ifdef IW_HAVE_ATOMICS64  
   atomic_uint_least64_t atime;  /**< Cache access MONOTONIC time (ms) */
+#else 
+  uint64_t atime;
+#endif    
   size_t asize;                 /**< Size of allocated cache buffer */
   size_t num;                   /**< Actual number of nodes */
   size_t nsize;                 /**< Cached node size */

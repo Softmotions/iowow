@@ -122,6 +122,10 @@ typedef int HANDLE;
 #define MAX(a_, b_) ((a_) > (b_) ? (a_) : (b_))
 #endif
 
+#if (defined(__mips__) && (_MIPS_SIM == _ABIO32 || _MIPS_SIM == _ABIN32))  
+#define IW_MIPS32
+#endif  
+
 #define COMPILER_BARRIER() asm volatile("" ::: "memory")
 
 #include <stdint.h>
