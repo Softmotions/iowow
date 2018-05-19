@@ -66,6 +66,10 @@ Successfully tested on OSX 10.12/10.13
 [Port pending](https://github.com/Softmotions/iowow/issues/1)
 
 
+## MIPS based systems (including big-endian)
+
+Successfully tested on Debian 9.4, MIPS 32, gcc 6.x compiler.
+
 # Example
 
 ```c
