@@ -81,7 +81,7 @@ IW_EXTERN_C_START
    (((IW_num_) & 0xff00000000000000ULL) >> 56))
 #endif
 
-#if (IW_BIGENDIAN == 1) || defined(IW_FORCE_BIGENDIAN)
+#ifdef IW_BIGENDIAN
 #define IW_HTOIS(IW_num_) IW_SWAB16(IW_num_)
 #define IW_HTOIL(IW_num_) IW_SWAB32(IW_num_)
 #define IW_HTOILL(IW_num_) IW_SWAB64(IW_num_)
@@ -89,8 +89,6 @@ IW_EXTERN_C_START
 #define IW_ITOHL(IW_num_) IW_SWAB32(IW_num_)
 #define IW_ITOHLL(IW_num_) IW_SWAB64(IW_num_)
 #else
-#undef IW_BIGENDIAN
-#define IW_BIGENDIAN 0
 #define IW_HTOIS(IW_num_) (IW_num_)
 #define IW_HTOIL(IW_num_) (IW_num_)
 #define IW_HTOILL(IW_num_) (IW_num_)
@@ -100,33 +98,34 @@ IW_EXTERN_C_START
 #endif
 
 #define IW_WRITEBV(IW_ptr_, IW_v_, IW_m_)  \
-  static_assert(sizeof(IW_v_) >= 1, "Mismatch IW_v_ size"); \
+  static_assert(sizeof(IW_v_) == 1, "Mismatch IW_v_ size"); \
   IW_v_ = (IW_m_);                          \
   memcpy(IW_ptr_, &IW_v_, 1); \
   IW_ptr_ += 1
 
 #define IW_WRITESV(IW_ptr_, IW_v_, IW_m_)  \
-  static_assert(sizeof(IW_v_) >= 2, "Mismatch IW_v_ size"); \
+  static_assert(sizeof(IW_v_) == 2, "Mismatch IW_v_ size"); \
   IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOIS(IW_v_);                \
   memcpy(IW_ptr_, &IW_v_, 2); \
   IW_ptr_ += 2
 
 #define IW_WRITELV(IW_ptr_, IW_v_, IW_m_)  \
-  static_assert(sizeof(IW_v_) >= 4, "Mismatch IW_v_ size"); \
+  static_assert(sizeof(IW_v_) == 4, "Mismatch IW_v_ size"); \
   IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOIL(IW_v_);                \
   memcpy(IW_ptr_, &IW_v_, 4); \
   IW_ptr_ += 4
 
 #define IW_WRITELLV(IW_ptr_, IW_v_, IW_m_) \
-  static_assert(sizeof(IW_v_) >= 8, "Mismatch IW_v_ size"); \
+  static_assert(sizeof(IW_v_) == 8, "Mismatch IW_v_ size"); \
   IW_v_ = (IW_m_);                          \
   IW_v_ = IW_HTOILL(IW_v_);               \
   memcpy(IW_ptr_, &IW_v_, 8); \
   IW_ptr_ += 8
 
 #define IW_READBV(IW_ptr_, IW_t_, IW_m_)   \
+  static_assert(sizeof(IW_t_) == 1, "Mismatch IW_t_ size"); \
   IW_t_ = 0; \
   memcpy(&(IW_t_), IW_ptr_, 1);  \
   IW_m_ = (IW_t_);   \

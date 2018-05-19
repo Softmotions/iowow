@@ -79,7 +79,7 @@ void test_fsm_bitmap(void) {
   memset(buf, 0, BMSZ1 * sizeof(uint64_t));
   int found = 0;
   
-  uint64_t val = 0x3UL; /* 0000011 */
+  uint64_t val = IW_HTOILL(0x3UL); /* 0000011 */
   uint64_t res = iwfs_fsmdbg_find_next_set_bit(&val, 0, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 0);
@@ -93,111 +93,125 @@ void test_fsm_bitmap(void) {
   CU_ASSERT_EQUAL(res, 0);
   
   val = 0x3UL << 2; /* 0001100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 0, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
   
   val = 0x3UL << 2; /* 0001100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 2, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
   
   val = 0x3UL << 2; /* 0001100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 3, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 3);
   
   val = 0x3UL << 2; /* 0001100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 4, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 0);
   CU_ASSERT_EQUAL(res, 0);
   
   val = 0x3UL << 2; /* 0001100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_prev_set_bit(&val, 2, 0, &found);
   CU_ASSERT_EQUAL(found, 0);
   CU_ASSERT_EQUAL(res, 0);
   
   val = 0x3UL << 2; /* 0001100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_prev_set_bit(&val, 3, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
   
   val = 0x2UL; /* 00000010 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 0, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 1);
   
   val = 0x2UL; /* 00000010 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 1, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 1);
   
   val = 0x4UL; /* 00000100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 0, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
   
   val = 0x4UL; /* 00000100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 1, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
   
   val = 0x4UL; /* 00000100 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_next_set_bit(&val, 2, sizeof(uint64_t) * 8, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
   
   val = ~0UL;
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_prev_set_bit(&val, 0, 0, &found);
   CU_ASSERT_EQUAL(found, 0);
   CU_ASSERT_EQUAL(res, 0);
   
   val = 0x1UL; /* 00000001 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_prev_set_bit(&val, 1, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 0);
   
   val = 0x2UL; /* 00000010 */
+  val = IW_HTOILL(val);
   res = iwfs_fsmdbg_find_prev_set_bit(&val, 10, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 1);
   
-  buf[0] = 0x1UL;
+  buf[0] = IW_HTOILL(0x1UL);
   res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 0);
   
-  buf[0] = 0x2UL;
+  buf[0] = IW_HTOILL(0x2UL);
   res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 1);
   
-  buf[0] = 0x4UL;
+  buf[0] = IW_HTOILL(0x4UL);
   res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
   
-  buf[0] = 0x8UL;
+  buf[0] = IW_HTOILL(0x8UL);
   res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 15, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 3);
   
-  buf[1] = 0x2UL;
+  buf[1] = IW_HTOILL(0x2UL);
   res = iwfs_fsmdbg_find_prev_set_bit(buf, 2 * sizeof(uint64_t) * 8 + 17, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 64 + 1);
   
   /* 0[0100000000000..|00]000 */
-  buf[0] = 0x4UL;
-  buf[1] = 0x0UL;
-  buf[2] = 0x0UL;
+  buf[0] = IW_HTOILL(0x4UL);
+  buf[1] = IW_HTOILL(0x0UL);
+  buf[2] = IW_HTOILL(0x0UL);
   res = iwfs_fsmdbg_find_prev_set_bit(buf, (sizeof(uint64_t) * 8 + 2), 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 2);
   
-  buf[0] = 0x4UL;
-  buf[1] = 0x4UL;
-  buf[2] = 0x0UL;
+  buf[0] = IW_HTOILL(0x4UL);
+  buf[1] = IW_HTOILL(0x4UL);
+  buf[2] = IW_HTOILL(0x0UL);
   res = iwfs_fsmdbg_find_prev_set_bit(buf, sizeof(uint64_t) * 8 + 5, 0, &found);
   CU_ASSERT_EQUAL(found, 1);
   CU_ASSERT_EQUAL(res, 64 + 2);
@@ -300,7 +314,7 @@ void test_fsm_uniform_alloc_impl(int mmap_all) {
   rc = iwfs_fsmdbg_state(&fsm, &state1);
   CU_ASSERT_FALSE_FATAL(rc);
   
-  if (iwp_alloc_unit() == 4096) {
+  if (iwp_alloc_unit() == 4096) { // todo check for system with different alloc units
     CU_ASSERT_EQUAL(state1.bmlen, 8192);
     CU_ASSERT_EQUAL(state1.bmoff, 2097152);
     CU_ASSERT_EQUAL(state1.lfbklen, 32632);
@@ -347,7 +361,7 @@ void test_fsm_uniform_alloc_impl(int mmap_all) {
   rc = iwfs_fsmdbg_state(&fsm, &state1);
   CU_ASSERT_FALSE_FATAL(rc);
   
-  if (iwp_alloc_unit() == 4096) {
+  if (iwp_alloc_unit() == 4096) { // todo check for system with different alloc units
     CU_ASSERT_EQUAL(state1.bmlen, 8192);
     CU_ASSERT_EQUAL(state1.bmoff, 2097152);
     CU_ASSERT_EQUAL(state1.lfbklen, 32632);

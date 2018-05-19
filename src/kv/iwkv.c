@@ -245,7 +245,7 @@ static WUR iwrc _wnw_db(IWDB db, iwrc(*after)(IWDB db)) {
 
 static WUR iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   iwrc rc = 0;
-  uint8_t *rp;
+  uint8_t *rp, bv;
   uint32_t lv;
   int rci;
   IWDB db = calloc(1, sizeof(struct _IWDB));
@@ -270,7 +270,7 @@ static WUR iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
     iwlog_ecode_error3(rc);
     goto finish;
   }
-  IW_READBV(rp, lv, db->dbflg);
+  IW_READBV(rp, bv, db->dbflg);
   IW_READLV(rp, lv, db->id);
   IW_READLV(rp, lv, db->next_db_addr);
   db->next_db_addr = BLK2ADDR(db->next_db_addr); // blknum -> addr
@@ -292,13 +292,13 @@ finish:
 static WUR iwrc _db_save(IWDB db, uint8_t *mm) {
   iwrc rc = 0;
   uint32_t lv;
-  uint8_t *wp = mm + db->addr;
+  uint8_t *wp = mm + db->addr, bv;
   uint8_t *sp = wp;
   IWDLSNR *dlsnr = db->iwkv->dlsnr;
   db->next_db_addr = db->next ? db->next->addr : 0;
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n0-n29:u4]
   IW_WRITELV(wp, lv, IWDB_MAGIC);
-  IW_WRITEBV(wp, lv, db->dbflg);
+  IW_WRITEBV(wp, bv, db->dbflg);
   IW_WRITELV(wp, lv, db->id);
   IW_WRITELV(wp, lv, ADDR2BLK(db->next_db_addr));
   if (dlsnr) {
@@ -1107,7 +1107,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
                                bool internal) {
   assert(*idxp < KVBLK_IDXNUM);
   int32_t i;
-  uint32_t len, nlen, sz;
+  uint32_t len, nlen, sz, lv;
   IWDB db = kb->db;
   int8_t idx = *idxp;
   uint8_t *mm = 0, *wp, *sp;
@@ -1157,8 +1157,8 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
         goto finish;
       }
       sz -= 1;
-      sz = IW_HTOIL(sz);
-      memcpy(sp, &sz, 4);
+      lv = IW_HTOIL(sz);
+      memcpy(sp, &lv, 4);
       if (len >= (4 + sz * val->size) * 2) {
         // Reduce size of kv value buffer
         kvp->len = kvp->len - len / 2;
@@ -1173,8 +1173,8 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
       }
       // Increment number of items
       sz += 1;
-      sz = IW_HTOIL(sz);
-      memcpy(sp, &sz, 4);
+      lv = IW_HTOIL(sz);
+      memcpy(sp, &lv, 4);
       if (dlsnr) {
         rc = dlsnr->onwrite(dlsnr, sp - mm, sp, 4 /* num items */ + sz * val->size, 0);
       }
@@ -1201,8 +1201,8 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
         goto finish;
       }
       sz += 1;
-      sz = IW_HTOIL(sz);
-      memcpy(uval->data, &sz, 4);
+      lv = IW_HTOIL(sz);
+      memcpy(uval->data, &lv, 4);
     }
   }
   // !DUP
@@ -1435,10 +1435,12 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
     }
     if (sblk->lvl) --sblk->lvl;
   } else if (addr) {
+    uint8_t uflags;
     uint8_t *rp = mm + addr;
     sblk->addr = addr;
     // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
-    memcpy(&sblk->flags, rp++, 1);
+    memcpy(&uflags, rp++, 1);
+    sblk->flags = uflags;
     if (sblk->flags & ~SBLK_PERSISTENT_FLAGS) {
       rc = IWKV_ERROR_CORRUPTED;
       iwlog_ecode_error3(rc);
@@ -1541,10 +1543,11 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
     } else {
       uint8_t *wp = mm + sblk->addr;
       sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
+      uint8_t uflags = flags;
       assert(sblk->lkl <= SBLK_LKLEN);
       // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
       wp += SOFF_FLAGS_U1;
-      memcpy(wp++, &flags, 1);
+      memcpy(wp++, &uflags, 1);
       memcpy(wp++, &sblk->lvl, 1);
       memcpy(wp++, &sblk->lkl, 1);
       memcpy(wp++, &sblk->pnum, 1);
