@@ -19,7 +19,7 @@ set(PROJECT_DESCRIPTION "The skiplist based persistent key/value storage engine"
 set(CHANGELOG_MESSAGE ${CHANGELOG_LAST_MESSAGE})
 set(PROJECT_PPA "ppa:adamansky/iowow")
 set(PROJECT_PPA_USER "adamansky")
-set(PROJECT_PPA_DISTRIB_TARGET xenial artful)
+set(PROJECT_PPA_DISTRIB_TARGET xenial artful bionic)
 
 project(${PROJECT_NAME} C)
 
@@ -44,7 +44,7 @@ option(PACKAGE_ZIP "Build .zip package archive" ON)
 option(ENABLE_PPA "Enable PPA package build" OFF)
 option(UPLOAD_PPA "Upload debian packages to the launchpad ppa repository" OFF)
 option(PPA_DEBIAN_VERSION "PPA version suffix for debian packages" "ppa1")
-option("PROJECT_PPA_DISTRIB_TARGET" "Ubuntu PPA distrubutive names" "xenial;artful")
+option("PROJECT_PPA_DISTRIB_TARGET" "Ubuntu PPA distrubutive names" "xenial;artful;bionic")
 
 if(POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
@@ -115,7 +115,7 @@ if(CPACK_GENERATORS)
             "/\\\\.vscode/"
             "/\\\\.codelite/"
             "/\\\\.idea/"
-            "/cmake-.*/"            
+            "/cmake-.*/"
             "\\\\.sh$"
             "\\\\.project$"
             "\\\\.workspace$"
@@ -125,7 +125,7 @@ if(CPACK_GENERATORS)
             "\\\\.editorconfig$"
             "/Makefile$"
     )
-    set(PROJECT_ARCH "${CMAKE_SYSTEM_PROCESSOR}")    
+    set(PROJECT_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
     add_subdirectory(installer)
 endif(CPACK_GENERATORS)
 
