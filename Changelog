@@ -1,3 +1,9 @@
+iowow (1.2.9) UNRELEASED; urgency=medium
+
+  * Fixed type in iwconv.h iwtoa renamed to iwitoa
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 24 May 2018 16:03:53 +0700
+
 iowow (1.2.8) testing; urgency=medium
 
   * IOWOW Ported to MIPS32 (big-endian) tested on Debian GNU/Linux 9.4

@@ -38,7 +38,7 @@ IW_EXPORT int64_t iwatoi(const char *str);
 
 IW_EXPORT long double iwatof(const char *str);
 
-IW_EXPORT int iwtoa(int64_t v, char *buf, int max);
+IW_EXPORT int iwitoa(int64_t v, char *buf, int max);
 
 IW_EXPORT int iwftoa(long double v, char *buf, int max, int precision);
 
