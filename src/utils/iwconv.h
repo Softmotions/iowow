@@ -40,7 +40,9 @@ IW_EXPORT long double iwatof(const char *str);
 
 IW_EXPORT int iwitoa(int64_t v, char *buf, int max);
 
-IW_EXPORT int iwftoa(long double v, char *buf, int max, int precision);
+#define IWFTOA_BUFSIZE 32
+
+IW_EXPORT char* iwftoa(long double v, char buf[IWFTOA_BUFSIZE]);
 
 IW_EXPORT size_t iwhex2bin(const char *hex, int hexlen, char *out, int max);
 

@@ -68,7 +68,7 @@ int iwitoa(int64_t v, char *buf, int max) {
   int ret = 0;
   char *ptr = buf, *p = ptr, *p1;
   char c;
-
+  
   if (!v) {
     ITOA_SZSTEP(1);
     *ptr++ = '0';
@@ -101,124 +101,82 @@ int iwitoa(int64_t v, char *buf, int max) {
   ptr = p1;
   *ptr = 0;
   return ret;
-
+  
 #undef ITOA_SZSTEP
 }
 
-// Basic code of `ftoa()' from scmRTOS https://sourceforge.net/projects/scmrtos
-// Copyright (c) 2009-2012by Anton Gusev aka AHTOXA
-#define FTOA_MAX_PRECISION  (10)
-static const double rounders[FTOA_MAX_PRECISION + 1] = {
-  0.5, // 0
-  0.05, // 1
-  0.005, // 2
-  0.0005, // 3
-  0.00005, // 4
-  0.000005, // 5
-  0.0000005, // 6
-  0.00000005, // 7
-  0.000000005, // 8
-  0.0000000005, // 9
-  0.00000000005 // 10
-};
-
-int iwftoa(long double f, char *buf, int max, int precision) {
-
-#define FTOA_SZSTEP(_step) if ((ret += (_step)) >= max) { \
-    *ptr = 0; \
-    return ret; \
-  }
-  if (max <= 0) {
-    return 0;
-  }
-
-  char *ptr = buf, *p = ptr, *p1;
-  char c;
-  long int intPart;
-  int ret = 0;
-
-  // check precision bounds
-  if (precision > FTOA_MAX_PRECISION) {
-    precision = FTOA_MAX_PRECISION;
-  }
-
-  // sign stuff
-  if (f < 0) {
-    f = -f;
-    FTOA_SZSTEP(1)
-    *ptr++ = '-';
-  }
-  if (precision == -1) {
-    if (f < 1.0) precision = 6;
-    else if (f < 10.0) precision = 5;
-    else if (f < 100.0) precision = 4;
-    else if (f < 1000.0) precision = 3;
-    else if (f < 10000.0) precision = 2;
-    else if (f < 100000.0) precision = 1;
-    else precision = 0;
-  }
-  if (precision) {
-    // round value according the precision
-    f += rounders[precision];
-  }
-  // integer part...
-  intPart = f;
-  f -= intPart;
-
-  if (!intPart) {
-    FTOA_SZSTEP(1)
-    *ptr++ = '0';
+char* iwftoa(long double n, char s[IWFTOA_BUFSIZE]) {
+  static double PRECISION = 0.00000000000001;
+  // handle special cases
+  if (isnan(n)) {
+    strcpy(s, "nan");
+  } else if (isinf(n)) {
+    strcpy(s, "inf");
+  } else if (n == 0.0) {
+    strcpy(s, "0");
   } else {
-    // save start pointer
-    p = ptr;
-    while (intPart) {
-      if (++ret >= max) { //overflow condition
-        memmove(ptr, ptr + 1, p - ptr);
-        p--;
+    int digit, m, m1;
+    char *c = s;
+    int neg = (n < 0);
+    if (neg)
+      n = -n;
+    // calculate magnitude
+    m = log10(n);
+    int useExp = (m >= 14 || (neg && m >= 9) || m <= -9);
+    if (neg)
+      *(c++) = '-';
+    // set up for scientific notation
+    if (useExp) {
+      if (m < 0)
+        m -= 1.0;
+      n = n / pow(10.0, m);
+      m1 = m;
+      m = 0;
+    }
+    if (m < 1.0) {
+      m = 0;
+    }
+    // convert the number
+    while (n > PRECISION || m >= 0) {
+      double weight = pow(10.0, m);
+      if (weight > 0 && !isinf(weight)) {
+        digit = floor(n / weight);
+        n -= (digit * weight);
+        *(c++) = '0' + digit;
       }
-      *p++ = '0' + intPart % 10;
-      intPart /= 10;
+      if (m == 0 && n > 0)
+        *(c++) = '.';
+      m--;
     }
-    // save end pos
-    p1 = p;
-    // reverse result
-    while (p > ptr) {
-      c = *--p;
-      *p = *ptr;
-      *ptr++ = c;
+    if (useExp) {
+      // convert the exponent
+      int i, j;
+      *(c++) = 'e';
+      if (m1 > 0) {
+        *(c++) = '+';
+      } else {
+        *(c++) = '-';
+        m1 = -m1;
+      }
+      m = 0;
+      while (m1 > 0) {
+        *(c++) = '0' + m1 % 10;
+        m1 /= 10;
+        m++;
+      }
+      c -= m;
+      for (i = 0, j = m - 1; i < j; i++, j--) {
+        c[i] ^= c[j];
+        c[j] ^= c[i];
+        c[i] ^= c[j];
+      }
+      c += m;
     }
-    if (ret >= max) {
-      ptr = p1;
-      *ptr = 0;
-      return ret;
-    }
-    // restore end pos
-    ptr = p1;
+    *(c) = '\0';
   }
-
-  // decimal part
-  if (precision) {
-    // place decimal point
-    if ((ret += 1) + 1 >= max) { //reserve one more after dot
-      *ptr = 0;
-      return ret;
-    }
-    *ptr++ = '.';
-    // convert
-    while (precision--) {
-      f *= 10.0;
-      c = f;
-      FTOA_SZSTEP(1)
-      *ptr++ = '0' + c;
-      f -= c;
-    }
-  }
-  // terminating zero
-  *ptr = 0;
-  return ret;
-
-#undef FTOA_SZSTEP
+  return s;
 }
+
 
 int64_t iwatoi(const char *str) {
   assert(str);
@@ -285,4 +243,3 @@ long double iwatof(const char *str) {
   }
   return num * sign;
 }
-

@@ -1,8 +1,9 @@
 iowow (1.2.9) UNRELEASED; urgency=medium
 
-  * Fixed type in iwconv.h iwtoa renamed to iwitoa
-  * Added iwu_cmp_files into iwutils.h
-  * Return type of iwxstr_ptr(IWXSTR*) changed to char* 
+  * Rewrite of iwftoa() (iwconv.h)
+  * Fixed typo: iwtoa renamed to iwitoa (iwconv.h)
+  * Added iwu_cmp_files (iwutils.h)
+  * Return type of iwxstr_ptr() changed to char* (iwxstr.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 24 May 2018 16:03:53 +0700
 
