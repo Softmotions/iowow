@@ -156,11 +156,46 @@ uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init) {
     0xafb010b1, 0xab710d06, 0xa6322bdf, 0xa2f33668,
     0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
   };
-
-  uint32_t crc = init;  
-  while (len--) {    
+  
+  uint32_t crc = init;
+  while (len--) {
     crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ *buf) & 255];
-    buf++;    
+    buf++;
   }
   return crc;
+}
+
+int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
+  if (!f1 && !f2) {
+    return 0;
+  }
+  if (!f1) {
+    return -1;
+  }
+  if (f2) {
+    return 1;
+  }
+  fseek(f1, 0, SEEK_SET);
+  fseek(f2, 0, SEEK_SET);
+  char c1 = getc(f1);
+  char c2 = getc(f2);
+  int pos = 0, line = 1;
+  while (c1 != EOF && c2 != EOF) {
+    pos++;
+    if (c1 == '\n' && c2 == '\n') {
+      line++;
+      pos = 0;
+    } else if (c1 != c2) {
+      if (verbose) {
+        fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
+      }
+      return (c1 - c2);
+    }
+    c1 = getc(f1);
+    c2 = getc(f2);
+  }
+  if (c1 - c2 && verbose) {
+    fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
+  }
+  return (c1 - c2);
 }

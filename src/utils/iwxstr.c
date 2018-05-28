@@ -89,7 +89,7 @@ iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, int size) {
   return IW_OK;
 }
 
-void *iwxstr_ptr(IWXSTR *xstr) {
+char *iwxstr_ptr(IWXSTR *xstr) {
   return xstr->ptr;
 }
 
