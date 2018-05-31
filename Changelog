@@ -1,3 +1,9 @@
+iowow (1.2.10) UNRELEASED; urgency=medium
+
+  * Added iwu_replace_char() (iwutils.h)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 31 May 2018 23:19:32 +0700
+
 iowow (1.2.9) testing; urgency=medium
 
   * Rewrite of iwftoa() (iwconv.h)

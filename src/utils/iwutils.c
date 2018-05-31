@@ -165,6 +165,14 @@ uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init) {
   return crc;
 }
 
+void iwu_replace_char(char *data, char sch, char rch) {
+  for (int i = 0; data[i]; ++i) {
+      if (data[i] == sch) {
+        data[i] = rch;
+      }
+  }
+}
+
 int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   if (!f1 && !f2) {
     return 0;
