@@ -339,7 +339,7 @@ IW_EXPORT uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init);
 /**
  * @brief Replaces a char @a sch with @a rch in a null terminated @a data char buffer.
  */
-IW_EXPORT void iwu_replace_char(char *data, char sch, char rch);
+IW_EXPORT char *iwu_replace_char(char *data, char sch, char rch);
 
 IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 
