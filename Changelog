@@ -1,7 +1,7 @@
 iowow (1.2.10) UNRELEASED; urgency=medium
 
   * Added iwu_replace_char() (iwutils.h)
-  * Fixed memory leack in iwpool_destroy() (iwpool.h)
+  * Fixed memory leak in iwpool_destroy() (iwpool.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 31 May 2018 23:19:32 +0700
 
