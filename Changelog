@@ -1,6 +1,7 @@
 iowow (1.2.10) UNRELEASED; urgency=medium
 
   * Added iwu_replace_char() (iwutils.h)
+  * Fixed memory leack in iwpool_destroy() (iwpool.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 31 May 2018 23:19:32 +0700
 
@@ -57,9 +58,9 @@ iowow (1.2.2) testing; urgency=medium
 
 iowow (1.2.1) testing; urgency=medium
 
-  * Removed unistd.h from src/fs/iwdlsnr.h since it is not portable. 
+  * Removed unistd.h from src/fs/iwdlsnr.h since it is not portable.
   * C++ friendly header files
-  
+
  -- Anton Adamansky <adamansky@gmail.com>  Mon, 07 May 2018 12:47:46 +0700
 
 iowow (1.2.0) testing; urgency=medium

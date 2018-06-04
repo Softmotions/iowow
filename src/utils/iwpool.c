@@ -103,4 +103,5 @@ void iwpool_destroy(IWPOOL *pool) {
     _IWPOOL_FREE(cur->heap);
     _IWPOOL_FREE(cur);
   }
+  _IWPOOL_FREE(pool);
 }
