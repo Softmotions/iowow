@@ -1,5 +1,6 @@
 iowow (1.2.10) UNRELEASED; urgency=medium
 
+  * Renamed platform/linux/linux.c to platform/unix/unix.c (#9)
   * Added iwu_replace_char() (iwutils.h)
   * Fixed memory leak in iwpool_destroy() (iwpool.h)
   * Added iwpool_strdup(), iwpool_strndup() (iwpool.h)

@@ -35,7 +35,7 @@ unsigned int iwcpuflags = 0;
 static iwrc _iwp_init_impl(void);
 
 #if defined(__linux) || defined(__unix) || defined(__APPLE__)
-#include "linux/linux.c"
+#include "unix/unix.c"
 #elif defined(_WIN32)
 #include "win32/win32.c"
 #else
