@@ -1,6 +1,9 @@
 #include "iwpool.h"
 #include "iwutils.h"
+#include "iwlog.h"
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #define _IWPOOL_FREE(p)                     \
   do {                                      \
@@ -92,6 +95,22 @@ void *iwpool_alloc(size_t siz, IWPOOL *pool) {
   }
   pool->heap += siz;
   return d;
+}
+
+char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp) {
+  char *ret = iwpool_alloc(len, pool);
+  if (!ret) {
+    *rcp = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    return 0;
+  } else {
+    *rcp = 0;
+  }
+  memcpy(ret, str, len);
+  return ret;
+}
+
+char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp) {
+  return iwpool_strndup(pool, str, strlen(str), rcp);
 }
 
 void iwpool_destroy(IWPOOL *pool) {
