@@ -97,6 +97,15 @@ void *iwpool_alloc(size_t siz, IWPOOL *pool) {
   return d;
 }
 
+void *iwpool_calloc(size_t siz, IWPOOL *pool) {
+  void *res = iwpool_alloc(siz, pool);
+  if (res) {
+    return 0;
+  }
+  memset(res, 0, siz);
+  return res;
+}
+
 char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp) {
   char *ret = iwpool_alloc(len, pool);
   if (!ret) {
