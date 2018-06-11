@@ -1,4 +1,4 @@
-iowow (1.2.10) UNRELEASED; urgency=medium
+iowow (1.2.10) testing; urgency=medium
 
   * Added iwpool_calloc() (iwpool.h)
   * Added iwpool_strdup(), iwpool_strndup() (iwpool.h)
@@ -6,7 +6,7 @@ iowow (1.2.10) UNRELEASED; urgency=medium
   * Renamed platform/linux/linux.c to platform/unix/unix.c (#9)
   * Added iwu_replace_char() (iwutils.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 31 May 2018 23:19:32 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 11 Jun 2018 23:00:21 +0700
 
 iowow (1.2.9) testing; urgency=medium
 
