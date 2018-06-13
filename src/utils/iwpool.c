@@ -99,7 +99,7 @@ void *iwpool_alloc(size_t siz, IWPOOL *pool) {
 
 void *iwpool_calloc(size_t siz, IWPOOL *pool) {
   void *res = iwpool_alloc(siz, pool);
-  if (res) {
+  if (!res) {
     return 0;
   }
   memset(res, 0, siz);
