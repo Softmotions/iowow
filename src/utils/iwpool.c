@@ -119,7 +119,7 @@ char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp) {
 }
 
 char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp) {
-  return iwpool_strndup(pool, str, strlen(str), rcp);
+  return iwpool_strndup(pool, str, strlen(str) + 1, rcp);
 }
 
 void iwpool_destroy(IWPOOL *pool) {

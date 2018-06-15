@@ -1,5 +1,6 @@
 iowow (1.2.11) UNRELEASED; urgency=medium
 
+  * Fixed set terminating `\0` in iwpool_strdup() (iwpool.h)
   * Fixed wrong `if` in iwpool_calloc() (iwpool.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 14 Jun 2018 00:46:18 +0700
