@@ -5,13 +5,7 @@
 #include <string.h>
 #include <errno.h>
 
-#define _IWPOOL_FREE(p)                     \
-  do {                                      \
-    if (p) {                                \
-      free(p);                              \
-      (p) = 0;                              \
-    }                                       \
-  } while(0)
+#define IWPOOL_UNIT_ALIGN_SIZE 8
 
 /** Atomic heap unit */
 typedef struct IWPOOL_UNIT {
@@ -21,17 +15,16 @@ typedef struct IWPOOL_UNIT {
 
 /** Memory pool */
 struct _IWPOOL {
-  IWPOOL_UNIT *head;   /**< First heap unit */
-  char        *heap;   /**< Heap of current heap unit */
   size_t       usiz;   /**< Used size */
   size_t       asiz;   /**< Allocated size */
+  char        *heap;   /**< Current pool heap ptr */
   IWPOOL_UNIT *unit;   /**< Current heap unit */
 };
 
 IWPOOL *iwpool_create(size_t siz) {
   IWPOOL *pool;
   siz = siz < 1 ? IWPOOL_POOL_SIZ : siz;
-  siz = IW_ROUNDUP(siz, IWPOOL_ALIGN_SIZE);
+  siz = IW_ROUNDUP(siz, IWPOOL_UNIT_ALIGN_SIZE);
   pool = malloc(sizeof(*pool));
   if (!pool) {
     goto error;
@@ -45,17 +38,21 @@ IWPOOL *iwpool_create(size_t siz) {
     goto error;
   }
   pool->unit->next = 0;
-  pool->heap = pool->unit->heap;
-  pool->head = pool->unit;
   pool->usiz = 0;
   pool->asiz = siz;
+  pool->heap = pool->unit->heap;
   return pool;
+
 error:
-  if (pool && pool->unit) {
-    _IWPOOL_FREE(pool->unit->heap);
-    _IWPOOL_FREE(pool->unit);
+  if (pool) {
+    if (pool->unit && pool->unit->heap) {
+      free(pool->unit->heap);
+    }
+    if (pool->unit) {
+      free(pool->unit);
+    }
+    free(pool);
   }
-  _IWPOOL_FREE(pool);
   return 0;
 }
 
@@ -64,37 +61,34 @@ IW_INLINE int iwpool_extend(IWPOOL *pool, IWPOOL_UNIT *unit, size_t siz) {
   if (!nunit) {
     return 0;
   }
-  nunit->heap = calloc(1, siz);
+  siz = IW_ROUNDUP(siz, IWPOOL_UNIT_ALIGN_SIZE);
+  nunit->heap = malloc(siz);
   if (!nunit->heap) {
-    _IWPOOL_FREE(nunit);
+    free(nunit);
     return 0;
   }
-  nunit->next = 0;
-  unit->next = nunit;
-  pool->heap = unit->heap;
+  nunit->next = pool->unit;
+  pool->heap = nunit->heap;
+  pool->unit = nunit;
+  pool->usiz = 0;
+  pool->asiz = siz;
   return 1;
 }
 
 void *iwpool_alloc(size_t siz, IWPOOL *pool) {
-  siz = IW_ROUNDUP(siz, IWPOOL_ALIGN_SIZE);
   IWPOOL_UNIT  *unit = pool->unit;
   size_t usiz = pool->usiz + siz;
   size_t asiz = pool->asiz;
-  void *d = pool->heap;
+  void *h = pool->heap;
   if (usiz > asiz) {
-    size_t nsiz = usiz << 1;
-    if (!iwpool_extend(pool, unit, nsiz)) {
+    if (!iwpool_extend(pool, unit, usiz * 2)) {
       return 0;
     }
-    pool->usiz = 0;
-    pool->asiz = nsiz;
-    pool->unit = unit->next;
-    d = pool->heap;
-  } else {
-    pool->usiz = usiz;
+    h = pool->heap;
   }
+  pool->usiz += siz;
   pool->heap += siz;
-  return d;
+  return h;
 }
 
 void *iwpool_calloc(size_t siz, IWPOOL *pool) {
@@ -126,10 +120,10 @@ void iwpool_destroy(IWPOOL *pool) {
   if (!pool) {
     return;
   }
-  for (IWPOOL_UNIT *cur = pool->head, *next; cur; cur = next) {
-    next = cur->next;
-    _IWPOOL_FREE(cur->heap);
-    _IWPOOL_FREE(cur);
+  for (IWPOOL_UNIT *u = pool->unit, *next; u; u = next) {
+    next = u->next;
+    free(u->heap);
+    free(u);
   }
-  _IWPOOL_FREE(pool);
+  free(pool);
 }

@@ -1,5 +1,5 @@
 iowow (1.2.11) UNRELEASED; urgency=medium
-
+  * iwpool refactoring fixed pool memory corruption (iwpool.h)
   * Fixed set terminating `\0` in iwpool_strdup() (iwpool.h)
   * Fixed wrong `if` in iwpool_calloc() (iwpool.h)
 

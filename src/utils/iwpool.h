@@ -33,11 +33,7 @@
 IW_EXTERN_C_START
 
 #ifndef IWPOOL_POOL_SIZ
-#define IWPOOL_POOL_SIZ   (64 * 1024)
-#endif
-
-#ifndef IWPOOL_ALIGN_SIZE
-#define IWPOOL_ALIGN_SIZE (8)
+#define IWPOOL_POOL_SIZ   (8 * 1024)
 #endif
 
 struct _IWPOOL;
