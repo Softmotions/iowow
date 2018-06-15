@@ -78,9 +78,8 @@ IW_INLINE int iwpool_extend(IWPOOL *pool, IWPOOL_UNIT *unit, size_t siz) {
 void *iwpool_alloc(size_t siz, IWPOOL *pool) {
   IWPOOL_UNIT  *unit = pool->unit;
   size_t usiz = pool->usiz + siz;
-  size_t asiz = pool->asiz;
   void *h = pool->heap;
-  if (usiz > asiz) {
+  if (usiz > pool->asiz) {
     if (!iwpool_extend(pool, unit, usiz * 2)) {
       return 0;
     }
