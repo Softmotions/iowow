@@ -3,7 +3,7 @@ iowow (1.2.11) testing; urgency=medium
   * Fixed set terminating `\0` in iwpool_strdup() (iwpool.h)
   * Fixed wrong `if` in iwpool_calloc() (iwpool.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 15 Jun 2018 17:45:25 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Fri, 15 Jun 2018 17:58:20 +0700
 
 iowow (1.2.10) testing; urgency=medium
 
