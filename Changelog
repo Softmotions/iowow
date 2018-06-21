@@ -1,3 +1,10 @@
+iowow (1.2.12) UNRELEASED; urgency=medium
+
+  * Added iwu_file_read_as_buf() (iwutils.h)
+  * Optimized cmake config files generation
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 21 Jun 2018 17:01:23 +0700
+
 iowow (1.2.11) testing; urgency=medium
   * iwpool refactoring fixed pool memory corruption (iwpool.h)
   * Fixed set terminating `\0` in iwpool_strdup() (iwpool.h)

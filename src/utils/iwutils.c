@@ -29,7 +29,11 @@
 #include "iwcfg.h"
 #include "iwutils.h"
 #include <limits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdint.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "mt19937ar.h"
 
 #define IWU_RAND_MAX 0xffffffff
@@ -156,7 +160,7 @@ uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init) {
     0xafb010b1, 0xab710d06, 0xa6322bdf, 0xa2f33668,
     0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
   };
-  
+
   uint32_t crc = init;
   while (len--) {
     crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ *buf) & 255];
@@ -207,4 +211,26 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
     fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
   }
   return (c1 - c2);
+}
+
+char* iwu_file_read_as_buf(const char *path) {
+  struct stat st;
+  if (stat(path, &st) == -1) {
+    return 0;
+  }
+  int fd = open(path, O_RDONLY);
+  if (fd == -1) return 0;
+
+  char *data = malloc(st.st_size + 1);
+  if (!data) {
+    close(fd);
+    return 0;
+  }
+  if (st.st_size != read(fd, data, st.st_size)) {
+    close(fd);
+    return 0;
+  }
+  close(fd);
+  data[st.st_size] = '\0';
+  return data;
 }

@@ -343,6 +343,8 @@ IW_EXPORT char *iwu_replace_char(char *data, char sch, char rch);
 
 IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 
+IW_EXPORT char* iwu_file_read_as_buf(const char *path);
+
 IW_EXTERN_C_END
 
 #endif
