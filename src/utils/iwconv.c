@@ -72,6 +72,7 @@ int iwitoa(int64_t v, char *buf, int max) {
   if (!v) {
     ITOA_SZSTEP(1);
     *ptr++ = '0';
+    *ptr = 0;
     return ret;
   }
   // sign stuff
