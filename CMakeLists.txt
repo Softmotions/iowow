@@ -19,7 +19,7 @@ set(PROJECT_DESCRIPTION "The skiplist based persistent key/value storage engine"
 set(CHANGELOG_MESSAGE ${CHANGELOG_LAST_MESSAGE})
 set(PROJECT_PPA "ppa:adamansky/iowow")
 set(PROJECT_PPA_USER "adamansky")
-set(PROJECT_PPA_DISTRIB_TARGET xenial artful bionic)
+set(PROJECT_PPA_DISTRIB_TARGET xenial bionic)
 
 project(${PROJECT_NAME} C)
 
