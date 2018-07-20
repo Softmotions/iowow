@@ -1,6 +1,6 @@
 iowow (1.2.12) testing; urgency=medium
 
-  * Added MAP_NORESERVE option for PRIVATE mmaping (#11) 
+  * Added MAP_NORESERVE option for PRIVATE mmaping on Linux (#11) 
   * Added iwu_file_read_as_buf() (iwutils.h)
   * Optimized cmake config files generation
 
