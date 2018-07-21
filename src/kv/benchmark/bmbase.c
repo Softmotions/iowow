@@ -70,7 +70,10 @@ static void _bmctx_dispose(BMCTX *ctx) {
 }
 
 static const char *_bmctx_rndbuf_nextptr(BMCTX *ctx, int len) {
-  assert(len <= RND_DATA_SZ);
+  if (len > RND_DATA_SZ) {
+    fprintf(stderr, "record value length exceeds maximum allowed: %d\n", RND_DATA_SZ);
+    exit(1);
+  }
   if (ctx->rnd_data_pos + len > RND_DATA_SZ) {
     ctx->rnd_data_pos = 0;
   }
