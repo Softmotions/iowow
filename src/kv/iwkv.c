@@ -1031,7 +1031,7 @@ start:
     }
     // resize the whole block
     off_t nlen = 1ULL << kb->szpow;
-    off_t nsz = rsz - msz)+ nlen;
+    off_t nsz = rsz - msz + nlen;
     off_t naddr = kb->addr;    
     off_t olen = nlen;
     
