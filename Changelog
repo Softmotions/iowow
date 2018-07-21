@@ -1,3 +1,9 @@
+iowow (1.2.13) UNRELEASED; urgency=medium
+
+  * Minor allocation performance optimizations in _kvblk_addkv() 
+
+ -- Anton Adamansky <adamansky@gmail.com>  Sat, 21 Jul 2018 12:33:30 +0700
+
 iowow (1.2.12) testing; urgency=medium
 
   * Set terminating '\0' in iwitoa() (iwconv.h)
