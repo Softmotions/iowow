@@ -1032,30 +1032,30 @@ start:
     // resize the whole block
     off_t nlen = 1ULL << kb->szpow;
     off_t nsz = rsz - msz + nlen;
-    off_t naddr = kb->addr;    
+    off_t naddr = kb->addr;
     off_t olen = nlen;
     
     uint8_t npow = kb->szpow;
     while ((1ULL << ++npow) < nsz);
-            
+    
     rc = fsm->allocate(fsm, (1ULL << npow), &naddr, &nlen,
                        IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
-    RCGO(rc, finish);    
+    RCGO(rc, finish);
     assert(nlen == (1ULL << npow));
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCGO(rc, finish);    
+    RCGO(rc, finish);
     memcpy(mm + naddr, mm + kb->addr, KVBLK_HDRSZ);
     memcpy(mm + naddr + nlen - kb->maxoff, mm + kb->addr + olen - kb->maxoff, kb->maxoff);
-    if (dlsnr) {      
+    if (dlsnr) {
       rc = dlsnr->oncopy(dlsnr, kb->addr, KVBLK_HDRSZ, naddr, 0);
-      RCGO(rc, finish);      
+      RCGO(rc, finish);
       rc = dlsnr->oncopy(dlsnr, kb->addr + olen - kb->maxoff, kb->maxoff, naddr + nlen - kb->maxoff, 0);
-      RCGO(rc, finish);            
+      RCGO(rc, finish);
     }
-    fsm->release_mmap(fsm);    
+    fsm->release_mmap(fsm);
     rc = fsm->deallocate(fsm, kb->addr, olen);
     RCGO(rc, finish);
-
+    
     kb->addr = naddr;
     kb->szpow = npow;
   }
@@ -1156,9 +1156,21 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
     _num2lebuf(vbuf, val->data, val->size);
     
     if (opflags & IWKV_DUP_REMOVE) {
-      if (!sz || !iwarr_sorted_remove(wp, sz, val->size, vbuf,  val->size > 4 ? _u8cmp : _u4cmp)) {
+      if (!sz) {
         rc = IWKV_ERROR_NOTFOUND;
         goto finish;
+      }
+      off_t idx = iwarr_sorted_remove(wp, sz, val->size, vbuf,  val->size > 4 ? _u8cmp : _u4cmp);
+      if (idx < 0) {
+        rc = IWKV_ERROR_NOTFOUND;
+        goto finish;
+      }
+      if (dlsnr && idx < sz - 1) {
+        rc = dlsnr->oncopy(dlsnr,
+                           wp - mm + (idx + 1) * val->size,  // off
+                           (sz - idx - 1) * val->size,       // len
+                           wp - mm + idx * val->size,        // noff
+                           0);
       }
       sz -= 1;
       lv = IW_HTOIL(sz);
@@ -1168,19 +1180,33 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
         kvp->len = kvp->len - len / 2;
         kb->flags |= KVBLK_DURTY;
       }
+      if (dlsnr) {
+        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, 4, 0);
+      }
       goto finish;
-      
-    } else if (avail >= val->size) { // we have enough room to store the given number
-      if (iwarr_sorted_insert(wp, sz, val->size, vbuf,
-                              val->size > 4 ? _u8cmp : _u4cmp, true) == -1) {
+    } else if (avail >= val->size) { // we have enough room to store a given number
+      off_t idx = iwarr_sorted_insert(wp, sz, val->size, vbuf, val->size > 4 ? _u8cmp : _u4cmp, true);
+      if (idx == -1) {
         goto finish;
+      }
+      if (dlsnr) {
+        if (sz) {
+          rc = dlsnr->oncopy(dlsnr,
+                             wp - mm + idx * val->size,         // off
+                             (sz - idx) * val->size,            // len
+                             wp - mm + (idx + 1) * val->size,   // noff
+                             0);
+          RCGO(rc, finish);
+        } 
+        rc = dlsnr->onwrite(dlsnr, wp - mm + idx * val->size, vbuf, val->size, 0);
+        RCGO(rc, finish);
       }
       // Increment number of items
       sz += 1;
       lv = IW_HTOIL(sz);
       memcpy(sp, &lv, 4);
       if (dlsnr) {
-        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, 4 /* num items */ + sz * val->size, 0);
+        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, 4, 0);
       }
       goto finish;
     } else {
@@ -1205,7 +1231,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
         goto finish;
       }
       // zero initialize extra bytes
-      memset((uint8_t *)uval->data + len, 0, nlen - len);
+      memset((uint8_t *) uval->data + len, 0, nlen - len);
       uval->size = nlen;
       memcpy(uval->data, sp, len);
       if (iwarr_sorted_insert((uint8_t *)uval->data + 4, sz, val->size, vbuf,

@@ -38,13 +38,13 @@ off_t iwarr_sorted_insert(void *restrict els,
  * @param elsize Size of every array element.
  * @param eptr Pointer to the element should to be removed.
  * @param cmp Elements comparison function
- * @return `true` if element found and removed.
+ * @return Index of removed element or -1
  */
-bool iwarr_sorted_remove(void *restrict els,
-                         size_t nels,
-                         size_t elsize,
-                         void *restrict eptr,
-                         int (*cmp)(const void *, const void *));
+off_t iwarr_sorted_remove(void *restrict els,
+                          size_t nels,
+                          size_t elsize,
+                          void *restrict eptr,
+                          int (*cmp)(const void *, const void *));
 
 
 off_t iwarr_sorted_find(void *restrict els,

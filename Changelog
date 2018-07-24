@@ -1,5 +1,6 @@
 iowow (1.2.13) UNRELEASED; urgency=medium
-
+  
+  * Fixed WAL integration for updates in IWDB_DUP_UINT32_VALS|IWDB_DUP_UINT64_VALS mode
   * Checking of max key/value size (IWKV_MAX_KVSZ) for updates in IWDB_DUP_UINT32_VALS|IWDB_DUP_UINT64_VALS mode
   * Minor allocation performance optimizations in _kvblk_addkv() 
 
