@@ -1191,6 +1191,14 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
         nlen *= 2;
         avail = nlen - (4 + sz * val->size);
       }
+      if (nlen > IWKV_MAX_KVSZ) {
+        nlen = IWKV_MAX_KVSZ;
+        avail = nlen - (4 + sz * val->size);
+        if (avail < val->size) {
+          rc = IWKV_ERROR_MAXKVSZ;
+          goto finish;
+        }
+      }
       uval->data = malloc(nlen);
       if (!uval->data) {
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);

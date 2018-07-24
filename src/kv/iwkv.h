@@ -54,6 +54,10 @@
 
 IW_EXTERN_C_START
 
+// Max key + value size: 255Mb
+#define IWKV_MAX_KVSZ 0xfffffff
+
+
 /**
  * @brief IWKV error codes.
  */

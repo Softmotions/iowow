@@ -21,9 +21,6 @@
 // IWDB magic number
 #define IWDB_MAGIC 0x69776462
 
-// Max key + value size: 255Mb
-#define IWKV_MAX_KVSZ 0xfffffff
-
 #ifdef IW_32
 // Max database file size on 32 bit systems: 2Gb
 # define IWKV_MAX_DBSZ 0x7fffffff
