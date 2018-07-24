@@ -1169,7 +1169,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
         rc = dlsnr->oncopy(dlsnr,
                            wp - mm + (idx + 1) * val->size,  // off
                            (sz - idx - 1) * val->size,       // len
-                           wp - mm + idx * val->size,        // noff
+                           wp - mm + idx * val->size,        // new off
                            0);
       }
       sz -= 1;
@@ -1194,7 +1194,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
           rc = dlsnr->oncopy(dlsnr,
                              wp - mm + idx * val->size,         // off
                              (sz - idx) * val->size,            // len
-                             wp - mm + (idx + 1) * val->size,   // noff
+                             wp - mm + (idx + 1) * val->size,   // new off
                              0);
           RCGO(rc, finish);
         } 
@@ -1347,7 +1347,6 @@ IW_INLINE WUR iwrc _sblk_loadkvblk(IWLCTX *lx, SBLK *sblk) {
     return 0;
   }
 }
-
 
 IW_INLINE WUR iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
   assert(sblkp && *sblkp && (*sblkp)->addr);
@@ -2783,7 +2782,6 @@ iwrc iwkv_init(void) {
   }
   return iwlog_register_ecodefn(_kv_ecodefn);
 }
-
 
 static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx) {
   struct _FIBO_CTX {
