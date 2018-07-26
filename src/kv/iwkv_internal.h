@@ -16,7 +16,7 @@
 #define IWKV_MAGIC 0x69776b76
 
 // IWKV file format version
-#define IWKV_FORMAT 0
+#define IWKV_FORMAT 1
 
 // IWDB magic number
 #define IWDB_MAGIC 0x69776462
