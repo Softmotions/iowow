@@ -189,10 +189,12 @@ struct _IWDB {
   DBCACHE cache;              /**< SBLK nodes cache */
   pthread_rwlock_t rwl;       /**< Database API RW lock */
   uint64_t next_db_addr;      /**< Next IWDB addr */
-  struct _IWDB *next;          /**< Next IWDB meta */
-  struct _IWDB *prev;          /**< Prev IWDB meta */
+  struct _IWDB *next;         /**< Next IWDB meta */
+  struct _IWDB *prev;         /**< Prev IWDB meta */
   dbid_t id;                  /**< Database ID */
   volatile int32_t wk_count;  /**< Number of active database workers */
+  blkn_t meta_blk;            /**< Database meta block number */
+  blkn_t meta_blkn;           /**< Database meta length (number of blocks) */
   iwdb_flags_t dbflg;         /**< Database specific flags */
   atomic_bool open;           /**< True if DB is in OPEN state */
   uint32_t lcnt[SLEVELS];     /**< SBLK count per level */
