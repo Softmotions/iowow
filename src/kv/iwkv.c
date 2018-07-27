@@ -3199,16 +3199,20 @@ iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz) {
   if (!db || !db->iwkv || !buf) {
     return IW_ERROR_INVALID_ARGS;
   }
+  if (!sz) {
+    return 0;
+  }
+  
   int rci;
+  iwrc rc = 0;
   uint32_t lv;
   bool resized = false;
-  iwrc rc = 0;
   uint8_t *mm = 0, *wp, *sp;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   size_t asz = IW_ROUNDUP(sz, 1 << IWKV_FSM_BPOW);
   
   API_DB_WLOCK(db, rci);
-  if (asz > db->meta_blkn) {
+  if (asz > db->meta_blkn || asz * 2 <= db->meta_blkn) {
     off_t oaddr = 0;
     off_t olen = 0;
     if (db->meta_blk) {
@@ -3241,6 +3245,7 @@ iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz) {
   }
   fsm->release_mmap(fsm);
   mm = 0;
+  
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -3249,11 +3254,33 @@ finish:
   return rc;
 }
 
-iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz) {
+iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz, size_t *rsz) {
   if (!db || !db->iwkv || !buf) {
     return IW_ERROR_INVALID_ARGS;
   }
+  *rsz = 0;
+  if (!sz || !db->meta_blkn) {    
+    return 0;
+  }
+  int rci;
   iwrc rc = 0;
+  uint8_t *mm = 0;
+  IWFS_FSM *fsm = &db->iwkv->fsm;
+  size_t rmax = BLK2ADDR(db->meta_blkn);
+  if (sz > rmax) {
+    sz = rmax;
+  }
+  API_DB_RLOCK(db, rci);
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCGO(rc, finish);  
+  memcpy(buf, mm + BLK2ADDR(db->meta_blk), rmax);
+  *rsz = rmax;  
+  
+finish:
+  if (mm) {
+    fsm->release_mmap(fsm);
+  }
+  API_DB_UNLOCK(db, rci, rc);
   return rc;
 }
 

@@ -297,10 +297,11 @@ IW_EXPORT iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz);
 /**
  * @brief Get arbitrary data associated with database. 
  * @param db Database handler
- * @param [out] buf Output buffer
+ * @param buf Output buffer
  * @param sz Size of target buffer
+ * @param [out] rsz Number of bytes read actually
  */
-IW_EXPORT iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz);
+IW_EXPORT iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz, size_t *rsz);
 
 /**
  * @brief Remove record identified by `key`.
