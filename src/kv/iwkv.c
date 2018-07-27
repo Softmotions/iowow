@@ -492,8 +492,7 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
     free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  rc = fsm->allocate(fsm, DB_SZ, &baddr, &blen,
-                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
+  rc = fsm->allocate(fsm, DB_SZ, &baddr, &blen, IWKV_FSM_ALLOC_FLAGS);
   if (rc) {
     _db_release_lw(&db);
     return rc;
@@ -948,8 +947,7 @@ static WUR iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       }
       fsm->release_mmap(fsm);
       mm = 0;
-      rc = fsm->reallocate(fsm, (1ULL << npow), &kb->addr, &nlen,
-                           IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
+      rc = fsm->reallocate(fsm, (1ULL << npow), &kb->addr, &nlen, IWKV_FSM_ALLOC_FLAGS);
       RCGO(rc, finish);
       kb->szpow = npow;
       assert(nlen == (1ULL << kb->szpow));
@@ -1052,8 +1050,7 @@ start:
     uint8_t npow = kb->szpow;
     while ((1ULL << ++npow) < nsz);
     
-    rc = fsm->allocate(fsm, (1ULL << npow), &naddr, &nlen,
-                       IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
+    rc = fsm->allocate(fsm, (1ULL << npow), &naddr, &nlen, IWKV_FSM_ALLOC_FLAGS);
     RCGO(rc, finish);
     assert(nlen == (1ULL << npow));
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -1428,8 +1425,7 @@ static WUR iwrc _sblk_create(IWLCTX *lx, int8_t nlevel, int8_t kvbpow, off_t bad
   }
   off_t kvblksz = 1ULL << kvbpow;
   *oblk = 0;
-  rc = fsm->allocate(fsm, SBLK_SZ + kvblksz, &baddr, &blen,
-                     IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
+  rc = fsm->allocate(fsm, SBLK_SZ + kvblksz, &baddr, &blen, IWKV_FSM_ALLOC_FLAGS);
   RCRET(rc);
   
   assert(blen - SBLK_SZ == kvblksz);
@@ -3219,8 +3215,7 @@ iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz) {
       rc = fsm->deallocate(fsm, BLK2ADDR(db->meta_blk),  BLK2ADDR(db->meta_blkn));
       RCGO(rc, finish);
     }
-    rc = fsm->allocate(fsm, asz, &oaddr, &olen,
-                       IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
+    rc = fsm->allocate(fsm, asz, &oaddr, &olen, IWKV_FSM_ALLOC_FLAGS);
     RCGO(rc, finish);
     db->meta_blk = ADDR2BLK(oaddr);
     db->meta_blkn = ADDR2BLK(olen);

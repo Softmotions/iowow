@@ -32,6 +32,8 @@
 // Size of KV fsm block as power of 2
 #define IWKV_FSM_BPOW 7
 
+#define IWKV_FSM_ALLOC_FLAGS (IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS)
+
 // Length of KV fsm header in bytes
 #define KVHDRSZ 255
 
