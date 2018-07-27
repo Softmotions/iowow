@@ -377,7 +377,7 @@ static_assert(SOFF_END == 256, "SOFF_END == 256");
 static_assert(SBLK_SZ >= SOFF_END, "SBLK_SZ >= SOFF_END");
 
 // DB
-// [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209
+// [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
 #define DOFF_MAGIC_U4     0
 #define DOFF_DBFLG_U1     (DOFF_MAGIC_U4 + 4)
 #define DOFF_DBID_U4      (DOFF_DBFLG_U1 + 1)
@@ -385,8 +385,10 @@ static_assert(SBLK_SZ >= SOFF_END, "SBLK_SZ >= SOFF_END");
 #define DOFF_P0_U4        (DOFF_NEXTDB_U4 + 4)
 #define DOFF_N0_U4        (DOFF_P0_U4 + 4)
 #define DOFF_C0_U4        (DOFF_N0_U4 + 4 * SLEVELS)
-#define DOFF_END          (DOFF_C0_U4 + 4 * SLEVELS)
-static_assert(DOFF_END == 209, "DOFF_END == 209");
+#define DOFF_METABLK_U4   (DOFF_C0_U4 + 4 * SLEVELS)
+#define DOFF_METABLKN_U4  (DOFF_METABLK_U4 + 4)
+#define DOFF_END          (DOFF_METABLKN_U4 + 4)
+static_assert(DOFF_END == 217, "DOFF_END == 217");
 static_assert(DB_SZ >= DOFF_END, "DB_SZ >= DOFF_END");
 
 // KVBLK

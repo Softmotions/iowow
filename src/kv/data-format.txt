@@ -41,7 +41,7 @@ KVBLK - Data block stored a set of key/value pairs associated with SBLK
 
 DB header block:
 
-  [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_len:u4]:213
+  [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_len:u4]:217
 
   magic       - DB magic number 0x69776462
   dbflg       - Database flags

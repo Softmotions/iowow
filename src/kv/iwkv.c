@@ -257,8 +257,8 @@ static WUR iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   if (rci) {
     free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  }  
-  // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:213
+  }
+  // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
   db->flags = SBLK_DB;
   db->addr = addr;
   db->db = db;
@@ -300,7 +300,7 @@ static WUR iwrc _db_save(IWDB db, uint8_t *mm) {
   uint8_t *sp = wp;
   IWDLSNR *dlsnr = db->iwkv->dlsnr;
   db->next_db_addr = db->next ? db->next->addr : 0;
-  // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:213  
+  // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
   IW_WRITELV(wp, lv, IWDB_MAGIC);
   IW_WRITEBV(wp, bv, db->dbflg);
   IW_WRITELV(wp, lv, db->id);
@@ -308,15 +308,14 @@ static WUR iwrc _db_save(IWDB db, uint8_t *mm) {
   if (dlsnr) {
     rc = dlsnr->onwrite(dlsnr, db->addr, sp, wp - sp, 0);
     RCRET(rc);
-  }  
-  if (db->iwkv->fmt_version >= 1) {          
-    wp += 4 /* p0 */ + SLEVELS * 4 * 2; // Skip p0 + n[24] + c[24]  
-    off_t ws = db->addr + (wp - sp);
+  }
+  if (db->iwkv->fmt_version >= 1) {
+    wp += 4 /* p0 */ + SLEVELS * 4 * 2; // Skip p0 + n[24] + c[24]
     sp = wp;
     IW_WRITELV(wp, lv, db->meta_blk);
     IW_WRITELV(wp, lv, db->meta_blkn);
     if (dlsnr) {
-      rc = dlsnr->onwrite(dlsnr, ws, sp, wp - sp, 0);      
+      rc = dlsnr->onwrite(dlsnr, sp - mm, sp, wp - sp, 0);
     }
   }
   return rc;
@@ -435,7 +434,7 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
     rc = _db_save(next, mm);
     RCRET(rc);
   }
-  // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:213
+  // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
   memcpy(&first_sblkn, mm + db->addr + DOFF_N0_U4, 4);
   first_sblkn = IW_ITOHL(first_sblkn);
   fsm->release_mmap(fsm);
@@ -503,7 +502,7 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   db->dbflg = dbflg;
   db->addr = baddr;
   db->id = dbid;
-  db->prev = iwkv->last_db;  
+  db->prev = iwkv->last_db;
   if (!iwkv->first_db) {
     uint64_t llv;
     iwkv->first_db = db;
@@ -1212,7 +1211,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
                              wp - mm + (idx + 1) * val->size,   // new off
                              0);
           RCGO(rc, finish);
-        } 
+        }
         rc = dlsnr->onwrite(dlsnr, wp - mm + idx * val->size, vbuf, val->size, 0);
         RCGO(rc, finish);
       }
@@ -1468,7 +1467,7 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
   RCRET(rc);
   if (IW_UNLIKELY(addr == lx->db->addr)) {
     uint8_t *rp = mm + addr + DOFF_N0_U4;
-    // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:213
+    // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
     sblk->addr = addr;
     sblk->flags = SBLK_DB | flags;
     sblk->lvl = 0;
@@ -1485,7 +1484,7 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
         break;
       }
     }
-    if (sblk->lvl) --sblk->lvl;    
+    if (sblk->lvl) --sblk->lvl;
   } else if (addr) {
     uint8_t uflags;
     uint8_t *rp = mm + addr;
@@ -1573,8 +1572,8 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       if (sblk->addr) {
         assert(sblk->addr == sblk->db->addr);
         wp += DOFF_N0_U4;
-        sp = wp;        
-        // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:213
+        sp = wp;
+        // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
         for (int i = 0; i < SLEVELS; ++i) {
           IW_WRITELV(wp, lv, sblk->n[i]);
         }
@@ -3197,6 +3196,69 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
   
 finish:
   API_DB_UNLOCK(db, rci, rc);
+  return rc;
+}
+
+iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz) {
+  if (!db || !db->iwkv || !buf) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  int rci;
+  uint32_t lv;
+  bool resized = false;
+  iwrc rc = 0;
+  uint8_t *mm = 0, *wp, *sp;
+  IWFS_FSM *fsm = &db->iwkv->fsm;
+  size_t asz = IW_ROUNDUP(sz, 1 << IWKV_FSM_BPOW);
+  
+  API_DB_WLOCK(db, rci);
+  if (asz > db->meta_blkn) {
+    off_t oaddr = 0;
+    off_t olen = 0;
+    if (db->meta_blk) {
+      rc = fsm->deallocate(fsm, BLK2ADDR(db->meta_blk),  BLK2ADDR(db->meta_blkn));
+      RCGO(rc, finish);
+    }
+    rc = fsm->allocate(fsm, asz, &oaddr, &olen,
+                       IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS);
+    RCGO(rc, finish);
+    db->meta_blk = ADDR2BLK(oaddr);
+    db->meta_blkn = ADDR2BLK(olen);
+    resized = true;
+  }
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCGO(rc, finish);
+  wp = mm + BLK2ADDR(db->meta_blk);
+  memcpy(wp, buf, sz);
+  if (db->iwkv->dlsnr) {
+    rc = db->iwkv->dlsnr->onwrite(db->iwkv->dlsnr, wp - mm, wp, sz, 0);
+    RCGO(rc, finish);
+  }
+  if (resized) {
+    wp = mm + db->addr + DOFF_METABLK_U4;
+    sp = wp;
+    IW_WRITELV(wp, lv, db->meta_blk);
+    IW_WRITELV(wp, lv, db->meta_blkn);
+    if (db->iwkv->dlsnr) {
+      rc = db->iwkv->dlsnr->onwrite(db->iwkv->dlsnr, sp - mm, sp, wp - sp, 0);
+      RCGO(rc, finish);
+    }
+  }
+  fsm->release_mmap(fsm);
+  mm = 0;
+finish:
+  if (mm) {
+    fsm->release_mmap(fsm);
+  }
+  API_DB_UNLOCK(db, rci, rc);
+  return rc;
+}
+
+iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz) {
+  if (!db || !db->iwkv || !buf) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  iwrc rc = 0;
   return rc;
 }
 

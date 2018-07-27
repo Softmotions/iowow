@@ -57,7 +57,6 @@ IW_EXTERN_C_START
 // Max key + value size: 255Mb
 #define IWKV_MAX_KVSZ 0xfffffff
 
-
 /**
  * @brief IWKV error codes.
  */
@@ -273,7 +272,6 @@ IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
  */
 IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags opflags);
 
-
 /**
  * @brief Get value for given `key`.
  *
@@ -285,6 +283,24 @@ IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_
  * @param [out] oval Value associated with `key` or `NULL`
  */
 IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
+
+/**
+ * @brief Set arbitrary data associated with database.
+ * Database write lock will acquired for this operation.  
+ * 
+ * @param db Database handler
+ * @param buf Data buffer
+ * @param sz  Size of data buffer
+ */
+IW_EXPORT iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz);
+
+/**
+ * @brief Get arbitrary data associated with database. 
+ * @param db Database handler
+ * @param [out] buf Output buffer
+ * @param sz Size of target buffer
+ */
+IW_EXPORT iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz);
 
 /**
  * @brief Remove record identified by `key`.
