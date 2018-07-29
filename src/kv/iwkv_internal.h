@@ -180,26 +180,30 @@ typedef struct DBCACHE {
   DBCNODE *nodes;               /**< Sorted nodes array */
 } DBCACHE;
 
+struct _IWKV_cursor;
+
 /* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209 */
 struct _IWDB {
   // SBH
-  IWDB db;                    /**< Database ref */
-  off_t addr;                 /**< Database block address */
-  sblk_flags_t flags;         /**< Flags */
+  IWDB db;                        /**< Database ref */
+  off_t addr;                     /**< Database block address */
+  sblk_flags_t flags;             /**< Flags */
   // !SBH
   IWKV iwkv;
-  DBCACHE cache;              /**< SBLK nodes cache */
-  pthread_rwlock_t rwl;       /**< Database API RW lock */
-  uint64_t next_db_addr;      /**< Next IWDB addr */
-  struct _IWDB *next;         /**< Next IWDB meta */
-  struct _IWDB *prev;         /**< Prev IWDB meta */
-  dbid_t id;                  /**< Database ID */
-  volatile int32_t wk_count;  /**< Number of active database workers */
-  blkn_t meta_blk;            /**< Database meta block number */
-  blkn_t meta_blkn;           /**< Database meta length (number of blocks) */
-  iwdb_flags_t dbflg;         /**< Database specific flags */
-  atomic_bool open;           /**< True if DB is in OPEN state */
-  uint32_t lcnt[SLEVELS];     /**< SBLK count per level */
+  DBCACHE cache;                  /**< SBLK nodes cache */
+  pthread_rwlock_t rwl;           /**< Database API RW lock */
+  pthread_spinlock_t cursors_slk;  /**< Cursors set guard lock */  
+  uint64_t next_db_addr;          /**< Next IWDB addr */
+  struct _IWKV_cursor *cursors;   /**< Active (currently in-use) database cursors */
+  struct _IWDB *next;             /**< Next IWDB meta */
+  struct _IWDB *prev;             /**< Prev IWDB meta */
+  dbid_t id;                      /**< Database ID */
+  volatile int32_t wk_count;      /**< Number of active database workers */
+  blkn_t meta_blk;                /**< Database meta block number */
+  blkn_t meta_blkn;               /**< Database meta length (number of blocks) */
+  iwdb_flags_t dbflg;             /**< Database specific flags */
+  atomic_bool open;               /**< True if DB is in OPEN state */
+  uint32_t lcnt[SLEVELS];         /**< SBLK count per level */
 };
 
 /* Skiplist block: [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK */
@@ -258,7 +262,7 @@ typedef struct IWLCTX {
   uint32_t num_cmps;
 #endif
   iwkv_opflags opflags;       /**< Operation flags */
-  sblk_flags_t sblk_flags;    /**< `SBLK` flags applied to all new/looked blocks in this context */
+  sblk_flags_t sbflags;       /**< `SBLK` flags applied to all new/looked blocks in this context */
   iwlctx_op_t op;             /**< Context operation */
   uint8_t saan;               /**< Position of next free `SBLK` element in the `saa` area */
   uint8_t kaan;               /**< Position of next free `KVBLK` element in the `kaa` area */
@@ -273,11 +277,13 @@ typedef struct IWLCTX {
 
 /** Cursor context */
 struct _IWKV_cursor {
-  SBLK *cn;                   /**< Current `SBLK` node */
-  off_t dbaddr;               /**< Database address used as `cn` */
   uint8_t cnpos;              /**< Position in the current `SBLK` node */
   bool closed;                /**< Cursor closed */
+  SBLK *cn;                   /**< Current `SBLK` node */
+  struct _IWKV_cursor *next;  /**< Next cursor in active db cursors chain */
+  off_t dbaddr;               /**< Database address used as `cn` */
   IWLCTX lx;                  /**< Lookup context */
+  SBLK acn;                   /**< In-structure allocated `cn` placeholder */ 
 };
 
 #define ENSURE_OPEN(iwkv_) \

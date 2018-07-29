@@ -123,6 +123,7 @@
     "**/.git/subtree-cache/**": true,
     "**/node_modules/**": true,
     "**/mxe/**": true
-  }
+  },
+  "cmake.configureOnOpen": false
 }
 

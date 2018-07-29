@@ -1455,7 +1455,7 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
   iwrc rc;
   uint8_t *mm;
   uint32_t lv;
-  sblk_flags_t flags = lx->sblk_flags | flgs;
+  sblk_flags_t flags = lx->sbflags | flgs;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   sblk->kvblk = 0;
   sblk->db = lx->db;
@@ -3259,7 +3259,7 @@ iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz, size_t *rsz) {
     return IW_ERROR_INVALID_ARGS;
   }
   *rsz = 0;
-  if (!sz || !db->meta_blkn) {    
+  if (!sz || !db->meta_blkn) {
     return 0;
   }
   int rci;
@@ -3272,9 +3272,9 @@ iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz, size_t *rsz) {
   }
   API_DB_RLOCK(db, rci);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);  
+  RCGO(rc, finish);
   memcpy(buf, mm + BLK2ADDR(db->meta_blk), rmax);
-  *rsz = rmax;  
+  *rsz = rmax;
   
 finish:
   if (mm) {
@@ -3343,6 +3343,20 @@ finish2:
 IW_INLINE iwrc _cursor_close_lw(IWKV_cursor cur) {
   iwrc rc = 0;
   cur->closed = true;
+  IWDB db = cur->lx.db;
+  pthread_spin_lock(&db->cursors_slk);
+  for (IWKV_cursor c = db->cursors, pc = 0; c; pc = c, c = c->next) {
+    if (c == cur) {
+      if (pc) {
+        pc->next = c->next;
+      } else {
+        db->cursors = c->next;
+      }
+      break;
+    }
+  }
+  pthread_spin_unlock(&db->cursors_slk);
+  
   if (cur->cn) {
     if (IW_UNLIKELY((cur->cn->flags & SBLK_DURTY) || (cur->cn->kvblk && (cur->cn->kvblk->flags & KVBLK_DURTY)))) {
       // Flush current node
@@ -3396,8 +3410,15 @@ iwrc iwkv_cursor_open(IWDB db,
   rc = _cursor_to_lr(cur, op);
   
 finish:
-  if (rc && cur) {
-    IWRC(_cursor_close_lw(cur), rc);
+  if (cur) {
+    if (rc) {
+      IWRC(_cursor_close_lw(cur), rc);
+    } else {
+      pthread_spin_lock(&db->cursors_slk);
+      cur->next = db->cursors;
+      db->cursors = cur;
+      pthread_spin_unlock(&db->cursors_slk);
+    }
   }
   API_DB_UNLOCK(db, rci, rc);
   if (rc) {
