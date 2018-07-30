@@ -283,7 +283,6 @@ struct _IWKV_cursor {
   struct _IWKV_cursor *next;  /**< Next cursor in active db cursors chain */
   off_t dbaddr;               /**< Database address used as `cn` */
   IWLCTX lx;                  /**< Lookup context */
-  SBLK acn;                   /**< In-structure allocated `cn` placeholder */ 
 };
 
 #define ENSURE_OPEN(iwkv_) \
