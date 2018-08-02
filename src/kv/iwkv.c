@@ -1405,7 +1405,7 @@ IW_INLINE WUR iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
       if (cur->cn && cur->cn->addr == sblk->addr) {
         cur->cn = 0; // Invalidate cursor
         cur->cnpos = 0;
-        cur->dbaddr = 0;
+        cur->dbaddr = 0;        
       }
     }   
     pthread_spin_unlock(&db->cursors_slk);
@@ -1808,6 +1808,7 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const 
     for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
       if (cur->cn && cur->cn->addr == sblk->addr) {
         memcpy(cur->cn, sblk, sizeof(*cur->cn));
+        cur->cn->kvblk = 0;
         cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
         if (cur->cnpos >= idx) {
           cur->cnpos++;
@@ -1865,6 +1866,7 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val
     for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
       if (cur->cn && cur->cn->addr == sblk->addr) {
         memcpy(cur->cn, sblk, sizeof(*cur->cn));
+        cur->cn->kvblk = 0;
         cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
         if (cur->cnpos >= idx) {
           cur->cnpos++;
@@ -1898,6 +1900,7 @@ static WUR iwrc _sblk_updatekv(SBLK *sblk, int8_t idx,
   for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
     if (cur->cn && cur->cn->addr == sblk->addr) {
       memcpy(cur->cn, sblk, sizeof(*cur->cn));
+      cur->cn->kvblk = 0;
       cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
     }
   }
@@ -1955,6 +1958,7 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
     if (cur->cn && cur->cn->addr == sblk->addr) {
       memcpy(cur->cn, sblk, sizeof(*cur->cn));
+      cur->cn->kvblk = 0;
       cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
       if (cur->cnpos > idx) {
         cur->cnpos--;
@@ -2227,6 +2231,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     if (cur->cn && cur->cn->addr == sblk->addr) {
       if (cur->cnpos >= pivot) {
         memcpy(cur->cn, nb, sizeof(*cur->cn));
+        cur->cn->kvblk = 0;
         cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
         cur->cnpos -= pivot;
       }
