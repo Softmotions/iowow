@@ -82,7 +82,6 @@ typedef enum {
  * @brief Database file open modes.
  */
 typedef enum {
-  IWKV_NOLOCKS  = 0x1,      /**< Do not use any locking on storage file (assumed single threaded app) */
   IWKV_RDONLY   = 0x2,      /**< Open storage file in read-only mode */
   IWKV_TRUNC    = 0x4       /**< Truncate storage file on open */
 } iwkv_openflags;
@@ -288,8 +287,8 @@ IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
 
 /**
  * @brief Set arbitrary data associated with database.
- * Database write lock will acquired for this operation.  
- * 
+ * Database write lock will acquired for this operation.
+ *
  * @param db Database handler
  * @param buf Data buffer
  * @param sz  Size of data buffer
@@ -297,7 +296,7 @@ IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
 IW_EXPORT iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz);
 
 /**
- * @brief Get arbitrary data associated with database. 
+ * @brief Get arbitrary data associated with database.
  * @param db Database handler
  * @param buf Output buffer
  * @param sz Size of target buffer

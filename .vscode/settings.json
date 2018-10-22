@@ -124,6 +124,7 @@
     "**/node_modules/**": true,
     "**/mxe/**": true
   },
-  "cmake.configureOnOpen": false
+  "cmake.configureOnOpen": false,
+  "editor.trimAutoWhitespace": false
 }
 

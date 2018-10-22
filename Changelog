@@ -2,6 +2,7 @@ iowow (1.2.14) UNRELEASED; urgency=medium
 
   * BUG: Clang6 fatal error: variable 'cur' is used uninitialized  (#15)
   * Added iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *odbid, IWDB *dbp)
+  * Removed unused `IWKV_NOLOCKS` option.
 
  -- Anton Adamansky <adamansky@gmail.com>  Sat, 20 Oct 2018 20:33:30 +0700
 
