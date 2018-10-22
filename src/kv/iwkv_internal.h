@@ -286,8 +286,8 @@ struct _IWKV_cursor {
 };
 
 #define ENSURE_OPEN(iwkv_) \
-  if (!iwkv_ || !(iwkv_->open)) return IW_ERROR_INVALID_STATE; \
-  if (iwkv_->fatalrc) return iwkv_->fatalrc
+  if (!(iwkv_) || !((iwkv_)->open)) return IW_ERROR_INVALID_STATE; \
+  if ((iwkv_)->fatalrc) return iwkv_->fatalrc
 
 #define ENSURE_OPEN_DB(db_) \
   if (!(db_) || !(db_)->iwkv || !(db_)->open || !((db_)->iwkv->open)) return IW_ERROR_INVALID_STATE
