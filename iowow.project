@@ -9,8 +9,8 @@
   <Reconciliation>
     <Regexes/>
     <Excludepaths>
-      <Path>/home/adam/Projects/softmotions/iowow/build</Path>
-      <Path>/home/adam/Projects/softmotions/iowow/mxe</Path>
+      <Path>mxe/</Path>
+      <Path>build/</Path>
     </Excludepaths>
     <Ignorefiles/>
     <Extensions>
@@ -28,7 +28,6 @@
     <File Name="Changelog"/>
     <File Name="Doxyfile.in"/>
     <File Name="DOXYMAIN.md"/>
-    <File Name="INSTALL"/>
     <File Name="LICENSE"/>
     <File Name="README.md"/>
   </VirtualDirectory>
@@ -88,8 +87,8 @@
         </VirtualDirectory>
         <File Name="src/platform/win32/win32.c"/>
       </VirtualDirectory>
-      <VirtualDirectory Name="linux">
-        <File Name="src/platform/linux/linux.c"/>
+      <VirtualDirectory Name="unix">
+        <File Name="src/platform/unix/unix.c"/>
       </VirtualDirectory>
       <File Name="src/platform/iwp.h"/>
       <File Name="src/platform/iwp.c"/>
@@ -99,7 +98,6 @@
       <File Name="src/utils/ksort.h"/>
       <VirtualDirectory Name="tests">
         <File Name="src/utils/tests/CMakeLists.txt"/>
-        <File Name="src/utils/tests/iwrlock_test1.c"/>
         <File Name="src/utils/tests/iwarr_test1.c"/>
       </VirtualDirectory>
       <File Name="src/utils/iwutils.c"/>

@@ -24,18 +24,18 @@ struct _IWRDB {
 };
 
 IW_INLINE iwrc _wlock(IWRDB db) {
-  int err = db->cwl ? pthread_rwlock_wrlock(db->cwl) : 0;
-  return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
+  int rci = db->cwl ? pthread_rwlock_wrlock(db->cwl) : 0;
+  return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
 IW_INLINE iwrc _rlock(IWRDB db) {
-  int err = db->cwl ? pthread_rwlock_rdlock(db->cwl) : 0;
-  return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
+  int rci = db->cwl ? pthread_rwlock_rdlock(db->cwl) : 0;
+  return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
 IW_INLINE iwrc _unlock(IWRDB db) {
-  int err = db->cwl ? pthread_rwlock_unlock(db->cwl) : 0;
-  return (err ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err) : 0);
+  int rci = db->cwl ? pthread_rwlock_unlock(db->cwl) : 0;
+  return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
 static iwrc _initlocks(IWRDB db) {
@@ -47,11 +47,11 @@ static iwrc _initlocks(IWRDB db) {
   if (!db->cwl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  int err = pthread_rwlock_init(db->cwl, 0);
-  if (err) {
+  int rci = pthread_rwlock_init(db->cwl, 0);
+  if (rci) {
     free(db->cwl);
     db->cwl = 0;
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err);
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   return 0;
 }
@@ -61,9 +61,9 @@ static iwrc _destroy_locks(IWRDB db) {
   if (!db->cwl) {
     return 0;
   }
-  int err = pthread_rwlock_destroy(db->cwl);
-  if (err) {
-    IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, err), rc);
+  int rci = pthread_rwlock_destroy(db->cwl);
+  if (rci) {
+    IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci), rc);
   }
   free(db->cwl);
   db->cwl = 0;
@@ -84,7 +84,7 @@ static iwrc _flush_lw(IWRDB db) {
 static iwrc _append_lw(IWRDB db, const void *data, int len, uint64_t *oref) {
   iwrc rc = 0;
   *oref = 0;
-  
+
   if (db->bufsz && db->bp + len > db->bufsz) {
     rc = _flush_lw(db);
     if (rc) {
@@ -113,7 +113,7 @@ iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *od
   iwrc rc = 0;
   IWRDB db = 0;
   *odb = 0;
-  
+
 #ifndef _WIN32
   HANDLE fh = open(path, O_CREAT | O_RDWR, IWFS_DEFAULT_FILEMODE);
   if (INVALIDHANDLE(fh)) {
@@ -127,7 +127,7 @@ iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *od
     return iwrc_set_werror(IW_ERROR_IO_ERRNO, GetLastError());
   }
 #endif
-  
+
   db = calloc(1, sizeof(*db));
   if (!db) {
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -148,7 +148,7 @@ iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *od
   rc = iwp_lseek(db->fh, 0, IWP_SEEK_END, &db->end);
   RCGO(rc, finish);
   rc = _initlocks(db);
-  
+
 finish:
   if (rc && db) {
     IWRC(iwrdb_close(&db), rc);
@@ -165,7 +165,7 @@ iwrc iwrdb_sync(IWRDB db) {
   RCGO(rc, finish);
   rc = iwp_fsync(db->fh);
   RCGO(rc, finish);
-  
+
 finish:
   IWRC(_unlock(db), rc);
   return rc;
@@ -209,7 +209,7 @@ iwrc iwrdb_patch(IWRDB db, uint64_t ref, off_t skip, const void *data, int len) 
   ssize_t tw = len;
   uint8_t *rp = (uint8_t *) data;
   ssize_t off = ref - 1 + skip;
-  
+
   _ENSURE_OPEN(db);
   if (!ref || off < 0 || skip < 0) {
     return IW_ERROR_INVALID_ARGS;
@@ -244,7 +244,7 @@ iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len, size_t *
   ssize_t tr = len;
   uint8_t *wp = buf;
   ssize_t off = ref - 1 + skip;
-  
+
   *sp = 0;
   _ENSURE_OPEN(db);
   if (!ref || skip < 0 || len < 0) {
@@ -272,7 +272,7 @@ iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len, size_t *
     memcpy(wp, db->buf + sz, tr);
   }
   *sp = len;
-  
+
 finish:
   IWRC(_unlock(db), rc);
   return rc;
