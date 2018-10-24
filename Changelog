@@ -3,16 +3,17 @@ iowow (1.2.14) UNRELEASED; urgency=medium
   * BUG: Clang6 fatal error: variable 'cur' is used uninitialized  (#15)
   * Added iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *odbid, IWDB *dbp)
   * Removed unused `IWKV_NOLOCKS` option.
+  * Added `IW_EXPORT` to `iowow_version_*` API functions
 
  -- Anton Adamansky <adamansky@gmail.com>  Sat, 20 Oct 2018 20:33:30 +0700
 
 iowow (1.2.13) testing; urgency=medium
-  
+
   * BUG: Correct cursors adjustments during db update operations (#13)
   * BUG: Fixed WAL integration for updates in IWDB_DUP_UINT32_VALS|IWDB_DUP_UINT64_VALS mode
   * Store arbitrary data blocks associated with iwkv internal databases (#12)
   * Checking of max key/value size (IWKV_MAX_KVSZ) for updates in IWDB_DUP_UINT32_VALS|IWDB_DUP_UINT64_VALS mode
-  * Minor allocation performance optimizations in _kvblk_addkv() 
+  * Minor allocation performance optimizations in _kvblk_addkv()
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 02 Aug 2018 20:29:08 +0700
 
