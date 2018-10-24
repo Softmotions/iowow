@@ -39,11 +39,11 @@ IW_EXPORT WUR iwrc iw_init(void);
 
 IW_EXPORT const char* iowow_version_full(void);
 
-IW_EXPORT unsigned int iwow_version_major(void);
+IW_EXPORT unsigned int iowow_version_major(void);
 
-IW_EXPORT unsigned int iwow_version_minor(void);
+IW_EXPORT unsigned int iowow_version_minor(void);
 
-IW_EXPORT unsigned int iwow_version_patch(void);
+IW_EXPORT unsigned int iowow_version_patch(void);
 
 
 IW_EXTERN_C_END

@@ -72,15 +72,15 @@ const char *iowow_version_full(void) {
   return IOWOW_VERSION;
 }
 
-unsigned int iwow_version_major(void) {
+unsigned int iowow_version_major(void) {
   return IOWOW_VERSION_MAJOR;
 }
 
-unsigned int iwow_version_minor(void) {
+unsigned int iowow_version_minor(void) {
   return IOWOW_VERSION_MINOR;
 }
 
-unsigned int iwow_version_patch(void) {
+unsigned int iowow_version_patch(void) {
   return IOWOW_VERSION_PATCH;
 }
 
