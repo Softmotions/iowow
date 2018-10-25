@@ -48,7 +48,7 @@
  */
 
 #include "iowow.h"
-#include "iwfile.h"
+#include "iwfsmfile.h"
 #include <stddef.h>
 #include <stdbool.h>
 
@@ -201,10 +201,18 @@ IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
  * @param iwkv Pointer to @ref IWKV handler
  * @param dbid Database identifier
  * @param flags Database initialization flags
- * @param [out] dbp Pointer to database opaque structure.
+ * @param [out] dbp Pointer to database opaque structure
  */
 IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp);
 
+/**
+ * @brief Create new database with next available database id.
+ * @see iwrc iwkv_db()
+ *
+ * @param flags Database initialization flags
+ * @param [out] dbidp Database identifier placeholder will be filled with next available id.
+ * @param [out] dbp Pointer to database opaque structure
+ */
 IW_EXPORT WUR iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp);
 
 /**
@@ -484,6 +492,16 @@ IW_EXPORT iwrc iwkv_cursor_dup_iter(const IWKV_cursor cur,
  * @param cur Opened cursor
  */
 IW_EXPORT iwrc iwkv_cursor_close(IWKV_cursor *cur);
+
+/**
+ * @brief Get database file status info.
+ * @note Database should be in opened state.
+ *
+ * @see IWFS_FILE::state
+ * @param db Database handler
+ * @param [out] IWFS_FSM_STATE placeholder iwkv file state
+ */
+IW_EXPORT iwrc iwkv_state(IWKV iwkv, IWFS_FSM_STATE *out);
 
 // Do not print random levels of skiplist blocks
 #define IWKVD_PRINT_NO_LEVEVELS 0x1

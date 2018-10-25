@@ -168,8 +168,8 @@ typedef struct IWFS_FSM_OPTS {
  * @see IWFS_FSM::state
  */
 typedef struct IWFS_FSM_STATE {
-  IWFS_EXT_STATE exfile;    /**< File pool state */
-  size_t block_size;         /**< Size of data block in bytes. */
+  IWFS_EXT_STATE exfile;          /**< File pool state */
+  size_t block_size;              /**< Size of data block in bytes. */
   iwfs_fsm_openflags oflags; /**< Operation mode flags. */
   uint32_t hdrlen;     /**< Length of custom file header length in bytes */
   uint64_t blocks_num; /**< Number of available data blocks. */
@@ -248,7 +248,7 @@ typedef struct IWFS_FSM {
    * @brief Check allocation status of region specified by @a addr and @a len
    * @return `0` on success or error code.
    */
-  iwrc (*check_allocation_status)(struct IWFS_FSM *f, off_t addr, off_t len, bool allocated);
+  iwrc(*check_allocation_status)(struct IWFS_FSM *f, off_t addr, off_t len, bool allocated);
 
   /**
    * @brief Write a data to the custom file header.
@@ -345,7 +345,7 @@ typedef struct IWFS_FSM {
   iwrc(*state)(struct IWFS_FSM *f, IWFS_FSM_STATE *state);
 
   /** get access to the underlying iwextfile instance */
-  iwrc (*extfile)(struct IWFS_FSM *f, IWFS_EXT **ext);
+  iwrc(*extfile)(struct IWFS_FSM *f, IWFS_EXT **ext);
 
 } IWFS_FSM;
 

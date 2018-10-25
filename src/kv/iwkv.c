@@ -2928,8 +2928,22 @@ static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx
   return res;
 }
 
+iwrc iwkv_state(IWKV iwkv, IWFS_FSM_STATE *out) {
+  if (!iwkv || !out) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  int rci;
+  API_RLOCK(iwkv, rci);
+  IWFS_FSM fsm = iwkv->fsm;
+  iwrc rc = fsm.state(&fsm, out);
+  API_UNLOCK(iwkv, rc, rci);
+  return rc;
+}
+
 iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
-  assert(iwkvp && opts);
+  if (!opts || !iwkvp) {
+    return IW_ERROR_INVALID_ARGS;
+  }
   int rci;
   iwrc rc = 0;
   uint32_t lv;
