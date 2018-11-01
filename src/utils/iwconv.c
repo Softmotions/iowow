@@ -106,7 +106,7 @@ int iwitoa(int64_t v, char *buf, int max) {
 #undef ITOA_SZSTEP
 }
 
-char* iwftoa(long double n, char s[IWFTOA_BUFSIZE]) {
+char* iwftoa(long double n, char s[static IWFTOA_BUFSIZE]) {
   static double PRECISION = 0.00000000000001;
   // handle special cases
   if (isnan(n)) {
