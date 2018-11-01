@@ -68,7 +68,7 @@ int iwitoa(int64_t v, char *buf, int max) {
   int ret = 0;
   char *ptr = buf, *p = ptr, *p1;
   char c;
-  
+
   if (!v) {
     ITOA_SZSTEP(1);
     *ptr++ = '0';
@@ -102,7 +102,7 @@ int iwitoa(int64_t v, char *buf, int max) {
   ptr = p1;
   *ptr = 0;
   return ret;
-  
+
 #undef ITOA_SZSTEP
 }
 
@@ -178,7 +178,6 @@ char* iwftoa(long double n, char s[IWFTOA_BUFSIZE]) {
   return s;
 }
 
-
 int64_t iwatoi(const char *str) {
   assert(str);
   while (*str > '\0' && *str <= ' ') {
@@ -243,4 +242,95 @@ long double iwatof(const char *str) {
     num *= pow(10, iwatoi(str));
   }
   return num * sign;
+}
+
+/**
+ * Compare two strings as real numbers
+ */
+int iwafcmp(const char *aptr, int asiz, const char *bptr, int bsiz) {
+  const unsigned char *arp = (const unsigned char *) aptr;
+  const unsigned char *brp = (const unsigned char *) bptr;
+  int alen = asiz, blen = bsiz;
+  int64_t anum = 0, bnum = 0;
+  int asign = 1, bsign = 1;
+
+  // A part
+  while (alen > 0 && (*arp <= ' ' || *arp == 0x7f)) {
+    arp++;
+    alen--;
+  }
+  if (alen > 0 && *arp == '-') {
+    arp++;
+    alen--;
+    asign = -1;
+  }
+  while (alen > 0) {
+    int c = *arp;
+    if (c < '0' || c > '9') break;
+    anum = anum * 10 + c - '0';
+    arp++;
+    alen--;
+  }
+  anum *= asign;
+
+  // B part
+  while (blen > 0 && (*brp <= ' ' || *brp == 0x7f)) {
+    brp++;
+    blen--;
+  }
+  if (blen > 0 && *brp == '-') {
+    brp++;
+    blen--;
+    bsign = -1;
+  }
+  while (blen > 0) {
+    int c = *brp;
+    if (c < '0' || c > '9') break;
+    bnum = bnum * 10 + c - '0';
+    brp++;
+    blen--;
+  }
+  bnum *= bsign;
+  if (anum < bnum) return -1;
+  if (anum > bnum) return 1;
+  if ((alen > 1 && *arp == '.') || (blen > 1 && *brp == '.')) {
+    long double aflt = 0;
+    long double bflt = 0;
+    if (alen > 1 && *arp == '.') {
+      arp++;
+      alen--;
+      if (alen > IWFTOA_BUFSIZE) alen = IWFTOA_BUFSIZE;
+      long double base = 10;
+      while (alen > 0) {
+        if (*arp < '0' || *arp > '9') break;
+        aflt += (*arp - '0') / base;
+        arp++;
+        alen--;
+        base *= 10;
+      }
+      aflt *= asign;
+    }
+    if (blen > 1 && *brp == '.') {
+      brp++;
+      blen--;
+      if (blen > IWFTOA_BUFSIZE) blen = IWFTOA_BUFSIZE;
+      long double base = 10;
+      while (blen > 0) {
+        if (*brp < '0' || *brp > '9') break;
+        bflt += (*brp - '0') / base;
+        brp++;
+        blen--;
+        base *= 10;
+      }
+      bflt *= bsign;
+    }
+    if (aflt < bflt) return -1;
+    if (aflt > bflt) return 1;
+  }
+  int rv = strncmp(aptr, bptr, MIN(asiz, bsiz));
+  if (!rv) {
+    return (asiz - bsiz);
+  } else {
+    return rv;
+  }
 }

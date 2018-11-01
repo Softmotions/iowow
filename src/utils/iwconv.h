@@ -31,8 +31,11 @@
 #include "basedefs.h"
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 IW_EXTERN_C_START
+
+#define IWFTOA_BUFSIZE 32
 
 IW_EXPORT int64_t iwatoi(const char *str);
 
@@ -40,9 +43,17 @@ IW_EXPORT long double iwatof(const char *str);
 
 IW_EXPORT int iwitoa(int64_t v, char *buf, int max);
 
-#define IWFTOA_BUFSIZE 32
-
+/**
+ * Convert a given floating point number to string.
+ * @note Exponent notation can be used during conversion
+ */
 IW_EXPORT char* iwftoa(long double v, char buf[IWFTOA_BUFSIZE]);
+
+/**
+ * Compare real(float) numbers encoded as decimal point string value.
+ * @node Exponential notation not supported.
+ */
+IW_EXPORT int iwafcmp(const char *aptr, int asiz, const char *bptr, int bsiz);
 
 IW_EXPORT size_t iwhex2bin(const char *hex, int hexlen, char *out, int max);
 

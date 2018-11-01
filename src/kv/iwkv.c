@@ -1,4 +1,5 @@
 #include "iwkv_internal.h"
+#include "iwconv.h"
 
 static iwrc _dbcache_fill_lw(IWLCTX *lx);
 static iwrc _dbcache_get(IWLCTX *lx);
@@ -31,6 +32,8 @@ IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const voi
     memcpy(&n2, v2, v2len);
     n2 = IW_ITOHL(n2);
     return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
+  } else if (dbflg & IWDB_REALNUM_KEYS) {
+    return iwafcmp(v2, v2len, v1, v1len);
   } else {
     return strncmp(v2, v1, MIN(v1len, v2len));
   }
