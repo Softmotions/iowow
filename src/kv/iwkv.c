@@ -2294,7 +2294,8 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
   }
   rc = _sblk_find_pi_mm(sblk, lx->key, mm, &found, &idx);
   RCRET(rc);
-  if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
+  if (found && (lx->opflags & IWKV_NO_OVERWRITE)
+      && !(lx->db->dbflg & (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS))) {
     fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
   }
