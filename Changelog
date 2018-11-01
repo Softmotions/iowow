@@ -5,6 +5,7 @@ iowow (1.2.14) UNRELEASED; urgency=medium
   * Removed unused `IWKV_NOLOCKS` option.
   * Added `IW_EXPORT` to `iowow_version_*` API functions  (iowow.h)
   * Added iwrc iwkv_state(IWKV iwkv, IWFS_FSM_STATE *out) (iwkv.h)
+  * Do not check `IWKV_NO_OVERWRITE` for databases in `IWDB_DUP_UINTXX_VALS` mode
 
  -- Anton Adamansky <adamansky@gmail.com>  Sat, 20 Oct 2018 20:33:30 +0700
 
