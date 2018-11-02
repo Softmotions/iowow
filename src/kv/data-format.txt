@@ -2,7 +2,7 @@ IWKV
 
 block size: u64
 max key+value size: 268435455 (~255Mb)
-max data file size: 255G
+max data file size: 512G
 
 SBLK - Skip list node with pointers to next nodes and pointer to KVBLK (key/value pairs block).
        SBLK has fixed size (256 bytes). SBLK file position (block adress) within a file is
@@ -52,8 +52,8 @@ DB header block:
   c24         - SBLK count per level,
   /* since file format v1 */
   meta_blk    - Database metadata block number
-  meta_blkn   - Database metadata block count 
-  
+  meta_blkn   - Database metadata block count
+
 HEADER:
 
   [magic:u4,u8:fistdb_addr]

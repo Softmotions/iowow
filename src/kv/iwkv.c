@@ -2309,11 +2309,23 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
       return rc;
     }
   }
-  fsm->release_mmap(fsm);
 
   if (found) {
+    IWKV_val oldval;
+    if (lx->ph) {
+      rc = _kvblk_getvalue(sblk->kvblk, mm, idx, &oldval);
+      fsm->release_mmap(fsm);
+      if (!rc) {
+        rc = lx->ph(lx->key, lx->val, &oldval, lx->phop);
+        _kv_val_dispose(&oldval);
+      }
+      RCRET(rc);
+    } else {
+      fsm->release_mmap(fsm);
+    }
     return _sblk_updatekv(sblk, idx, lx->key, lx->val, lx->opflags);
   } else {
+    fsm->release_mmap(fsm);
     if (sblk->pnum > KVBLK_IDXNUM - 1) {
       if (uadd) {
         return _sblk_addkv(lx->upper, lx->key, lx->val, lx->opflags, false, false);
@@ -3268,7 +3280,8 @@ finish:
   return rc;
 }
 
-iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags opflags) {
+iwrc iwkv_puth(IWDB db, const IWKV_val *key, const IWKV_val *val,
+               iwkv_opflags opflags, IWKV_PUT_HANDLER ph, void *phop) {
   if (!db || !db->iwkv || !key || !key->size || !val) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -3308,6 +3321,10 @@ finish:
     }
   }
   return rc;
+}
+
+iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags opflags) {
+  return iwkv_puth(db, key, val, opflags, 0, 0);
 }
 
 iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {

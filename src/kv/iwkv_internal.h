@@ -167,11 +167,11 @@ static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
 
 /** Tallest SBLK nodes cache */
 typedef struct DBCACHE {
-#ifdef IW_HAVE_ATOMICS64  
+#ifdef IW_HAVE_ATOMICS64
   atomic_uint_least64_t atime;  /**< Cache access MONOTONIC time (ms) */
-#else 
+#else
   uint64_t atime;
-#endif    
+#endif
   size_t asize;                 /**< Size of allocated cache buffer */
   size_t num;                   /**< Actual number of nodes */
   size_t nsize;                 /**< Cached node size */
@@ -192,7 +192,7 @@ struct _IWDB {
   IWKV iwkv;
   DBCACHE cache;                  /**< SBLK nodes cache */
   pthread_rwlock_t rwl;           /**< Database API RW lock */
-  pthread_spinlock_t cursors_slk;  /**< Cursors set guard lock */  
+  pthread_spinlock_t cursors_slk;  /**< Cursors set guard lock */
   uint64_t next_db_addr;          /**< Next IWDB addr */
   struct _IWKV_cursor *cursors;   /**< Active (currently in-use) database cursors */
   struct _IWDB *next;             /**< Next IWDB meta */
@@ -268,6 +268,8 @@ typedef struct IWLCTX {
   uint8_t kaan;               /**< Position of next free `KVBLK` element in the `kaa` area */
   int8_t nlvl;                /**< Level of new inserted/deleted `SBLK` node. -1 if no new node inserted/deleted */
   int8_t cache_reload;        /**< If true dbcache should be refreshed after operation */
+  IWKV_PUT_HANDLER ph;        /**< Optional put handler */
+  void *phop;                 /**< Put handler opaque data */
   SBLK *plower[SLEVELS];      /**< Pinned lower nodes per level */
   SBLK *pupper[SLEVELS];      /**< Pinned upper nodes per level */
   SBLK dblk;                  /**< First database block */
@@ -410,7 +412,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen);
 iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
 void iwkvd_db(FILE *f, IWDB db, int flags, int plvl);
 
-// IWKVD Trigger commands 
+// IWKVD Trigger commands
 #ifdef IW_TESTS
 #define IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE 1UL
 #endif
