@@ -2311,8 +2311,8 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
   }
 
   if (found) {
-    IWKV_val oldval;
     if (lx->ph) {
+      IWKV_val oldval;
       rc = _kvblk_getvalue(sblk->kvblk, mm, idx, &oldval);
       fsm->release_mmap(fsm);
       if (!rc) {
