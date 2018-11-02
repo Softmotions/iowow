@@ -3301,7 +3301,9 @@ iwrc iwkv_puth(IWDB db, const IWKV_val *key, const IWKV_val *val,
     .val = (IWKV_val *) val,
     .nlvl = -1,
     .op = IWLCTX_PUT,
-    .opflags = opflags
+    .opflags = opflags,
+    .ph = ph,
+    .phop = phop
   };
   iwp_current_time_ms(&lx.ts, true);
   API_DB_WLOCK(db, rci);
