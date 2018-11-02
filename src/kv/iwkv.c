@@ -2316,8 +2316,8 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
       rc = _kvblk_getvalue(sblk->kvblk, mm, idx, &oldval);
       fsm->release_mmap(fsm);
       if (!rc) {
+        // note: oldval should be disposed by ph
         rc = lx->ph(lx->key, lx->val, &oldval, lx->phop);
-        _kv_val_dispose(&oldval);
       }
       RCRET(rc);
     } else {
