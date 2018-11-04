@@ -260,12 +260,6 @@ IW_EXPORT iwrc iwkv_db_destroy(IWDB *dbp);
 IW_EXPORT iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags flags);
 
 /**
- * @brief Perform full WAL checkpoint. Make sence on in WAL enabled mode.
- * @param iwkv IWKV handler.
- */
-IW_EXPORT iwrc iwkv_checkpoint(IWKV iwkv);
-
-/**
  * @brief Close iwkv storage.
  * @details Upon successfull call of iwkv_close()
  * no farther operations on storage or any of its databases are allowed.

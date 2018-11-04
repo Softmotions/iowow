@@ -1,5 +1,6 @@
 iowow (1.2.14) UNRELEASED; urgency=medium
 
+  * BUG: Fix WAL checkpoint workflow to avoid deadlocks with cursor threads
   * BUG: Clang6 fatal error: variable 'cur' is used uninitialized  (#15)
   * Added iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *odbid, IWDB *dbp) (iwkv.h)
   * Removed unused `IWKV_NOLOCKS` option.

@@ -61,6 +61,7 @@ typedef struct IWAL {
   IWDLSNR lsnr;
   atomic_bool applying;             /**< WAL applying */
   atomic_bool open;                 /**< Is WAL in use */
+  atomic_bool force_cp;
   bool synched;                     /**< WAL is synched or WBFIXPOINT is the last write operation */
   bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
   iwkv_openflags oflags;            /**< File open flags */
@@ -541,8 +542,9 @@ static iwrc _recover_wl(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
 
 IW_INLINE bool _need_checkpoint(IWAL *wal) {
   uint64_t mbytes = wal->mbytes;
-  if (mbytes >= wal->checkpoint_buffer_sz) {
-    return true;
+  bool force = wal->force_cp;
+  if (force || mbytes >= wal->checkpoint_buffer_sz) {
+    return !wal->synched;
   }
   return false;
 }
@@ -550,6 +552,7 @@ IW_INLINE bool _need_checkpoint(IWAL *wal) {
 static iwrc _checkpoint_wl(IWAL *wal) {
   IWFS_EXT *extf;
   IWKV iwkv = wal->iwkv;
+  wal->force_cp = false;
 
   WBFIXPOINT wbfp = {0};
   wbfp.id = WOP_FIXPOINT;
@@ -590,19 +593,23 @@ IW_INLINE iwrc _checkpoint(IWAL *wal) {
 
 //--------------------------------------- Public API
 
-WUR iwrc iwal_checkpoint(IWKV iwkv, bool force) {
+WUR iwrc iwal_poke_checkpoint(IWKV iwkv, bool force) {
   IWAL *wal = (IWAL *) iwkv->dlsnr;
   if (!wal) {
     return 0;
   }
-  bool ncp = _need_checkpoint(wal);
-  if (!ncp && !force) {
+  if (force) {
+    wal->force_cp = true;
+  } else if (!_need_checkpoint(wal)) {
     return 0;
   }
-  iwrc rc = iwkv_exclusive_lock(iwkv);
+  iwrc rc = _lock(wal);
   RCRET(rc);
-  rc = _checkpoint(wal);
-  iwkv_exclusive_unlock(iwkv);
+  int rci = pthread_cond_broadcast(wal->cpt_condp);
+  if (rci) {
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  _unlock(wal);
   return rc;
 }
 
@@ -679,6 +686,13 @@ static void *_cpt_worker_fn(void *op) {
     bool sp = false, cp = false;
     rc = _lock(wal);
     RCBREAK(rc);
+
+    if (_need_checkpoint(wal)) {
+      cp = true;
+      _unlock(wal);
+      goto cprun;
+    }
+
 #ifdef IW_HAVE_CLOCK_MONOTONIC
     clockid_t clockid = CLOCK_MONOTONIC;
 #else
@@ -701,10 +715,15 @@ static void *_cpt_worker_fn(void *op) {
       _unlock(wal);
       break;
     }
-    sp = (tick_ts - savepoint_ts) >= wal->savepoint_timeout_sec * 1000;
     cp = (tick_ts - wal->checkpoint_ts) >= wal->checkpoint_timeout_sec * 1000;
+    if (!cp && _need_checkpoint(wal)) {
+      cp = true;
+    } else {
+      sp = (tick_ts - savepoint_ts) >= wal->savepoint_timeout_sec * 1000;
+    }
     _unlock(wal);
 
+cprun:
     if (cp || sp) {
       rc = iwkv_exclusive_lock(iwkv);
       RCBREAK(rc);
@@ -838,7 +857,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->buf += sizeof(WBSEP);
   wal->bufsz = wal->wal_buffer_sz - sizeof(WBSEP);
 
-// Now open WAL file
+  // Now open WAL file
 
 #ifndef _WIN32
   HANDLE fh = open(wal->path, O_CREAT | O_RDWR, IWFS_DEFAULT_FILEMODE);

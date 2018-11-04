@@ -3163,14 +3163,6 @@ iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
   return rc;
 }
 
-iwrc iwkv_checkpoint(IWKV iwkv) {
-  if (iwkv->dlsnr) {
-    return iwal_checkpoint(iwkv, true);
-  } else {
-    return iwkv_sync(iwkv, IWFS_FDATASYNC);
-  }
-}
-
 iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   int rci;
   iwrc rc = 0;
@@ -3209,7 +3201,7 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   }
   iwkv_exclusive_unlock(iwkv);
   if (!rc) {
-    rc = iwal_checkpoint(iwkv, true);
+    rc = iwal_poke_checkpoint(iwkv, true);
   }
   return rc;
 }
@@ -3230,16 +3222,15 @@ iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp) {
   }
   dbid++;
   rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
-  if (!rc) {
-    rc = iwal_checkpoint(iwkv, true);
-  }
   if (!rc)   {
     *dbidp = dbid;
   }
   iwkv_exclusive_unlock(iwkv);
+  if (!rc) {
+    rc = iwal_poke_checkpoint(iwkv, true);
+  }
   return rc;
 }
-
 
 iwrc iwkv_db_cache_release(IWDB db) {
   if (!db || !db->iwkv) {
@@ -3329,7 +3320,7 @@ finish:
     if (lx.opflags & IWKV_SYNC) {
       rc = iwkv_sync(iwkv, 0);
     } else {
-      rc = iwal_checkpoint(iwkv, false);
+      rc = iwal_poke_checkpoint(iwkv, false);
     }
   }
   return rc;
@@ -3509,7 +3500,7 @@ finish2:
     if (lx.opflags & IWKV_SYNC) {
       rc = iwkv_sync(iwkv, 0);
     } else {
-      rc = iwal_checkpoint(iwkv, false);
+      rc = iwal_poke_checkpoint(iwkv, false);
     }
   }
   return rc;
@@ -3611,7 +3602,7 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
   free(cur);
   *curp = 0;
   if (!rc) {
-    rc = iwal_checkpoint(iwkv, false);
+    rc = iwal_poke_checkpoint(iwkv, false);
   }
   return rc;
 }
@@ -3772,7 +3763,7 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   rc = _sblk_sync(&cur->lx, cur->cn);
 finish:
   API_DB_UNLOCK(cur->lx.db, rci, rc);
-  return rc ? rc: irc;
+  return rc ? rc : irc;
 }
 
 iwrc iwkv_cursor_val(IWKV_cursor cur, IWKV_val *oval) {
