@@ -3762,7 +3762,7 @@ finish:
 
 iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   int rci;
-  iwrc rc = 0;
+  iwrc rc = 0, irc = 0;
   if (!cur) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -3772,8 +3772,11 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   IWDB db = cur->lx.db;
   IWKV iwkv = db->iwkv;
   API_DB_WLOCK(db, rci);
-  // TODO: process internal rc
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val, opflags);
+  if (IWKV_IS_INTERNAL_RC(rc)) {
+    irc = rc;
+    rc = 0;
+  }
   RCGO(rc, finish);
   rc = _sblk_sync(&cur->lx, cur->cn);
 finish:
@@ -3781,7 +3784,7 @@ finish:
   if (!rc) {
     rc = iwal_checkpoint(iwkv, false);
   }
-  return rc;
+  return rc ? rc: irc;
 }
 
 iwrc iwkv_cursor_val(IWKV_cursor cur, IWKV_val *oval) {
