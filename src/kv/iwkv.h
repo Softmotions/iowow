@@ -72,10 +72,14 @@ typedef enum {
   IWKV_ERROR_INCOMPATIBLE_DB_FORMAT,  /**< Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT) */
   IWKV_ERROR_CORRUPTED_WAL_FILE,      /**< Corrupted WAL file (IWKV_ERROR_CORRUPTED_WAL_FILE) */
   _IWKV_ERROR_END,
-  /* Internal error codes */
-  _IWKV_ERROR_KVBLOCK_FULL,
-  _IWKV_ERROR_REQUIRE_NLEVEL,
-  _IWKV_ERROR_ACQUIRE_EXCLUSIVE,
+
+  IWKV_RC_DUP_ARRAY_EMPTY,            /**< Returned by `iwkv_put()` when for dup arrays if opflags contains
+                                          `IWKV_DUP_REPORT_EMPTY` */
+  // Internal only
+  _IWKV_RC_KVBLOCK_FULL,
+  _IWKV_RC_REQUIRE_NLEVEL,
+  _IWKV_RC_ACQUIRE_EXCLUSIVE,
+  _IWKV_RC_END,
 } iwkv_ecode;
 
 /**
@@ -104,11 +108,14 @@ typedef enum {
  * @brief Record store modes used in `iwkv_put()` and `iwkv_cursor_set()` functions.
  */
 typedef enum {
-  IWKV_NO_OVERWRITE = 0x1,   /**< Do not overwrite value for an existing key.
-                                  IWKV_ERROR_KEY_EXISTS will be fired in such cases. */
-  IWKV_DUP_REMOVE =   0x2,   /**< Remove value from duplicated values array.
-                                  Usable only for IWDB_DUP_XXX DB database modes */
-  IWKV_SYNC =         0x4    /**< Flush changes on disk after operation */
+  IWKV_NO_OVERWRITE     = 0x1,   /**< Do not overwrite value for an existing key.
+                                      `IWKV_ERROR_KEY_EXISTS` will be returned in such cases. */
+  IWKV_DUP_REMOVE       = 0x2,   /**< Remove value from duplicated values array.
+                                      Usable only for IWDB_DUP_<XXX> DB database modes */
+  IWKV_SYNC             = 0x4,   /**< Flush changes on disk after operation */
+
+  IWKV_DUP_REPORT_EMPTY = 0x8,   /**< Used with `IWKV_DUP_REMOVE` if dup array will be empty as result of
+                                      put operation `IWKV_RC_DUP_ARRAY_EMPTY` code will be returned  */
 } iwkv_opflags;
 
 struct _IWKV;
@@ -274,6 +281,8 @@ IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
  * - `IWKV_NO_OVERWRITE` If a key is already exists the `IWKV_ERROR_KEY_EXISTS` error will returned.
  * - `IWKV_SYNC` Flush changes on disk after operation
  * - `IWKV_DUP_REMOVE` Remove value from duplicated values array. Usable only for IWDB_DUP_XXX DB database modes.
+ * - `IWKV_DUP_REPORT_EMPTY` Used with `IWKV_DUP_REMOVE` if dup array will be empty as result of
+                             put operation `IWKV_RC_DUP_ARRAY_EMPTY` code will be returned.
  *
  * @note `iwkv_put()` adds a new value to sorted values array for existing keys if
  * database created with `IWDB_DUP_UINT32_VALS`|`IWDB_DUP_UINT64_VALS` flags

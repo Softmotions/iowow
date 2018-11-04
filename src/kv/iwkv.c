@@ -15,6 +15,8 @@ volatile int8_t iwkv_next_level = -1;
 #endif
 atomic_uint_fast64_t g_trigger;
 
+#define IWKV_IS_INTERNAL_RC(rc_) ((rc_) > _IWKV_ERROR_END && (rc_) < _IWKV_RC_END)
+
 //-------------------------- UTILS
 
 IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
@@ -1008,7 +1010,7 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   off_t psz = IW_VNUMSIZE(key->size) + key->size + uval->size; // required KVP size
 
   if (kb->zidx < 0) {
-    return _IWKV_ERROR_KVBLOCK_FULL;
+    return _IWKV_RC_KVBLOCK_FULL;
   }
   // DUP
   if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
@@ -1210,6 +1212,9 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
       }
       if (dlsnr) {
         rc = dlsnr->onwrite(dlsnr, sp - mm, sp, 4, 0);
+      }
+      if (sz == 0 && (opflags & IWKV_DUP_REPORT_EMPTY)) {
+        rc = IWKV_RC_DUP_ARRAY_EMPTY;
       }
       goto finish;
     } else if (avail >= val->size) { // we have enough room to store a given number
@@ -1774,7 +1779,7 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const 
   IWDB db = sblk->db;
   KVBLK *kvblk = sblk->kvblk;
   if (sblk->pnum >= KVBLK_IDXNUM) {
-    return _IWKV_ERROR_KVBLOCK_FULL;
+    return _IWKV_RC_KVBLOCK_FULL;
   }
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
     return IWKV_ERROR_NOTFOUND;
@@ -1832,7 +1837,7 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
   if (sblk->pnum >= KVBLK_IDXNUM) {
-    return _IWKV_ERROR_KVBLOCK_FULL;
+    return _IWKV_RC_KVBLOCK_FULL;
   }
   if (!internal && (opflags & IWKV_DUP_REMOVE)) {
     return IWKV_ERROR_NOTFOUND;
@@ -1888,7 +1893,12 @@ static WUR iwrc _sblk_updatekv(SBLK *sblk, int8_t idx,
   IWDB db = sblk->db;
   KVBLK *kvblk = sblk->kvblk;
   int8_t kvidx = sblk->pi[idx];
+  iwrc intrc = 0;
   iwrc rc = _kvblk_updatev(kvblk, &kvidx, key, val, opflags, false);
+  if (IWKV_IS_INTERNAL_RC(rc)) {
+    intrc = rc;
+    rc = 0;
+  }
   RCRET(rc);
   if (sblk->kvblkn != ADDR2BLK(kvblk->addr)) {
     sblk->kvblkn = ADDR2BLK(kvblk->addr);
@@ -1908,7 +1918,7 @@ static WUR iwrc _sblk_updatekv(SBLK *sblk, int8_t idx,
     }
   }
   pthread_spin_unlock(&db->cursors_slk);
-  return 0;
+  return intrc;
 }
 
 static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
@@ -2331,7 +2341,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
         return _sblk_addkv(lx->upper, lx->key, lx->val, lx->opflags, false, false);
       }
       if (lx->nlvl < 0) {
-        return _IWKV_ERROR_REQUIRE_NLEVEL;
+        return _IWKV_RC_REQUIRE_NLEVEL;
       }
       return _lx_split_addkv(lx, idx, sblk);
     } else {
@@ -2349,7 +2359,7 @@ start:
     return rc;
   }
   rc = _lx_addkv(lx);
-  if (rc == _IWKV_ERROR_REQUIRE_NLEVEL) {
+  if (rc == _IWKV_RC_REQUIRE_NLEVEL) {
     SBLK *lower = lx->lower;
     _lx_release_mm(lx, 0);
     lx->nlvl = _sblk_genlevel(lx->db);
@@ -2358,11 +2368,11 @@ start:
     }
     goto start;
   }
-  if (rc) {
-    if (rc == _IWKV_ERROR_KVBLOCK_FULL) {
-      rc = IWKV_ERROR_CORRUPTED;
-      iwlog_ecode_error3(rc);
-    }
+  if (rc == _IWKV_RC_KVBLOCK_FULL) {
+    rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
+  }
+  if (rc && !IWKV_IS_INTERNAL_RC(rc)) {
     _lx_release_mm(lx, 0);
   } else {
     rc = _lx_release(lx);
@@ -2406,7 +2416,7 @@ IW_INLINE WUR iwrc _lx_del_lw(IWLCTX *lx, bool exclusive) {
   RCRET(rc);
   sblk = lx->lower;
   if (sblk->pnum == 1 && !exclusive) {
-    return _IWKV_ERROR_ACQUIRE_EXCLUSIVE;
+    return _IWKV_RC_ACQUIRE_EXCLUSIVE;
   }
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
@@ -3467,13 +3477,14 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key, iwkv_opflags opflags) {
 start:
   if (exclusive) {
     // Reset lx context
+    uint64_t ots = lx.ts;
     memset(&lx, 0, sizeof(lx));
     lx.db = db;
     lx.key = key;
     lx.nlvl = -1;
     lx.op = IWLCTX_DEL;
     lx.opflags = opflags;
-    iwp_current_time_ms(&lx.ts, true);
+    lx.ts = ots;
     rc = _wnw_db(db, _wnw_db_wl);
     RCRET(rc);
   } else {
@@ -3484,7 +3495,7 @@ start:
     RCGO(rc, finish);
   }
   rc = _lx_del_lw(&lx, exclusive);
-  if (rc == _IWKV_ERROR_ACQUIRE_EXCLUSIVE) {
+  if (rc == _IWKV_RC_ACQUIRE_EXCLUSIVE) {
     rc = 0;
     API_DB_UNLOCK(db, rci, rc);
     RCGO(rc, finish2);
@@ -3761,6 +3772,7 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   IWDB db = cur->lx.db;
   IWKV iwkv = db->iwkv;
   API_DB_WLOCK(db, rci);
+  // TODO: process internal rc
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val, opflags);
   RCGO(rc, finish);
   rc = _sblk_sync(&cur->lx, cur->cn);
