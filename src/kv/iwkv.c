@@ -3624,13 +3624,9 @@ iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op) {
   if (!cur->lx.db) {
     return IW_ERROR_INVALID_STATE;
   }
-  IWKV iwkv = cur->lx.db->iwkv;
   API_DB_RLOCK(cur->lx.db, rci);
   iwrc rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
-  if (!rc) {
-    rc = iwal_checkpoint(iwkv, false);
-  }
   return rc;
 }
 
@@ -3642,14 +3638,10 @@ iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key)
   if (!cur->lx.db) {
     return IW_ERROR_INVALID_STATE;
   }
-  IWKV iwkv = cur->lx.db->iwkv;
   API_DB_RLOCK(cur->lx.db, rci);
   cur->lx.key = key;
   iwrc rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
-  if (!rc) {
-    rc = iwal_checkpoint(iwkv, false);
-  }
   return rc;
 }
 
@@ -3770,7 +3762,6 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
     return IW_ERROR_INVALID_STATE;
   }
   IWDB db = cur->lx.db;
-  IWKV iwkv = db->iwkv;
   API_DB_WLOCK(db, rci);
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val, opflags);
   if (IWKV_IS_INTERNAL_RC(rc)) {
@@ -3781,9 +3772,6 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   rc = _sblk_sync(&cur->lx, cur->cn);
 finish:
   API_DB_UNLOCK(cur->lx.db, rci, rc);
-  if (!rc) {
-    rc = iwal_checkpoint(iwkv, false);
-  }
   return rc ? rc: irc;
 }
 
