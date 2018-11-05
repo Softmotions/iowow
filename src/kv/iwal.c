@@ -61,9 +61,9 @@ typedef struct IWAL {
   IWDLSNR lsnr;
   atomic_bool applying;             /**< WAL applying */
   atomic_bool open;                 /**< Is WAL in use */
-  bool force_cp;
-  bool force_sp;
-  bool synched;                     /**< WAL is synched or WBFIXPOINT is the last write operation */
+  atomic_bool force_cp;             /**< Next checkpoint scheduled */
+  atomic_bool synched;              /**< WAL is synched or WBFIXPOINT is the last write operation */
+  bool force_sp;                    /**< Next savepoint scheduled */
   bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
   iwkv_openflags oflags;            /**< File open flags */
   size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. */
@@ -541,7 +541,7 @@ static iwrc _recover_wl(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
   return rc;
 }
 
-IW_INLINE bool _need_checkpoint_wl(IWAL *wal) {
+IW_INLINE bool _need_checkpoint(IWAL *wal) {
   uint64_t mbytes = wal->mbytes;
   bool force = wal->force_cp;
   if (force || mbytes >= wal->checkpoint_buffer_sz) {
@@ -597,14 +597,18 @@ IW_INLINE iwrc _checkpoint(IWAL *wal) {
 
 WUR iwrc iwal_poke_checkpoint(IWKV iwkv, bool force) {
   IWAL *wal = (IWAL *) iwkv->dlsnr;
-  if (!wal) {
+  if (!wal || !(force || _need_checkpoint(wal))) {
     return 0;
   }
   iwrc rc = _lock(wal);
   RCRET(rc);
-  if (force) {
+  bool cforce = wal->force_cp;
+  if (cforce) { // Forced already
+    _unlock(wal);
+    return 0;
+  } else if (force) {
     wal->force_cp = true;
-  } else if (!_need_checkpoint_wl(wal)) {
+  } else if (!_need_checkpoint(wal)) {
     _unlock(wal);
     return 0;
   }
@@ -706,7 +710,7 @@ static void *_cpt_worker_fn(void *op) {
     rc = _lock(wal);
     RCBREAK(rc);
 
-    if (_need_checkpoint_wl(wal)) {
+    if (_need_checkpoint(wal)) {
       cp = true;
       _unlock(wal);
       goto cprun;
@@ -739,7 +743,7 @@ static void *_cpt_worker_fn(void *op) {
       break;
     }
     cp = (tick_ts - wal->checkpoint_ts) >= wal->checkpoint_timeout_sec * 1000;
-    if (!cp && _need_checkpoint_wl(wal)) {
+    if (!cp && _need_checkpoint(wal)) {
       cp = true;
     } else {
       sp = ((tick_ts - savepoint_ts) >= wal->savepoint_timeout_sec * 1000) || wal->force_sp;
