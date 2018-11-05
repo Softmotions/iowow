@@ -860,7 +860,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
 
   wal->checkpoint_buffer_sz
     = opts->wal.checkpoint_buffer_sz > 0 ?
-      opts->wal.checkpoint_buffer_sz : 1ULL * 1024 * 1024 * 1024; // 1G
+      opts->wal.checkpoint_buffer_sz : 1024ULL * 1024 * 1024; // 1G
 
   wal->savepoint_timeout_sec
     = opts->wal.savepoint_timeout_sec > 0 ?

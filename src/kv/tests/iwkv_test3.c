@@ -75,7 +75,7 @@ static void *iwkv_test1_worker(void *op) {
   return 0;
 }
 
-static void iwkv_test1_impl(int thrnum, int recth) {
+static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   FILE *f = fopen("iwkv_test3_1.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
   const int nrecs = thrnum * recth;
@@ -108,7 +108,11 @@ static void iwkv_test1_impl(int thrnum, int recth) {
 
   IWKV_OPTS opts = {
     .path = "iwkv_test3_1.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .wal = {
+      .enabled = wal,
+      .checkpoint_buffer_sz = 1024 * 1024
+    }
   };
   IWKV iwkv;
   IWKV_val key, val;
@@ -158,8 +162,12 @@ static void iwkv_test1_impl(int thrnum, int recth) {
   fclose(f);
 }
 
-static void iwkv_test1(void) {
-  iwkv_test1_impl(4, 30000);
+static void iwkv_test3_1(void) {
+  iwkv_test3_impl(4, 30000, false);
+}
+
+static void iwkv_test3_2(void) {
+  iwkv_test3_impl(4, 30000, true);
 }
 
 int main() {
@@ -177,7 +185,9 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1))
+  if (
+      (NULL == CU_add_test(pSuite, "iwkv_test3_1", iwkv_test3_1)) ||
+      (NULL == CU_add_test(pSuite, "iwkv_test3_2", iwkv_test3_2))
      )  {
     CU_cleanup_registry();
     return CU_get_error();
