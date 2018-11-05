@@ -3773,6 +3773,7 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
     return IW_ERROR_INVALID_STATE;
   }
   IWDB db = cur->lx.db;
+  IWKV iwkv = db->iwkv;
   API_DB_WLOCK(db, rci);
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val, opflags);
   if (IWKV_IS_INTERNAL_RC(rc)) {
@@ -3783,6 +3784,13 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   rc = _sblk_sync(&cur->lx, cur->cn);
 finish:
   API_DB_UNLOCK(cur->lx.db, rci, rc);
+  if (!rc) {
+    if (opflags & IWKV_SYNC) {
+      rc = _iwkv_sync(iwkv, 0);
+    } else {
+      rc = iwal_poke_checkpoint(iwkv, false);
+    }
+  }
   return rc ? rc : irc;
 }
 

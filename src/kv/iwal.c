@@ -91,12 +91,12 @@ static iwrc _checkpoint(IWAL *wal);
 static iwrc _checkpoint_wl(IWAL *wal);
 
 IW_INLINE iwrc _lock(IWAL *wal) {
-  int rci = wal->mtxp ? pthread_mutex_lock(wal->mtxp) : 0;
+  int rci = pthread_mutex_lock(wal->mtxp);
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
 IW_INLINE iwrc _unlock(IWAL *wal) {
-  int rci = wal->mtxp ? pthread_mutex_unlock(wal->mtxp) : 0;
+  int rci = pthread_mutex_unlock(wal->mtxp);
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
