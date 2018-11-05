@@ -861,6 +861,9 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->checkpoint_buffer_sz
     = opts->wal.checkpoint_buffer_sz > 0 ?
       opts->wal.checkpoint_buffer_sz : 1024ULL * 1024 * 1024; // 1G
+  if (wal->checkpoint_buffer_sz < 1024 * 1024) { // 1M minimal
+    wal->checkpoint_buffer_sz = 1024 * 1024;
+  }
 
   wal->savepoint_timeout_sec
     = opts->wal.savepoint_timeout_sec > 0 ?
@@ -869,6 +872,12 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
   wal->checkpoint_timeout_sec
     = opts->wal.checkpoint_timeout_sec > 0 ?
       opts->wal.checkpoint_timeout_sec : 300; // 5 min
+  if (wal->checkpoint_timeout_sec < 10) { // 10 sec minimal
+    wal->checkpoint_timeout_sec = 10;
+  }
+  if (wal->savepoint_timeout_sec >= wal->checkpoint_timeout_sec) {
+    wal->savepoint_timeout_sec = wal->checkpoint_timeout_sec / 2;
+  }
 
   wal->check_cp_crc = opts->wal.check_crc_on_checkpoint;
 
