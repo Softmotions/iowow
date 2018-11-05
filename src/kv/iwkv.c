@@ -132,23 +132,10 @@ static WUR iwrc _iwkv_worker_inc_nolk(IWKV iwkv) {
     pthread_mutex_unlock(&iwkv->wk_mtx);
     return IW_ERROR_INVALID_STATE;
   }
+  while (iwkv->wk_pending_exclusive) {
+    pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
+  }
   ++iwkv->wk_count;
-  pthread_cond_broadcast(&iwkv->wk_cond);
-  pthread_mutex_unlock(&iwkv->wk_mtx);
-  return 0;
-}
-
-static iwrc _iwkv_worker_dec_nolk(IWKV iwkv) {
-  if (!iwkv) {
-    return IW_ERROR_INVALID_STATE;
-  }
-  int rci = pthread_mutex_lock(&iwkv->wk_mtx);
-  if (rci) {
-    // Last chanсe to be safe
-    --iwkv->wk_count;
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  }
-  --iwkv->wk_count;
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -167,8 +154,27 @@ static WUR iwrc _db_worker_inc_nolk(IWDB db) {
     pthread_mutex_unlock(&iwkv->wk_mtx);
     return IW_ERROR_INVALID_STATE;
   }
+  while (db->wk_pending_exclusive) {
+    pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
+  }
   ++iwkv->wk_count;
   ++db->wk_count;
+  pthread_cond_broadcast(&iwkv->wk_cond);
+  pthread_mutex_unlock(&iwkv->wk_mtx);
+  return 0;
+}
+
+static iwrc _iwkv_worker_dec_nolk(IWKV iwkv) {
+  if (!iwkv) {
+    return IW_ERROR_INVALID_STATE;
+  }
+  int rci = pthread_mutex_lock(&iwkv->wk_mtx);
+  if (rci) {
+    // Last chanсe to be safe
+    --iwkv->wk_count;
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  --iwkv->wk_count;
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -213,12 +219,15 @@ static WUR iwrc _wnw(IWKV iwkv, iwrc(*after)(IWKV iwkv)) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
+  iwkv->wk_pending_exclusive = true;
   while (iwkv->wk_count > 0) {
     pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
   }
   if (after) {
     rc = after(iwkv);
   }
+  iwkv->wk_pending_exclusive = false;
+  pthread_cond_broadcast(&iwkv->wk_cond);
   rci = pthread_mutex_unlock(&iwkv->wk_mtx);
   if (rci) {
     IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci), rc);
@@ -233,12 +242,15 @@ static WUR iwrc _wnw_db(IWDB db, iwrc(*after)(IWDB db)) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
+  db->wk_pending_exclusive = true;
   while (db->wk_count > 0) {
     pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
   }
   if (after) {
     rc = after(db);
   }
+  db->wk_pending_exclusive = false;
+  pthread_cond_broadcast(&iwkv->wk_cond);
   rci = pthread_mutex_unlock(&iwkv->wk_mtx);
   if (rci) {
     IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci), rc);
@@ -3132,15 +3144,20 @@ iwrc iwkv_close(IWKV *iwkvp) {
   return rc;
 }
 
-static iwrc _sync_nlock(IWDB db) {
-  iwrc rc = 0;
-  IWKV iwkv = db->iwkv;
-  IWFS_FSM *fsm  = &iwkv->fsm;
+static iwrc _iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
+  ENSURE_OPEN(iwkv);
+  if (iwkv->oflags & IWKV_RDONLY) {
+    return IW_ERROR_READONLY;
+  }
+  iwrc rc;
   if (iwkv->dlsnr) {
-    rc = iwal_sync(iwkv);
+    rc = iwal_poke_savepoint(iwkv);
   } else {
-    iwfs_sync_flags flags = IWFS_FDATASYNC;
+    IWFS_FSM *fsm  = &iwkv->fsm;
+    pthread_rwlock_wrlock(&iwkv->rwl);
+    iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
     rc = fsm->sync(fsm, flags);
+    pthread_rwlock_unlock(&iwkv->rwl);
   }
   return rc;
 }
@@ -3152,7 +3169,10 @@ iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
   }
   iwrc rc;
   if (iwkv->dlsnr) {
-    rc = iwal_savepoint(iwkv, true);
+    rc = iwkv_exclusive_lock(iwkv);
+    RCRET(rc);
+    rc = iwal_savepoint_exlk(iwkv, true);
+    iwkv_exclusive_unlock(iwkv);
   } else {
     IWFS_FSM *fsm  = &iwkv->fsm;
     pthread_rwlock_wrlock(&iwkv->rwl);
@@ -3199,10 +3219,10 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   } else {
     rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
   }
-  iwkv_exclusive_unlock(iwkv);
   if (!rc) {
-    rc = iwal_poke_checkpoint(iwkv, true);
+    rc = iwal_savepoint_exlk(iwkv, true);
   }
+  iwkv_exclusive_unlock(iwkv);
   return rc;
 }
 
@@ -3225,10 +3245,10 @@ iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp) {
   if (!rc)   {
     *dbidp = dbid;
   }
-  iwkv_exclusive_unlock(iwkv);
   if (!rc) {
-    rc = iwal_poke_checkpoint(iwkv, true);
+    rc = iwal_savepoint_exlk(iwkv, true);
   }
+  iwkv_exclusive_unlock(iwkv);
   return rc;
 }
 
@@ -3318,7 +3338,7 @@ finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc) {
     if (lx.opflags & IWKV_SYNC) {
-      rc = iwkv_sync(iwkv, 0);
+      rc = _iwkv_sync(iwkv, 0);
     } else {
       rc = iwal_poke_checkpoint(iwkv, false);
     }
@@ -3498,7 +3518,7 @@ finish:
 finish2:
   if (!rc) {
     if (lx.opflags & IWKV_SYNC) {
-      rc = iwkv_sync(iwkv, 0);
+      rc = _iwkv_sync(iwkv, 0);
     } else {
       rc = iwal_poke_checkpoint(iwkv, false);
     }

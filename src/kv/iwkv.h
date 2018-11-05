@@ -254,6 +254,9 @@ IW_EXPORT iwrc iwkv_db_destroy(IWDB *dbp);
 /**
  * @brief Sync iwkv storage state with disk.
  *
+ * @note It will cause deadlock if current thread holds opened cursors and WAL is enabled,
+ *       use method with caution.
+ *
  * @param iwkv IWKV handler.
  * @param flags Sync flags.
  */

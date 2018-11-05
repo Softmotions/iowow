@@ -203,6 +203,7 @@ struct _IWDB {
   blkn_t meta_blkn;               /**< Database meta length (number of blocks) */
   iwdb_flags_t dbflg;             /**< Database specific flags */
   atomic_bool open;               /**< True if DB is in OPEN state */
+  volatile bool wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWDB */
   uint32_t lcnt[SLEVELS];         /**< SBLK count per level */
 };
 
@@ -240,6 +241,7 @@ struct _IWKV {
   pthread_mutex_t wk_mtx;     /**< Workers cond mutext */
   int32_t fmt_version;        /**< Database format version */
   volatile int32_t wk_count;  /**< Number of active workers */
+  volatile bool wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWKV */
   atomic_bool open;           /**< True if kvstore is in OPEN state */
 };
 

@@ -42,7 +42,9 @@ iwrc iwal_sync(IWKV iwkv);
 
 iwrc iwal_poke_checkpoint(IWKV iwkv, bool force);
 
-iwrc iwal_savepoint(IWKV iwkv, bool sync);
+iwrc iwal_poke_savepoint(IWKV iwkv);
+
+iwrc iwal_savepoint_exlk(IWKV iwkv, bool sync);
 
 void iwal_shutdown(IWKV iwkv);
 

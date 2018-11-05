@@ -145,7 +145,7 @@ static void iwkv_test3(void) {
   key.data = "key00001";
   key.size = strlen(key.data);
   rc = iwkv_get(db1, &key, &val);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0); // !!!!
   CU_ASSERT_NSTRING_EQUAL(val.data, "value00001", val.size);
   iwkv_kv_dispose(0, &val);
 
