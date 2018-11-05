@@ -742,10 +742,8 @@ static void *_cpt_worker_fn(void *op) {
       _unlock(wal);
       break;
     }
-    cp = (tick_ts - wal->checkpoint_ts) >= wal->checkpoint_timeout_sec * 1000;
-    if (!cp && _need_checkpoint(wal)) {
-      cp = true;
-    } else {
+    cp = ((tick_ts - wal->checkpoint_ts) >= wal->checkpoint_timeout_sec * 1000) || _need_checkpoint(wal);
+    if (!cp) {
       sp = ((tick_ts - savepoint_ts) >= wal->savepoint_timeout_sec * 1000) || wal->force_sp;
     }
     _unlock(wal);
