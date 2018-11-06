@@ -1,4 +1,4 @@
-iowow (1.2.14) UNRELEASED; urgency=medium
+iowow (1.2.14) testing; urgency=medium
 
   * BUG: Fix WAL checkpoint workflow to avoid deadlocks with cursor threads
   * BUG: Clang6 fatal error: variable 'cur' is used uninitialized  (#15)
@@ -11,7 +11,7 @@ iowow (1.2.14) UNRELEASED; urgency=medium
   * Added iwkv_puth() with provided old value interceptor: `IWKV_PUT_HANDLER` (iwkv.h)
   * Added `IWKV_RC_DUP_ARRAY_EMPTY` flag and `IWKV_DUP_REPORT_EMPTY` opflag for `iwkv_put()` (iwkv.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 20 Oct 2018 20:33:30 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Tue, 06 Nov 2018 23:14:39 +0700
 
 iowow (1.2.13) testing; urgency=medium
 
