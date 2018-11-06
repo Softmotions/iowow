@@ -7,6 +7,14 @@
 
 int init_suite(void) {
   iwrc rc = iwkv_init();
+  RCRET(rc);
+  uint64_t ts;
+  iwp_current_time_ms(&ts, false);
+  ts = IW_SWAB64(ts);
+  ts >>= 32;
+
+  fprintf(stderr, "\nRandom seed: %lu\n", ts);
+  iwu_rand_seed(ts);
   return rc;
 }
 
@@ -27,20 +35,50 @@ static void swap(uint64_t *v1, uint64_t *v2) {
   *v2 = tmp;
 }
 
-void process_put(IWDB db, uint32_t id2) {
+void process_put(int numrec, IWDB db, uint32_t id2) {
   iwrc rc;
-  uint32_t id1 = id2 - 1;
+  uint32_t id1 = id2 - 1, ul;
   uint64_t u1, u2;
   IWKV_val v1, v2;
   IWKV_val k1 = {.data = &id1, .size = sizeof(id1)};
   IWKV_val k2 = {.data = &id2, .size = sizeof(id2)};
 
+  if ((iwu_rand_u32() % 11) == 0) {
+    IWKV_val ck;
+    IWKV_cursor cur;
+    ul = 0;
+    bool found = false;
+    bool reverse = iwu_rand_u32() & 1;
+    IWKV_cursor_op op = reverse ? IWKV_CURSOR_NEXT : IWKV_CURSOR_PREV;
+
+    rc = iwkv_cursor_open(db, &cur, reverse ? IWKV_CURSOR_BEFORE_FIRST : IWKV_CURSOR_AFTER_LAST, 0);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    for (int i = 0; !(rc = iwkv_cursor_to(cur, op)); ++i) {
+      rc = iwkv_cursor_key(cur, &ck);
+      CU_ASSERT_EQUAL_FATAL(rc, 0);
+      CU_ASSERT_TRUE_FATAL(ck.size == sizeof(ul));
+      memcpy(&ul, ck.data, sizeof(ul));
+      iwkv_val_dispose(&ck);
+      if (ul == id2) {
+        found = true;
+        int v = reverse ? numrec - i - 1 : i;
+        CU_ASSERT_EQUAL_FATAL(ul, v);
+        break;
+      }
+    }
+    if (rc == IWKV_ERROR_NOTFOUND) {
+      rc = 0;
+    }
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_TRUE_FATAL(found);
+    rc = iwkv_cursor_close(&cur);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+
   rc = iwkv_get(db, &k1, &v1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-
   rc = iwkv_get(db, &k2, &v2);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-
   memcpy(&u1, v1.data, sizeof(u1));
   memcpy(&u2, v2.data, sizeof(u2));
   iwkv_kv_dispose(&v1, &v2);
@@ -100,12 +138,12 @@ static void iwkv_test6_impl(int dbid, int num, bool wal) {
     if (n & 1) {
       #pragma omp parallel for private(i) shared(data)
       for (i = 2; i < num; i += 2) {
-        process_put(db, i);
+        process_put(num, db, i);
       }
     } else {
       #pragma omp parallel for private(i) shared(data)
       for (i = 1; i < num; i += 2) {
-        process_put(db, i);
+        process_put(num, db, i);
       }
     }
   }
