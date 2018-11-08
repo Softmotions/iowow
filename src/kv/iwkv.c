@@ -2350,13 +2350,25 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
     fsm->release_mmap(fsm);
     if (sblk->pnum > KVBLK_IDXNUM - 1) {
       if (uadd) {
+        if (lx->ph) {
+          rc = lx->ph(lx->key, lx->val, 0, lx->phop);
+          RCRET(rc);
+        }
         return _sblk_addkv(lx->upper, lx->key, lx->val, lx->opflags, false, false);
       }
       if (lx->nlvl < 0) {
         return _IWKV_RC_REQUIRE_NLEVEL;
       }
+      if (lx->ph) {
+        rc = lx->ph(lx->key, lx->val, 0, lx->phop);
+        RCRET(rc);
+      }
       return _lx_split_addkv(lx, idx, sblk);
     } else {
+      if (lx->ph) {
+        rc = lx->ph(lx->key, lx->val, 0, lx->phop);
+        RCRET(rc);
+      }
       return _sblk_addkv2(sblk, idx, lx->key, lx->val, lx->opflags, false, false);
     }
   }

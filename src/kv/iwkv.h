@@ -293,11 +293,11 @@ IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_
 
 /**
  * @brief Intercepts old(replaced) value in put operation.
- * @note Put handler is responsive for releasing `oldval` using iwkv_val_dispose()
+ * @note If `oldval` is not zero IWKV_PUT_HANDLER responsive for releasing it using iwkv_val_dispose()
  *
  * @param key Key used in put operation
  * @param val Value used in put operation
- * @param oldval Old value which will be replaced by `val`
+ * @param oldval Old value which will be replaced by `val` may be `NULL`
  * @param op Arbitrary opaqued data passed to this handler
  */
 typedef iwrc(*IWKV_PUT_HANDLER)(const IWKV_val *key, const IWKV_val *val, const IWKV_val *oldval, void *op);

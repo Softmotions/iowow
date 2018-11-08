@@ -1,3 +1,9 @@
+iowow (1.2.15) UNRELEASED; urgency=medium
+
+  * `IWKV_PUT_HANDLER` called for insert operations (not only for updates)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Fri, 09 Nov 2018 00:57:42 +0700
+
 iowow (1.2.14) testing; urgency=medium
 
   * BUG: Fix WAL checkpoint workflow to avoid deadlocks with cursor threads
