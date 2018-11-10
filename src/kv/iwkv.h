@@ -300,7 +300,7 @@ IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_
  * @param oldval Old value which will be replaced by `val` may be `NULL`
  * @param op Arbitrary opaqued data passed to this handler
  */
-typedef iwrc(*IWKV_PUT_HANDLER)(const IWKV_val *key, const IWKV_val *val, const IWKV_val *oldval, void *op);
+typedef iwrc(*IWKV_PUT_HANDLER)(const IWKV_val *key, const IWKV_val *val, IWKV_val *oldval, void *op);
 
 /**
  * @brief Store record in database.
