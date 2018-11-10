@@ -425,7 +425,7 @@ IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor cur, IWKV_val *oval);
  * @param vbufsz Value buffer size
  * @param [out] vsz Actual value size
  */
-IW_EXPORT iwrc iwkv_cursor_copy_val(IWKV_cursor cur, uint8_t *vbuf, size_t vbufsz, size_t *vsz);
+IW_EXPORT iwrc iwkv_cursor_copy_val(IWKV_cursor cur, void *vbuf, size_t vbufsz, size_t *vsz);
 
 /**
  * @brief Get key at current cursor position.
@@ -445,7 +445,7 @@ IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
  * @param kbufsz Key buffer size
  * @param [out] ksz Actual key size
  */
-IW_EXPORT iwrc iwkv_cursor_copy_key(IWKV_cursor cur, uint8_t *kbuf, size_t kbufsz, size_t *ksz);
+IW_EXPORT iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz);
 
 /**
  * @brief Set record value at current cursor position.

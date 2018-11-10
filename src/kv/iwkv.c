@@ -3707,7 +3707,7 @@ finish:
   return rc;
 }
 
-iwrc iwkv_cursor_copy_val(IWKV_cursor cur, uint8_t *vbuf, size_t vbufsz, size_t *vsz) {
+iwrc iwkv_cursor_copy_val(IWKV_cursor cur, void *vbuf, size_t vbufsz, size_t *vsz) {
   int rci;
   iwrc rc = 0;
   if (!cur || !vbuf) {
@@ -3740,7 +3740,7 @@ finish:
   return rc;
 }
 
-iwrc iwkv_cursor_copy_key(IWKV_cursor cur, uint8_t *kbuf, size_t kbufsz, size_t *ksz) {
+iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz) {
   int rci;
   iwrc rc = 0;
   if (!cur || !kbuf) {
