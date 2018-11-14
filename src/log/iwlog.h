@@ -132,7 +132,7 @@ typedef struct {
  *
  * @see iwlog_set_logfn(IWLOG_FN)
  */
-typedef iwrc(*IWLOG_FN)(locale_t locale, iwlog_lvl lvl, iwrc ecode,
+typedef iwrc(*IWLOG_FN)(FILE *out, locale_t locale, iwlog_lvl lvl, iwrc ecode,
                         int errno_code, int werror_code, const char *file,
                         int line, uint64_t ts, void *opts, const char *fmt,
                         va_list argp);
@@ -242,7 +242,7 @@ IW_EXPORT iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
 IW_EXPORT void iwlog2(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
                       const char *fmt, ...);
 
-IW_EXPORT iwrc iwlog_va(iwlog_lvl lvl, iwrc ecode, const char *file, int line,
+IW_EXPORT iwrc iwlog_va(FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line,
                         const char *fmt, va_list argp);
 
 #ifdef _DEBUG
