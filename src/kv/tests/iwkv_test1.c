@@ -433,6 +433,8 @@ static void iwkv_test2(void) {
 static void iwkv_test1(void) {
   FILE *f = fopen("iwkv_test1_1.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
+  char buf[128];
+  size_t vsize;
 
   IWKV_OPTS opts = {
     .path = "iwkv_test1.db",
@@ -525,10 +527,22 @@ static void iwkv_test1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   val.size = 0;
   val.data = 0;
+
   rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_NSTRING_EQUAL(key.data, "foo", key.size);
   CU_ASSERT_NSTRING_EQUAL(val.data, "bar", val.size);
   iwkv_kv_dispose(0, &val);
+
+  rc = iwkv_get_copy(db1, &key, buf, sizeof(buf), &vsize);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(3, vsize);
+  CU_ASSERT_NSTRING_EQUAL(buf, "bar", vsize);
+
+  rc = iwkv_get_copy(db1, &key, buf, 1, &vsize);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(3, vsize);
+  CU_ASSERT_NSTRING_EQUAL(buf, "b", 1);
 
   // put foo->bazzz
   key.data = "foo";

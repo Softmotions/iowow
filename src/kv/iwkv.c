@@ -3392,6 +3392,59 @@ finish:
   return rc;
 }
 
+iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vbufsz, size_t *vsz) {
+  if (!db || !db->iwkv || !key || !vbuf) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  int rci;
+  iwrc rc = 0;
+  bool found;
+  uint8_t *mm = 0, *oval, idx;
+  uint32_t ovalsz;
+  IWFS_FSM *fsm = &db->iwkv->fsm;
+  *vsz = 0;
+
+  IWLCTX lx = {
+    .db = db,
+    .key = key,
+    .nlvl = -1
+  };
+  iwp_current_time_ms(&lx.ts, true);
+  if (IW_LIKELY(db->cache.open)) {
+    API_DB_RLOCK(db, rci);
+  } else {
+    API_DB_WLOCK(db, rci);
+    if (!db->cache.open) {
+      rc = _dbcache_fill_lw(&lx);
+      RCGO(rc, finish);
+    }
+  }
+  rc = _lx_find_bounds(&lx);
+  RCGO(rc, finish);
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCGO(rc, finish);
+  rc = _sblk_loadkvblk_mm(&lx, lx.lower, mm);
+  RCGO(rc, finish);
+  rc = _sblk_find_pi_mm(lx.lower, lx.key, mm, &found, &idx);
+  RCGO(rc, finish);
+  if (found) {
+    idx = lx.lower->pi[idx];
+    _kvblk_peek_val(lx.lower->kvblk, idx, mm, &oval, &ovalsz);
+    *vsz = ovalsz;
+    memcpy(vbuf, oval, MIN(vbufsz, ovalsz));
+  } else {
+    rc = IWKV_ERROR_NOTFOUND;
+  }
+
+finish:
+  if (mm) {
+    IWRC(fsm->release_mmap(fsm), rc);
+  }
+  _lx_release_mm(&lx, 0);
+  API_DB_UNLOCK(db, rci, rc);
+  return rc;
+}
+
 iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz) {
   if (!db || !db->iwkv || !buf) {
     return IW_ERROR_INVALID_ARGS;

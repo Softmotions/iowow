@@ -319,6 +319,17 @@ IW_EXPORT iwrc iwkv_puth(IWDB db, const IWKV_val *key, const IWKV_val *val,
 IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
 
 /**
+ * @brief Get value for given `key` and copy it into provided `vbuf` using up to `vbufsz` bytes.
+ *
+ * @param db Database handler
+ * @param key Key data
+ * @param vbuf Pointer to value buffer
+ * @param vbufsz Value buffer size
+ * @param [out] vsz Actual value size
+ */
+IW_EXPORT iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vbufsz, size_t *vsz);
+
+/**
  * @brief Set arbitrary data associated with database.
  * Database write lock will acquired for this operation.
  *
