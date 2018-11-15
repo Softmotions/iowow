@@ -1,3 +1,7 @@
+#pragma once
+#ifndef IWKV_INTERNAL_H
+#define IWKV_INTERNAL_H
+
 #include "iwkv.h"
 #include "iwlog.h"
 #include "iwarr.h"
@@ -417,4 +421,6 @@ void iwkvd_db(FILE *f, IWDB db, int flags, int plvl);
 // IWKVD Trigger commands
 #ifdef IW_TESTS
 #define IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE 1UL
+#endif
+
 #endif
