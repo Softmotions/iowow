@@ -51,7 +51,7 @@ IW_EXPORT char* iwftoa(long double v, char buf[static IWFTOA_BUFSIZE]);
 
 /**
  * Compare real(float) numbers encoded as decimal point string value.
- * @node Exponential notation not supported.
+ * @note Exponential notation not supported.
  */
 IW_EXPORT int iwafcmp(const char *aptr, int asiz, const char *bptr, int bsiz);
 
