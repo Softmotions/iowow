@@ -9,8 +9,8 @@
   <Reconciliation>
     <Regexes/>
     <Excludepaths>
-      <Path>mxe/</Path>
       <Path>build/</Path>
+      <Path>mxe/</Path>
     </Excludepaths>
     <Ignorefiles/>
     <Extensions>
@@ -94,6 +94,8 @@
       <File Name="src/platform/iwp.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="utils">
+      <File Name="src/utils/iwuuid.h"/>
+      <File Name="src/utils/iwuuid.c"/>
       <File Name="src/utils/pthread_spin_lock_shim.h"/>
       <File Name="src/utils/ksort.h"/>
       <VirtualDirectory Name="tests">
@@ -193,7 +195,7 @@
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/iwkv_test6" IntermediateDirectory="$(ProjectPath)/build/src/kv/tests" Command="$(IntermediateDirectory)/iwkv_test6" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/iwfs_test1" IntermediateDirectory="$(ProjectPath)/build/src/fs/tests" Command="$(IntermediateDirectory)/iwfs_test1" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="CMake">-DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON</BuildSystem>
       <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>

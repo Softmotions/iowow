@@ -62,19 +62,19 @@ iwrc iwp_fdatasync(HANDLE fh) {
 
 static SYSTEM_INFO sysinfo;
 
-static void _iwp_getsysinfo() {  
-  GetSystemInfo(&sysinfo);  
+static void _iwp_getsysinfo() {
+  GetSystemInfo(&sysinfo);
 }
 
-size_t iwp_page_size(void) {  
+size_t iwp_page_size(void) {
   return sysinfo.dwPageSize;
 }
 
-size_t iwp_alloc_unit(void) {  
-  return sysinfo.dwAllocationGranularity;  
+size_t iwp_alloc_unit(void) {
+  return sysinfo.dwAllocationGranularity;
 }
 
-uint16_t iwp_num_cpu_cores() {  
+uint16_t iwp_num_cpu_cores() {
   return sysinfo.dwNumberOfProcessors;
 }
 
@@ -256,6 +256,10 @@ iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
     *pos = noff.QuadPart;
   }
   return 0;
+}
+
+size_t iwp_tmpdir(char *out, size_t len) {
+  return GetTempPathA(len, out);
 }
 
 static iwrc _iwp_init_impl() {

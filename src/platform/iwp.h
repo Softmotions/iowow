@@ -250,4 +250,18 @@ IW_EXPORT iwrc iwp_fsync(HANDLE fh);
 
 IW_EXPORT iwrc iwp_fdatasync(HANDLE fh);
 
+/**
+ * Write system tmp directory path into provided `out` buffer.
+ * Write at most `len` bytes not including terminating `NULL` char.
+ * @return Number of bytes writen. Zero on error.
+ */
+IW_EXPORT size_t iwp_tmpdir(char *out, size_t len);
+
+/**
+ * Allocates unique temp file path. Caller should use `free()`
+ * to release path buffer.
+ * @return Zero on error.
+ */
+IW_EXPORT char* iwp_allocate_tmpfile_path(const char *prefix);
+
 #endif

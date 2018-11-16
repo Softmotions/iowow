@@ -73,10 +73,13 @@ IW_EXTERN_C_START
  * @brief File open modes.
  */
 typedef enum {
-  IWFS_OREAD = 0x01UL,   /**< Open file as a reader. */
-  IWFS_OWRITE = 0x02UL,  /**< Open file as a writer. */
-  IWFS_OCREATE = 0x04UL, /**< If file is missing it will be created on open. */
-  IWFS_OTRUNC = 0x08UL   /**< Truncate file on open. */
+  IWFS_OREAD    = 0x01, /**< Open file as a reader. */
+  IWFS_OWRITE   = 0x02, /**< Open file as a writer. */
+  IWFS_OCREATE  = 0x04, /**< If file is missing it will be created on open. */
+  IWFS_OTRUNC   = 0x08, /**< Truncate file on open. */
+  IWFS_OUNLINK  = 0x10, /**< Unlink(delete) file on close */
+  IWFS_OTMP     = 0x20  /**< Temp file will be created, in this case specified file name
+                             will act as temp file name prefix */
 } iwfs_omode;
 
 /**

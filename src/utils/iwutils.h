@@ -1,3 +1,4 @@
+#pragma once
 #ifndef IWUTILS_H
 #define IWUTILS_H
 
@@ -311,7 +312,7 @@ IW_EXPORT void iwu_rand_seed(uint32_t seed);
 /**
  * @brief Generate random in [0, 0xffffffff]
  */
-IW_EXPORT uint32_t iwu_rand_u32();
+IW_EXPORT uint32_t iwu_rand_u32(void);
 
 /**
  * @brief Create normal distributed random number.

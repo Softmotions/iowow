@@ -37,22 +37,23 @@
 
 #define UNLINK() \
   unlink("iwfs_exfile_test1.dat"); \
+  unlink("iwfs_exfile_test1_2.dat"); \
   unlink("test_mmap1.dat"); \
   unlink("test_fibo_inc.dat")
 
 
-int init_suite(void) {
+int init_suite() {
   int rc = iw_init();
   UNLINK();
   return rc;
 }
 
-int clean_suite(void) {
+int clean_suite() {
   UNLINK();
   return 0;
 }
 
-void iwfs_exfile_test1(void) {
+void iwfs_exfile_test1() {
   iwrc rc = 0;
   IWFS_EXT ef;
 
@@ -118,6 +119,40 @@ void iwfs_exfile_test1(void) {
 
   IWRC(ef.close(&ef), rc);
   CU_ASSERT_EQUAL(rc, 0);
+}
+
+void iwfs_exfile_test1_2() {
+  iwrc rc = 0;
+  IWFS_EXT f;
+  const char *path = "exfile_test1_2-"; // Temp file prefix
+  IWFS_EXT_OPTS opts = {
+    .file = {
+      .path = path,
+      .omode = IWFS_OTMP | IWFS_OUNLINK
+    }
+  };
+  rc = iwfs_exfile_open(&f, &opts);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  IWFS_EXT_STATE state;
+  rc = f.state(&f, &state);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  char *tpath = strdup(state.file.opts.path);
+  fprintf(stderr, "\nTmp file: %s\n", tpath);
+
+  IWP_FILE_STAT fstat;
+  rc = iwp_fstat(tpath, &fstat);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = f.close(&f);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  memset(&fstat, 0, sizeof(fstat));
+  rc = iwp_fstat(tpath, &fstat);
+  CU_ASSERT_EQUAL_FATAL(rc, IW_ERROR_NOT_EXISTS);
+
+  free(tpath);
 }
 
 void test_fibo_inc(void) {
@@ -321,6 +356,7 @@ int main() {
 
   /* Add the tests to the suite */
   if ((NULL == CU_add_test(pSuite, "iwfs_exfile_test1", iwfs_exfile_test1)) ||
+      (NULL == CU_add_test(pSuite, "iwfs_exfile_test1_2", iwfs_exfile_test1_2)) ||
       (NULL == CU_add_test(pSuite, "test_fibo_inc", test_fibo_inc)) ||
       (NULL == CU_add_test(pSuite, "test_mmap1", test_mmap1))) {
     CU_cleanup_registry();

@@ -713,7 +713,7 @@ static off_t _exfile_default_szpolicy(off_t nsize, off_t csize, struct IWFS_EXT 
   if (nsize == -1) {
     return 0;
   }
-  return IW_ROUNDUP(nsize, iwp_alloc_unit());
+  return IW_ROUNDUP(nsize, f->impl->psize);
 }
 
 off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx) {
@@ -735,7 +735,7 @@ off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXT *f, void
   }
   uint64_t res = csize + ctx->prev_sz;
   res = MAX(res, nsize);
-  res = IW_ROUNDUP(res, iwp_alloc_unit());
+  res = IW_ROUNDUP(res, f->impl->psize);
   if (res > OFF_T_MAX) {
     res = OFF_T_MAX;
   }
@@ -757,7 +757,7 @@ off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f, void 
   uint64_t ret = nsize;
   ret /= mul->dn;
   ret *= mul->n;
-  ret = IW_ROUNDUP(ret, iwp_alloc_unit());
+  ret = IW_ROUNDUP(ret, f->impl->psize);
   if (ret > OFF_T_MAX) {
     ret = OFF_T_MAX;
   }
@@ -835,8 +835,12 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   rc = iwfs_file_open(&impl->file, &opts->file);
   RCGO(rc, finish);
 
+  IWFS_FILE_STATE state;
+  rc = impl->file.state(&impl->file, &state);
+  RCGO(rc, finish);
+
   IWP_FILE_STAT fstat;
-  rc = iwp_fstat(path, &fstat);
+  rc = iwp_fstat(state.opts.path, &fstat);
   RCGO(rc, finish);
 
   impl->fsize = fstat.size;

@@ -76,6 +76,11 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
   iwrc rc = 0;
   IWF *impl = f->impl;
   IWFS_FILE_OPTS *opts = &impl->opts;
+#ifndef _WIN32
+  if (opts->path && (opts->omode & IWFS_OUNLINK)) {
+    unlink(opts->path);
+  }
+#endif
   if (opts->lock_mode != IWP_NOLOCK) {
     IWRC(iwp_unlock(impl->fh), rc);
   }
@@ -149,33 +154,33 @@ static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
 iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   assert(f);
   assert(_opts && _opts->path);
-  
+
   IWFS_FILE_OPTS *opts;
   IWF *impl;
   IWP_FILE_STAT fstat;
   iwfs_omode omode;
   iwrc rc;
   int mode;
-  
+
   memset(f, 0, sizeof(*f));
   rc = iwfs_file_init();
   RCRET(rc);
-  
+
   f->write = _iwfs_write;
   f->read = _iwfs_read;
   f->close = _iwfs_close;
   f->sync = _iwfs_sync;
   f->state = _iwfs_state;
   f->copy = _iwfs_copy;
-  
+
   impl = f->impl = calloc(sizeof(IWF), 1);
   if (!impl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  
+
   impl->opts = *_opts;
   opts = &impl->opts;
-  
+
   if (opts->dlsnr) {
     IWDLSNR *l = opts->dlsnr;
     if (!l->onopen || !l->onclosing || !l->oncopy || !l->onresize ||
@@ -184,13 +189,21 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
       return IW_ERROR_INVALID_ARGS;
     }
   }
-  
-  opts->path = strndup(_opts->path, MAXPATHLEN);
-  if (!opts->path) {
-    rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    goto finish;
+
+  if (opts->omode & IWFS_OTMP) {
+    opts->path = iwp_allocate_tmpfile_path(opts->path);
+    if (!opts->path) {
+      rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+      goto finish;
+    }
+  } else {
+    opts->path = strndup(_opts->path, MAXPATHLEN);
+    if (!opts->path) {
+      rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+      goto finish;
+    }
   }
-  
+
   if (!opts->lock_mode) {
     opts->lock_mode = IWFS_DEFAULT_LOCKMODE;
   }
@@ -201,19 +214,25 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     opts->filemode = IWFS_DEFAULT_FILEMODE;
   }
   opts->omode |= IWFS_OREAD;
+  if (opts->omode & IWFS_OTMP) {
+    opts->omode |= IWFS_OTRUNC;
+    opts->lock_mode |= IWP_WLOCK;
+  }
   if (opts->omode & IWFS_OTRUNC) {
     opts->omode |= IWFS_OWRITE;
     opts->omode |= IWFS_OCREATE;
+  }
+  if (opts->omode & IWFS_OUNLINK) {
+    opts->omode |= IWFS_OWRITE;
   }
   if ((opts->omode & IWFS_OCREATE) || (opts->omode & IWFS_OTRUNC)) {
     opts->omode |= IWFS_OWRITE;
   }
   omode = opts->omode;
-  
+
   if (!(opts->omode & IWFS_OWRITE) && (opts->lock_mode & IWP_WLOCK)) {
     opts->lock_mode &= ~IWP_WLOCK;
   }
-  
   rc = iwp_fstat(opts->path, &fstat);
   if (!rc && !(opts->omode & IWFS_OTRUNC)) {
     impl->ostatus = IWFS_OPEN_EXISTING;
@@ -246,9 +265,13 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
       wcmode = OPEN_ALWAYS;
     }
   }
-  impl->fh = CreateFile(opts->path, womode,
-                        FILE_SHARE_READ | FILE_SHARE_WRITE,
-                        NULL, wcmode, FILE_ATTRIBUTE_NORMAL, NULL);
+  DWORD smode = FILE_SHARE_READ | FILE_SHARE_WRITE;
+  DWORD flags = FILE_ATTRIBUTE_NORMAL;
+  if (opts->omode & IWFS_OUNLINK) {
+    smode |= FILE_SHARE_DELETE;
+    flags |= FILE_FLAG_DELETE_ON_CLOSE;
+  }
+  impl->fh = CreateFile(opts->path, womode, smode, NULL, wcmode, flags, NULL);
   if (INVALIDHANDLE(impl->fh)) {
     rc = iwrc_set_werror(IW_ERROR_IO_ERRNO, GetLastError());
     goto finish;

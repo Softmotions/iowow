@@ -42,7 +42,7 @@ void iwu_rand_seed(uint32_t seed) {
   init_genrand(seed);
 }
 
-IW_EXPORT uint32_t iwu_rand_u32() {
+uint32_t iwu_rand_u32(void) {
   return genrand_int32();
 }
 

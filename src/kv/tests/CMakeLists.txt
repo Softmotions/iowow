@@ -23,7 +23,7 @@ foreach(TN IN ITEMS iwkv_test1
              COMMAND ${TEST_TOOL_CMD} $<TARGET_FILE:${TN}>)
 endforeach()
 
-if (NOT WIN32)
+if (NOT WIN32 AND OpenMP_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   add_executable(iwkv_test6 iwkv_test6.c)
   target_link_libraries(iwkv_test6 iowow_s ${CUNIT_LIBRARIES})

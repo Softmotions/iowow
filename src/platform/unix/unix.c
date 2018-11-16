@@ -50,7 +50,7 @@
 
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   struct timespec spec;
-  
+
 #ifdef IW_HAVE_CLOCK_MONOTONIC
   clockid_t clockid = monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME;
 #else
@@ -82,7 +82,7 @@ static iwrc _iwp_fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
   fs->mtime = _IW_TIMESPEC2MS(st.st_mtim);
   fs->ctime = _IW_TIMESPEC2MS(st.st_ctim);
   fs->size = st.st_size;
-  
+
   if (S_ISREG(st.st_mode)) {
     fs->ftype = IWP_TYPE_FILE;
   } else if (S_ISDIR(st.st_mode)) {
@@ -317,9 +317,17 @@ iwrc iwp_fdatasync(HANDLE fh) {
 #else
   if (fdatasync(fh) == -1) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-  }  
+  }
 #endif
   return 0;
+}
+
+size_t iwp_tmpdir(char *out, size_t len) {
+  const char *tdir = P_tmpdir;
+  size_t tlen = strlen(P_tmpdir);
+  size_t nw = MIN(len, tlen);
+  memcpy(out, tdir, nw);
+  return nw;
 }
 
 static iwrc _iwp_init_impl() {

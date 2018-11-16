@@ -125,6 +125,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/kv/iwkv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/platform/iwp.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwutils.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwuuid.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwxstr.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwconv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwbits.h
@@ -137,7 +138,11 @@ list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
 include_directories(${PROJECT_INCLUDE_DIRS})
 
 # -pg -no-pie
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fsigned-char -pedantic -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers -Wno-missing-braces")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+                    -std=gnu11 -fsigned-char -pedantic \
+                    -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter \
+                    -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers \
+                    -Wno-missing-braces")
 if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 else()
@@ -149,7 +154,8 @@ if (ASAN)
   set(CMAKE_C_ASAN "-fsanitize=address -fno-omit-frame-pointer")
 endif()
 
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG -Wno-unused-variable ${CMAKE_C_ASAN}")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG \
+                         -Wno-unused-variable ${CMAKE_C_ASAN}")
 set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG ${CMAKE_C_ASAN}")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} -g")
 

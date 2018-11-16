@@ -29,6 +29,7 @@
 #include "log/iwlog.h"
 #include "platform/iwp.h"
 #include "utils/iwutils.h"
+#include "utils/iwuuid.h"
 #include <stdio.h>
 
 unsigned int iwcpuflags = 0;
@@ -108,6 +109,28 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
   }
 #endif
   return rc;
+}
+
+char *iwp_allocate_tmpfile_path(const char *prefix) {
+  size_t plen = prefix ? strlen(prefix) : 0;
+  char tmpdir[PATH_MAX + 1];
+  size_t tlen = iwp_tmpdir(tmpdir, sizeof(tmpdir));
+  if (!tlen) return 0;
+  char *res = malloc(tlen + sizeof(IW_PATH_STR) - 1 + plen + IW_UUID_STR_LEN + 1 /*NULL*/);
+  if (!res) return 0;
+  char *wp = res;
+  memcpy(wp, tmpdir, tlen);
+  wp += tlen;
+  memcpy(wp, IW_PATH_STR, sizeof(IW_PATH_STR) - 1);
+  wp += sizeof(IW_PATH_STR) - 1;
+  if (plen) {
+    memcpy(wp, prefix, plen);
+    wp += plen;
+  }
+  iwu_uuid4_fill(wp);
+  wp += IW_UUID_STR_LEN;
+  *wp = 0;
+  return res;
 }
 
 iwrc iwp_init(void) {
