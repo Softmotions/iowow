@@ -10,7 +10,7 @@ union _uuid {
 void iwu_uuid4_fill(char dest[static IW_UUID_STR_LEN]) {
   char buf[IW_UUID_STR_LEN + 1];
   union _uuid uuid;
-  for (size_t i = 0 ; i < 4; i++) {
+  for (size_t i = 0; i < 4; i++) {
     uuid.rnd[i] = iwu_rand_u32();
   }
   uuid.byte[6] = (uuid.byte[6] & 0x0F) | 0x40;

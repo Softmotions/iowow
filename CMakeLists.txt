@@ -1,6 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
-#cmake_policy(VERSION 2.6)
-
+cmake_minimum_required(VERSION 3.0)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 include(CMakeToolsHelpers OPTIONAL)
@@ -19,7 +17,6 @@ set(PROJECT_DESCRIPTION "The skiplist based persistent key/value storage engine"
 set(CHANGELOG_MESSAGE ${CHANGELOG_LAST_MESSAGE})
 set(PROJECT_PPA "ppa:adamansky/iowow")
 set(PROJECT_PPA_USER "adamansky")
-set(PROJECT_PPA_DISTRIB_TARGET xenial bionic)
 
 project(${PROJECT_NAME} C)
 
@@ -44,7 +41,7 @@ option(PACKAGE_ZIP "Build .zip package archive" ON)
 option(ENABLE_PPA "Enable PPA package build" OFF)
 option(UPLOAD_PPA "Upload debian packages to the launchpad ppa repository" OFF)
 option(PPA_DEBIAN_VERSION "PPA version suffix for debian packages" "ppa1")
-option("PROJECT_PPA_DISTRIB_TARGET" "Ubuntu PPA distrubutive names" "xenial;bionic")
+option(PROJECT_PPA_DISTRIB_TARGET "Ubuntu PPA distrubutive names" "xenial;bionic")
 
 if(POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)

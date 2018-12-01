@@ -6,6 +6,7 @@ iowow (1.2.15) UNRELEASED; urgency=medium
   * Added UUID v4 generation function (iwuuid.h)
   * Added iwp_tmpdir() (iwp.h)
   * Added iwp_allocate_tmpfile_path() (iwp.h)
+  * Added iwxstr_printf() (iwxstr.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Fri, 09 Nov 2018 00:57:42 +0700
 
