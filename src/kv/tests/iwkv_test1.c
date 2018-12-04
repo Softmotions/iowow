@@ -857,7 +857,7 @@ static void iwkv_test7(void) {
   };
   IWKV iwkv;
   IWDB db1;
-  IWKV_val key, val, val2;
+  IWKV_val key, val;
   int64_t llv;
   key.data = "foo";
   key.size = strlen(key.data);
