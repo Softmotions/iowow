@@ -2316,8 +2316,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
   }
   rc = _sblk_find_pi_mm(sblk, lx->key, mm, &found, &idx);
   RCRET(rc);
-  if (found && (lx->opflags & IWKV_NO_OVERWRITE)
-      && !(lx->db->dbflg & (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS))) {
+  if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
     fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
   }
@@ -2331,8 +2330,48 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
       return rc;
     }
   }
-
   if (found) {
+    IWKV_val sval, *val = lx->val;
+    if (lx->opflags & IWKV_VAL_INCREMENT) {
+      int64_t ival;
+      uint8_t  *rp;
+      uint32_t len;
+      if (val->size == 4)  {
+        int32_t lv;
+        memcpy(&lv, val->data, val->size);
+        lv = IW_ITOHL(lv);
+        ival = lv;
+      } else if (val->size == 8) {
+        memcpy(&ival, val->data, val->size);
+        ival = IW_ITOHLL(ival);
+      } else {
+        rc = IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED;
+        fsm->release_mmap(fsm);
+        return rc;
+      }
+      _kvblk_peek_val(sblk->kvblk, idx, mm, &rp, &len);
+      sval.data = rp;
+      sval.size = len;
+      if (sval.size == 4) {
+        uint32_t lv;
+        memcpy(&lv, sval.data, 4);
+        lv = IW_ITOHL(lv);
+        lv += ival;
+        _num2lebuf(lx->incbuf, &lv, 4);
+      } else if (sval.size == 8) {
+        uint64_t llv;
+        memcpy(&llv, sval.data, 8);
+        llv = IW_ITOHLL(llv);
+        llv += ival;
+        _num2lebuf(lx->incbuf, &llv, 8);
+      } else {
+        rc = IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED;
+        fsm->release_mmap(fsm);
+        return rc;
+      }
+      sval.data = lx->incbuf;
+      val = &sval;
+    }
     if (lx->ph) {
       IWKV_val oldval;
       rc = _kvblk_getvalue(sblk->kvblk, mm, idx, &oldval);
@@ -2345,7 +2384,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
     } else {
       fsm->release_mmap(fsm);
     }
-    return _sblk_updatekv(sblk, idx, lx->key, lx->val, lx->opflags);
+    return _sblk_updatekv(sblk, idx, lx->key, val, lx->opflags);
   } else {
     fsm->release_mmap(fsm);
     if (sblk->pnum > KVBLK_IDXNUM - 1) {
@@ -2930,6 +2969,8 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
       return "Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT)";
     case IWKV_ERROR_CORRUPTED_WAL_FILE:
       return "Corrupted WAL file (IWKV_ERROR_CORRUPTED_WAL_FILE)";
+    case IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED:
+      return "Stored value cannot be incremented/descremented (IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED)";
   }
   return 0;
 }
@@ -3325,6 +3366,11 @@ iwrc iwkv_puth(IWDB db, const IWKV_val *key, const IWKV_val *val,
   if (((db->dbflg & IWDB_UINT32_KEYS) && key->size != 4) ||
       ((db->dbflg & IWDB_UINT64_KEYS) && key->size != 8)) {
     return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+  }
+  if ((opflags & IWKV_VAL_INCREMENT)
+      || (db->dbflg & (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS))) {
+    // No overwrite for increment/dup i32/i64 databases
+    opflags &= ~IWKV_NO_OVERWRITE;
   }
   int rci;
   iwrc rc = 0;

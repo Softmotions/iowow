@@ -71,6 +71,7 @@ typedef enum {
   IWKV_ERROR_INCOMPATIBLE_DB_MODE,    /**< Incorpatible database open mode (IWKV_ERROR_INCOMPATIBLE_DB_MODE) */
   IWKV_ERROR_INCOMPATIBLE_DB_FORMAT,  /**< Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT) */
   IWKV_ERROR_CORRUPTED_WAL_FILE,      /**< Corrupted WAL file (IWKV_ERROR_CORRUPTED_WAL_FILE) */
+  IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED, /**< Stored value cannot be incremented/descremented (IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED) */
   _IWKV_ERROR_END,
 
   IWKV_RC_DUP_ARRAY_EMPTY,            /**< Returned by `iwkv_put()` when for dup arrays if opflags contains
@@ -116,6 +117,8 @@ typedef enum {
 
   IWKV_DUP_REPORT_EMPTY = 0x8,   /**< Used with `IWKV_DUP_REMOVE` if dup array will be empty as result of
                                       put operation `IWKV_RC_DUP_ARRAY_EMPTY` code will be returned  */
+  IWKV_VAL_INCREMENT    = 0x10   /**< Increment/decrement stored UINT32|UINT64 value by given INT32|INT64 number
+                                      `IWKV_ERROR_KEY_EXISTS` does not makes sense if this flag set. */
 } iwkv_opflags;
 
 struct _IWKV;

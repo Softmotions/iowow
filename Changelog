@@ -8,6 +8,7 @@ iowow (1.2.15) UNRELEASED; urgency=medium
   * Added iwp_allocate_tmpfile_path() (iwp.h)
   * Added iwxstr_printf() (iwxstr.h)
   * Added iwxstr_cat2() (iwxstr.h)
+  * Added `IWKV_VAL_INCREMENT` mode for `iwkv_put()` and test case (iwkv.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Fri, 09 Nov 2018 00:57:42 +0700
 

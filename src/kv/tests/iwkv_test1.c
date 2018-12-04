@@ -25,12 +25,12 @@ static int logstage2(FILE *f, const char *name, IWDB db) {
   return rci < 0 ? rci : 0;
 }
 
-int init_suite(void) {
+int init_suite() {
   iwrc rc = iwkv_init();
   return rc;
 }
 
-int clean_suite(void) {
+int clean_suite() {
   return 0;
 }
 
@@ -850,6 +850,53 @@ static void iwkv_test1(void) {
   fclose(r);
 }
 
+static void iwkv_test7(void) {
+  IWKV_OPTS opts = {
+    .path = "iwkv_test1_7.db",
+    .oflags = IWKV_TRUNC
+  };
+  IWKV iwkv;
+  IWDB db1;
+  IWKV_val key, val, val2;
+  int64_t llv;
+  key.data = "foo";
+  key.size = strlen(key.data);
+
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  llv = 1;
+  llv = IW_HTOILL(llv);
+  val.data = &llv;
+  val.size = sizeof(llv);
+
+  rc = iwkv_put(db1, &key, &val, IWKV_VAL_INCREMENT);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_put(db1, &key, &val, IWKV_VAL_INCREMENT);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_put(db1, &key, &val, IWKV_VAL_INCREMENT);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  llv = 0;
+  val.data = 0;
+  val.size = 0;
+  rc = iwkv_get(db1, &key, &val);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL_FATAL(val.size, sizeof(llv));
+  memcpy(&llv, val.data, sizeof(llv));
+  llv = IW_ITOHLL(llv);
+  CU_ASSERT_EQUAL(llv, 3);
+  iwkv_val_dispose(&val);
+
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+}
+
 static void iwkv_test6(void) {
   FILE *f = fopen("iwkv_test1_6.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
@@ -910,7 +957,8 @@ int main() {
     (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test6", iwkv_test6))
+    (NULL == CU_add_test(pSuite, "iwkv_test6", iwkv_test6)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test7", iwkv_test7))
   )  {
     CU_cleanup_registry();
     return CU_get_error();

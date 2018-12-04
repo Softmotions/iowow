@@ -281,6 +281,7 @@ typedef struct IWLCTX {
   SBLK dblk;                  /**< First database block */
   SBLK saa[AANUM];            /**< `SBLK` allocation area */
   KVBLK kaa[AANUM];           /**< `KVBLK` allocation area */
+  uint8_t incbuf[8];          /**< Buffer used to store incremented/decremented values `IWKV_VAL_INCREMENT` opflag */
 } IWLCTX;
 
 /** Cursor context */
