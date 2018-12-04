@@ -42,6 +42,8 @@ IW_EXPORT void iwxstr_destroy(IWXSTR *xstr);
 
 IW_EXPORT iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, int size);
 
+IW_EXPORT iwrc iwxstr_cat2(IWXSTR *xstr, const char *buf);
+
 IW_EXPORT iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, int size);
 
 IW_EXPORT iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...);
