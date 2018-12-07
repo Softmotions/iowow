@@ -39,7 +39,7 @@ IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const voi
       if (v2len - v1len || v2len > 8 || v1len > 8) return v2len - v1len;
       int step;
       int64_t n1, n2;
-      char vbuf[IW_VNUMBUFSZ] = {0};
+      char vbuf[IW_VNUMBUFSZ];
       memcpy(vbuf, v1, v1len);
       IW_READVNUMBUF64(vbuf, n1, step);
       memcpy(vbuf, v2, v2len);
