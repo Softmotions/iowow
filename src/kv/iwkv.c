@@ -20,20 +20,33 @@ atomic_uint_fast64_t g_trigger;
 //-------------------------- UTILS
 
 IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
-  if (dbflg & IWDB_UINT64_KEYS) {
-    uint64_t n1, n2;
-    memcpy(&n1, v1, v1len);
-    n1 = IW_ITOHLL(n1);
-    memcpy(&n2, v2, v2len);
-    n2 = IW_ITOHLL(n2);
-    return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
-  } else if (dbflg & IWDB_UINT32_KEYS) {
-    uint32_t n1, n2;
-    memcpy(&n1, v1, v1len);
-    n1 = IW_ITOHL(n1);
-    memcpy(&n2, v2, v2len);
-    n2 = IW_ITOHL(n2);
-    return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
+  if (dbflg & (IWDB_UINT64_KEYS | IWDB_UINT32_KEYS | IWDB_VNUM64_KEYS)) {
+    if (dbflg & IWDB_UINT64_KEYS) {
+      uint64_t n1, n2;
+      memcpy(&n1, v1, v1len);
+      n1 = IW_ITOHLL(n1);
+      memcpy(&n2, v2, v2len);
+      n2 = IW_ITOHLL(n2);
+      return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
+    } else if (dbflg & IWDB_UINT32_KEYS) {
+      uint32_t n1, n2;
+      memcpy(&n1, v1, v1len);
+      n1 = IW_ITOHL(n1);
+      memcpy(&n2, v2, v2len);
+      n2 = IW_ITOHL(n2);
+      return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
+    } else if (dbflg & IWDB_VNUM64_KEYS) {
+      if (v2len - v1len || v2len > 8 || v1len > 8) return v2len - v1len;
+      int step;
+      int64_t n1, n2;
+      char vbuf[IW_VNUMBUFSZ] = {0};
+      memcpy(vbuf, v1, v1len);
+      IW_READVNUMBUF64(vbuf, n1, step);
+      memcpy(vbuf, v2, v2len);
+      IW_READVNUMBUF64(vbuf, n2, step);
+      return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
+    }
+    return 0;
   } else if (dbflg & IWDB_REALNUM_KEYS) {
     return iwafcmp(v2, v2len, v1, v1len);
   } else {
@@ -43,7 +56,7 @@ IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const voi
 
 IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
   int rv = _cmp_key2(dbflg, v1, v1len, v2, v2len);
-  if (!rv && !(dbflg & (IWDB_UINT64_KEYS | IWDB_UINT32_KEYS))) {
+  if (!rv && !(dbflg & (IWDB_UINT64_KEYS | IWDB_UINT32_KEYS | IWDB_VNUM64_KEYS))) {
     return v2len - v1len;
   } else {
     return rv;
@@ -3363,20 +3376,62 @@ iwrc iwkv_puth(IWDB db, const IWKV_val *key, const IWKV_val *val,
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
   }
-  if (((db->dbflg & IWDB_UINT32_KEYS) && key->size != 4) ||
-      ((db->dbflg & IWDB_UINT64_KEYS) && key->size != 8)) {
-    return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-  }
+  iwdb_flags_t dbflg = db->dbflg;
+
   if ((opflags & IWKV_VAL_INCREMENT)
-      || (db->dbflg & (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS))) {
+      || (dbflg & (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS))) {
     // No overwrite for increment/dup i32/i64 databases
     opflags &= ~IWKV_NO_OVERWRITE;
   }
+
+  char nbuf[IW_VNUMBUFSZ];
+  static_assert(IW_VNUMBUFSZ >= sizeof(uint64_t), "IW_VNUMBUFSZ >= sizeof(uint64_t)");
+  IWKV_val nkey = {.data = nbuf,};
+  const IWKV_val *ekey = key;
+  if (dbflg & (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)) {
+    if (dbflg & IWDB_UINT32_KEYS) {
+      uint32_t lv;
+      if (key->size != sizeof(lv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+      memcpy(&lv, key->data, sizeof(lv));
+      lv = IW_HTOIL(lv);
+      memcpy(nkey.data, &lv, sizeof(lv));
+      nkey.size = sizeof(lv);
+      ekey = &nkey;
+    } else if (dbflg & IWDB_UINT64_KEYS) {
+      uint64_t llv;
+      if (key->size != sizeof(llv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+      memcpy(&llv, key->data, sizeof(llv));
+      llv = IW_HTOILL(llv);
+      memcpy(nkey.data, &llv, sizeof(llv));
+      nkey.size = sizeof(llv);
+      ekey = &nkey;
+    }
+  } else if (dbflg & IWDB_VNUM64_KEYS) {
+    int len;
+    if (key->size == 8) {
+      uint64_t llv;
+      memcpy(&llv, key->data, sizeof(llv));
+      IW_SETVNUMBUF64(len, nbuf, llv);
+      nkey.size = len;
+      memcpy(nkey.data, &llv, sizeof(llv));
+      ekey = &nkey;
+    } else if (key->size == 4) {
+      uint32_t lv;
+      memcpy(&lv, key->data, sizeof(lv));
+      IW_SETVNUMBUF(len, nbuf, lv);
+      nkey.size = len;
+      memcpy(nkey.data, &lv, sizeof(lv));
+      ekey = &nkey;
+    } else {
+      return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+    }
+  }
+
   int rci;
   iwrc rc = 0;
   IWLCTX lx = {
     .db = db,
-    .key = key,
+    .key = ekey,
     .val = (IWKV_val *) val,
     .nlvl = -1,
     .op = IWLCTX_PUT,

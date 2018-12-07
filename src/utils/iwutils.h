@@ -187,8 +187,8 @@ IW_EXTERN_C_START
 /* set a buffer for a variable length 32 bit number */
 #define IW_SETVNUMBUF(len_, buf_, num_) \
   do { \
-    int _num_ = (num_); \
-    if(_num_ == 0){ \
+    int32_t _num_ = (num_); \
+    if (_num_ == 0){ \
       ((signed char *)(buf_))[0] = 0; \
       (len_) = 1; \
     } else { \
@@ -209,8 +209,8 @@ IW_EXTERN_C_START
 /* set a buffer for a variable length 64 number */
 #define IW_SETVNUMBUF64(len_, buf_, num_) \
   do { \
-    long long int _num_ = (num_); \
-    if(_num_ == 0){ \
+    int64_t _num_ = (num_); \
+    if (_num_ == 0){ \
       ((signed char *)(buf_))[0] = 0; \
       (len_) = 1; \
     } else { \
@@ -233,10 +233,10 @@ IW_EXTERN_C_START
 #define IW_READVNUMBUF(buf_, num_, step_) \
   do { \
     num_ = 0; \
-    int _base_ = 1; \
+    int32_t _base_ = 1; \
     int _i_ = 0; \
     while(1){ \
-      if(((const signed char *)(buf_))[_i_] >= 0){ \
+      if (((const signed char *)(buf_))[_i_] >= 0){ \
         num_ += _base_ * ((const signed char *)(buf_))[_i_]; \
         break; \
       } \
@@ -251,10 +251,10 @@ IW_EXTERN_C_START
 #define IW_READVNUMBUF64(buf_, num_, step_) \
   do { \
     num_ = 0; \
-    long long int _base_ = 1; \
+    int64_t _base_ = 1; \
     int _i_ = 0; \
     while(1){ \
-      if(((const signed char *)(buf_))[_i_] >= 0){ \
+      if (((const signed char *)(buf_))[_i_] >= 0){ \
         num_ += _base_ * ((const signed char *)(buf_))[_i_]; \
         break; \
       } \
@@ -344,7 +344,7 @@ IW_EXPORT char *iwu_replace_char(char *data, char sch, char rch);
 
 IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 
-IW_EXPORT char* iwu_file_read_as_buf(const char *path);
+IW_EXPORT char *iwu_file_read_as_buf(const char *path);
 
 IW_EXTERN_C_END
 

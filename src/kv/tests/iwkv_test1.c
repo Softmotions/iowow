@@ -869,7 +869,6 @@ static void iwkv_test7(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   llv = 1;
-  llv = IW_HTOILL(llv);
   val.data = &llv;
   val.size = sizeof(llv);
 
