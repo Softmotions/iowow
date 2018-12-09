@@ -266,6 +266,24 @@ IW_EXTERN_C_START
   } while(0)
 
 
+/* read a 64 bit variable length buffer */
+#define IW_READVNUMBUF64_2(buf_, num_) \
+  do { \
+    num_ = 0; \
+    int64_t _base_ = 1; \
+    int _i_ = 0; \
+    while(1){ \
+      if (((const signed char *)(buf_))[_i_] >= 0){ \
+        num_ += _base_ * ((const signed char *)(buf_))[_i_]; \
+        break; \
+      } \
+      num_ += _base_ * ~(((const signed char *)(buf_))[_i_]); \
+      _base_ <<= 7; \
+      _i_++; \
+    } \
+  } while(0)
+
+
 #define IW_VNUMBUFSZ 10
 
 #define IW_VNUMSIZE32(num_) \

@@ -851,7 +851,76 @@ static void iwkv_test1(void) {
 }
 
 static void iwkv_test8(void) {
+  IWKV_OPTS opts = {
+    .path = "iwkv_test1_8.db",
+    .oflags = IWKV_TRUNC
+  };
+  IWKV iwkv;
+  IWDB db1;
+  IWKV_cursor cur;
+  IWKV_val key;
+  IWKV_val val = {
+    .data = "foo",
+    .size = sizeof("foo") - 1
+  };
+  IWKV_val oval;
+  size_t ksz;
+  uint64_t llv = 1;
 
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_db(iwkv, 1, IWDB_VNUM64_KEYS, &db1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  key.data = &llv;
+  key.size = sizeof(llv);
+
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_get(db1, &key, &oval);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  iwkv_val_dispose(&oval);
+
+  llv = 0xffffffffffffffe;
+  key.data = &llv;
+
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_get(db1, &key, &oval);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  iwkv_val_dispose(&oval);
+
+  rc = iwkv_cursor_open(db1, &cur, IWKV_CURSOR_EQ, &key);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  llv = 0;
+  rc = iwkv_cursor_copy_key(cur, &llv, sizeof(llv), &ksz);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(llv, 0xffffffffffffffe);
+
+  llv = 0;
+  rc = iwkv_cursor_get(cur, &oval, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL_FATAL(oval.size, sizeof(llv));
+  memcpy(&llv, oval.data, sizeof(llv));
+  CU_ASSERT_EQUAL(llv, 0xffffffffffffffe);
+  iwkv_val_dispose(&oval);
+
+  rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  llv = 0;
+  rc = iwkv_cursor_copy_key(cur, &llv, sizeof(llv), &ksz);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(llv, 1);
+
+  iwkv_cursor_close(&cur);
+
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 static void iwkv_test7(void) {
@@ -961,7 +1030,8 @@ int main() {
     (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test6", iwkv_test6)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test7", iwkv_test7))
+    (NULL == CU_add_test(pSuite, "iwkv_test7", iwkv_test7)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test8", iwkv_test8))
   )  {
     CU_cleanup_registry();
     return CU_get_error();
