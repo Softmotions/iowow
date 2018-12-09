@@ -59,11 +59,13 @@
 #endif
 #endif
 
-#if defined(__GNUC__) 
+#if defined(__GNUC__)
 #define IW_INLINE static inline __attribute__((always_inline))
 #else
 #define IW_INLINE static inline
 #endif
+
+#define IW_SOFT_INLINE static inline
 
 #if __GNUC__ >= 4
 #define WUR __attribute__((__warn_unused_result__))

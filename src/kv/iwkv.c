@@ -19,6 +19,91 @@ atomic_uint_fast64_t g_trigger;
 
 //-------------------------- UTILS
 
+IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWKV_val *okey,
+                                      char nbuf[static IW_VNUMBUFSZ]) {
+  static_assert(IW_VNUMBUFSZ >= sizeof(uint64_t), "IW_VNUMBUFSZ >= sizeof(uint64_t)");
+  iwdb_flags_t dbflg = db->dbflg;
+  if (dbflg & (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)) {
+#ifdef IW_BIGENDIAN
+    if (dbflg & IWDB_UINT32_KEYS) {
+      uint32_t lv;
+      if (key->size != sizeof(lv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+      memcpy(&lv, key->data, sizeof(lv));
+      lv = IW_HTOIL(lv);
+      memcpy(nbuf, &lv, sizeof(lv));
+      okey->size = sizeof(lv);
+      okey->data = nbuf;
+    } else if (dbflg & IWDB_UINT64_KEYS) {
+      uint64_t llv;
+      if (key->size != sizeof(llv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+      memcpy(&llv, key->data, sizeof(llv));
+      llv = IW_HTOILL(llv);
+      memcpy(nbuf, &llv, sizeof(llv));
+      okey->size = sizeof(llv);
+      okey->data = nbuf;
+    }
+#else
+    okey->data = key->data;
+    okey->size = key->size;
+#endif
+  } else if (dbflg & IWDB_VNUM64_KEYS) {
+    int len;
+    if (key->size == 8) {
+      uint64_t llv;
+      memcpy(&llv, key->data, sizeof(llv));
+      IW_SETVNUMBUF64(len, nbuf, llv);
+      memcpy(nbuf, &llv, sizeof(llv));
+      okey->size = len;
+      okey->data = nbuf;
+    } else if (key->size == 4) {
+      uint32_t lv;
+      memcpy(&lv, key->data, sizeof(lv));
+      IW_SETVNUMBUF(len, nbuf, lv);
+      memcpy(nbuf, &lv, sizeof(lv));
+      okey->size = len;
+      okey->data = nbuf;
+    } else {
+      return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+    }
+  } else {
+    okey->data = key->data;
+    okey->size = key->size;
+  }
+  return 0;
+}
+
+iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
+  iwdb_flags_t dbflg = db->dbflg;
+  if (dbflg & (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)) {
+#ifdef IW_BIGENDIAN
+    if (dbflg & IWDB_UINT32_KEYS) {
+      uint32_t lv;
+      if (key->size != sizeof(lv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+      memcpy(&lv, key->data, sizeof(lv));
+      lv = IW_ITOHL(lv);
+      memcpy(key->data, &lv, sizeof(lv));
+    } else if (dbflg & IWDB_UINT64_KEYS) {
+      uint64_t llv;
+      if (key->size != sizeof(llv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+      memcpy(&llv, key->data, sizeof(llv));
+      llv = IW_ITOHLL(llv);
+      memcpy(key->data, &llv, sizeof(llv));
+    }
+#endif
+  } else if (dbflg & IWDB_VNUM64_KEYS) {
+    // NOTE: assument at least sizeof(uint64_t) allocated for key->data
+    int step;
+    int64_t llv;
+    char nbuf[IW_VNUMBUFSZ];
+    if (key->size > IW_VNUMBUFSZ) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+    memcpy(nbuf, key->data, key->size);
+    IW_READVNUMBUF64(nbuf, llv, step);
+    memcpy(key->data, &llv, sizeof(llv));
+    key->size = sizeof(llv);
+  }
+  return 0;
+}
+
 IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
   if (dbflg & (IWDB_UINT64_KEYS | IWDB_UINT32_KEYS | IWDB_VNUM64_KEYS)) {
     if (dbflg & IWDB_UINT64_KEYS) {
@@ -101,7 +186,7 @@ IW_INLINE void _num2lebuf(uint8_t buf[static 8], void *numdata, int sz) {
   }
 }
 
-static int _u4cmp(const void *o1, const void *o2) {
+IW_SOFT_INLINE int _u4cmp(const void *o1, const void *o2) {
   uint32_t v1, v2;
   memcpy(&v1, o1, sizeof(uint32_t));
   memcpy(&v2, o2, sizeof(uint32_t));
@@ -116,7 +201,7 @@ static int _u4cmp(const void *o1, const void *o2) {
   }
 }
 
-static int _u8cmp(const void *o1, const void *o2) {
+IW_SOFT_INLINE int _u8cmp(const void *o1, const void *o2) {
   uint64_t v1, v2;
   memcpy(&v1, o1, sizeof(uint64_t));
   memcpy(&v2, o2, sizeof(uint64_t));
@@ -665,7 +750,12 @@ static WUR iwrc _kvblk_getkey(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key
     return IWKV_ERROR_CORRUPTED;
   }
   key->size = klen;
-  key->data = malloc(key->size);
+  if (kb->db->dbflg & IWDB_VNUM64_KEYS) {
+    // Needed to provide enough buffer in _unpack_effective_key()
+    key->data = malloc(MAX(key->size, sizeof(int64_t)));
+  } else {
+    key->data = malloc(key->size);
+  }
   if (!key->data) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -731,7 +821,12 @@ static WUR iwrc _kvblk_getkv(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key,
     return IWKV_ERROR_CORRUPTED;
   }
   key->size = klen;
-  key->data = malloc(key->size);
+  if (kb->db->dbflg & IWDB_VNUM64_KEYS) {
+    // Needed to provide enough buffer in _unpack_effective_key()
+    key->data = malloc(MAX(key->size, sizeof(int64_t)));
+  } else {
+    key->data = malloc(key->size);
+  }
   if (!key->data) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -3385,53 +3480,14 @@ iwrc iwkv_puth(IWDB db, const IWKV_val *key, const IWKV_val *val,
   }
 
   char nbuf[IW_VNUMBUFSZ];
-  static_assert(IW_VNUMBUFSZ >= sizeof(uint64_t), "IW_VNUMBUFSZ >= sizeof(uint64_t)");
-  IWKV_val nkey = {.data = nbuf,};
-  const IWKV_val *ekey = key;
-  if (dbflg & (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)) {
-    if (dbflg & IWDB_UINT32_KEYS) {
-      uint32_t lv;
-      if (key->size != sizeof(lv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-      memcpy(&lv, key->data, sizeof(lv));
-      lv = IW_HTOIL(lv);
-      memcpy(nkey.data, &lv, sizeof(lv));
-      nkey.size = sizeof(lv);
-      ekey = &nkey;
-    } else if (dbflg & IWDB_UINT64_KEYS) {
-      uint64_t llv;
-      if (key->size != sizeof(llv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-      memcpy(&llv, key->data, sizeof(llv));
-      llv = IW_HTOILL(llv);
-      memcpy(nkey.data, &llv, sizeof(llv));
-      nkey.size = sizeof(llv);
-      ekey = &nkey;
-    }
-  } else if (dbflg & IWDB_VNUM64_KEYS) {
-    int len;
-    if (key->size == 8) {
-      uint64_t llv;
-      memcpy(&llv, key->data, sizeof(llv));
-      IW_SETVNUMBUF64(len, nbuf, llv);
-      nkey.size = len;
-      memcpy(nkey.data, &llv, sizeof(llv));
-      ekey = &nkey;
-    } else if (key->size == 4) {
-      uint32_t lv;
-      memcpy(&lv, key->data, sizeof(lv));
-      IW_SETVNUMBUF(len, nbuf, lv);
-      nkey.size = len;
-      memcpy(nkey.data, &lv, sizeof(lv));
-      ekey = &nkey;
-    } else {
-      return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-    }
-  }
+  IWKV_val ekey;
+  iwrc rc = _to_effective_key(db, key, &ekey, nbuf);
+  RCRET(rc);
 
   int rci;
-  iwrc rc = 0;
   IWLCTX lx = {
     .db = db,
-    .key = ekey,
+    .key = &ekey,
     .val = (IWKV_val *) val,
     .nlvl = -1,
     .op = IWLCTX_PUT,
@@ -3719,8 +3775,18 @@ iwrc iwkv_cursor_open(IWDB db,
       (key && op < IWKV_CURSOR_EQ) || op < IWKV_CURSOR_BEFORE_FIRST) {
     return IW_ERROR_INVALID_ARGS;
   }
+  iwrc rc;
   int rci;
-  iwrc rc = _db_worker_inc_nolk(db);
+  char nbuf[IW_VNUMBUFSZ];
+  IWKV_val ekey;
+  const IWKV_val *lxkey;
+  lxkey = key;
+
+  if (key) {
+    rc = _to_effective_key(db, key, &ekey, nbuf);
+    RCRET(rc);
+  }
+  rc = _db_worker_inc_nolk(db);
   RCRET(rc);
   if (IW_LIKELY(db->cache.open)) {
     rc = _api_db_rlock(db);
@@ -3739,7 +3805,7 @@ iwrc iwkv_cursor_open(IWDB db,
   }
   cur = *curptr;
   cur->lx.db = db;
-  cur->lx.key = key;
+  cur->lx.key = lxkey;
   cur->lx.nlvl = -1;
   iwp_current_time_ms(&cur->lx.ts, true);
   if (!db->cache.open) {
@@ -3815,9 +3881,14 @@ iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key)
   if (!cur->lx.db) {
     return IW_ERROR_INVALID_STATE;
   }
+  char nbuf[IW_VNUMBUFSZ];
+  IWKV_val ekey;
+  iwrc rc = _to_effective_key(cur->lx.db, key, &ekey, nbuf);
+  RCRET(rc);
+
   API_DB_RLOCK(cur->lx.db, rci);
-  cur->lx.key = key;
-  iwrc rc = _cursor_to_lr(cur, op);
+  cur->lx.key = &ekey;
+  rc = _cursor_to_lr(cur, op);
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   return rc;
 }
@@ -3852,7 +3923,9 @@ iwrc iwkv_cursor_get(IWKV_cursor cur,
   } else {
     rc = IW_ERROR_INVALID_ARGS;
   }
-
+  if (!rc && okey) {
+    _unpack_effective_key(cur->lx.db, okey);
+  }
 finish:
   if (mm) {
     fsm->release_mmap(fsm);
@@ -3915,11 +3988,39 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
     rc = _sblk_loadkvblk_mm(&cur->lx, cur->cn, mm);
     RCGO(rc, finish);
   }
+
+  iwdb_flags_t dbflg = cur->lx.db->dbflg;
   int8_t idx = cur->cn->pi[cur->cnpos];
   rc = _kvblk_peek_key(cur->cn->kvblk, idx, mm, &okey, &okeysz);
   RCGO(rc, finish);
-  *ksz = okeysz;
-  memcpy(kbuf, okey, MIN(kbufsz, okeysz));
+
+  if (dbflg & IWDB_VNUM64_KEYS) {
+    char nbuf[IW_VNUMBUFSZ];
+    IWKV_val key = {.data = nbuf, .size = MIN(IW_VNUMBUFSZ, okeysz)};
+    memcpy(key.data, okey, key.size);
+    rc = _unpack_effective_key(cur->lx.db, &key);
+    RCGO(rc, finish);
+    *ksz = key.size;
+    memcpy(kbuf, okey, MIN(kbufsz, key.size));
+  } else {
+#ifdef IW_BIGENDIAN
+    if (dbflg & (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)) {
+      char nbuf[IW_VNUMBUFSZ];
+      IWKV_val key = {.data = nbuf, .size = MIN(IW_VNUMBUFSZ, okeysz)};
+      memcpy(key.data, okey, key.size);
+      rc = _unpack_effective_key(cur->lx.db, &key);
+      RCGO(rc, finish);
+      *ksz = key.size;
+      memcpy(kbuf, okey, MIN(kbufsz, key.size));
+    } else {
+      *ksz = okeysz;
+      memcpy(kbuf, okey, MIN(kbufsz, okeysz));
+    }
+#else
+    *ksz = okeysz;
+    memcpy(kbuf, okey, MIN(kbufsz, okeysz));
+#endif
+  }
 
 finish:
   if (mm) {

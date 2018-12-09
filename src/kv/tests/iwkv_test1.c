@@ -850,6 +850,10 @@ static void iwkv_test1(void) {
   fclose(r);
 }
 
+static void iwkv_test8(void) {
+
+}
+
 static void iwkv_test7(void) {
   IWKV_OPTS opts = {
     .path = "iwkv_test1_7.db",

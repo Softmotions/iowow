@@ -9,8 +9,8 @@
   <Reconciliation>
     <Regexes/>
     <Excludepaths>
-      <Path>build/</Path>
       <Path>mxe/</Path>
+      <Path>build/</Path>
     </Excludepaths>
     <Ignorefiles/>
     <Extensions>
