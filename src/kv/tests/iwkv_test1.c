@@ -866,6 +866,7 @@ static void iwkv_test8(void) {
   IWKV_val oval;
   size_t ksz;
   uint64_t llv = 1;
+  uint64_t llv2;
 
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -893,8 +894,16 @@ static void iwkv_test8(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   iwkv_val_dispose(&oval);
 
+  rc = iwkv_get_copy(db1, &key, &llv2, sizeof(llv2), &ksz);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
   rc = iwkv_cursor_open(db1, &cur, IWKV_CURSOR_EQ, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  llv = 0xffffffffffffffffULL;
+  rc = iwkv_put(db1, &key, &val, 0);
+  CU_ASSERT_EQUAL(rc, IW_ERROR_OVERFLOW);
+
 
   llv = 0;
   rc = iwkv_cursor_copy_key(cur, &llv, sizeof(llv), &ksz);

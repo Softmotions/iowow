@@ -3556,17 +3556,21 @@ iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vbufsz, size
   if (!db || !db->iwkv || !key || !vbuf) {
     return IW_ERROR_INVALID_ARGS;
   }
-  int rci;
-  iwrc rc = 0;
-  bool found;
-  uint8_t *mm = 0, *oval, idx;
-  uint32_t ovalsz;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
   *vsz = 0;
+
+  int rci;
+  bool found;
+  char nbuf[IW_VNUMBUFSZ];
+  IWKV_val ekey;
+  uint32_t ovalsz;
+  uint8_t *mm = 0, *oval, idx;
+  IWFS_FSM *fsm = &db->iwkv->fsm;
+  iwrc rc = _to_effective_key(db, key, &ekey, nbuf);
+  RCRET(rc);
 
   IWLCTX lx = {
     .db = db,
-    .key = key,
+    .key = &ekey,
     .nlvl = -1
   };
   iwp_current_time_ms(&lx.ts, true);
