@@ -100,7 +100,7 @@ typedef enum {
   IWDB_REALNUM_KEYS = 0x10,   /**< Floating point number keys represented as string (char*) value. */
   IWDB_DUP_UINT32_VALS = 0x4, /**< Record key value is an array of sorted uint32 values */
   IWDB_DUP_UINT64_VALS = 0x8, /**< Record key value is an array of sorted uint64 values */
-  IWDB_VNUM64_KEYS  = 0x10    /**< Variable-length number keys */
+  IWDB_VNUM64_KEYS  = 0x20    /**< Variable-length number keys */
 } iwdb_flags_t;
 
 /**
