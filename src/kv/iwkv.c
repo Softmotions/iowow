@@ -2628,6 +2628,12 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
   uint8_t *mm = 0;
   iwrc rc = 0;
 
+  if (!kl1 && c1->fullkey) {
+    kl1 = c1->sblkn;
+  }
+  if (!kl2 && c2->fullkey) {
+    kl2 = c2->sblkn;
+  }
   *res = _cmp_key2(lx->db->dbflg, k1, kl1, k2, kl2);
   if (*res == 0 && (!c1->fullkey || !c2->fullkey)) {
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -2733,20 +2739,27 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   off_t idx;
   bool found;
   DBCNODE *n;
-  uint8_t dbcbuf[DBCNODE_STR_SZ];
+  uint8_t dbcbuf[1024];
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   cache->atime = lx->ts;
-  if (lx->nlvl > -1 || cache->num < 1 || lx->key->size > SBLK_LKLEN) {
+  if (lx->nlvl > -1 || cache->num < 1) {
     lx->lower = &lx->dblk;
     return 0;
   }
   assert(cache->nodes);
-  n = (DBCNODE *) dbcbuf;
-  n->lkl = (uint8_t) lx->key->size;
+  if (sizeof(DBCNODE) + lx->key->size <= sizeof(dbcbuf)) {
+    n = (DBCNODE *) dbcbuf;
+  } else {
+    n = malloc(sizeof(DBCNODE) + lx->key->size);
+    if (!n) {
+      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
+  }
+  n->sblkn = (uint32_t) lx->key->size; // `sblkn` used to store key size (to keep DBCNODE compact)
   n->fullkey = 1;
+  n->lkl = 0;
   n->k0idx = 0;
-  n->sblkn = 0;
   n->kblkn = 0;
   memcpy((uint8_t *) n + offsetof(DBCNODE, lk), lx->key->data, lx->key->size);
   idx = iwarr_sorted_find2(cache->nodes, cache->num, cache->nsize, n, lx, &found, _dbcache_cmp_nodes);
@@ -2756,6 +2769,9 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
     rc = _sblk_at(lx, BLK2ADDR(fn->sblkn), 0, &lx->lower);
   } else {
     lx->lower = &lx->dblk;
+  }
+  if ((uint8_t *) n != dbcbuf) {
+    free(n);
   }
   return rc;
 }
