@@ -82,6 +82,12 @@ typedef enum {
   _IWFS_EXT_ERROR_END
 } iwfs_ext_ecode;
 
+typedef uint8_t iwfs_ext_mmap_opts_t;
+/** Use shared mmaping synchronized with file data */
+#define IWFS_MMAP_SHARED  ((iwfs_ext_mmap_opts_t) 0x00U)
+/** Use private mmap */
+#define IWFS_MMAP_PRIVATE ((iwfs_ext_mmap_opts_t) 0x01U)
+
 /**
  * @brief File resize policy function type.
  *
@@ -133,15 +139,9 @@ typedef struct IWFS_EXT_OPTS {
                                `exact size policy`  */
   void *rspolicy_ctx;       /**< Custom opaque data for policy functions.
                                  Default: `0` */
-  off_t maxoff;             /**< Maximum allowed file offset. Unlimited if zero.
+  uint64_t maxoff;          /**< Maximum allowed file offset. Unlimited if zero.
                                  If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
 } IWFS_EXT_OPTS;
-
-
-typedef enum {
-  IWFS_MMAP_SHARED = 0,    /**< Use shared mmaping synchronized with file data */
-  IWFS_MMAP_PRIVATE = 1    /**< Use private mmap */
-} iwfs_ext_mmap_opts_t;
 
 /**
  * @struct IWFS_EXT_STATE

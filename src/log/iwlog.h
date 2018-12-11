@@ -153,7 +153,7 @@ typedef const char *(*IWLOG_ECODE_FN)(locale_t locale, uint32_t ecode);
  * @param errno_code Error code will be embedded into.
  * @return Updated rc code
  */
-IW_EXPORT iwrc iwrc_set_errno(iwrc rc, uint32_t errno_code);
+IW_EXPORT iwrc iwrc_set_errno(iwrc rc, int errno_code);
 
 /**
  * @brief Strip the attached `errno` code from the specified @a rc and

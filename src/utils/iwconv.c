@@ -40,7 +40,7 @@ const uint8_t ascii2hex[] = {
 };
 
 size_t iwhex2bin(const char *hex, int hexlen, char *out, int max) {
-  int  pos = 0, vpos = 0;
+  size_t pos = 0, vpos = 0;
   uint8_t idx0, idx1;
   while (pos < hexlen) {
     if (!pos && (hexlen % 2)) { // first iteration + odd chars in hex

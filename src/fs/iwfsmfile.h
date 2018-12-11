@@ -81,45 +81,48 @@
 
 IW_EXTERN_C_START
 
-/**
- * @brief Free space allocation flags.
- * @see IWFS_FSM::allocate
+/** Free space allocation flags
+ *  @see IWFS_FSM::allocate
  */
-typedef enum {
+typedef uint8_t iwfs_fsm_aflags;
 
-  /**< Use default allocation settings */
-  IWFSM_ALLOC_DEFAULTS = 0x00U,
+/** Use default allocation settings */
+#define IWFSM_ALLOC_DEFAULTS          ((iwfs_fsm_aflags) 0x00U)
 
-  /** Do not @em overallocate a requested free space in order to reduce
-     fragmentation  */
-  IWFSM_ALLOC_NO_OVERALLOCATE = 0x01U,
+/** Do not @em overallocate a requested free space in order to reduce fragmentation  */
+#define IWFSM_ALLOC_NO_OVERALLOCATE   ((iwfs_fsm_aflags) 0x01U)
 
-  /** Do not extend the file and its bitmap free space mapping in the case if
-   * file size expansion is required.
-   * In this case the `IWFS_ERROR_NO_FREE_SPACE` error will be raised.*/
-  IWFSM_ALLOC_NO_EXTEND = 0x02U,
+/** Do not extend the file and its bitmap free space mapping in the case if
+ * file size expansion is required.
+ * In this case the `IWFS_ERROR_NO_FREE_SPACE` error will be raised.*/
+#define IWFSM_ALLOC_NO_EXTEND         ((iwfs_fsm_aflags) 0x02U)
 
-  /** Force offset of an allocated space to be page aligned. */
-  IWFSM_ALLOC_PAGE_ALIGNED = 0x04U,
+/** Force offset of an allocated space to be page aligned. */
+#define IWFSM_ALLOC_PAGE_ALIGNED      ((iwfs_fsm_aflags) 0x04U)
 
-  /** Do not update(collect) internal allocation stats for this allocation. */
-  IWFSM_ALLOC_NO_STATS = 0x08U,
+/** Do not collect internal allocation stats for this allocation. */
+#define IWFSM_ALLOC_NO_STATS          ((iwfs_fsm_aflags) 0x08U)
 
-  /** Force all of the allocated address space backed by real file address space. */
-  IWFSM_SOLID_ALLOCATED_SPACE = 0x10U,
+/** Force all of the allocated address space backed by real file address space. */
+#define IWFSM_SOLID_ALLOCATED_SPACE   ((iwfs_fsm_aflags) 0x10U)
 
-  /** Do msync of bitmap allocation index. */
-  IWFSM_SYNC_BMAP = 0x20U
+/** Do msync of bitmap allocation index. */
+#define IWFSM_SYNC_BMAP               ((iwfs_fsm_aflags) 0x20U)
 
-} iwfs_fsm_aflags;
+/** File cleanup flags used in `IWFS_FSM::clear` */
+typedef uint8_t iwfs_fsm_clrfalgs;
 
-/**
- * @brief File cleanup flags used in `IWFS_FSM::clear`
- * @see IWFS_FSM::clear
- */
-typedef enum {
-  IWFSM_CLEAR_TRIM = 0x01U /**< Perform file size trimming after cleanup */
-} iwfs_fsm_clrfalgs;
+/** Perform file size trimming after cleanup */
+#define IWFSM_CLEAR_TRIM ((iwfs_fsm_clrfalgs) 0x01U)
+
+/** `IWFS_FSM` file open modes used in `IWFS_FSM_OPTS` */
+typedef uint8_t iwfs_fsm_openflags;
+
+/** Do not use threading locks */
+#define IWFSM_NOLOCKS ((iwfs_fsm_openflags) 0x01U)
+
+/** Strict block checking for alloc/dealloc operations. 10-15% performance overhead. */
+#define IWFSM_STRICT ((iwfs_fsm_openflags) 0x02U)
 
 /**
  * @brief Error codes specific to `IWFS_FSM`.
@@ -139,28 +142,17 @@ typedef enum {
 } iwfs_fsm_ecode;
 
 /**
- * @brief `IWFS_FSM` file open modes used in `IWFS_FSM_OPTS`
- * @see IWFS_FSM_OPTS::oflags
- */
-typedef enum {
-  IWFSM_NOLOCKS = 0x01U, /**< Do not use threading locks */
-  IWFSM_STRICT =
-    0x02U /**< Strict block checking for alloc/dealloc operations. 10-15%
-               performance overhead. */
-} iwfs_fsm_openflags;
-
-/**
  * @brief `IWFS_FSM` file options.
  * @see iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts)
  */
 typedef struct IWFS_FSM_OPTS {
   IWFS_EXT_OPTS exfile;
-  iwfs_fsm_openflags oflags;      /**< Operation mode flags */
-  uint8_t bpow;                   /**< Block size power for 2 */
   size_t bmlen;                   /**< Initial size of free-space bitmap */
-  size_t hdrlen;                  /**< Length of custom file header.*/
-  bool mmap_all;                  /**< Mmap all file data */
+  uint32_t hdrlen;                /**< Length of custom file header.*/
+  iwfs_fsm_openflags oflags;      /**< Operation mode flags */
   iwfs_ext_mmap_opts_t mmap_opts; /**< Defaul mmap options used in `add_mmap` */
+  uint8_t bpow;                   /**< Block size power for 2 */
+  bool mmap_all;                  /**< Mmap all file data */
 } IWFS_FSM_OPTS;
 
 /**
@@ -323,7 +315,7 @@ typedef struct IWFS_FSM {
   iwrc(*remove_mmap)(struct IWFS_FSM *f, off_t off);
 
   /** @see IWFS_EXT::sync_mmap */
-  iwrc(*sync_mmap)(struct IWFS_FSM *f, off_t off, int flags);
+  iwrc(*sync_mmap)(struct IWFS_FSM *f, off_t off, iwfs_sync_flags flags);
 
   /* See iwfile.h */
 

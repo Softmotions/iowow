@@ -36,7 +36,6 @@
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 
 iwrc iwfs_init(void);
-iwrc iwp_init(void);
 iwrc iwkv_init(void);
 
 iwrc iw_init(void) {

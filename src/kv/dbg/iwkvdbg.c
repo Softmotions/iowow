@@ -39,7 +39,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
 
 iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   assert(sb && sb->addr);
-  int32_t lkl = 0;
+  uint32_t lkl = 0;
   char lkbuf[SBLK_LKLEN + 1] = {0};
   uint8_t *mm, *vbuf;
   const uint8_t *kbuf;
@@ -64,7 +64,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     lkl = IW_ITOHL(lkl);
     memcpy(lkbuf, mm + sb->addr + SOFF_LK, lkl);
   }
-  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, p0=%d, db=%d",
+  fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, p0=%u, db=%u",
           blkn,
           ((IWKVD_PRINT_NO_LEVEVELS & flags) ? -1 : sb->lvl),
           sb->pnum, sb->flags, sb->kvblk->zidx,
@@ -155,19 +155,19 @@ void iwkvd_db(FILE *f, IWDB db, int flags, int plvl) {
     iwlog_ecode_error3(rc);
     return;
   }
-  fprintf(f, "\n\n== DB[%d] lvl=%d, blk=%u, dbflg=%x, p0=%u",
+  fprintf(f, "\n\n== DB[%u] lvl=%d, blk=%u, dbflg=%x, p0=%u",
           db->id,
           ((IWKVD_PRINT_NO_LEVEVELS & flags) ? -1 : sb->lvl),
           (unsigned int) ADDR2BLK(sb->addr),
           db->dbflg,
           tail->p0);
   if (!(IWKVD_PRINT_NO_LEVEVELS & flags)) {
-    fprintf(f, "\n== DB[%d]->n=[", db->id);
+    fprintf(f, "\n== DB[%u]->n=[", db->id);
     for (int i = 0; i <= sb->lvl; ++i) {
       if (i > 0) {
-        fprintf(f, ", %d:%d", i, sb->n[i]);
+        fprintf(f, ", %d:%u", i, sb->n[i]);
       } else {
-        fprintf(f, "%d:%d", i, sb->n[i]);
+        fprintf(f, "%d:%u", i, sb->n[i]);
       }
     }
     fprintf(f, "]");

@@ -81,7 +81,6 @@ off_t iwarr_sorted_remove(void *restrict els,
     } else if (cr < 0) {
       lb = idx + 1;
       if (lb > ub) {
-        idx = lb;
         break;
       }
     } else {

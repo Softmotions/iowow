@@ -13,11 +13,11 @@
 
 struct _IWXSTR {
   char *ptr;      /**< Data buffer */
-  int size;       /**< Actual data size */
-  int asize;      /**< Allocated buffer size */
+  size_t size;    /**< Actual data size */
+  size_t asize;   /**< Allocated buffer size */
 };
 
-IWXSTR *iwxstr_new2(int siz) {
+IWXSTR *iwxstr_new2(size_t siz) {
   IWXSTR *xstr = malloc(sizeof(*xstr));
   if (!xstr) return 0;
   xstr->ptr = malloc(siz);
@@ -46,8 +46,8 @@ void iwxstr_clear(IWXSTR *xstr) {
   xstr->size = 0;
 }
 
-iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, int size) {
-  int nsize = xstr->size + size + 1;
+iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size) {
+  size_t nsize = xstr->size + size + 1;
   if (xstr->asize < nsize) {
     while (xstr->asize < nsize) {
       xstr->asize <<= 1;
@@ -70,8 +70,8 @@ iwrc iwxstr_cat2(IWXSTR *xstr, const char *buf) {
   return buf ? iwxstr_cat(xstr, buf, strlen(buf)) : 0;
 }
 
-iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, int size) {
-  int nsize = xstr->size + size + 1;
+iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size) {
+  size_t nsize = xstr->size + size + 1;
   if (xstr->asize < nsize) {
     while (xstr->asize < nsize) {
       xstr->asize <<= 1;
@@ -100,7 +100,7 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
     if (*format == '%') {
       char cbuf[32];
       cbuf[0] = '%';
-      int cblen = 1;
+      size_t cblen = 1;
       int lnum = 0;
       ++format;
       while (strchr("0123456789 .+-hlLzI", *format) && *format && cblen < sizeof(cbuf) - 1) {
@@ -127,7 +127,7 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
           } else {
             tlen = sprintf(tbuf, cbuf, va_arg(ap, int));
           }
-          rc = iwxstr_cat(xstr, tbuf, tlen);
+          rc = iwxstr_cat(xstr, tbuf, (size_t) tlen);
           break;
         case 'o':
         case 'u':
@@ -141,7 +141,7 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
           } else {
             tlen = sprintf(tbuf, cbuf, va_arg(ap, unsigned int));
           }
-          rc = iwxstr_cat(xstr, tbuf, tlen);
+          rc = iwxstr_cat(xstr, tbuf, (size_t) tlen);
           break;
         case 'e':
         case 'E':
@@ -157,7 +157,7 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
             tbuf[sizeof(tbuf) - 1] = '*';
             tlen = sizeof(tbuf);
           }
-          rc = iwxstr_cat(xstr, tbuf, tlen);
+          rc = iwxstr_cat(xstr, tbuf, (size_t) tlen);
           break;
         case '%':
           rc = iwxstr_cat(xstr, "%", 1);
@@ -185,7 +185,7 @@ char *iwxstr_ptr(IWXSTR *xstr) {
   return xstr->ptr;
 }
 
-int iwxstr_size(IWXSTR *xstr) {
+size_t iwxstr_size(IWXSTR *xstr) {
   return xstr->size;
 }
 

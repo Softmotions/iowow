@@ -46,7 +46,7 @@
 #define st_mtim st_mtimespec
 #endif
 
-#define _IW_TIMESPEC2MS(IW_ts) ((IW_ts).tv_sec * 1000) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6)
+#define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6))
 
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   struct timespec spec;
@@ -81,7 +81,7 @@ static iwrc _iwp_fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
   fs->atime = _IW_TIMESPEC2MS(st.st_atim);
   fs->mtime = _IW_TIMESPEC2MS(st.st_mtim);
   fs->ctime = _IW_TIMESPEC2MS(st.st_ctim);
-  fs->size = st.st_size;
+  fs->size = (uint64_t) st.st_size;
 
   if (S_ISREG(st.st_mode)) {
     fs->ftype = IWP_TYPE_FILE;
@@ -180,9 +180,9 @@ iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
   if (INVALIDHANDLE(fh)) {
     return IW_ERROR_INVALID_HANDLE;
   }
+  const char *rp = buf;
   do {
-    const char *rp = buf;
-    int wb = write(fh, rp, size);
+    ssize_t wb = write(fh, rp, size);
     switch (wb) {
       case -1:
         if (errno != EINTR) {
@@ -221,11 +221,11 @@ iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
 }
 
 size_t iwp_page_size(void) {
-  static off_t _iwp_pagesize = 0;
+  static long int _iwp_pagesize = 0;
   if (!_iwp_pagesize) {
     _iwp_pagesize = sysconf(_SC_PAGESIZE);
   }
-  return _iwp_pagesize;
+  return (size_t) _iwp_pagesize;
 }
 
 size_t iwp_alloc_unit(void) {
@@ -301,7 +301,7 @@ iwrc iwp_exec_path(char *opath) {
 
 uint16_t iwp_num_cpu_cores() {
   long res = sysconf(_SC_NPROCESSORS_ONLN);
-  return res > 0 ? res : 1;
+  return (uint16_t) (res > 0 ? res : 1);
 }
 
 iwrc iwp_fsync(HANDLE fh) {

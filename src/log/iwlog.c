@@ -64,11 +64,11 @@ static IWLOG_ECODE_FN _ecode_functions[_IWLOG_MAX_ECODE_FUN] = {0};
 
 iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, ...) {
   va_list argp;
-  int rv;
+  iwrc rc;
   va_start(argp, fmt);
-  rv = iwlog_va(stderr, lvl, ecode, file, line, fmt, argp);
+  rc = iwlog_va(stderr, lvl, ecode, file, line, fmt, argp);
   va_end(argp);
-  return rv;
+  return rc;
 }
 
 void iwlog2(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, ...) {
@@ -89,12 +89,10 @@ iwrc iwlog_va(FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line, 
   locale_t locale = uselocale(0);
 #endif
   int errno_code = iwrc_strip_errno(&ecode);
-  iwrc rc;
   uint64_t ts;
+  iwrc rc = iwp_current_time_ms(&ts, false);
+  RCRET(rc);
 
-  if (iwp_current_time_ms(&ts, false)) {
-    return -1;
-  }
   pthread_mutex_lock(&_mtx);
   IWLOG_FN logfn = _current_logfn;
   void *opts = _current_logfn_options;
@@ -110,7 +108,7 @@ iwrc iwlog_va(FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line, 
 #define _IWLOG_ERRNO_RC_MASK 0x01U
 #define _IWLOG_WERR_EC_MASK 0x02U
 
-iwrc iwrc_set_errno(iwrc rc, uint32_t errno_code) {
+iwrc iwrc_set_errno(iwrc rc, int errno_code) {
   if (!errno_code) {
     return rc;
   }

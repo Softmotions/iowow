@@ -68,36 +68,39 @@
 
 IW_EXTERN_C_START
 
-/**
- * @enum iwfs_omode
- * @brief File open modes.
- */
-typedef enum {
-  IWFS_OREAD    = 0x01, /**< Open file as a reader. */
-  IWFS_OWRITE   = 0x02, /**< Open file as a writer. */
-  IWFS_OCREATE  = 0x04, /**< If file is missing it will be created on open. */
-  IWFS_OTRUNC   = 0x08, /**< Truncate file on open. */
-  IWFS_OUNLINK  = 0x10, /**< Unlink(delete) file on close */
-  IWFS_OTMP     = 0x20  /**< Temp file will be created, in this case specified file name
-                             will act as temp file name prefix */
-} iwfs_omode;
+/** File open mode */
+typedef uint8_t iwfs_omode;
+/** Open file as a reader.*/
+#define IWFS_OREAD    ((iwfs_omode) 0x01U)
+/** Open file as a writer. */
+#define IWFS_OWRITE   ((iwfs_omode) 0x02U)
+/** If file is missing it will be created on open. */
+#define IWFS_OCREATE  ((iwfs_omode) 0x04U)
+/** Truncate file on open. */
+#define IWFS_OTRUNC   ((iwfs_omode) 0x08U)
+/** Unlink(delete) file on close */
+#define IWFS_OUNLINK  ((iwfs_omode) 0x10U)
+/** Temp file will be created, in this case specified file name will act as temp file name prefix */
+#define IWFS_OTMP     ((iwfs_omode) 0x20U)
 
-/**
- * @enum iwfs_openstatus
- * @brief Status of an open file operation.
- */
-typedef enum {
-  IWFS_OPEN_FAIL = 0x00UL, /**< Open failed. */
-  IWFS_OPEN_NEW = 0x01UL,  /**< Open success, new file've been created. */
-  IWFS_OPEN_EXISTING =
-    0x02UL /**< Open success, existing file've been opened. */
-} iwfs_openstatus;
+/**  Status of an open file operation */
+typedef uint8_t iwfs_openstatus;
+/** Open failed. */
+#define IWFS_OPEN_FAIL ((iwfs_openstatus) 0x00U)
+/** Open success, new file've been created. */
+#define IWFS_OPEN_NEW  ((iwfs_openstatus) 0x01U)
+/** Open success, existing file've been opened. */
+#define IWFS_OPEN_EXISTING  ((iwfs_openstatus) 0x02U)
+
+/** Sync file data options */
+typedef uint8_t iwfs_sync_flags;
+#define IWFS_SYNCDEFAULT  ((iwfs_sync_flags) 0x00U)
+#define IWFS_FDATASYNC    ((iwfs_sync_flags) 0x01U)
 
 #define IWFS_DEFAULT_OMODE (IWFS_OCREATE)
 #define IWFS_DEFAULT_LOCKMODE (IWP_NOLOCK)
 #define IWFS_DEFAULT_FILEMODE                    \
-  00666 /**< Default permission of created files \
-*/
+  00666 /**< Default permission of created files */
 
 /**
  * @brief `IWFS_FILE` file options.
@@ -125,15 +128,6 @@ typedef struct {
 } IWFS_FILE_STATE;
 
 /**
- * @enum iwfs_sync_flags
- * @brief Sync file data options.
- * @see IWFS_FILE::sync
- */
-typedef enum {
-  IWFS_FDATASYNC = 0x01, /**< Use `fdatasync` mode */
-} iwfs_sync_flags;
-
-/**
  * @struct IWFS_FILE
  * @brief Simple file implementation.
  */
@@ -150,8 +144,7 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually written
    * @return `0` on success or error code.
    */
-  iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf,
-               size_t siz, size_t *sp);
+  iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
 
   /**
    * @brief Read @a siz bytes into @a buf at the specified offset @a off
@@ -163,8 +156,7 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually read.
    * @return `0` on success or error code.
    */
-  iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf,
-              size_t siz, size_t *sp);
+  iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp);
 
   /**
    * @brief Closes this file.

@@ -102,58 +102,58 @@ IW_EXTERN_C_START
 
 #define IW_WRITEBV(IW_ptr_, IW_v_, IW_m_)  \
   static_assert(sizeof(IW_v_) == 1, "Mismatch IW_v_ size"); \
-  IW_v_ = (IW_m_);                          \
-  memcpy(IW_ptr_, &IW_v_, 1); \
-  IW_ptr_ += 1
+  (IW_v_) = (IW_m_);                          \
+  memcpy(IW_ptr_, &(IW_v_), 1); \
+  (IW_ptr_) += 1
 
 #define IW_WRITESV(IW_ptr_, IW_v_, IW_m_)  \
   static_assert(sizeof(IW_v_) == 2, "Mismatch IW_v_ size"); \
-  IW_v_ = (IW_m_);                          \
-  IW_v_ = IW_HTOIS(IW_v_);                \
-  memcpy(IW_ptr_, &IW_v_, 2); \
-  IW_ptr_ += 2
+  (IW_v_) = (IW_m_);                          \
+  (IW_v_) = IW_HTOIS(IW_v_);                \
+  memcpy(IW_ptr_, &(IW_v_), 2); \
+  (IW_ptr_) += 2
 
 #define IW_WRITELV(IW_ptr_, IW_v_, IW_m_)  \
   static_assert(sizeof(IW_v_) == 4, "Mismatch IW_v_ size"); \
-  IW_v_ = (IW_m_);                          \
-  IW_v_ = IW_HTOIL(IW_v_);                \
-  memcpy(IW_ptr_, &IW_v_, 4); \
-  IW_ptr_ += 4
+  (IW_v_) = (IW_m_);                          \
+  (IW_v_) = IW_HTOIL(IW_v_);                \
+  memcpy(IW_ptr_, &(IW_v_), 4); \
+  (IW_ptr_) += 4
 
 #define IW_WRITELLV(IW_ptr_, IW_v_, IW_m_) \
   static_assert(sizeof(IW_v_) == 8, "Mismatch IW_v_ size"); \
-  IW_v_ = (IW_m_);                          \
-  IW_v_ = IW_HTOILL(IW_v_);               \
-  memcpy(IW_ptr_, &IW_v_, 8); \
-  IW_ptr_ += 8
+  (IW_v_) = (IW_m_);                          \
+  (IW_v_) = IW_HTOILL(IW_v_);               \
+  memcpy((IW_ptr_), &(IW_v_), 8); \
+  (IW_ptr_) += 8
 
 #define IW_READBV(IW_ptr_, IW_t_, IW_m_)   \
   static_assert(sizeof(IW_t_) == 1, "Mismatch IW_t_ size"); \
-  IW_t_ = 0; \
+  (IW_t_) = 0; \
   memcpy(&(IW_t_), IW_ptr_, 1);  \
-  IW_m_ = (IW_t_);   \
-  IW_ptr_ += 1
+  (IW_m_) = (IW_t_);   \
+  (IW_ptr_) += 1
 
 #define IW_READSV(IW_ptr_, IW_t_, IW_m_)   \
   static_assert(sizeof(IW_t_) == 2, "Mismatch IW_t_ size"); \
-  IW_t_ = 0; \
+  (IW_t_) = 0; \
   memcpy(&(IW_t_), IW_ptr_, 2);  \
-  IW_m_ = IW_ITOHS(IW_t_);  \
-  IW_ptr_ += 2
+  (IW_m_) = IW_ITOHS(IW_t_);  \
+  (IW_ptr_) += 2
 
 #define IW_READLV(IW_ptr_, IW_t_, IW_m_)   \
   static_assert(sizeof(IW_t_) == 4, "Mismatch IW_t_ size"); \
-  IW_t_ = 0; \
+  (IW_t_) = 0; \
   memcpy(&(IW_t_), IW_ptr_, 4);  \
-  IW_m_ = IW_ITOHL(IW_t_);  \
-  IW_ptr_ += 4
+  (IW_m_) = IW_ITOHL(IW_t_);  \
+  (IW_ptr_) += 4
 
 #define IW_READLLV(IW_ptr_, IW_t_, IW_m_)  \
   static_assert(sizeof(IW_t_) == 8, "Mismatch IW_t_ size"); \
-  IW_t_ = 0; \
+  (IW_t_) = 0; \
   memcpy(&(IW_t_), IW_ptr_, 8);  \
-  IW_m_ = IW_ITOHLL(IW_t_); \
-  IW_ptr_ += 8
+  (IW_m_) = IW_ITOHLL(IW_t_); \
+  (IW_ptr_) += 8
 
 #ifndef SIZE_T_MAX
 #define SIZE_T_MAX ((size_t)-1)
@@ -232,15 +232,15 @@ IW_EXTERN_C_START
 /* read a 32 bit variable length buffer */
 #define IW_READVNUMBUF(buf_, num_, step_) \
   do { \
-    num_ = 0; \
+    (num_) = 0; \
     int32_t _base_ = 1; \
     int _i_ = 0; \
     while(1){ \
       if (((const signed char *)(buf_))[_i_] >= 0){ \
-        num_ += _base_ * ((const signed char *)(buf_))[_i_]; \
+        (num_) += _base_ * ((const signed char *)(buf_))[_i_]; \
         break; \
       } \
-      num_ += _base_ * ~(((const signed char *)(buf_))[_i_]); \
+      (num_) += _base_ * ~(((const signed char *)(buf_))[_i_]); \
       _base_ <<= 7; \
       _i_++; \
     } \
@@ -250,15 +250,15 @@ IW_EXTERN_C_START
 /* read a 64 bit variable length buffer */
 #define IW_READVNUMBUF64(buf_, num_, step_) \
   do { \
-    num_ = 0; \
+    (num_) = 0; \
     int64_t _base_ = 1; \
     int _i_ = 0; \
     while(1){ \
       if (((const signed char *)(buf_))[_i_] >= 0){ \
-        num_ += _base_ * ((const signed char *)(buf_))[_i_]; \
+        (num_) += _base_ * ((const signed char *)(buf_))[_i_]; \
         break; \
       } \
-      num_ += _base_ * ~(((const signed char *)(buf_))[_i_]); \
+      (num_) += _base_ * ~(((const signed char *)(buf_))[_i_]); \
       _base_ <<= 7; \
       _i_++; \
     } \
@@ -269,15 +269,15 @@ IW_EXTERN_C_START
 /* read a 64 bit variable length buffer */
 #define IW_READVNUMBUF64_2(buf_, num_) \
   do { \
-    num_ = 0; \
+    (num_) = 0; \
     int64_t _base_ = 1; \
     int _i_ = 0; \
     while(1){ \
       if (((const signed char *)(buf_))[_i_] >= 0){ \
-        num_ += _base_ * ((const signed char *)(buf_))[_i_]; \
+        (num_) += _base_ * ((const signed char *)(buf_))[_i_]; \
         break; \
       } \
-      num_ += _base_ * ~(((const signed char *)(buf_))[_i_]); \
+      (num_) += _base_ * ~(((const signed char *)(buf_))[_i_]); \
       _base_ <<= 7; \
       _i_++; \
     } \

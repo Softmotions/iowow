@@ -83,41 +83,49 @@ typedef enum {
   _IWKV_RC_END,
 } iwkv_ecode;
 
-/**
- * @brief Database file open modes.
- */
-typedef enum {
-  IWKV_RDONLY   = 0x2,      /**< Open storage file in read-only mode */
-  IWKV_TRUNC    = 0x4       /**< Truncate storage file on open */
-} iwkv_openflags;
+/** Database file open modes. */
+typedef uint8_t iwkv_openflags;
+/** Open storage file in read-only mode */
+#define IWKV_RDONLY ((iwkv_openflags) 0x02U)
+/** Truncate storage file on open */
+#define IWKV_TRUNC  ((iwkv_openflags) 0x04U)
 
-/**
- * @brief Database initialization modes.
- */
-typedef enum {
-  IWDB_UINT32_KEYS = 0x1,     /**< Database keys are 32bit unsigned integers */
-  IWDB_UINT64_KEYS = 0x2,     /**< Database keys are 64bit unsigned integers */
-  IWDB_REALNUM_KEYS = 0x10,   /**< Floating point number keys represented as string (char*) value. */
-  IWDB_DUP_UINT32_VALS = 0x4, /**< Record key value is an array of sorted uint32 values */
-  IWDB_DUP_UINT64_VALS = 0x8, /**< Record key value is an array of sorted uint64 values */
-  IWDB_VNUM64_KEYS  = 0x20    /**< Variable-length number keys */
-} iwdb_flags_t;
+/** Database initialization modes */
+typedef uint8_t iwdb_flags_t;
+/** Database keys are 32bit unsigned integers */
+#define IWDB_UINT32_KEYS      ((iwdb_flags_t) 0x01U)
+/** Database keys are 64bit unsigned integers */
+#define IWDB_UINT64_KEYS      ((iwdb_flags_t) 0x02U)
+/** Record key value is an array of sorted uint32 values */
+#define IWDB_DUP_UINT32_VALS  ((iwdb_flags_t) 0x04U)
+/** Record key value is an array of sorted uint64 values */
+#define IWDB_DUP_UINT64_VALS  ((iwdb_flags_t) 0x08U)
+/** Floating point number keys represented as string (char*) value. */
+#define IWDB_REALNUM_KEYS     ((iwdb_flags_t) 0x10U)
+/** Variable-length number keys */
+#define IWDB_VNUM64_KEYS      ((iwdb_flags_t) 0x20U)
 
-/**
- * @brief Record store modes used in `iwkv_put()` and `iwkv_cursor_set()` functions.
- */
-typedef enum {
-  IWKV_NO_OVERWRITE     = 0x1,   /**< Do not overwrite value for an existing key.
-                                      `IWKV_ERROR_KEY_EXISTS` will be returned in such cases. */
-  IWKV_DUP_REMOVE       = 0x2,   /**< Remove value from duplicated values array.
-                                      Usable only for IWDB_DUP_<XXX> DB database modes */
-  IWKV_SYNC             = 0x4,   /**< Flush changes on disk after operation */
+/**  Record store modes used in `iwkv_put()` and `iwkv_cursor_set()` functions. */
+typedef uint8_t iwkv_opflags;
 
-  IWKV_DUP_REPORT_EMPTY = 0x8,   /**< Used with `IWKV_DUP_REMOVE` if dup array will be empty as result of
-                                      put operation `IWKV_RC_DUP_ARRAY_EMPTY` code will be returned  */
-  IWKV_VAL_INCREMENT    = 0x10   /**< Increment/decrement stored UINT32|UINT64 value by given INT32|INT64 number
-                                      `IWKV_ERROR_KEY_EXISTS` does not makes sense if this flag set. */
-} iwkv_opflags;
+/** Do not overwrite value for an existing key.
+   `IWKV_ERROR_KEY_EXISTS` will be returned in such cases. */
+#define IWKV_NO_OVERWRITE       ((iwkv_opflags) 0x01U)
+
+/** Remove value from duplicated values array.
+    Usable only for IWDB_DUP_<XXX> DB database modes */
+#define IWKV_DUP_REMOVE         ((iwkv_opflags) 0x02U)
+
+/** Flush changes on disk after operation */
+#define IWKV_SYNC               ((iwkv_opflags) 0x04U)
+
+/** Used with `IWKV_DUP_REMOVE` if dup array will be empty as result of
+    put operation `IWKV_RC_DUP_ARRAY_EMPTY` code will be returned  */
+#define IWKV_DUP_REPORT_EMPTY   ((iwkv_opflags) 0x08U)
+
+/** Increment/decrement stored UINT32|UINT64 value by given INT32|INT64 number
+    `IWKV_ERROR_KEY_EXISTS` does not makes sense if this flag set. */
+#define IWKV_VAL_INCREMENT      ((iwkv_opflags) 0x10U)
 
 struct _IWKV;
 typedef struct _IWKV *IWKV;
@@ -142,7 +150,7 @@ typedef struct IWKV_WAL_OPTS {
  */
 typedef struct IWKV_OPTS {
   const char *path;                 /**< Path to database file */
-  int32_t random_seed;              /**< Random seed used for iwu random generator */
+  uint32_t random_seed;             /**< Random seed used for iwu random generator */
   iwkv_openflags oflags;            /**< Bitmask of database file open modes */
   IWKV_WAL_OPTS wal;                /**< WAL options */
 } IWKV_OPTS;
@@ -240,7 +248,7 @@ IW_EXPORT iwrc iwkv_db_cache_release(IWDB db);
  * @param db Database handler
  * @param [out] ts Tims ms since epoch
  */
-IW_EXPORT iwrc iwkv_db_last_access_time(const IWDB db, uint64_t *ts);
+IW_EXPORT iwrc iwkv_db_last_access_time(IWDB db, uint64_t *ts);
 
 /**
  * @brief Destroy(drop) existing database and cleanup all of its data.
@@ -481,7 +489,7 @@ IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opfl
  * @param cur Opened cursor object
  * @param [out] onum Output number
  */
-IW_EXPORT iwrc iwkv_cursor_dup_num(const IWKV_cursor cur, uint32_t *onum);
+IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor cur, uint32_t *onum);
 
 /**
  * @brief Add element to value array at current cursor position.
@@ -508,7 +516,7 @@ IW_EXPORT iwrc iwkv_cursor_dup_rm(IWKV_cursor cur, uint64_t dv);
  * @param dv Value to test
  * @param [out] out Boolean result
  */
-IW_EXPORT iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool *out);
+IW_EXPORT iwrc iwkv_cursor_dup_contains(IWKV_cursor cur, uint64_t dv, bool *out);
 
 /**
  * @brief Iterate over all elements in array of numbers at current cursor position.
@@ -519,7 +527,7 @@ IW_EXPORT iwrc iwkv_cursor_dup_contains(const IWKV_cursor cur, uint64_t dv, bool
  * @param start Optional pointer to number iteration will start from
  * @param down Iteration direction
  */
-IW_EXPORT iwrc iwkv_cursor_dup_iter(const IWKV_cursor cur,
+IW_EXPORT iwrc iwkv_cursor_dup_iter(IWKV_cursor cur,
                                     bool(*visitor)(uint64_t dv, void *opaq),
                                     void *opaq,
                                     const uint64_t *start,

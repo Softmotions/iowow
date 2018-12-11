@@ -253,7 +253,7 @@ static bool _bm_init(int argc, char *argv[]) {
           "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n\n",
           _execsize(),
           bm.param_seed, bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
-          
+
   // Fill up random data array
   for (int i = 0; i < RND_DATA_SZ; ++i) {
     RND_DATA[i] = ' ' + iwu_rand_range(95); // ascii space ... ~
@@ -595,7 +595,7 @@ static bool bm_bench_run(int argc, char *argv[]) {
         if (!bmres) {
           fprintf(stderr, "Failed to run benchmark: %s\n", bname);
         } else {
-          fprintf(stderr, " done: %s in %ld\n", bname, (ctx->end_ms - ctx->start_ms));
+          fprintf(stderr, " done: %s in %lu\n", bname, (ctx->end_ms - ctx->start_ms));
         }
         if (ctx->logdbsize) {
           _logdbsize(ctx);

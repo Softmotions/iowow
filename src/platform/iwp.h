@@ -63,28 +63,17 @@ typedef enum {
   _IWP_ERROR_FS_END
 } iwp_ecode;
 
-/**
- * @enum iwp_lockmode
- * @brief File locking mode.
- *
- * File locking mode acquired by process opened this file.
- */
-typedef enum {
-  IWP_NOLOCK = 0x00UL, /**< Do not acquire lock on file. */
-  IWP_RLOCK = 0x01UL,  /**< Acquire read lock on file. */
-  IWP_WLOCK = 0x02UL,  /**< Acquire write lock on file. */
-  /** Do not block current thread if file have been locked by another process.
-   *  In this case error will be raised. */
-  IWP_NBLOCK = 0x04UL
-} iwp_lockmode;
-
-/**
- * @brief Get current time in milliseconds.
- *
- * @param [out] time Time returned
- * @return `0` for success, or error code
- */
-IW_EXPORT iwrc iwp_current_time_ms(uint64_t *time, bool monotonic);
+/** File locking mode acquired by process opened this file. */
+typedef uint8_t iwp_lockmode;
+/** Do not acquire lock on file. */
+#define IWP_NOLOCK  ((iwp_lockmode) 0x00U)
+/** Acquire read lock on file. */
+#define IWP_RLOCK   ((iwp_lockmode) 0x01U)
+/** Acquire write lock on file. */
+#define IWP_WLOCK   ((iwp_lockmode) 0x02U)
+/** Do not block current thread if file have been locked by another process.
+ *  In this case error will be raised. */
+#define IWP_NBLOCK  ((iwp_lockmode) 0x04U)
 
 /**
  * @enum iwp_file_type
@@ -97,23 +86,30 @@ typedef enum {
   IWP_OTHER      /**< Other file types, eg soc, block, pipe.. */
 } iwp_file_type;
 
-/**
- * @brief File info.
- */
-typedef struct IWP_FILE_STAT {
-  off_t size;          /**< File size. */
-  uint64_t atime;      /**< Time of last access. */
-  uint64_t ctime;      /**< Time of last status change. */
-  uint64_t mtime;      /**< Time of last modification. */
-  iwp_file_type ftype; /**< File type. */
-} IWP_FILE_STAT;
-
-
 typedef enum {
   IWP_SEEK_SET = 1,
   IWP_SEEK_CUR,
   IWP_SEEK_END
 } iwp_seek_origin;
+
+/**
+ * @brief Get current time in milliseconds.
+ *
+ * @param [out] time Time returned
+ * @return `0` for success, or error code
+ */
+IW_EXPORT iwrc iwp_current_time_ms(uint64_t *time, bool monotonic);
+
+/**
+ * @brief File info.
+ */
+typedef struct IWP_FILE_STAT {
+  uint64_t size;       /**< File size. */
+  uint64_t atime;      /**< Time of last access. */
+  uint64_t ctime;      /**< Time of last status change. */
+  uint64_t mtime;      /**< Time of last modification. */
+  iwp_file_type ftype; /**< File type. */
+} IWP_FILE_STAT;
 
 /**
  * @brief Stat the file specified by @a path.

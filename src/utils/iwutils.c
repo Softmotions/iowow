@@ -57,7 +57,7 @@ uint32_t iwu_rand_range(uint32_t range) {
 }
 
 uint32_t iwu_rand_inorm(int range) {
-  int num = (int) iwu_rand_dnorm(range >> 1, range / 10);
+  int num = (int) iwu_rand_dnorm(range >> 1, (double_t) range / 10.0);
   return (num < 0 || num >= range) ? 0 : num;
 }
 
@@ -185,7 +185,7 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   if (!f1) {
     return -1;
   }
-  if (f2) {
+  if (!f2) {
     return 1;
   }
   fseek(f1, 0, SEEK_SET);

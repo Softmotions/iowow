@@ -36,21 +36,21 @@ typedef struct _IWXSTR IWXSTR;
 
 IW_EXPORT IWXSTR *iwxstr_new(void);
 
-IW_EXPORT IWXSTR *iwxstr_new2(int siz);
+IW_EXPORT IWXSTR *iwxstr_new2(size_t siz);
 
 IW_EXPORT void iwxstr_destroy(IWXSTR *xstr);
 
-IW_EXPORT iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, int size);
+IW_EXPORT iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size);
 
 IW_EXPORT iwrc iwxstr_cat2(IWXSTR *xstr, const char *buf);
 
-IW_EXPORT iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, int size);
+IW_EXPORT iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size);
 
 IW_EXPORT iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...);
 
 IW_EXPORT char *iwxstr_ptr(IWXSTR *xstr);
 
-IW_EXPORT int iwxstr_size(IWXSTR *xstr);
+IW_EXPORT size_t iwxstr_size(IWXSTR *xstr);
 
 IW_EXPORT void iwxstr_clear(IWXSTR *xstr);
 

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="iowow" Version="10.0.0" InternalType="Console">
+  <Plugins>
+    <Plugin Name="CppCheck"/>
+  </Plugins>
   <VirtualDirectory Name="tools">
     <File Name="tools/win32/run-gedb-server.sh"/>
   </VirtualDirectory>

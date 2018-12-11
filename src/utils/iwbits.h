@@ -46,30 +46,30 @@ IW_EXTERN_C_START
 /**
  * @brief Find the first set bit number. Undefined if @a x is zero.
  */
-IW_INLINE int iwbits_find_first_sbit64(uint64_t x) {
+IW_INLINE uint8_t iwbits_find_first_sbit64(uint64_t x) {
   //return __builtin_ffsll(x) - 1;
-  int ret = 0;
-  if ((x & 0xffffffff) == 0) {
+  uint8_t ret = 0;
+  if ((x & 0xffffffffU) == 0) {
     ret += 32;
     x >>= 32;
   }
-  if ((x & 0xffff) == 0) {
+  if ((x & 0xffffU) == 0) {
     ret += 16;
     x >>= 16;
   }
-  if ((x & 0xff) == 0) {
+  if ((x & 0xffU) == 0) {
     ret += 8;
     x >>= 8;
   }
-  if ((x & 0xf) == 0) {
+  if ((x & 0xfU) == 0) {
     ret += 4;
     x >>= 4;
   }
-  if ((x & 0x3) == 0) {
+  if ((x & 0x3U) == 0) {
     ret += 2;
     x >>= 2;
   }
-  if ((x & 0x1) == 0) {
+  if ((x & 0x1U) == 0) {
     ret += 1;
   }
   return ret;
@@ -78,9 +78,9 @@ IW_INLINE int iwbits_find_first_sbit64(uint64_t x) {
 /**
  * @brief Find the last set bit number. Undefined if @a x is zero.
  */
-IW_INLINE int iwbits_find_last_sbit64(uint64_t x) {
+IW_INLINE uint8_t iwbits_find_last_sbit64(uint64_t x) {
   //return 63 - __builtin_clzll(x);
-  int num = 63;
+  uint8_t num = 63;
   if ((x & 0xffffffff00000000ULL) == 0) {
     num -= 32;
     x <<= 32;

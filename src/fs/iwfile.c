@@ -125,7 +125,7 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE *state) {
   assert(state);
   memset(state, 0, sizeof(*state));
   IWF *impl = f->impl;
-  state->is_open = !!impl;
+  state->is_open = (impl != 0);
   if (!state->is_open) {
     return 0;
   }

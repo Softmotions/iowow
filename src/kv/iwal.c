@@ -143,10 +143,10 @@ static iwrc _flush_wl(IWAL *wal, bool sync) {
     sep.id = WOP_SEP;
     sep.crc = crc;
     sep.len = wal->bufpos;
-    ssize_t wz = wal->bufpos + sizeof(WBSEP);
+    size_t wz = wal->bufpos + sizeof(WBSEP);
     uint8_t *wp = wal->buf - sizeof(WBSEP);
     memcpy(wp, &sep, sizeof(WBSEP));
-    iwrc rc = iwp_write(wal->fh, wp, wz);
+    rc = iwp_write(wal->fh, wp, wz);
     RCRET(rc);
     wal->bufpos = 0;
   }
@@ -175,16 +175,16 @@ static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *dat
     RCRET(rc);
   }
   assert(bufsz - wal->bufpos >= oplen);
-  memcpy(wal->buf + wal->bufpos, op, oplen);
+  memcpy(wal->buf + wal->bufpos, op, (size_t) oplen);
   wal->bufpos += oplen;
   if (bufsz - wal->bufpos < len) {
     rc = _flush_wl(wal, false);
     RCRET(rc);
-    iwrc rc = iwp_write(wal->fh, data, len);
+    rc = iwp_write(wal->fh, data, (size_t) len);
     RCRET(rc);
   } else {
     assert(bufsz - wal->bufpos >= len);
-    memcpy(wal->buf + wal->bufpos, data, len);
+    memcpy(wal->buf + wal->bufpos, data, (size_t) len);
     wal->bufpos += len;
   }
   if (checkpoint) {
@@ -383,8 +383,8 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   off_t fpos = 0; // checkpoint
 #ifndef _WIN32
   off_t pfsz = IW_ROUNDUP(fsz, iwp_page_size());
-  uint8_t *wmm = mmap(0, pfsz, PROT_READ, MAP_PRIVATE, wal->fh, 0);
-  madvise(wmm, fsz, MADV_SEQUENTIAL);
+  uint8_t *wmm = mmap(0, (size_t) pfsz, PROT_READ, MAP_PRIVATE, wal->fh, 0);
+  madvise(wmm, (size_t) fsz, MADV_SEQUENTIAL);
 #else
   off_t pfsz = fsz;
   uint8_t *wmm = mmap(0, 0, PROT_READ, MAP_PRIVATE, wal->fh, 0);
@@ -398,9 +398,9 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
 
   // Remap fsm in MAP_SHARED mode
   extf->remove_mmap(extf, 0);
-  rc = extf->add_mmap(extf, 0, SIZE_T_MAX, 0);
+  rc = extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_SHARED);
   if (rc) {
-    munmap(wmm, pfsz);
+    munmap(wmm, (size_t) pfsz);
     extfile_use_locks(extf, eul);
     wal->applying = false;
     return rc;
@@ -448,7 +448,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         rp += sizeof(wb);
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
-        memset(mm + wb.off, wb.val, wb.len);
+        memset(mm + wb.off, wb.val, (size_t) wb.len);
         break;
       }
       case WOP_COPY: {
@@ -458,7 +458,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         rp += sizeof(wb);
         rc = extf->probe_mmap(extf, 0, &mm, &sp);
         RCGO(rc, finish);
-        memmove(mm + wb.noff, mm + wb.off, wb.len);
+        memmove(mm + wb.noff, mm + wb.off, (size_t) wb.len);
         break;
       }
       case WOP_WRITE: {
@@ -507,9 +507,9 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
 
 finish:
   if (!rc) {
-    rc = extf->sync_mmap(extf, 0, 0);
+    rc = extf->sync_mmap(extf, 0, IWFS_SYNCDEFAULT);
   }
-  munmap(wmm, pfsz);
+  munmap(wmm, (size_t) pfsz);
   extf->remove_mmap(extf, 0);
   IWRC(extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
   if (!rc) {

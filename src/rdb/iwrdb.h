@@ -7,9 +7,8 @@
 
 IW_EXTERN_C_START
 
-typedef enum {
-  IWRDB_NOLOCKS = 0x01UL
-} iwrdb_oflags_t;
+typedef uint8_t iwrdb_oflags_t;
+#define IWRDB_NOLOCKS ((iwrdb_oflags_t) 0x01U)
 
 typedef struct _IWRDB *IWRDB;
 

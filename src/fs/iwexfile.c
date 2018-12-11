@@ -39,18 +39,18 @@
 struct MMAPSLOT;
 typedef struct IWFS_EXT_IMPL {
   IWFS_FILE file;            /**< Underlying file */
-  off_t fsize;               /**< Current file size */
-  off_t psize;               /**< System page size */
+  uint64_t fsize;            /**< Current file size */
+  uint64_t maxoff;           /**< Maximum allowed file offset. Unlimited if zero.
+                                  If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
   pthread_rwlock_t *rwlock;  /**< Thread RW lock */
   IW_EXT_RSPOLICY rspolicy;  /**< File resize policy function ptr */
   void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
   struct MMAPSLOT *mmslots;  /**< Memory mapping slots */
   IWDLSNR *dlsnr;            /**< Data events listener */
-  bool use_locks;            /**< Use rwlocks to guard method access */
-  off_t maxoff;              /**< Maximum allowed file offset. Unlimited if zero.
-                                  If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
-  iwfs_omode omode;          /**< File open mode */
   HANDLE fh;                 /**< File handle */
+  size_t psize;              /**< System page size */
+  bool use_locks;            /**< Use rwlocks to guard method access */
+  iwfs_omode omode;          /**< File open mode */
 } EXF;
 
 typedef struct MMAPSLOT {
@@ -154,12 +154,12 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
   if (nlen > 0) {
     int flags = (s->mmopts & IWFS_MMAP_PRIVATE)
 #ifdef MAP_NORESERVE
-                ? (MAP_PRIVATE | MAP_NORESERVE)
+                ? (MAP_PRIVATE + MAP_NORESERVE)
 #else
                 ? MAP_PRIVATE
 #endif
                 : MAP_SHARED;
-    int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE | PROT_READ) : (PROT_READ);
+    int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE + PROT_READ) : (PROT_READ);
     s->len = nlen;
     s->mmap = mmap(0, s->len, prot, flags, impl->fh, s->off);
     if (s->mmap == MAP_FAILED) {
@@ -192,7 +192,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   iwrc rc = 0;
   EXF *impl = f->impl;
   iwfs_omode omode = impl->omode;
-  off_t old_size = impl->fsize;
+  uint64_t old_size = impl->fsize;
   bool rsh = false;
   if (impl->fsize == size) {
     return 0;
@@ -210,7 +210,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
       RCGO(rc, truncfail);
     }
     if (!rsh) {
-      impl->fsize = size;
+      impl->fsize = (uint64_t) size;
       rc = iwp_fallocate(impl->fh, size);
       RCGO(rc, truncfail);
       rc = _exfile_initmmap_lw(f);
@@ -224,7 +224,7 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
       RCGO(rc, truncfail);
     }
     if (!rsh) {
-      impl->fsize = size;
+      impl->fsize = (uint64_t) size;
       rc = _exfile_initmmap_lw(f);
       RCGO(rc, truncfail);
       rc = iwp_ftruncate(impl->fh, size);
@@ -246,7 +246,7 @@ IW_INLINE iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
     return 0;
   }
   off_t nsz = impl->rspolicy(sz, impl->fsize, f, &impl->rspolicy_ctx);
-  if (nsz < sz || (nsz & (impl->psize - 1))) {
+  if (nsz < sz || ((uint64_t) nsz & (impl->psize - 1))) {
     return IWFS_ERROR_RESIZE_POLICY_FAIL;
   }
   if (impl->maxoff && nsz > impl->maxoff) {
@@ -309,14 +309,14 @@ static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t
     }
     if (s->off > off) {
       len = MIN(wp, s->off - off);
-      rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), len, sp);
+      rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), (size_t) len, sp);
       RCGO(rc, finish);
       wp = wp - *sp;
       off = off + *sp;
     }
     if (wp > 0 && s->off <= off && s->off + s->len > off) {
       len = MIN(wp, s->off + s->len - off);
-      memcpy(s->mmap + (off - s->off), (const char *) buf + (siz - wp), len);
+      memcpy(s->mmap + (off - s->off), (const char *) buf + (siz - wp), (size_t) len);
       if (impl->dlsnr) {
         rc = impl->dlsnr->onwrite(impl->dlsnr, off - s->off, (const char *) buf + (siz - wp), len, 0);
         RCGO(rc, finish);
@@ -327,7 +327,7 @@ static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t
     s = s->next;
   }
   if (wp > 0) {
-    rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), wp, sp);
+    rc = impl->file.write(&impl->file, off, (const char *) buf + (siz - wp), (size_t) wp, sp);
     RCGO(rc, finish);
     wp = wp - *sp;
   }
@@ -355,7 +355,8 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
   impl = f->impl;
   s = impl->mmslots;
   if (end > impl->fsize) {
-    rp = siz = impl->fsize - off;
+    siz = (size_t) (impl->fsize - off);
+    rp = siz;
   }
   while (s && rp > 0) {
     if (!s->len || rp + off <= s->off) {
@@ -363,21 +364,21 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
     }
     if (s->off > off) {
       len = MIN(rp, s->off - off);
-      rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), len, sp);
+      rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), (size_t) len, sp);
       RCGO(rc, finish);
       rp = rp - *sp;
       off = off + *sp;
     }
     if (rp > 0 && s->off <= off && s->off + s->len > off) {
       len = MIN(rp, s->off + s->len - off);
-      memcpy((char *) buf + (siz - rp), s->mmap + (off - s->off), len);
+      memcpy((char *) buf + (siz - rp), s->mmap + (off - s->off), (size_t) len);
       rp -= len;
       off += len;
     }
     s = s->next;
   }
   if (rp > 0) {
-    rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), rp, sp);
+    rc = impl->file.read(&impl->file, off, (char *) buf + (siz - rp), (size_t) rp, sp);
     RCGO(rc, finish);
     rp = rp - *sp;
   }
@@ -391,7 +392,7 @@ finish:
 }
 
 static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
-  int rc = _exfile_rlock(f);
+  iwrc rc = _exfile_rlock(f);
   RCRET(rc);
   EXF *xf = f->impl;
   IWRC(xf->file.state(&xf->file, &state->file), rc);
@@ -401,7 +402,7 @@ static iwrc _exfile_state(struct IWFS_EXT *f, IWFS_EXT_STATE *state) {
 }
 
 static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) {
-  int rc = _exfile_rlock(f);
+  iwrc rc = _exfile_rlock(f);
   RCRET(rc);
   EXF *impl = f->impl;
   MMAPSLOT *s = impl->mmslots;
@@ -516,12 +517,12 @@ static iwrc _exfile_add_mmap(struct IWFS_EXT *f, off_t off, size_t maxlen, iwfs_
   rc = _exfile_wlock(f);
   RCRET(rc);
   EXF *impl = f->impl;
-  if (off & (impl->psize - 1)) {
+  if ((uint64_t) off & (impl->psize - 1)) {
     rc = IW_ERROR_NOT_ALIGNED;
     goto finish;
   }
   if (OFF_T_MAX - off < maxlen) {
-    maxlen = OFF_T_MAX - off;
+    maxlen = (size_t) (OFF_T_MAX - off);
   }
   tmp = IW_ROUNDUP(maxlen, impl->psize);
   if (tmp < maxlen || OFF_T_MAX - off < tmp) {
@@ -733,7 +734,7 @@ off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct IWFS_EXT *f, void
       return _exfile_default_szpolicy(nsize, csize, f, _ctx);
     }
   }
-  uint64_t res = csize + ctx->prev_sz;
+  uint64_t res = (uint64_t) csize + ctx->prev_sz;
   res = MAX(res, nsize);
   res = IW_ROUNDUP(res, f->impl->psize);
   if (res > OFF_T_MAX) {
@@ -754,7 +755,7 @@ off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT *f, void 
       "default resize policy");
     return _exfile_default_szpolicy(nsize, csize, f, _ctx);
   }
-  uint64_t ret = nsize;
+  uint64_t ret = (uint64_t) nsize;
   ret /= mul->dn;
   ret *= mul->n;
   ret = IW_ROUNDUP(ret, f->impl->psize);
@@ -852,7 +853,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
 
   if (impl->fsize < opts->initial_size) {
     rc = _exfile_truncate_lw(f, opts->initial_size);
-  } else if (impl->fsize & (impl->psize - 1)) {  // not a page aligned
+  } else if ((uint64_t) impl->fsize & (impl->psize - 1)) {  // not a page aligned
     rc = _exfile_truncate_lw(f, impl->fsize);
   }
 finish:
@@ -881,6 +882,8 @@ static const char *_exfile_ecodefn(locale_t locale, uint32_t ecode) {
              "(IWFS_ERROR_RESIZE_POLICY_FAIL)";
     case IWFS_ERROR_MAXOFF:
       return "Maximum file offset reached. (IWFS_ERROR_MAXOFF)";
+    default:
+      break;
   }
   return 0;
 }

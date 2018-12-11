@@ -17,72 +17,72 @@
 #include "iwcfg.h"
 
 // IWKV magic number
-#define IWKV_MAGIC 0x69776b76
+#define IWKV_MAGIC 0x69776b76U
 
 // IWKV file format version
 #define IWKV_FORMAT 1
 
 // IWDB magic number
-#define IWDB_MAGIC 0x69776462
+#define IWDB_MAGIC 0x69776462U
 
 #ifdef IW_32
 // Max database file size on 32 bit systems: 2Gb
-# define IWKV_MAX_DBSZ 0x7fffffff
+#define IWKV_MAX_DBSZ 0x7fffffff
 #else
 // Max database file size: ~512Gb
-# define IWKV_MAX_DBSZ 0x7fffffff80
+#define IWKV_MAX_DBSZ 0x7fffffff80ULL
 #endif
 
 // Size of KV fsm block as power of 2
-#define IWKV_FSM_BPOW 7
+#define IWKV_FSM_BPOW 7U
 
 #define IWKV_FSM_ALLOC_FLAGS (IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_STATS)
 
 // Length of KV fsm header in bytes
-#define KVHDRSZ 255
+#define KVHDRSZ 255U
 
 // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK
 
 // Number of skip list levels
-#define SLEVELS 24
+#define SLEVELS 24U
 
-#define AANUM (2 * SLEVELS + 2 /* levels + (new block created) + (db block may be updated) */)
+#define AANUM (2U * SLEVELS + 2 /* levels + (new block created) + (db block may be updated) */)
 
 // Lower key length in SBLK
-#define SBLK_LKLEN 116
+#define SBLK_LKLEN 116U
 
 // Lower key padding
 #define LKPAD 0
 
 // Size of database start block in bytes
-#define DB_SZ (2 * (1 << IWKV_FSM_BPOW))
+#define DB_SZ (2U * (1U << IWKV_FSM_BPOW))
 
 // Size of `SBLK` in bytes
-#define SBLK_SZ (2 * (1 << IWKV_FSM_BPOW))
+#define SBLK_SZ (2U * (1U << IWKV_FSM_BPOW))
 
 // Number of `KV` blocks in KVBLK
-#define KVBLK_IDXNUM 32
+#define KVBLK_IDXNUM 32U
 
 // Initial `KVBLK` size power of 2
-#define KVBLK_INISZPOW 9
+#define KVBLK_INISZPOW 9U
 
 // KVBLK header size: blen:u1,idxsz:u2
-#define KVBLK_HDRSZ 3
+#define KVBLK_HDRSZ 3U
 
 // Max kvp offset bytes
-#define KVP_MAX_OFF_VLEN 8
+#define KVP_MAX_OFF_VLEN 8U
 
 // Max kvp len 0xfffffffULL bytes
-#define KVP_MAX_LEN_VLEN 5
+#define KVP_MAX_LEN_VLEN 5U
 
 #define KVBLK_MAX_IDX_SZ ((KVP_MAX_OFF_VLEN + KVP_MAX_LEN_VLEN) * KVBLK_IDXNUM)
 
 // Max non KV size [blen:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps63,pl63]
 #define KVBLK_MAX_NKV_SZ (KVBLK_HDRSZ + KVBLK_MAX_IDX_SZ)
 
-#define ADDR2BLK(addr_) ((addr_) >> IWKV_FSM_BPOW)
+#define ADDR2BLK(addr_) ((blkn_t) (((uint64_t)(addr_)) >> IWKV_FSM_BPOW))
 
-#define BLK2ADDR(blk_) (((off_t) (blk_)) << IWKV_FSM_BPOW)
+#define BLK2ADDR(blk_) (((uint64_t) (blk_)) << IWKV_FSM_BPOW)
 
 struct _IWKV;
 struct _IWDB;
@@ -105,14 +105,32 @@ typedef struct KVP {
   uint8_t ridx;   /**< Position of the auctually persisted slot in `KVBLK` */
 } KVP;
 
-typedef enum {
-  KVBLK_DURTY = 1 /**< KVBLK data is durty and should be flushed to mm */
-} kvblk_flags_t;
+typedef uint8_t kvblk_flags_t;
+#define KVBLK_DEFAULT       ((kvblk_flags_t) 0x00U)
+/** KVBLK data is durty and should be flushed to mm */
+#define KVBLK_DURTY         ((kvblk_flags_t) 0x01U)
 
-typedef enum {
-  RMKV_SYNC = 1,
-  RMKV_NO_RESIZE = 1 << 1
-} kvblk_rmkv_opts_t;
+typedef uint8_t kvblk_rmkv_opts_t;
+#define RMKV_SYNC           ((kvblk_rmkv_opts_t) 0x01U)
+#define RMKV_NO_RESIZE      ((kvblk_rmkv_opts_t) 0x02U)
+
+typedef uint8_t sblk_flags_t;
+/** The lowest `SBLK` key is fully contained in `SBLK`. Persistent flag. */
+#define SBLK_FULL_LKEY      ((sblk_flags_t) 0x01U)
+/** This block is the start database block. */
+#define SBLK_DB             ((sblk_flags_t) 0x08U)
+/** Block data changed, block marked as durty and needs to be persisted */
+#define SBLK_DURTY          ((sblk_flags_t) 0x10U)
+/** Put this `SBLK` into dbcache */
+#define SBLK_CACHE_PUT      ((sblk_flags_t) 0x20U)
+#define SBLK_CACHE_UPDATE   ((sblk_flags_t) 0x40U)
+#define SBLK_CACHE_REMOVE   ((sblk_flags_t) 0x80U)
+
+typedef uint8_t iwlctx_op_t;
+/** Put key value operation */
+#define IWLCTX_PUT          ((iwlctx_op_t) 0x01U)
+/** Delete key operation */
+#define IWLCTX_DEL          ((iwlctx_op_t) 0x01U)
 
 /* KVBLK: [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] */
 typedef struct KVBLK {
@@ -126,15 +144,6 @@ typedef struct KVBLK {
   KVP pidx[KVBLK_IDXNUM];     /**< KV pairs index */
 } KVBLK;
 
-typedef enum {
-  SBLK_FULL_LKEY    = 1,       /**< The lowest `SBLK` key is fully contained in `SBLK`. Persistent flag. */
-  SBLK_DB           = 1 << 3,  /**< This block is the start database block. */
-  SBLK_DURTY        = 1 << 4,  /**< Block data changed, block marked as durty and needs to be persisted */
-  SBLK_CACHE_PUT    = 1 << 5,  /**< Put this `SBLK` into dbcache */
-  SBLK_CACHE_UPDATE = 1 << 6,
-  SBLK_CACHE_REMOVE = 1 << 7
-} sblk_flags_t;
-
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
 #define SBLK_CACHE_FLAGS (SBLK_CACHE_UPDATE | SBLK_CACHE_PUT | SBLK_CACHE_REMOVE)
 
@@ -143,13 +152,13 @@ typedef enum {
 #define IWDB_UINT_KEYS_FLAGS (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)
 
 // Number of top levels to cache (~ (1<<DBCACHE_LEVELS) cached elements)
-#define DBCACHE_LEVELS 10
+#define DBCACHE_LEVELS 10U
 
 // Minimal cached level
-#define DBCACHE_MIN_LEVEL 5
+#define DBCACHE_MIN_LEVEL 5U
 
 // Single allocation step - number of DBCNODEs
-#define DBCACHE_ALLOC_STEP 32
+#define DBCACHE_ALLOC_STEP 32U
 
 /** Cached SBLK node */
 typedef struct DBCNODE {
@@ -164,6 +173,7 @@ typedef struct DBCNODE {
 
 #define DBCNODE_NUM_SZ 20
 #define DBCNODE_STR_SZ 128
+
 static_assert(DBCNODE_NUM_SZ >= offsetof(DBCNODE, lk) + sizeof(uint64_t),
               "DBCNODE_NUM_SZ >= offsetof(DBCNODE, lk) + sizeof(uint64_t)");
 static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
@@ -196,8 +206,8 @@ struct _IWDB {
   IWKV iwkv;
   DBCACHE cache;                  /**< SBLK nodes cache */
   pthread_rwlock_t rwl;           /**< Database API RW lock */
-  pthread_spinlock_t cursors_slk;  /**< Cursors set guard lock */
-  uint64_t next_db_addr;          /**< Next IWDB addr */
+  pthread_spinlock_t cursors_slk; /**< Cursors set guard lock */
+  off_t next_db_addr;             /**< Next IWDB addr */
   struct _IWKV_cursor *cursors;   /**< Active (currently in-use) database cursors */
   struct _IWDB *next;             /**< Next IWDB meta */
   struct _IWDB *prev;             /**< Prev IWDB meta */
@@ -223,9 +233,9 @@ typedef struct SBLK {
   // !SBH
   KVBLK *kvblk;               /**< Associated KVBLK */
   blkn_t kvblkn;              /**< Associated KVBLK block number */
-  int8_t lkl;                 /**< Lower key length within a buffer */
   int8_t pnum;                /**< Number of active kv indexes in `SBLK::pi` */
-  int8_t pi[KVBLK_IDXNUM];    /**< Sorted KV slots, value is an index of kv slot in `KVBLK` */
+  uint8_t lkl;                /**< Lower key length within a buffer */
+  uint8_t pi[KVBLK_IDXNUM];    /**< Sorted KV slots, value is an index of kv slot in `KVBLK` */
   uint8_t lk[SBLK_LKLEN];     /**< Lower key buffer */
 } SBLK;
 
@@ -248,11 +258,6 @@ struct _IWKV {
   volatile bool wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWKV */
   atomic_bool open;           /**< True if kvstore is in OPEN state */
 };
-
-typedef enum {
-  IWLCTX_PUT = 1,             /**< Put key value operation */
-  IWLCTX_DEL = 1 << 1,        /**< Delete key operation */
-} iwlctx_op_t;
 
 /** Database lookup context */
 typedef struct IWLCTX {
@@ -278,9 +283,11 @@ typedef struct IWLCTX {
   void *phop;                 /**< Put handler opaque data */
   SBLK *plower[SLEVELS];      /**< Pinned lower nodes per level */
   SBLK *pupper[SLEVELS];      /**< Pinned upper nodes per level */
+  IWKV_val ekey;
   SBLK dblk;                  /**< First database block */
   SBLK saa[AANUM];            /**< `SBLK` allocation area */
   KVBLK kaa[AANUM];           /**< `KVBLK` allocation area */
+  uint8_t nbuf[IW_VNUMBUFSZ];
   uint8_t incbuf[8];          /**< Buffer used to store incremented/decremented values `IWKV_VAL_INCREMENT` opflag */
 } IWLCTX;
 
@@ -296,14 +303,14 @@ struct _IWKV_cursor {
 
 #define ENSURE_OPEN(iwkv_) \
   if (!(iwkv_) || !((iwkv_)->open)) return IW_ERROR_INVALID_STATE; \
-  if ((iwkv_)->fatalrc) return iwkv_->fatalrc
+  if ((iwkv_)->fatalrc) return (iwkv_)->fatalrc
 
 #define ENSURE_OPEN_DB(db_) \
   if (!(db_) || !(db_)->iwkv || !(db_)->open || !((db_)->iwkv->open)) return IW_ERROR_INVALID_STATE
 
 #define API_RLOCK(iwkv_, rci_) \
   ENSURE_OPEN(iwkv_);  \
-  rci_ = pthread_rwlock_rdlock(&(iwkv_)->rwl); \
+  (rci_) = pthread_rwlock_rdlock(&(iwkv_)->rwl); \
   if (rci_) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_)
 
 IW_INLINE iwrc _api_rlock(IWKV iwkv)  {
@@ -314,7 +321,7 @@ IW_INLINE iwrc _api_rlock(IWKV iwkv)  {
 
 #define API_WLOCK(iwkv_, rci_) \
   ENSURE_OPEN(iwkv_);  \
-  rci_ = pthread_rwlock_wrlock(&(iwkv_)->rwl); \
+  (rci_) = pthread_rwlock_wrlock(&(iwkv_)->rwl); \
   if (rci_) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_)
 
 IW_INLINE iwrc _api_wlock(IWKV iwkv)  {
@@ -330,7 +337,7 @@ IW_INLINE iwrc _api_wlock(IWKV iwkv)  {
 #define API_DB_RLOCK(db_, rci_)                               \
   do {                                                        \
     API_RLOCK((db_)->iwkv, rci_);                             \
-    rci_ = pthread_rwlock_rdlock(&(db_)->rwl);                \
+    (rci_) = pthread_rwlock_rdlock(&(db_)->rwl);                \
     if (rci_) {                                               \
       pthread_rwlock_unlock(&(db_)->iwkv->rwl);               \
       return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_);  \
@@ -346,7 +353,7 @@ IW_INLINE iwrc _api_db_rlock(IWDB db)  {
 #define API_DB_WLOCK(db_, rci_)                               \
   do {                                                        \
     API_RLOCK((db_)->iwkv, rci_);                             \
-    rci_ = pthread_rwlock_wrlock(&(db_)->rwl);                \
+    (rci_) = pthread_rwlock_wrlock(&(db_)->rwl);                \
     if (rci_) {                                               \
       pthread_rwlock_unlock(&(db_)->iwkv->rwl);               \
       return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_);  \
@@ -361,7 +368,7 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 
 #define API_DB_UNLOCK(db_, rci_, rc_)                                     \
   do {                                                                    \
-    rci_ = pthread_rwlock_unlock(&(db_)->rwl);                            \
+    (rci_) = pthread_rwlock_unlock(&(db_)->rwl);                            \
     if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_);  \
     API_UNLOCK((db_)->iwkv, rci_, rc_);                                   \
   } while(0)
