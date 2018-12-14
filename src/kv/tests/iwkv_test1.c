@@ -42,7 +42,7 @@ struct Test5DUP1 {
   bool _10v;
 };
 
-static bool _test5dup5visitor(uint64_t dv, void *op) {
+static int64_t _test5dup5visitor(uint64_t dv, int64_t idx, void *op) {
   CU_ASSERT_PTR_NOT_NULL_FATAL(op);
   struct Test5DUP1 *s = op;
   switch (dv) {
@@ -59,7 +59,7 @@ static bool _test5dup5visitor(uint64_t dv, void *op) {
       CU_FAIL("Invalid dup value");
       break;
   }
-  return false;
+  return 1;
 }
 
 static void iwkv_test5(void) {

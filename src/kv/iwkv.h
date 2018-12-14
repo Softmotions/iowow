@@ -528,7 +528,7 @@ IW_EXPORT iwrc iwkv_cursor_dup_contains(IWKV_cursor cur, uint64_t dv, bool *out)
  * @param down Iteration direction
  */
 IW_EXPORT iwrc iwkv_cursor_dup_iter(IWKV_cursor cur,
-                                    bool(*visitor)(uint64_t dv, void *opaq),
+                                    int64_t (*visitor)(uint64_t dv, int64_t idx, void *opaq),
                                     void *opaq,
                                     const uint64_t *start,
                                     bool down);

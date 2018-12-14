@@ -4157,7 +4157,7 @@ finish:
 }
 
 iwrc iwkv_cursor_dup_iter(IWKV_cursor cur,
-                          bool(*visitor)(uint64_t dv, void *opaq),
+                          int64_t (*visitor)(uint64_t dv, int64_t idx, void *opaq),
                           void *opaq,
                           const uint64_t *start,
                           bool down) {
@@ -4170,7 +4170,7 @@ iwrc iwkv_cursor_dup_iter(IWKV_cursor cur,
   int rci;
   iwrc rc;
   API_DB_RLOCK(cur->lx.db, rci);
-  off_t sidx;
+  int64_t sidx;
   uint32_t num;
   uint8_t *rp, *mm = 0;
   uint8_t idx = (uint8_t) cur->cn->pi[cur->cnpos];
@@ -4211,25 +4211,31 @@ iwrc iwkv_cursor_dup_iter(IWKV_cursor cur,
   } else {
     sidx = down ? num - 1 : 0;
   }
-#define _VBODY                    \
-  uint64_t dv;                    \
-  uint8_t *np = rp + sidx * elsz; \
-  if (elsz < 8) {                 \
-    uint32_t lv;                  \
-    memcpy(&lv, np, elsz);        \
-    dv = IW_ITOHL(lv);            \
-  } else {                        \
-    memcpy(&dv, np, elsz);        \
-    dv = IW_ITOHLL(dv);           \
-  }                               \
-  if (visitor(dv, opaq)) break;
-  // !_VBODY
+#define _VBODY                                  \
+  uint64_t dv;                                  \
+  uint8_t *np = rp + sidx * elsz;               \
+  if (elsz < 8) {                               \
+    uint32_t lv;                                \
+    memcpy(&lv, np, elsz);                      \
+    dv = IW_ITOHL(lv);                          \
+  } else {                                      \
+    memcpy(&dv, np, elsz);                      \
+    dv = IW_ITOHLL(dv);                         \
+  }                                             \
+  int64_t step = visitor(dv, sidx, opaq);       \
+  if (step) {                                   \
+    if (down) sidx -= step; else sidx += step;  \
+  } else {                                      \
+    break;                                      \
+  }
+// !_VBODY
+
   if (down) {
-    for (; sidx >= 0; --sidx) {
+    while (sidx >= 0) {
       _VBODY
     }
   } else {
-    for (; sidx < num; ++sidx) {
+    while (sidx < num) {
       _VBODY
     }
   }

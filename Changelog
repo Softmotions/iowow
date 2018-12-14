@@ -12,6 +12,7 @@ iowow (1.2.15) UNRELEASED; urgency=medium
   * Added support of variable-length encoded integer keys `IWDB_VNUM64_KEYS` (iwkv.h)
   * Added support of transparent big-endian/low-endian conversion for integer keys `IWDB_UINT32_KEYS`, `IWDB_UINT64_KEYS`
   * Code cleanup and refactoring
+  * More flexible iwkv_cursor_dup_iter() api implementation (iwkv.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Fri, 09 Nov 2018 00:57:42 +0700
 
