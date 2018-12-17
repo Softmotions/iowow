@@ -1,5 +1,6 @@
 #include "iwkv_internal.h"
 #include "iwconv.h"
+#include "iwkv_dup.h"
 
 static iwrc _dbcache_fill_lw(IWLCTX *lx);
 static iwrc _dbcache_get(IWLCTX *lx);
@@ -1103,33 +1104,22 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   bool compacted = false;
   IWDLSNR *dlsnr = kb->db->iwkv->dlsnr;
   IWKV_val *uval = (IWKV_val *) val, sval;
-  off_t psz = IW_VNUMSIZE(key->size) + key->size + uval->size; // required KVP size
+  off_t psz = IW_VNUMSIZE(key->size) + key->size;
 
   if (kb->zidx < 0) {
     return _IWKV_RC_KVBLOCK_FULL;
   }
-  // DUP
   if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
     if (opflags & IWKV_DUP_REMOVE) {
       return IWKV_ERROR_NOTFOUND;
     }
-    if (((db->dbflg & IWDB_DUP_UINT32_VALS) && val->size != 4) ||
-        ((db->dbflg & IWDB_DUP_UINT64_VALS) && val->size != 8)) {
-      return IWKV_ERROR_DUP_VALUE_SIZE;
+    rc = iwkv_dup_init(val, &sval);
+    RCRET(rc);
+    if (sval.size) {
+      uval = &sval;
     }
-    uint32_t lv = 1;
-    uint8_t vbuf[8];
-    _num2lebuf(vbuf, val->data, val->size);
-    uval = &sval;
-    uval->data = malloc(4 + val->size);
-    uval->size = 4 + val->size;
-    psz += 4;
-    lv = IW_HTOIL(lv);
-    wp = uval->data;
-    memcpy(wp, &lv, 4);
-    memcpy(wp + 4, vbuf, val->size);
   }
-  // !DUP
+  psz += uval->size;
   if (psz > IWKV_MAX_KVSZ) {
     if (uval != val) {
       _kv_val_dispose(uval);
