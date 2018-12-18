@@ -74,8 +74,6 @@ typedef enum {
   IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED, /**< Stored value cannot be incremented/descremented (IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED) */
   _IWKV_ERROR_END,
 
-  IWKV_RC_DUP_ARRAY_EMPTY,            /**< Returned by `iwkv_put()` when for dup arrays if opflags contains
-                                          `IWKV_DUP_REPORT_EMPTY` */
   // Internal only
   _IWKV_RC_KVBLOCK_FULL,
   _IWKV_RC_REQUIRE_NLEVEL,
@@ -96,10 +94,6 @@ typedef uint8_t iwdb_flags_t;
 #define IWDB_UINT32_KEYS      ((iwdb_flags_t) 0x01U)
 /** Database keys are 64bit unsigned integers */
 #define IWDB_UINT64_KEYS      ((iwdb_flags_t) 0x02U)
-/** Record key value is an array of sorted uint32 values */
-#define IWDB_DUP_UINT32_VALS  ((iwdb_flags_t) 0x04U)
-/** Record key value is an array of sorted uint64 values */
-#define IWDB_DUP_UINT64_VALS  ((iwdb_flags_t) 0x08U)
 /** Floating point number keys represented as string (char*) value. */
 #define IWDB_REALNUM_KEYS     ((iwdb_flags_t) 0x10U)
 /** Variable-length number keys */
@@ -112,16 +106,8 @@ typedef uint8_t iwkv_opflags;
    `IWKV_ERROR_KEY_EXISTS` will be returned in such cases. */
 #define IWKV_NO_OVERWRITE       ((iwkv_opflags) 0x01U)
 
-/** Remove value from duplicated values array.
-    Usable only for IWDB_DUP_<XXX> DB database modes */
-#define IWKV_DUP_REMOVE         ((iwkv_opflags) 0x02U)
-
 /** Flush changes on disk after operation */
 #define IWKV_SYNC               ((iwkv_opflags) 0x04U)
-
-/** Used with `IWKV_DUP_REMOVE` if dup array will be empty as result of
-    put operation `IWKV_RC_DUP_ARRAY_EMPTY` code will be returned  */
-#define IWKV_DUP_REPORT_EMPTY   ((iwkv_opflags) 0x08U)
 
 /** Increment/decrement stored UINT32|UINT64 value by given INT32|INT64 number
     `IWKV_ERROR_KEY_EXISTS` does not makes sense if this flag set. */
@@ -283,9 +269,6 @@ IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
  * iwkv_opflags opflags:
  * - `IWKV_NO_OVERWRITE` If a key is already exists the `IWKV_ERROR_KEY_EXISTS` error will returned.
  * - `IWKV_SYNC` Flush changes on disk after operation
- * - `IWKV_DUP_REMOVE` Remove value from duplicated values array. Usable only for IWDB_DUP_XXX DB database modes.
- * - `IWKV_DUP_REPORT_EMPTY` Used with `IWKV_DUP_REMOVE` if dup array will be empty as result of
-                             put operation `IWKV_RC_DUP_ARRAY_EMPTY` code will be returned.
  *
  * @note `iwkv_put()` adds a new value to sorted values array for existing keys if
  * database created with `IWDB_DUP_UINT32_VALS`|`IWDB_DUP_UINT64_VALS` flags
@@ -471,7 +454,6 @@ IW_EXPORT iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, 
  * iwkv_opflags opflags:
  * - `IWKV_NO_OVERWRITE` If a key is already exists the `IWKV_ERROR_KEY_EXISTS` error will returned.
  * - `IWKV_SYNC` Flush changes on disk after operation
- * - `IWKV_DUP_REMOVE` Remove value from duplicated values array. Usable only for IWDB_DUP_XXX DB database modes.
  *
  * @note `iwkv_cursor_set()` adds a new value to sorted values array for existing keys if
  * database created with `IWDB_DUP_UINT32_VALS`|`IWDB_DUP_UINT64_VALS` flags
@@ -482,56 +464,6 @@ IW_EXPORT iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, 
  */
 IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags);
 
-/**
- * @brief Get length of value array at the current cursor position.
- * @note Usable only for `IWDB_DUP_UINT32_VALS`|`IWDB_DUP_UINT64_VALS` database modes.
- *
- * @param cur Opened cursor object
- * @param [out] onum Output number
- */
-IW_EXPORT iwrc iwkv_cursor_dup_num(IWKV_cursor cur, uint32_t *onum);
-
-/**
- * @brief Add element to value array at current cursor position.
- * @note Usable only for `IWDB_DUP_UINT32_VALS`|`IWDB_DUP_UINT64_VALS` database modes.
- *
- * @param cur Opened cursor object
- * @param dv Number to be added
- */
-IW_EXPORT iwrc iwkv_cursor_dup_add(IWKV_cursor cur, uint64_t dv);
-
-/**
- * @brief Remove element from value array at current cursor position.
- * @note Usable only for `IWDB_DUP_UINT32_VALS`|`IWDB_DUP_UINT64_VALS` database modes.
- *
- * @param cur Opened cursor object
- * @param dv Number to be removed
- */
-IW_EXPORT iwrc iwkv_cursor_dup_rm(IWKV_cursor cur, uint64_t dv);
-
-/**
- * @brief Test if given number contains in value array at current cursor position.
- *
- * @param cur Opened cursor object
- * @param dv Value to test
- * @param [out] out Boolean result
- */
-IW_EXPORT iwrc iwkv_cursor_dup_contains(IWKV_cursor cur, uint64_t dv, bool *out);
-
-/**
- * @brief Iterate over all elements in array of numbers at current cursor position.
- *
- * @param cur Opened cursor
- * @param visitor Elements visitor function
- * @param opaq Opaque data passed to visitor function
- * @param start Optional pointer to number iteration will start from
- * @param down Iteration direction
- */
-IW_EXPORT iwrc iwkv_cursor_dup_iter(IWKV_cursor cur,
-                                    int64_t (*visitor)(uint64_t dv, int64_t idx, void *opaq),
-                                    void *opaq,
-                                    const uint64_t *start,
-                                    bool down);
 /**
  * @brief Close cursor object.
  * @param cur Opened cursor
