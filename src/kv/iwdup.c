@@ -1,6 +1,6 @@
 #include "iwcfg.h"
 #include "iwutils.h"
-#include "iwkv_dup.h"
+#include "iwdup.h"
 
 iwrc iwkv_dup_init(const IWKV_val *val, IWKV_val *uval) {
   size_t len;
@@ -25,7 +25,7 @@ iwrc iwkv_dup_init(const IWKV_val *val, IWKV_val *uval) {
   return 0;
 }
 
-iwrc iwkv_dup_update(const IWKV_val *val, iwkv_opflags opflags, IWKV_val *uval) {
+iwrc iwkv_dup_update(uint8_t *vp, size_t vlen, iwkv_opflags opflags, IWKV_val *uval) {
   iwrc rc = 0;
 
   return rc;

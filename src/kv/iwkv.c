@@ -1,6 +1,6 @@
 #include "iwkv_internal.h"
 #include "iwconv.h"
-#include "iwkv_dup.h"
+#include "iwdup.h"
 
 static iwrc _dbcache_fill_lw(IWLCTX *lx);
 static iwrc _dbcache_get(IWLCTX *lx);
