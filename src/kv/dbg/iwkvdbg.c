@@ -71,20 +71,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
           sb->p0,
           sb->kvblk->db->id);
 
-
-  if (sb->db->dbflg & IWDB_UINT64_KEYS) {
-    uint64_t k;
-    memcpy(&k, lkbuf, sizeof(k));
-    k = IW_ITOHLL(k);
-    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%" PRIu64 "\n", blkn, sb->kvblk->szpow, lkl, k);
-  } else if (sb->db->dbflg & IWDB_UINT32_KEYS) {
-    uint32_t k;
-    memcpy(&k, lkbuf, sizeof(k));
-    k = IW_ITOHL(k);
-    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%u\n", blkn, sb->kvblk->szpow, lkl, k);
-  } else {
-    fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow,  lkl, lkbuf);
-  }
+  fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow, lkl, lkbuf);
 
   for (int i = 0, j = 0; i < sb->pnum; ++i, ++j) {
     if (j == 3) {
@@ -101,33 +88,9 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     }
     if (flags & IWKVD_PRINT_VALS) {
       _kvblk_peek_val(sb->kvblk, sb->pi[i], mm, &vbuf, &vlen);
-      if (sb->db->dbflg & IWDB_UINT64_KEYS) {
-        uint64_t k;
-        memcpy(&k, kbuf, sizeof(k));
-        k = IW_ITOHLL(k);
-        fprintf(f, "    [%03d,%03d] %" PRIu64 ":%.*s", i, sb->pi[i], k, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
-      } else if (sb->db->dbflg & IWDB_UINT32_KEYS) {
-        uint32_t k;
-        memcpy(&k, kbuf, sizeof(k));
-        k = IW_ITOHL(k);
-        fprintf(f, "    [%03d,%03d] %u:%.*s", i, sb->pi[i], k, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
-      } else {
-        fprintf(f, "    [%03d,%03d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
-      }
+      fprintf(f, "    [%03d,%03d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
     } else {
-      if (sb->db->dbflg & IWDB_UINT64_KEYS) {
-        uint64_t k;
-        memcpy(&k, kbuf, sizeof(k));
-        k = IW_ITOHLL(k);
-        fprintf(f, "    [%03d,%03d] %" PRIu64, i, sb->pi[i], k);
-      } else if (sb->db->dbflg & IWDB_UINT32_KEYS) {
-        uint32_t k;
-        memcpy(&k, kbuf, sizeof(k));
-        k = IW_ITOHL(k);
-        fprintf(f, "    [%03d,%03d] %u", i, sb->pi[i], k);
-      } else {
-        fprintf(f, "    [%03d,%03d] %.*s", i, sb->pi[i], klen, kbuf);
-      }
+      fprintf(f, "    [%03d,%03d] %.*s", i, sb->pi[i], klen, kbuf);
     }
   }
   fprintf(f, "\n\n");

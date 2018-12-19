@@ -90,10 +90,6 @@ typedef uint8_t iwkv_openflags;
 
 /** Database initialization modes */
 typedef uint8_t iwdb_flags_t;
-/** Database keys are 32bit unsigned integers */
-#define IWDB_UINT32_KEYS      ((iwdb_flags_t) 0x01U)
-/** Database keys are 64bit unsigned integers */
-#define IWDB_UINT64_KEYS      ((iwdb_flags_t) 0x02U)
 /** Floating point number keys represented as string (char*) value. */
 #define IWDB_REALNUM_KEYS     ((iwdb_flags_t) 0x10U)
 /** Variable-length number keys */

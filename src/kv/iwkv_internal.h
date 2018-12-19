@@ -149,8 +149,6 @@ typedef struct KVBLK {
 
 #define IWDB_DUP_FLAGS (IWDB_DUP_UINT32_VALS | IWDB_DUP_UINT64_VALS)
 
-#define IWDB_UINT_KEYS_FLAGS (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)
-
 // Number of top levels to cache (~ (1<<DBCACHE_LEVELS) cached elements)
 #define DBCACHE_LEVELS 10U
 
@@ -171,11 +169,11 @@ typedef struct DBCNODE {
   uint8_t lk[1];              /**< Lower key buffer */
 } DBCNODE;
 
-#define DBCNODE_NUM_SZ 20
+#define DBCNODE_VNUM_SZ 24
 #define DBCNODE_STR_SZ 128
 
-static_assert(DBCNODE_NUM_SZ >= offsetof(DBCNODE, lk) + sizeof(uint64_t),
-              "DBCNODE_NUM_SZ >= offsetof(DBCNODE, lk) + sizeof(uint64_t)");
+static_assert(DBCNODE_VNUM_SZ >= offsetof(DBCNODE, lk) + IW_VNUMBUFSZ,
+              "DBCNODE_VNUM_SZ >= offsetof(DBCNODE, lk) + sizeof(uint64_t)");
 static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
               "DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN");
 

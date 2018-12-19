@@ -1,6 +1,5 @@
 #include "iwkv_internal.h"
 #include "iwconv.h"
-#include "iwdup.h"
 
 static iwrc _dbcache_fill_lw(IWLCTX *lx);
 static iwrc _dbcache_get(IWLCTX *lx);
@@ -24,30 +23,7 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
                                       uint8_t nbuf[static IW_VNUMBUFSZ]) {
   static_assert(IW_VNUMBUFSZ >= sizeof(uint64_t), "IW_VNUMBUFSZ >= sizeof(uint64_t)");
   iwdb_flags_t dbflg = db->dbflg;
-  if (dbflg & (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)) {
-#ifdef IW_BIGENDIAN
-    if (dbflg & IWDB_UINT32_KEYS) {
-      uint32_t lv;
-      if (key->size != sizeof(lv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-      memcpy(&lv, key->data, sizeof(lv));
-      lv = IW_HTOIL(lv);
-      memcpy(nbuf, &lv, sizeof(lv));
-      okey->size = sizeof(lv);
-      okey->data = nbuf;
-    } else if (dbflg & IWDB_UINT64_KEYS) {
-      uint64_t llv;
-      if (key->size != sizeof(llv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-      memcpy(&llv, key->data, sizeof(llv));
-      llv = IW_HTOILL(llv);
-      memcpy(nbuf, &llv, sizeof(llv));
-      okey->size = sizeof(llv);
-      okey->data = nbuf;
-    }
-#else
-    okey->data = key->data;
-    okey->size = key->size;
-#endif
-  } else if (dbflg & IWDB_VNUM64_KEYS) {
+  if (dbflg & IWDB_VNUM64_KEYS) {
     unsigned len;
     if (key->size == 8) {
       uint64_t llv;
@@ -73,26 +49,10 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
   return 0;
 }
 
+// NOTE: assument at least sizeof(uint64_t) must be allocated for key->data
 iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
   iwdb_flags_t dbflg = db->dbflg;
-  if (dbflg & (IWDB_UINT32_KEYS | IWDB_UINT64_KEYS)) {
-#ifdef IW_BIGENDIAN
-    if (dbflg & IWDB_UINT32_KEYS) {
-      uint32_t lv;
-      if (key->size != sizeof(lv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-      memcpy(&lv, key->data, sizeof(lv));
-      lv = IW_ITOHL(lv);
-      memcpy(key->data, &lv, sizeof(lv));
-    } else if (dbflg & IWDB_UINT64_KEYS) {
-      uint64_t llv;
-      if (key->size != sizeof(llv)) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-      memcpy(&llv, key->data, sizeof(llv));
-      llv = IW_ITOHLL(llv);
-      memcpy(key->data, &llv, sizeof(llv));
-    }
-#endif
-  } else if (dbflg & IWDB_VNUM64_KEYS) {
-    // NOTE: assument at least sizeof(uint64_t) allocated for key->data
+  if (dbflg & IWDB_VNUM64_KEYS) {
     int64_t llv;
     char nbuf[IW_VNUMBUFSZ];
     if (key->size > IW_VNUMBUFSZ) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
@@ -105,33 +65,17 @@ iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
 }
 
 IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
-  if (dbflg & (IWDB_UINT64_KEYS | IWDB_UINT32_KEYS | IWDB_VNUM64_KEYS)) {
-    if (dbflg & IWDB_UINT64_KEYS) {
-      uint64_t n1, n2;
-      memcpy(&n1, v1, v1len);
-      n1 = IW_ITOHLL(n1);
-      memcpy(&n2, v2, v2len);
-      n2 = IW_ITOHLL(n2);
-      return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
-    } else if (dbflg & IWDB_UINT32_KEYS) {
-      uint32_t n1, n2;
-      memcpy(&n1, v1, v1len);
-      n1 = IW_ITOHL(n1);
-      memcpy(&n2, v2, v2len);
-      n2 = IW_ITOHL(n2);
-      return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
-    } else if (dbflg & IWDB_VNUM64_KEYS) {
-      if (v2len - v1len || v2len > 8 || v1len > 8) {
-        return v2len - v1len;
-      }
-      int64_t n1, n2;
-      char vbuf[IW_VNUMBUFSZ];
-      memcpy(vbuf, v1, v1len);
-      IW_READVNUMBUF64_2(vbuf, n1);
-      memcpy(vbuf, v2, v2len);
-      IW_READVNUMBUF64_2(vbuf, n2);
-      return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
+  if (dbflg & IWDB_VNUM64_KEYS) {
+    if (v2len - v1len || v2len > 8 || v1len > 8) {
+      return v2len - v1len;
     }
+    int64_t n1, n2;
+    char vbuf[IW_VNUMBUFSZ];
+    memcpy(vbuf, v1, v1len);
+    IW_READVNUMBUF64_2(vbuf, n1);
+    memcpy(vbuf, v2, v2len);
+    IW_READVNUMBUF64_2(vbuf, n2);
+    return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
     return 0;
   } else if (dbflg & IWDB_REALNUM_KEYS) {
     return iwafcmp(v2, v2len, v1, v1len);
@@ -142,7 +86,7 @@ IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const voi
 
 IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
   int rv = _cmp_key2(dbflg, v1, v1len, v2, v2len);
-  if (!rv && !(dbflg & (IWDB_UINT64_KEYS | IWDB_UINT32_KEYS | IWDB_VNUM64_KEYS))) {
+  if (!rv && !(dbflg & IWDB_VNUM64_KEYS)) {
     return v2len - v1len;
   } else {
     return rv;
@@ -1109,21 +1053,8 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   if (kb->zidx < 0) {
     return _IWKV_RC_KVBLOCK_FULL;
   }
-//  if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
-//    if (opflags & IWKV_DUP_REMOVE) {
-//      return IWKV_ERROR_NOTFOUND;
-//    }
-//    rc = iwkv_dup_init(val, &sval);
-//    RCRET(rc);
-//    if (sval.size) {
-//      uval = &sval;
-//    }
-//  }
   psz += uval->size;
   if (psz > IWKV_MAX_KVSZ) {
-//    if (uval != val) {
-//      _kv_val_dispose(uval);
-//    }
     return IWKV_ERROR_MAXKVSZ;
   }
 
@@ -1243,125 +1174,6 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
   RCRET(rc);
   assert(freesz >= 0);
 
-  // DUP
-//  if (!internal && (db->dbflg & IWDB_DUP_FLAGS)) {
-//    if (((db->dbflg & IWDB_DUP_UINT32_VALS) && val->size != 4) ||
-//        ((db->dbflg & IWDB_DUP_UINT64_VALS) && val->size != 8)) {
-//      rc = IWKV_ERROR_DUP_VALUE_SIZE;
-//      goto finish;
-//    }
-//    _kvblk_peek_val(kb, pidx, mm, &wp, &len);
-//    if (len < 4) {
-//      rc = IWKV_ERROR_CORRUPTED;
-//      iwlog_ecode_error3(rc);
-//      goto finish;
-//    }
-//    sp = wp;
-//    memcpy(&sz, wp, 4); // number of elements
-//    sz = IW_ITOHL(sz);
-//    wp += 4;
-//    if (len < 4 + sz * val->size) {
-//      // kv capacity is less than reported number of items (sz)
-//      rc = IWKV_ERROR_CORRUPTED;
-//      iwlog_ecode_error3(rc);
-//      goto finish;
-//    }
-//    uint8_t vbuf[8];
-//    size_t avail = len - (4 /* num items */ + sz * val->size);
-//    _num2lebuf(vbuf, val->data, val->size);
-//
-//    if (opflags & IWKV_DUP_REMOVE) {
-//      if (!sz) {
-//        rc = IWKV_ERROR_NOTFOUND;
-//        goto finish;
-//      }
-//      off_t idx = iwarr_sorted_remove(wp, sz, val->size, vbuf, val->size > 4 ? _u8cmp : _u4cmp);
-//      if (idx < 0) {
-//        rc = IWKV_ERROR_NOTFOUND;
-//        goto finish;
-//      }
-//      if (dlsnr && idx < sz - 1) {
-//        rc = dlsnr->oncopy(dlsnr,
-//                           wp - mm + (idx + 1) * val->size,  // off
-//                           (sz - idx - 1) * val->size,       // len
-//                           wp - mm + idx * val->size,        // new off
-//                           0);
-//      }
-//      sz -= 1;
-//      lv = IW_HTOIL(sz);
-//      memcpy(sp, &lv, 4);
-//      if (len >= (4 + sz * val->size) * 2) {
-//        // Reduce size of kv value buffer
-//        kvp->len = kvp->len - len / 2;
-//        kb->flags |= KVBLK_DURTY;
-//      }
-//      if (dlsnr) {
-//        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, 4, 0);
-//      }
-//      if (sz == 0 && (opflags & IWKV_DUP_REPORT_EMPTY)) {
-//        rc = IWKV_RC_DUP_ARRAY_EMPTY;
-//      }
-//      goto finish;
-//    } else if (avail >= val->size) { // we have enough room to store a given number
-//      off_t idx = iwarr_sorted_insert(wp, sz, val->size, vbuf, val->size > 4 ? _u8cmp : _u4cmp, true);
-//      if (idx == -1) {
-//        goto finish;
-//      }
-//      if (dlsnr) {
-//        if (sz) {
-//          rc = dlsnr->oncopy(dlsnr,
-//                             wp - mm + idx * val->size,         // off
-//                             (sz - idx) * val->size,            // len
-//                             wp - mm + (idx + 1) * val->size,   // new off
-//                             0);
-//          RCGO(rc, finish);
-//        }
-//        rc = dlsnr->onwrite(dlsnr, wp - mm + idx * val->size, vbuf, val->size, 0);
-//        RCGO(rc, finish);
-//      }
-//      // Increment number of items
-//      sz += 1;
-//      lv = IW_HTOIL(sz);
-//      memcpy(sp, &lv, 4);
-//      if (dlsnr) {
-//        rc = dlsnr->onwrite(dlsnr, sp - mm, sp, 4, 0);
-//      }
-//      goto finish;
-//    } else {
-//      // reallocate value buf
-//      uval = &sval;
-//      nlen = len;
-//      while (avail < val->size) {
-//        nlen *= 2;
-//        avail = nlen - (4 + sz * val->size);
-//      }
-//      if (nlen > IWKV_MAX_KVSZ) {
-//        nlen = IWKV_MAX_KVSZ;
-//        avail = nlen - (4 + sz * val->size);
-//        if (avail < val->size) {
-//          rc = IWKV_ERROR_MAXKVSZ;
-//          goto finish;
-//        }
-//      }
-//      uval->data = malloc(nlen);
-//      if (!uval->data) {
-//        rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-//        goto finish;
-//      }
-//      // zero initialize extra bytes
-//      memset((uint8_t *) uval->data + len, 0, nlen - len);
-//      uval->size = nlen;
-//      memcpy(uval->data, sp, len);
-//      if (iwarr_sorted_insert((uint8_t *) uval->data + 4, sz, val->size, vbuf,
-//                              val->size > 4 ? _u8cmp : _u4cmp, true) == -1) {
-//        goto finish;
-//      }
-//      sz += 1;
-//      lv = IW_HTOIL(sz);
-//      memcpy(uval->data, &lv, 4);
-//    }
-//  }
-//  // !DUP
   wp = mm + kb->addr + kbsz - kvp->off;
   sp = wp;
   IW_READVNUMBUF(wp, len, sz);
@@ -2670,7 +2482,7 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
     return 0;
   }
   c->lvl = _dbcache_lvl(sdb->lvl);
-  c->nsize = (lx->db->dbflg & IWDB_UINT_KEYS_FLAGS) ? DBCNODE_NUM_SZ : DBCNODE_STR_SZ;
+  c->nsize = (lx->db->dbflg & IWDB_VNUM64_KEYS) ? DBCNODE_VNUM_SZ : DBCNODE_STR_SZ;
   c->asize = c->nsize * ((1U << DBCACHE_LEVELS) + DBCACHE_ALLOC_STEP);
   size_t nsize = c->nsize;
   c->nodes = malloc(c->asize);
