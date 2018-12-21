@@ -173,7 +173,7 @@ typedef struct DBCNODE {
 #define DBCNODE_STR_SZ 128
 
 static_assert(DBCNODE_VNUM_SZ >= offsetof(DBCNODE, lk) + IW_VNUMBUFSZ,
-              "DBCNODE_VNUM_SZ >= offsetof(DBCNODE, lk) + sizeof(uint64_t)");
+              "DBCNODE_VNUM_SZ >= offsetof(DBCNODE, lk) + IW_VNUMBUFSZ");
 static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
               "DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN");
 
@@ -261,6 +261,7 @@ struct _IWKV {
 typedef struct IWLCTX {
   IWDB db;
   uint64_t ts;                /**< Context creation timestamp ms */
+  int64_t idupv;              /**< Index value in `IWDB_IDX_DUPKV` mode */
   const IWKV_val *key;        /**< Search key */
   IWKV_val *val;              /**< Update value */
   SBLK *lower;                /**< Next to upper bound block */

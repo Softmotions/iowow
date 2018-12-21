@@ -1852,41 +1852,60 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
 
 //--------------------------  IWLCTX
 
-IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *res) {
+IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
   iwdb_flags_t dbflg = sblk->db->dbflg;
   const IWKV_val *key = lx->key;
+  int res = 0;
   if (IW_UNLIKELY(sblk->pnum < 1 || (sblk->flags & SBLK_DB))) { // empty block
-    *res = 0;
+    *resp = 0;
     iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
-  } else if ((sblk->flags & SBLK_FULL_LKEY) || key->size < sblk->lkl) {
-    *res = _cmp_key(dbflg, sblk->lk, sblk->lkl, key->data, key->size);
+  }
+  uint8_t lkl = sblk->lkl;
+  if (dbflg & IWDB_IDX_DUPKV) {
+    if (lkl < sizeof(int64_t)) {
+      *resp = 0;
+      iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
+      return IWKV_ERROR_CORRUPTED;
+    }
+    lkl -= sizeof(int64_t);
+  }
+  if ((sblk->flags & SBLK_FULL_LKEY) || key->size < lkl) {
+    res = _cmp_key(dbflg, sblk->lk, lkl, key->data, key->size);
+    if (res == 0 && (dbflg & IWDB_IDX_DUPKV)) {
+      int64_t llv;
+      memcpy(&llv, sblk->lk - sizeof(llv), sizeof(llv));
+      llv = IW_ITOHLL(llv);
+      res = llv > lx->idupv ? -1 : llv < lx->idupv ? 1 : 0;
+    }
   } else {
-    *res = _cmp_key2(dbflg, sblk->lk, sblk->lkl, key->data, key->size);
-    if (*res == 0) {
+    res = _cmp_key2(dbflg, sblk->lk, lkl, key->data, key->size);
+    if (res == 0) {
       uint32_t kl;
-      const uint8_t *k;
       uint8_t *mm;
+      const uint8_t *k;
       IWFS_FSM *fsm = &lx->db->iwkv->fsm;
       iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       if (rc) {
-        *res = 0;
+        *resp = 0;
         return rc;
       }
       if (!sblk->kvblk) {
         rc = _sblk_loadkvblk_mm(lx, sblk, mm);
         if (rc) {
-          *res = 0;
+          *resp = 0;
           fsm->release_mmap(fsm);
           return rc;
         }
       }
       rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[0], mm, &k, &kl);
       RCRET(rc);
-      *res = _cmp_key(dbflg, k, kl, key->data, key->size);
+      // todo !!!
+      res = _cmp_key(dbflg, k, kl, key->data, key->size);
       fsm->release_mmap(fsm);
     }
   }
+  *resp = res;
   return 0;
 }
 
@@ -2173,7 +2192,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
   }
   rc = _sblk_find_pi_mm(sblk, lx->key, mm, &found, &idx);
   RCRET(rc);
-  if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
+  if (found && ((lx->opflags & IWKV_NO_OVERWRITE) || (lx->db->dbflg & IWDB_IDX_DUPKV))) {
     fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
   }

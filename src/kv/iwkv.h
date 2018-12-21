@@ -94,6 +94,10 @@ typedef uint8_t iwdb_flags_t;
 #define IWDB_REALNUM_KEYS     ((iwdb_flags_t) 0x10U)
 /** Variable-length number keys */
 #define IWDB_VNUM64_KEYS      ((iwdb_flags_t) 0x20U)
+/** Compound dup index key/value mode
+ *  todo: description
+ */
+#define IWDB_IDX_DUPKV        ((iwdb_flags_t) 0x01U)
 
 /**  Record store modes used in `iwkv_put()` and `iwkv_cursor_set()` functions. */
 typedef uint8_t iwkv_opflags;
