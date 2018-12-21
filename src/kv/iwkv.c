@@ -1854,6 +1854,7 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
 
 IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
   int res = 0;
+  iwrc rc = 0;
   iwdb_flags_t dbflg = sblk->db->dbflg;
   const IWKV_val *key = lx->key;
   bool dupkv = (dbflg & IWDB_IDX_DUPKV);
@@ -1883,7 +1884,7 @@ IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
       uint8_t *mm;
       const uint8_t *k;
       IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-      iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       if (rc) {
         *resp = 0;
         return rc;
@@ -1898,16 +1899,27 @@ IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
       }
       rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[0], mm, &k, &kl);
       RCRET(rc);
-      // todo
-
-
-
-      res = _cmp_key(dbflg, k, kl, key->data, key->size);
+      if (dupkv) {
+        int64_t llv;
+        char nbuf[IW_VNUMBUFSZ];
+        if (kl > IW_VNUMBUFSZ) {
+          *resp = 0;
+          iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
+          rc = IWKV_ERROR_CORRUPTED;
+          goto f1;
+        }
+        memcpy(nbuf, k, kl);
+        IW_READVNUMBUF64_2(nbuf, llv);
+        res = llv > lx->idupv ? -1 : llv < lx->idupv ? 1 : 0;
+      } else {
+        res = _cmp_key(dbflg, k, kl, key->data, key->size);
+      }
+f1:
       fsm->release_mmap(fsm);
     }
   }
   *resp = res;
-  return 0;
+  return rc;
 }
 
 static WUR iwrc _lx_roll_forward(IWLCTX *lx, uint8_t lvl) {
