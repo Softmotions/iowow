@@ -1853,26 +1853,24 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
 //--------------------------  IWLCTX
 
 IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
+  int res = 0;
   iwdb_flags_t dbflg = sblk->db->dbflg;
   const IWKV_val *key = lx->key;
-  int res = 0;
-  if (IW_UNLIKELY(sblk->pnum < 1 || (sblk->flags & SBLK_DB))) { // empty block
+  bool dupkv = (dbflg & IWDB_IDX_DUPKV);
+  uint8_t lkl = sblk->lkl;
+  if (IW_UNLIKELY(sblk->pnum < 1
+                  || (sblk->flags & SBLK_DB)
+                  || (dupkv && lkl <= sizeof(int64_t)))) {
     *resp = 0;
     iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   }
-  uint8_t lkl = sblk->lkl;
-  if (dbflg & IWDB_IDX_DUPKV) {
-    if (lkl < sizeof(int64_t)) {
-      *resp = 0;
-      iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
-      return IWKV_ERROR_CORRUPTED;
-    }
+  if (dupkv) {
     lkl -= sizeof(int64_t);
   }
   if ((sblk->flags & SBLK_FULL_LKEY) || key->size < lkl) {
     res = _cmp_key(dbflg, sblk->lk, lkl, key->data, key->size);
-    if (res == 0 && (dbflg & IWDB_IDX_DUPKV)) {
+    if (dupkv && !res) {
       int64_t llv;
       memcpy(&llv, sblk->lk - sizeof(llv), sizeof(llv));
       llv = IW_ITOHLL(llv);
@@ -1880,7 +1878,7 @@ IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
     }
   } else {
     res = _cmp_key2(dbflg, sblk->lk, lkl, key->data, key->size);
-    if (res == 0) {
+    if (!res) {
       uint32_t kl;
       uint8_t *mm;
       const uint8_t *k;
@@ -1900,7 +1898,10 @@ IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
       }
       rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[0], mm, &k, &kl);
       RCRET(rc);
-      // todo !!!
+      // todo
+
+
+
       res = _cmp_key(dbflg, k, kl, key->data, key->size);
       fsm->release_mmap(fsm);
     }
