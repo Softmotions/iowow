@@ -7,8 +7,7 @@ void iwkvd_trigger_xor(uint64_t val) {
 
 void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
   assert(f && kb && kb->addr);
-  uint8_t *mm, *vbuf;
-  const uint8_t *kbuf;
+  uint8_t *mm, *vbuf, *kbuf;
   uint32_t klen, vlen;
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(kb->addr);
@@ -41,8 +40,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   assert(sb && sb->addr);
   uint32_t lkl = 0;
   char lkbuf[SBLK_LKLEN + 1] = {0};
-  uint8_t *mm, *vbuf;
-  const uint8_t *kbuf;
+  uint8_t *mm, *vbuf, *kbuf;
   uint32_t klen, vlen;
   IWFS_FSM *fsm = &sb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(sb->addr);
