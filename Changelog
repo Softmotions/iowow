@@ -1,4 +1,4 @@
-iowow (1.2.15) UNRELEASED; urgency=medium
+iowow (1.3.0) UNRELEASED; urgency=medium
 
   * `IWKV_PUT_HANDLER` called for insert operations (not only for updates)
   * Added `IWFS_OUNLINK` flag. Unlink(delete) file on close (iwfile.h)

@@ -49,7 +49,7 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
   return 0;
 }
 
-// NOTE: assument at least sizeof(uint64_t) must be allocated for key->data
+// NOTE: at least sizeof(uint64_t) must be allocated for key->data
 iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
   iwdb_flags_t dbflg = db->dbflg;
   if (dbflg & IWDB_VNUM64_KEYS) {
@@ -128,36 +128,6 @@ IW_INLINE void _num2lebuf(uint8_t buf[static 8], void *numdata, size_t sz) {
     memcpy(&lv, numdata, sizeof(lv));
     lv = IW_HTOIL(lv);
     memcpy(buf, &lv, sizeof(lv));
-  }
-}
-
-IW_SOFT_INLINE int _u4cmp(const void *o1, const void *o2) {
-  uint32_t v1, v2;
-  memcpy(&v1, o1, sizeof(uint32_t));
-  memcpy(&v2, o2, sizeof(uint32_t));
-  v1 = IW_ITOHL(v1);
-  v2 = IW_ITOHL(v2);
-  if (v1 > v2) {
-    return 1;
-  } else if (v1 < v2) {
-    return -1;
-  } else {
-    return 0;
-  }
-}
-
-IW_SOFT_INLINE int _u8cmp(const void *o1, const void *o2) {
-  uint64_t v1, v2;
-  memcpy(&v1, o1, sizeof(uint64_t));
-  memcpy(&v2, o2, sizeof(uint64_t));
-  v1 = IW_ITOHLL(v1);
-  v2 = IW_ITOHLL(v2);
-  if (v1 > v2) {
-    return 1;
-  } else if (v1 < v2) {
-    return -1;
-  } else {
-    return 0;
   }
 }
 
@@ -1559,7 +1529,7 @@ IW_INLINE WUR iwrc _sblk_sync_and_release_mm(IWLCTX *lx, SBLK **sblkp, uint8_t *
   return rc;
 }
 
-static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, const IWKV_val *key, const uint8_t *mm, bool *found, uint8_t *idxp) {
+static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, IWLCTX *lx, const uint8_t *mm, bool *found, uint8_t *idxp) {
   *found = false;
   if (sblk->flags & SBLK_DB) {
     *idxp = KVBLK_IDXNUM;
@@ -1567,9 +1537,12 @@ static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, const IWKV_val *key, const uint8_t 
   }
   uint8_t *k;
   uint32_t kl;
-  int idx = 0,
-    lb = 0,
-    ub = sblk->pnum - 1;
+  int idx = 0;
+  int lb = 0;
+  int ub = sblk->pnum - 1;
+  iwdb_flags_t dbflg = lx->db->dbflg;
+  bool dup = (dbflg & IWDB_IDX_DUPKV);
+
   if (sblk->pnum < 1) {
     *idxp = 0;
     return 0;
@@ -1578,7 +1551,19 @@ static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, const IWKV_val *key, const uint8_t 
     idx = (ub + lb) / 2;
     iwrc rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
     RCRET(rc);
-    int cr = _cmp_key(sblk->db->dbflg, k, kl, key->data, key->size);
+    int cr = _cmp_key(dbflg, k, kl, lx->key->data, lx->key->size);
+    if (!cr && dup) {
+      int64_t llv;
+      char nbuf[IW_VNUMBUFSZ];
+      _kvblk_peek_val(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
+      if (kl > IW_VNUMBUFSZ) {
+        iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
+        return IWKV_ERROR_CORRUPTED;
+      }
+      memcpy(nbuf, k, kl);
+      IW_READVNUMBUF64_2(nbuf, llv);
+      cr = llv > lx->idupv ? -1 : llv < lx->idupv ? 1 : 0;
+    }
     if (!cr) {
       *found = true;
       break;
@@ -1599,27 +1584,42 @@ static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, const IWKV_val *key, const uint8_t 
   return 0;
 }
 
-static WUR iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, const IWKV_val *key,
+static WUR iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, IWLCTX *lx,
                                    const uint8_t *mm, uint8_t *idxp) {
   assert(sblk->kvblk);
   uint8_t *k;
   uint32_t kl;
-  iwdb_flags_t dbflg = sblk->db->dbflg;
-  int idx = 0,
-    lb = 0,
-    ub = sblk->pnum - 1,
-    nels = sblk->pnum;
+
+  int idx = 0;
+  int lb = 0;
+  int ub = sblk->pnum - 1;
+  int nels = sblk->pnum;
+
   if (nels < 1) {
     sblk->pi[0] = nidx;
     ++sblk->pnum;
     *idxp = 0;
     return 0;
   }
+  iwdb_flags_t dbflg = sblk->db->dbflg;
+  bool dup = (dbflg & IWDB_IDX_DUPKV);
   while (1) {
     idx = (ub + lb) / 2;
     iwrc rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
     RCRET(rc);
-    int cr = _cmp_key(dbflg, k, kl, key->data, key->size);
+    int cr = _cmp_key(dbflg, k, kl, lx->key->data, lx->key->size);
+    if (!cr && dup) {
+      int64_t llv;
+      char nbuf[IW_VNUMBUFSZ];
+      _kvblk_peek_val(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
+      if (kl > IW_VNUMBUFSZ) {
+        iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
+        return IWKV_ERROR_CORRUPTED;
+      }
+      memcpy(nbuf, k, kl);
+      IW_READVNUMBUF64_2(nbuf, llv);
+      cr = llv > lx->idupv ? -1 : llv < lx->idupv ? 1 : 0;
+    }
     if (!cr) {
       break;
     } else if (cr < 0) {
@@ -1645,18 +1645,20 @@ static WUR iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, const IWKV_val *key
   return 0;
 }
 
-static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const IWKV_val *val,
-                             iwkv_opflags opflags, bool internal, bool skip_cursors) {
-  assert(sblk && key && key->size && key->data &&
-         val && idx >= 0 && sblk->kvblk);
+static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx,
+                             const IWKV_val *key, const IWKV_val *val,
+                             IWLCTX *lx, bool internal, bool skip_cursors) {
+  assert(sblk && key && key->size && key->data && val && idx >= 0 && sblk->kvblk);
+
   uint8_t kvidx;
   IWDB db = sblk->db;
+  iwdb_flags_t dbflg = db->dbflg;
   KVBLK *kvblk = sblk->kvblk;
   if (sblk->pnum >= KVBLK_IDXNUM) {
     return _IWKV_RC_KVBLOCK_FULL;
   }
 
-  iwrc rc = _kvblk_addkv(kvblk, key, val, &kvidx, opflags, internal);
+  iwrc rc = _kvblk_addkv(kvblk, key, val, &kvidx, lx->opflags, internal);
   RCRET(rc);
   if (sblk->pnum - idx > 0) {
     memmove(sblk->pi + idx + 1, sblk->pi + idx, sblk->pnum - idx);
@@ -1671,9 +1673,21 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const 
   ++sblk->pnum;
   sblk->flags |= SBLK_DURTY;
   if (idx == 0) { // the lowest key inserted
-    sblk->lkl = MIN(SBLK_LKLEN, key->size);
-    memcpy(sblk->lk, key->data, sblk->lkl);
-    if (key->size <= SBLK_LKLEN) {
+    size_t lksz = key->size;
+    if (dbflg & IWDB_IDX_DUPKV) {
+      lksz += sizeof(int64_t);
+    }
+    if ((dbflg & IWDB_IDX_DUPKV) && lksz <= SBLK_LKLEN) {
+      int64_t llv = lx->idupv;
+      llv = IW_HTOILL(llv);
+      sblk->lkl = lksz;
+      memcpy(sblk->lk, key->data, key->size);
+      memcpy(sblk->lk + key->size, &llv, sizeof(int64_t));
+    } else {
+      sblk->lkl = MIN(SBLK_LKLEN, key->size);
+      memcpy(sblk->lk, key->data, sblk->lkl);
+    }
+    if (lksz <= SBLK_LKLEN) {
       sblk->flags |= SBLK_FULL_LKEY;
     } else {
       sblk->flags &= ~SBLK_FULL_LKEY;
@@ -1700,11 +1714,15 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx, const IWKV_val *key, const 
   return 0;
 }
 
-static WUR iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val,
-                            iwkv_opflags opflags, bool internal, bool skip_cursors) {
+static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx, bool internal, bool skip_cursors) {
+  const IWKV_val *key = lx->key;
+  const IWKV_val *val = lx->val;
+  iwkv_opflags opflags = lx->opflags;
+
   assert(sblk && key && key->size && key->data && val && sblk->kvblk);
   uint8_t *mm, idx, kvidx;
   IWDB db = sblk->db;
+  iwdb_flags_t dbflg = db->dbflg;
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
   if (sblk->pnum >= KVBLK_IDXNUM) {
@@ -1714,12 +1732,25 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val
   RCRET(rc);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-  rc = _sblk_insert_pi_mm(sblk, kvidx, key, mm, &idx);
+  rc = _sblk_insert_pi_mm(sblk, kvidx, lx, mm, &idx);
   RCRET(rc);
+  fsm->release_mmap(fsm);
   if (idx == 0) { // the lowest key inserted
-    sblk->lkl = MIN(SBLK_LKLEN, key->size);
-    memcpy(sblk->lk, key->data, sblk->lkl);
-    if (key->size <= SBLK_LKLEN) {
+    size_t lksz = key->size;
+    if (dbflg & IWDB_IDX_DUPKV) {
+      lksz += sizeof(int64_t);
+    }
+    if ((dbflg & IWDB_IDX_DUPKV) && lksz <= SBLK_LKLEN) {
+      int64_t llv = lx->idupv;
+      llv = IW_HTOILL(llv);
+      sblk->lkl = lksz;
+      memcpy(sblk->lk, key->data, key->size);
+      memcpy(sblk->lk + key->size, &llv, sizeof(int64_t));
+    } else {
+      sblk->lkl = MIN(SBLK_LKLEN, key->size);
+      memcpy(sblk->lk, key->data, sblk->lkl);
+    }
+    if (lksz <= SBLK_LKLEN) {
       sblk->flags |= SBLK_FULL_LKEY;
     } else {
       sblk->flags &= ~SBLK_FULL_LKEY;
@@ -1728,7 +1759,6 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, const IWKV_val *key, const IWKV_val *val
       sblk->flags |= SBLK_CACHE_UPDATE;
     }
   }
-  fsm->release_mmap(fsm);
   if (sblk->kvblkn != ADDR2BLK(kvblk->addr)) {
     sblk->kvblkn = ADDR2BLK(kvblk->addr);
     if (!(sblk->flags & SBLK_CACHE_FLAGS)) {
@@ -2077,7 +2107,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
   if (uside) { // Upper side
     rc = _sblk_create(lx, (uint8_t) lx->nlvl, 0, sblk->addr, &nb);
     RCRET(rc);
-    rc = _sblk_addkv(nb, lx->key, lx->val, lx->opflags, false, true);
+    rc = _sblk_addkv(nb, lx, false, true);
     RCGO(rc, finish);
 
   } else { // New key is somewere in a middle of sblk->kvblk
@@ -2110,7 +2140,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
       assert(key.size);
       fsm->release_mmap(fsm);
       RCBREAK(rc);
-      rc = _sblk_addkv2(nb, i - pivot, &key, &val, lx->opflags, true, true);
+      rc = _sblk_addkv2(nb, i - pivot, &key, &val, lx, true, true);
       _kv_dispose(&key, &val);
       RCBREAK(rc);
       sblk->kvblk->pidx[sblk->pi[i]].len = 0;
@@ -2155,9 +2185,9 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
 
   if (!uside) {
     if (idx > pivot) {
-      rc = _sblk_addkv(nb, lx->key, lx->val, lx->opflags, false, false);
+      rc = _sblk_addkv(nb, lx, false, false);
     } else {
-      rc = _sblk_addkv(sblk, lx->key, lx->val, lx->opflags, false, false);
+      rc = _sblk_addkv(sblk, lx, false, false);
     }
     RCGO(rc, finish);
   }
@@ -2203,7 +2233,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
     fsm->release_mmap(fsm);
     return rc;
   }
-  rc = _sblk_find_pi_mm(sblk, lx->key, mm, &found, &idx);
+  rc = _sblk_find_pi_mm(sblk, lx, mm, &found, &idx);
   RCRET(rc);
   if (found && ((lx->opflags & IWKV_NO_OVERWRITE) || (lx->db->dbflg & IWDB_IDX_DUPKV))) {
     fsm->release_mmap(fsm);
@@ -2282,7 +2312,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
           rc = lx->ph(lx->key, lx->val, 0, lx->phop);
           RCRET(rc);
         }
-        return _sblk_addkv(lx->upper, lx->key, lx->val, lx->opflags, false, false);
+        return _sblk_addkv(lx->upper, lx, false, false);
       }
       if (lx->nlvl < 0) {
         return _IWKV_RC_REQUIRE_NLEVEL;
@@ -2297,7 +2327,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
         rc = lx->ph(lx->key, lx->val, 0, lx->phop);
         RCRET(rc);
       }
-      return _sblk_addkv2(sblk, idx, lx->key, lx->val, lx->opflags, false, false);
+      return _sblk_addkv2(sblk, idx, lx->key, lx->val, lx, false, false);
     }
   }
 }
@@ -2343,7 +2373,7 @@ IW_INLINE WUR iwrc _lx_get_lr(IWLCTX *lx) {
   RCRET(rc);
   rc = _sblk_loadkvblk_mm(lx, lx->lower, mm);
   RCGO(rc, finish);
-  rc = _sblk_find_pi_mm(lx->lower, lx->key, mm, &found, &idx);
+  rc = _sblk_find_pi_mm(lx->lower, lx, mm, &found, &idx);
   RCGO(rc, finish);
   if (found) {
     idx = (uint8_t) lx->lower->pi[idx];
@@ -2374,7 +2404,7 @@ IW_INLINE WUR iwrc _lx_del_lw(IWLCTX *lx, bool exclusive) {
   RCGO(rc, finish);
   rc = _sblk_loadkvblk_mm(lx, sblk, mm);
   RCGO(rc, finish);
-  rc = _sblk_find_pi_mm(sblk, lx->key, mm, &found, &idx);
+  rc = _sblk_find_pi_mm(sblk, lx, mm, &found, &idx);
   RCGO(rc, finish);
   if (!found) {
     rc = IWKV_ERROR_NOTFOUND;
@@ -2723,7 +2753,7 @@ IW_INLINE WUR iwrc _cursor_get_ge_idx(IWLCTX *lx, IWKV_cursor_op op, uint8_t *oi
   RCRET(rc);
   rc = _sblk_loadkvblk_mm(lx, lx->lower, mm);
   RCGO(rc, finish);
-  rc = _sblk_find_pi_mm(lx->lower, lx->key, mm, &found, &idx);
+  rc = _sblk_find_pi_mm(lx->lower, lx, mm, &found, &idx);
   RCGO(rc, finish);
   if (found) {
     *oidx = idx;
@@ -3377,7 +3407,7 @@ iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vbufsz, size
   RCGO(rc, finish);
   rc = _sblk_loadkvblk_mm(&lx, lx.lower, mm);
   RCGO(rc, finish);
-  rc = _sblk_find_pi_mm(lx.lower, lx.key, mm, &found, &idx);
+  rc = _sblk_find_pi_mm(lx.lower, &lx, mm, &found, &idx);
   RCGO(rc, finish);
   if (found) {
     idx = lx.lower->pi[idx];
