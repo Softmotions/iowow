@@ -1665,7 +1665,7 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx,
   if (idx == 0) { // the lowest key inserted
     size_t lksz = key->size;
     if (dbflg & IWDB_IDX_DUPKV) {
-      lksz += sizeof(int64_t);
+      lksz += sizeof(lx->idupv);
     }
     if ((dbflg & IWDB_IDX_DUPKV) && lksz <= SBLK_LKLEN) {
       int64_t llv = lx->idupv;
@@ -1727,7 +1727,7 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx, bool skip_cursors) {
   if (idx == 0) { // the lowest key inserted
     size_t lksz = key->size;
     if (dbflg & IWDB_IDX_DUPKV) {
-      lksz += sizeof(int64_t);
+      lksz += sizeof(lx->idupv);
     }
     if ((dbflg & IWDB_IDX_DUPKV) && lksz <= SBLK_LKLEN) {
       int64_t llv = lx->idupv;
@@ -1886,7 +1886,7 @@ IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
     return IWKV_ERROR_CORRUPTED;
   }
   if (dupkv) {
-    lkl -= sizeof(int64_t);
+    lkl -= sizeof(lx->idupv);
   }
   if ((sblk->flags & SBLK_FULL_LKEY) || key->size < lkl) {
     res = _cmp_key(dbflg, sblk->lk, lkl, key->data, key->size);
@@ -2600,9 +2600,9 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   }
   assert(cache->nodes);
   size_t lxksiz = lx->key->size;
-//  if (db->dbflg & IWDB_IDX_DUPKV) {
-//    lxksiz += sizeof(int64_t);
-//  }
+  if (db->dbflg & IWDB_IDX_DUPKV) {
+    lxksiz += sizeof(lx->idupv);
+  }
 
   if (sizeof(DBCNODE) + lxksiz <= sizeof(dbcbuf)) {
     n = (DBCNODE *) dbcbuf;
@@ -2618,7 +2618,9 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   n->k0idx = 0;
   n->kblkn = 0;
   memcpy((uint8_t *) n + offsetof(DBCNODE, lk), lx->key->data, lx->key->size);
-
+  if (db->dbflg & IWDB_IDX_DUPKV) {
+    memcpy((uint8_t *) n + offsetof(DBCNODE, lk) + lx->key->size, &lx->idupv, sizeof(lx->idupv));
+  }
   idx = iwarr_sorted_find2(cache->nodes, cache->num, cache->nsize, n, lx, &found, _dbcache_cmp_nodes);
   if (idx > 0) {
     DBCNODE *fn = (DBCNODE *) ((uint8_t *) cache->nodes + (idx - 1) * cache->nsize);

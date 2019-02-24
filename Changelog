@@ -13,6 +13,7 @@ iowow (1.3.0) UNRELEASED; urgency=medium
   * Added support of transparent big-endian/low-endian conversion for integer keys `IWDB_UINT32_KEYS`, `IWDB_UINT64_KEYS`
   * Code cleanup and refactoring
   * More flexible iwkv_cursor_dup_iter() api implementation (iwkv.h)
+  * Support of duplicated `key->num value` pairs . (Used in non-unique ejdb2 indexes) #18.
 
  -- Anton Adamansky <adamansky@gmail.com>  Fri, 09 Nov 2018 00:57:42 +0700
 
