@@ -160,10 +160,10 @@ typedef struct KVBLK {
 
 /** Cached SBLK node */
 typedef struct DBCNODE {
-  blkn_t sblkn;               /**< SBLK block number */
+  blkn_t sblkn;               /**< SBLK block number or used to store key size (to keep DBCNODE compact) */
   blkn_t kblkn;               /**< KVBLK block number */
   uint8_t lkl;                /**< Lower key length */
-  uint8_t fullkey;            /**< SBLK full key */
+  uint8_t fullkey;            /**< SBLK is full key */
   uint8_t k0idx;              /**< KVBLK Zero KVP index */
   uint8_t pad;                /**< 1 byte pad */
   uint8_t lk[1];              /**< Lower key buffer */
