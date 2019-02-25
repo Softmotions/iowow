@@ -78,7 +78,7 @@ typedef enum {
   _IWKV_ERROR_END,
 
   // Internal only
-  _IWKV_RC_KVBLOCK_FULL,
+    _IWKV_RC_KVBLOCK_FULL,
   _IWKV_RC_REQUIRE_NLEVEL,
   _IWKV_RC_ACQUIRE_EXCLUSIVE,
   _IWKV_RC_END,
@@ -100,6 +100,9 @@ typedef uint8_t iwdb_flags_t;
 /** Variable-length number keys */
 #define IWDB_VNUM64_KEYS      ((iwdb_flags_t) 0x20U)
 
+/** todo */
+#define IWDB_VNUM64_COMPOSITE_KEYS ((iwdb_flags_t) 0x40U)
+
 /**  Record store modes used in `iwkv_put()` and `iwkv_cursor_set()` functions. */
 typedef uint8_t iwkv_opflags;
 
@@ -119,13 +122,6 @@ typedef struct _IWKV *IWKV;
 
 struct _IWDB;
 typedef struct _IWDB *IWDB;
-
-// typedef iwrc(*IWKV_PUT_HANDLER)(const IWKV_val *key, const IWKV_val *val, IWKV_val *oldval, void *op);
-// IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len)
-
-//typedef struct IWKV_CMP_CONTEXT {
-//  iwrc (*compare_prefix)(strict *);
-//} IWKV_CMP_CONTEXT;
 
 /**
  * @brief WAL oprions.
@@ -155,6 +151,7 @@ typedef struct IWKV_OPTS {
 typedef struct IWKV_val {
   void *data;            /**< Data buffer */
   size_t size;           /**< Data buffer size */
+  uint64_t extra;
 } IWKV_val;
 
 /**

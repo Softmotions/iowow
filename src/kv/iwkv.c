@@ -1612,8 +1612,7 @@ static WUR iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, IWLCTX *lx,
 }
 
 static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx,
-                             const IWKV_val *key, const IWKV_val *val,
-                             IWLCTX *lx, bool skip_cursors) {
+                             const IWKV_val *key, const IWKV_val *val, bool skip_cursors) {
   assert(sblk && key && key->size && key->data && val && idx >= 0 && sblk->kvblk);
 
   uint8_t kvidx;
@@ -2057,7 +2056,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
       assert(key.size);
       fsm->release_mmap(fsm);
       RCBREAK(rc);
-      rc = _sblk_addkv2(nb, i - pivot, &key, &val, lx, true);
+      rc = _sblk_addkv2(nb, i - pivot, &key, &val, true);
       _kv_dispose(&key, &val);
       RCBREAK(rc);
       sblk->kvblk->pidx[sblk->pi[i]].len = 0;
@@ -2244,7 +2243,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
         rc = lx->ph(lx->key, lx->val, 0, lx->phop);
         RCRET(rc);
       }
-      return _sblk_addkv2(sblk, idx, lx->key, lx->val, lx, false);
+      return _sblk_addkv2(sblk, idx, lx->key, lx->val, false);
     }
   }
 }
@@ -3430,8 +3429,8 @@ iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz, size_t *rsz) {
   API_DB_RLOCK(db, rci);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
-  memcpy(buf, mm + BLK2ADDR(db->meta_blk), rmax);
-  *rsz = rmax;
+  memcpy(buf, mm + BLK2ADDR(db->meta_blk), sz);
+  *rsz = sz;
 
 finish:
   if (mm) {
