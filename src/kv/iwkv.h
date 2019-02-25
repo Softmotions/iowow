@@ -151,6 +151,11 @@ typedef struct IWKV_OPTS {
 typedef struct IWKV_val {
   void *data;            /**< Data buffer */
   size_t size;           /**< Data buffer size */
+  /** Extra key part used for key comparison.
+   *  If set to non zero and database in `IWDB_EXTRA_KEYS` mode
+   *  then `IWKV_val` will behave as compound key: `<key data><extra number>`
+   *  Value of this field will be ignored if database not in `IWDB_EXTRA_KEYS` mode.
+   */
   int64_t extra;
 } IWKV_val;
 
