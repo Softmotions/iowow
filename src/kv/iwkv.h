@@ -57,6 +57,9 @@ IW_EXTERN_C_START
 // Max key + value size: 255Mb
 #define IWKV_MAX_KVSZ 0xfffffff
 
+// Maximum length of prefix key to compare
+#define PREFIX_KEY_LEN 116U
+
 /**
  * @brief IWKV error codes.
  */
@@ -119,6 +122,10 @@ typedef struct _IWDB *IWDB;
 
 // typedef iwrc(*IWKV_PUT_HANDLER)(const IWKV_val *key, const IWKV_val *val, IWKV_val *oldval, void *op);
 // IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len)
+
+//typedef struct IWKV_CMP_CONTEXT {
+//  iwrc (*compare_prefix)(strict *);
+//} IWKV_CMP_CONTEXT;
 
 /**
  * @brief WAL oprions.

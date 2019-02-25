@@ -49,7 +49,7 @@
 #define AANUM (2U * SLEVELS + 2 /* levels + (new block created) + (db block may be updated) */)
 
 // Lower key length in SBLK
-#define SBLK_LKLEN 116U
+#define SBLK_LKLEN PREFIX_KEY_LEN
 
 // Lower key padding
 #define LKPAD 0
