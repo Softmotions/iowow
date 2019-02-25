@@ -66,7 +66,7 @@ iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
 
 IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
   if (dbflg & IWDB_VNUM64_KEYS) {
-    if (v2len - v1len || v2len > 8 || v1len > 8) {
+    if (v2len - v1len || v2len > IW_VNUMBUFSZ || v1len > IW_VNUMBUFSZ) {
       return v2len - v1len;
     }
     int64_t n1, n2;
@@ -76,7 +76,6 @@ IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const voi
     memcpy(vbuf, v2, v2len);
     IW_READVNUMBUF64_2(vbuf, n2);
     return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
-    return 0;
   } else if (dbflg & IWDB_REALNUM_KEYS) {
     return iwafcmp(v2, v2len, v1, v1len);
   } else {
@@ -86,7 +85,7 @@ IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const voi
 
 IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
   int rv = _cmp_key2(dbflg, v1, v1len, v2, v2len);
-  if (!rv && !(dbflg & IWDB_VNUM64_KEYS)) {
+  if (!rv && !(dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
     return v2len - v1len;
   } else {
     return rv;
