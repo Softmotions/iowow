@@ -23,6 +23,7 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
                                       uint8_t nbuf[static IW_VNUMBUFSZ]) {
   static_assert(IW_VNUMBUFSZ >= sizeof(uint64_t), "IW_VNUMBUFSZ >= sizeof(uint64_t)");
   iwdb_flags_t dbflg = db->dbflg;
+  // Keys extra will be processed at lower levels at `addkv` routines
   if (dbflg & IWDB_VNUM64_KEYS) {
     unsigned len;
     if (key->size == 8) {
@@ -52,11 +53,25 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
 // NOTE: at least `sizeof(int64_t)` must be allocated for key->data
 iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
   iwdb_flags_t dbflg = db->dbflg;
+  uint8_t *data = key->data;
+  if (dbflg & IWDB_EXTRA_KEYS) {
+    int step;
+    IW_READVNUMBUF64(key->data, key->extra, step);
+    if (step >= key->size) {
+      return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+    }
+    data += step;
+    key->size -= step;
+  } else {
+    key->extra = 0;
+  }
   if (dbflg & IWDB_VNUM64_KEYS) {
     int64_t llv;
     char nbuf[IW_VNUMBUFSZ];
-    if (key->size > IW_VNUMBUFSZ) return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
-    memcpy(nbuf, key->data, key->size);
+    if (key->size > IW_VNUMBUFSZ) {
+      return IWKV_ERROR_KEY_NUM_VALUE_SIZE;
+    }
+    memcpy(nbuf, data, key->size);
     IW_READVNUMBUF64_2(nbuf, llv);
     memcpy(key->data, &llv, sizeof(llv));
     key->size = sizeof(llv);
@@ -641,6 +656,7 @@ static WUR iwrc _kvblk_getkey(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key
   int32_t klen;
   int step;
   KVP *kvp = &kb->pidx[idx];
+  key->extra = 0;
   if (!kvp->len) {
     key->data = 0;
     key->size = 0;
@@ -673,6 +689,7 @@ static WUR iwrc _kvblk_getvalue(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *v
   int32_t klen;
   int step;
   KVP *kvp = &kb->pidx[idx];
+  val->extra = 0;
   if (!kvp->len) {
     val->data = 0;
     val->size = 0;
@@ -709,6 +726,8 @@ static WUR iwrc _kvblk_getkv(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key,
   int32_t klen;
   int step;
   KVP *kvp = &kb->pidx[idx];
+  key->extra = 0;
+  val->extra = 0;
   if (!kvp->len) {
     key->data = 0;
     key->size = 0;
@@ -1010,11 +1029,17 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   size_t i, sp;
   KVP *kvp;
   IWDB db = kb->db;
+  bool extra = (db->dbflg & IWDB_EXTRA_KEYS) && key->extra;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   bool compacted = false;
   IWDLSNR *dlsnr = kb->db->iwkv->dlsnr;
   IWKV_val *uval = (IWKV_val *) val;
-  off_t psz = IW_VNUMSIZE(key->size) + key->size;
+
+  size_t ksize = key->size;
+  if (extra) {
+    ksize += IW_VNUMSIZE(key->extra);
+  }
+  off_t psz = IW_VNUMSIZE(ksize) + ksize;
 
   if (kb->zidx < 0) {
     return _IWKV_RC_KVBLOCK_FULL;
@@ -1095,10 +1120,14 @@ start:
   wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
   sptr = wp;
   // [klen:vn,key,value]
-  IW_SETVNUMBUF(sp, wp, key->size);
+  IW_SETVNUMBUF(sp, wp, ksize);
   wp += sp;
-  memcpy(wp, key->data, key->size);
-  wp += key->size;
+  if (extra) {
+    IW_SETVNUMBUF64(sp, wp, key->extra);
+    wp += sp;
+  }
+  memcpy(wp, key->data, ksize);
+  wp += ksize;
   memcpy(wp, uval->data, uval->size);
   wp += uval->size;
 #ifndef NDEBUG
@@ -1611,8 +1640,11 @@ static WUR iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, IWLCTX *lx,
   return 0;
 }
 
-static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx,
-                             const IWKV_val *key, const IWKV_val *val, bool skip_cursors) {
+static WUR iwrc _sblk_addkv2(SBLK *sblk,
+                             int8_t idx,
+                             const IWKV_val *key,
+                             const IWKV_val *val,
+                             bool skip_cursors) {
   assert(sblk && key && key->size && key->data && val && idx >= 0 && sblk->kvblk);
 
   uint8_t kvidx;
@@ -1637,9 +1669,20 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk, int8_t idx,
   ++sblk->pnum;
   sblk->flags |= SBLK_DURTY;
   if (idx == 0) { // the lowest key inserted
-    sblk->lkl = MIN(SBLK_LKLEN, key->size);
-    memcpy(sblk->lk, key->data, sblk->lkl);
-    if (key->size <= SBLK_LKLEN) {
+    size_t ksize = key->size;
+    bool extra = (db->dbflg & IWDB_EXTRA_KEYS) && key->extra;
+    if (extra) {
+      ksize += IW_VNUMSIZE(key->extra);
+    }
+    sblk->lkl = MIN(SBLK_LKLEN, ksize);
+    uint8_t *wp = sblk->lk;
+    if (extra) {
+      int len;
+      IW_SETVNUMBUF64(len, wp, key->extra);
+      wp += len;
+    }
+    memcpy(wp, key->data, sblk->lkl - (ksize - key->size));
+    if (ksize <= SBLK_LKLEN) {
       sblk->flags |= SBLK_FULL_LKEY;
     } else {
       sblk->flags &= ~SBLK_FULL_LKEY;
@@ -1686,9 +1729,20 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx, bool skip_cursors) {
   RCRET(rc);
   fsm->release_mmap(fsm);
   if (idx == 0) { // the lowest key inserted
-    sblk->lkl = MIN(SBLK_LKLEN, key->size);
-    memcpy(sblk->lk, key->data, sblk->lkl);
-    if (key->size <= SBLK_LKLEN) {
+    size_t ksize = key->size;
+    bool extra = (db->dbflg & IWDB_EXTRA_KEYS) && key->extra;
+    if (extra) {
+      ksize += IW_VNUMSIZE(key->extra);
+    }
+    sblk->lkl = MIN(SBLK_LKLEN, ksize);
+    uint8_t *wp = sblk->lk;
+    if (extra) {
+      int len;
+      IW_SETVNUMBUF64(len, wp, key->extra);
+      wp += len;
+    }
+    memcpy(wp, key->data, sblk->lkl - (ksize - key->size));
+    if (ksize <= SBLK_LKLEN) {
       sblk->flags |= SBLK_FULL_LKEY;
     } else {
       sblk->flags &= ~SBLK_FULL_LKEY;

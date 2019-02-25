@@ -260,7 +260,6 @@ struct _IWKV {
 typedef struct IWLCTX {
   IWDB db;
   uint64_t ts;                /**< Context creation timestamp ms */
-  int64_t idupv;              /**< Index value in `IWDB_IDX_DUPKV` mode */
   const IWKV_val *key;        /**< Search key */
   IWKV_val *val;              /**< Update value */
   SBLK *lower;                /**< Next to upper bound block */
