@@ -90,8 +90,10 @@ typedef uint8_t iwkv_openflags;
 
 /** Database initialization modes */
 typedef uint8_t iwdb_flags_t;
+
 /** Floating point number keys represented as string (char*) value. */
 #define IWDB_REALNUM_KEYS     ((iwdb_flags_t) 0x10U)
+
 /** Variable-length number keys */
 #define IWDB_VNUM64_KEYS      ((iwdb_flags_t) 0x20U)
 
@@ -114,6 +116,9 @@ typedef struct _IWKV *IWKV;
 
 struct _IWDB;
 typedef struct _IWDB *IWDB;
+
+// typedef iwrc(*IWKV_PUT_HANDLER)(const IWKV_val *key, const IWKV_val *val, IWKV_val *oldval, void *op);
+// IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len)
 
 /**
  * @brief WAL oprions.

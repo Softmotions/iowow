@@ -215,6 +215,7 @@ struct _IWDB {
   atomic_bool open;               /**< True if DB is in OPEN state */
   volatile bool wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWDB */
   uint32_t lcnt[SLEVELS];         /**< SBLK count per level */
+
 };
 
 /* Skiplist block: [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK */
