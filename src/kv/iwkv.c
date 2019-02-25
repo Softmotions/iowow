@@ -1836,7 +1836,7 @@ IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
     return IWKV_ERROR_CORRUPTED;
   }
 
-  if ((sblk->flags & SBLK_FULL_LKEY) || key->size < lkl) {
+  if ((sblk->flags & SBLK_FULL_LKEY) || key->size < lkl || (dbflg & IWDB_VNUM64_KEYS)) {
     res = _cmp_key(dbflg, sblk->lk, lkl, key->data, key->size);
   } else {
     res = _cmp_key2(dbflg, sblk->lk, lkl, key->data, key->size);
