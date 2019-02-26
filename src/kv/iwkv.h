@@ -156,7 +156,7 @@ typedef struct IWKV_val {
    *  then `IWKV_val` will behave as compound key: `<key data><extra number>`
    *  Value of this field will be ignored if database not in `IWDB_EXTRA_KEYS` mode.
    */
-  int64_t extra;
+  int64_t compound;
 } IWKV_val;
 
 /**
