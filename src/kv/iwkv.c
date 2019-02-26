@@ -54,7 +54,7 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
 iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
   iwdb_flags_t dbflg = db->dbflg;
   uint8_t *data = key->data;
-  if (dbflg & IWDB_EXTRA_KEYS) {
+  if (dbflg & IWDB_COMPOUND_KEYS) {
     int step;
     IW_READVNUMBUF64(key->data, key->compound, step);
     if (step >= key->size) {
@@ -1029,7 +1029,7 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   size_t i, sp;
   KVP *kvp;
   IWDB db = kb->db;
-  bool compound = (db->dbflg & IWDB_EXTRA_KEYS) && key->compound;
+  bool compound = (db->dbflg & IWDB_COMPOUND_KEYS) && key->compound;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   bool compacted = false;
   IWDLSNR *dlsnr = kb->db->iwkv->dlsnr;
@@ -1670,7 +1670,7 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk,
   sblk->flags |= SBLK_DURTY;
   if (idx == 0) { // the lowest key inserted
     size_t ksize = key->size;
-    bool compound = (db->dbflg & IWDB_EXTRA_KEYS) && key->compound;
+    bool compound = (db->dbflg & IWDB_COMPOUND_KEYS) && key->compound;
     if (compound) {
       ksize += IW_VNUMSIZE(key->compound);
     }
@@ -1730,7 +1730,7 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx, bool skip_cursors) {
   fsm->release_mmap(fsm);
   if (idx == 0) { // the lowest key inserted
     size_t ksize = key->size;
-    bool compound = (db->dbflg & IWDB_EXTRA_KEYS) && key->compound;
+    bool compound = (db->dbflg & IWDB_COMPOUND_KEYS) && key->compound;
     if (compound) {
       ksize += IW_VNUMSIZE(key->compound);
     }

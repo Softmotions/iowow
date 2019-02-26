@@ -101,7 +101,7 @@ typedef uint8_t iwdb_flags_t;
 #define IWDB_VNUM64_KEYS      ((iwdb_flags_t) 0x20U)
 
 /** todo */
-#define IWDB_EXTRA_KEYS     ((iwdb_flags_t) 0x40U)
+#define IWDB_COMPOUND_KEYS    ((iwdb_flags_t) 0x40U)
 
 /**  Record store modes used in `iwkv_put()` and `iwkv_cursor_set()` functions. */
 typedef uint8_t iwkv_opflags;
