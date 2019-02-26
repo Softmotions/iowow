@@ -75,99 +75,99 @@ static void *iwkv_test1_worker(void *op) {
   return 0;
 }
 
-//static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
-//  FILE *f = fopen("iwkv_test3_1.log", "w+");
-//  CU_ASSERT_PTR_NOT_NULL(f);
-//  const int nrecs = thrnum * recth;
-//  TASK *tasks = calloc(thrnum, sizeof(*tasks));
-//  VN *arr = calloc(nrecs, sizeof(*arr));
-//  CTX ctx = {
-//    .vn = arr,
-//    .vnsz = nrecs,
-//    .mtx = PTHREAD_MUTEX_INITIALIZER,
-//    .cond = PTHREAD_COND_INITIALIZER,
-//    .thrnum = thrnum
-//  };
-//  for (int i = 0; i < nrecs; ++i) {
-//    arr[i].kn = i;
-//    arr[i].vs = iwu_rand_range(256);
-//  }
-//  // shuffle
-//  for (int i = 0; i < nrecs; ++i) {
-//    uint32_t tgt = iwu_rand_range(nrecs);
-//    int knt = arr[tgt].kn;
-//    arr[tgt].kn = arr[i].kn;
-//    arr[i].kn = knt;
-//  }
-//  for (int i = nrecs - 1; i >= 0; --i) {
-//    uint32_t tgt = iwu_rand_range(nrecs);
-//    int knt = arr[tgt].kn;
-//    arr[tgt].kn = arr[i].kn;
-//    arr[i].kn = knt;
-//  }
-//
-//  IWKV_OPTS opts = {
-//    .path = "iwkv_test3_1.db",
-//    .oflags = IWKV_TRUNC,
-//    .wal = {
-//      .enabled = wal,
-//      .checkpoint_buffer_sz = 1024 * 1024
-//    }
-//  };
-//  IWKV iwkv;
-//  IWKV_val key, val;
-//  iwrc rc = iwkv_open(&opts, &iwkv);
-//  CU_ASSERT_EQUAL_FATAL(rc, 0);
-//
-//  rc = iwkv_db(iwkv, 1, IWDB_UINT64_KEYS, &ctx.db);
-//  CU_ASSERT_EQUAL_FATAL(rc, 0);
-//
-//  for (int i = 0; i < thrnum; ++i) {
-//    tasks[i].ctx = &ctx;
-//    tasks[i].start = i * recth;
-//    tasks[i].cnt = recth;
-//    int rci = pthread_create(&tasks[i].thr, 0, iwkv_test1_worker, &tasks[i]);
-//    CU_ASSERT_EQUAL_FATAL(rci, 0);
-//  }
-//  for (int i = 0; i < thrnum; ++i) {
-//    int rci = pthread_join(tasks[i].thr, 0);
-//    CU_ASSERT_EQUAL_FATAL(rci, 0);
-//  }
-//  fprintf(stderr, "\nChecking DB....");
-//  int ec = 0;
-//  for (int i = 0; i < nrecs; ++i) {
-//    uint64_t k = i, v;
-//    key.data = &k;
-//    key.size = sizeof(uint64_t);
-//    rc = iwkv_get(ctx.db, &key, &val);
-//    if (rc) {
-//      ec++;
-//      fprintf(stderr, "\nwk=%d\n", i);
-//      iwlog_ecode_error3(rc);
-//      //break;
-//    } else {
-//      CU_ASSERT_EQUAL_FATAL(val.size, sizeof(uint64_t));
-//      memcpy(&v, val.data, sizeof(uint64_t));
-//      CU_ASSERT_EQUAL_FATAL(v, i);
-//    }
-//    iwkv_val_dispose(&val);
-//  }
-//  pthread_cond_destroy(&ctx.cond);
-//  pthread_mutex_destroy(&ctx.mtx);
-//  free(arr);
-//  free(tasks);
-//  rc = iwkv_close(&iwkv);
-//  fprintf(stderr, "ec=%d\n", ec);
-//  CU_ASSERT_EQUAL_FATAL(rc, 0);
-//  fclose(f);
-//}
+static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
+  FILE *f = fopen("iwkv_test3_1.log", "w+");
+  CU_ASSERT_PTR_NOT_NULL(f);
+  const int nrecs = thrnum * recth;
+  TASK *tasks = calloc(thrnum, sizeof(*tasks));
+  VN *arr = calloc(nrecs, sizeof(*arr));
+  CTX ctx = {
+    .vn = arr,
+    .vnsz = nrecs,
+    .mtx = PTHREAD_MUTEX_INITIALIZER,
+    .cond = PTHREAD_COND_INITIALIZER,
+    .thrnum = thrnum
+  };
+  for (int i = 0; i < nrecs; ++i) {
+    arr[i].kn = i;
+    arr[i].vs = iwu_rand_range(256);
+  }
+  // shuffle
+  for (int i = 0; i < nrecs; ++i) {
+    uint32_t tgt = iwu_rand_range(nrecs);
+    int knt = arr[tgt].kn;
+    arr[tgt].kn = arr[i].kn;
+    arr[i].kn = knt;
+  }
+  for (int i = nrecs - 1; i >= 0; --i) {
+    uint32_t tgt = iwu_rand_range(nrecs);
+    int knt = arr[tgt].kn;
+    arr[tgt].kn = arr[i].kn;
+    arr[i].kn = knt;
+  }
+
+  IWKV_OPTS opts = {
+    .path = "iwkv_test3_1.db",
+    .oflags = IWKV_TRUNC,
+    .wal = {
+      .enabled = wal,
+      .checkpoint_buffer_sz = 1024 * 1024
+    }
+  };
+  IWKV iwkv;
+  IWKV_val key, val;
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_db(iwkv, 1, IWDB_VNUM64_KEYS, &ctx.db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  for (int i = 0; i < thrnum; ++i) {
+    tasks[i].ctx = &ctx;
+    tasks[i].start = i * recth;
+    tasks[i].cnt = recth;
+    int rci = pthread_create(&tasks[i].thr, 0, iwkv_test1_worker, &tasks[i]);
+    CU_ASSERT_EQUAL_FATAL(rci, 0);
+  }
+  for (int i = 0; i < thrnum; ++i) {
+    int rci = pthread_join(tasks[i].thr, 0);
+    CU_ASSERT_EQUAL_FATAL(rci, 0);
+  }
+  fprintf(stderr, "\nChecking DB....");
+  int ec = 0;
+  for (int i = 0; i < nrecs; ++i) {
+    uint64_t k = i, v;
+    key.data = &k;
+    key.size = sizeof(uint64_t);
+    rc = iwkv_get(ctx.db, &key, &val);
+    if (rc) {
+      ec++;
+      fprintf(stderr, "\nwk=%d\n", i);
+      iwlog_ecode_error3(rc);
+      //break;
+    } else {
+      CU_ASSERT_EQUAL_FATAL(val.size, sizeof(uint64_t));
+      memcpy(&v, val.data, sizeof(uint64_t));
+      CU_ASSERT_EQUAL_FATAL(v, i);
+    }
+    iwkv_val_dispose(&val);
+  }
+  pthread_cond_destroy(&ctx.cond);
+  pthread_mutex_destroy(&ctx.mtx);
+  free(arr);
+  free(tasks);
+  rc = iwkv_close(&iwkv);
+  fprintf(stderr, "ec=%d\n", ec);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  fclose(f);
+}
 
 static void iwkv_test3_1(void) {
-//  iwkv_test3_impl(4, 30000, false);
+  iwkv_test3_impl(4, 30000, false);
 }
 
 static void iwkv_test3_2(void) {
-//  iwkv_test3_impl(4, 30000, true);
+  iwkv_test3_impl(4, 30000, true);
 }
 
 int main() {
@@ -186,9 +186,9 @@ int main() {
 
   /* Add the tests to the suite */
   if (
-      (NULL == CU_add_test(pSuite, "iwkv_test3_1", iwkv_test3_1)) ||
-      (NULL == CU_add_test(pSuite, "iwkv_test3_2", iwkv_test3_2))
-     )  {
+    (NULL == CU_add_test(pSuite, "iwkv_test3_1", iwkv_test3_1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test3_2", iwkv_test3_2))
+    ) {
     CU_cleanup_registry();
     return CU_get_error();
   }

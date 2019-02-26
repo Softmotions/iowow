@@ -24,6 +24,7 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
   static_assert(IW_VNUMBUFSZ >= sizeof(uint64_t), "IW_VNUMBUFSZ >= sizeof(uint64_t)");
   iwdb_flags_t dbflg = db->dbflg;
   // Keys compound will be processed at lower levels at `addkv` routines
+  okey->compound = key->compound;
   if (dbflg & IWDB_VNUM64_KEYS) {
     unsigned len;
     if (key->size == 8) {
@@ -73,34 +74,81 @@ iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
     }
     memcpy(nbuf, data, key->size);
     IW_READVNUMBUF64_2(nbuf, llv);
-    memcpy(key->data, &llv, sizeof(llv));
-    key->size = sizeof(llv);
+    if (llv > INT32_MAX || llv < INT32_MIN) {
+      memcpy(key->data, &llv, sizeof(llv));
+      key->size = sizeof(llv);
+    } else {
+      int32_t lv = (int32_t) llv;
+      memcpy(key->data, &lv, sizeof(lv));
+      key->size = sizeof(lv);
+    }
   }
   return 0;
 }
 
-IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
-  if (dbflg & IWDB_VNUM64_KEYS) {
-    if (v2len - v1len || v2len > IW_VNUMBUFSZ || v1len > IW_VNUMBUFSZ) {
+IW_INLINE int _cmp_key2(iwdb_flags_t dbflg, const void *v1, int v1len, const IWKV_val *key) {
+  if (dbflg & IWDB_COMPOUND_KEYS) {
+    // Compound keys mode
+    int ret;
+    const char *u1 = v1, *u2 = key->data;
+    int step, v2len = (int) key->size;
+    int64_t c1, c2 = key->compound;
+    IW_READVNUMBUF64(v1, c1, step);
+    v1len -= step;
+    u1 += step;
+    if (v1len < 1) {
+      assert(0); // Inconsistent data?
       return v2len - v1len;
     }
-    int64_t n1, n2;
-    char vbuf[IW_VNUMBUFSZ];
-    memcpy(vbuf, v1, v1len);
-    IW_READVNUMBUF64_2(vbuf, n1);
-    memcpy(vbuf, v2, v2len);
-    IW_READVNUMBUF64_2(vbuf, n2);
-    return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
-  } else if (dbflg & IWDB_REALNUM_KEYS) {
-    return iwafcmp(v2, v2len, v1, v1len);
+    if (dbflg & IWDB_VNUM64_KEYS) {
+      if (v2len - v1len || v2len > IW_VNUMBUFSZ || v1len > IW_VNUMBUFSZ) {
+        return v2len - v1len;
+      }
+      int64_t n1, n2;
+      char vbuf[IW_VNUMBUFSZ];
+      memcpy(vbuf, u1, v1len);
+      IW_READVNUMBUF64_2(vbuf, n1);
+      memcpy(vbuf, u2, v2len);
+      IW_READVNUMBUF64_2(vbuf, n2);
+      ret = n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
+    } else if (dbflg & IWDB_REALNUM_KEYS) {
+      ret = iwafcmp(u2, v2len, u1, v1len);
+    } else {
+      ret = strncmp(u2, u1, MIN(v1len, v2len));
+    }
+    if (ret == 0) {
+      ret = c1 > c2 ? -1 : c1 < c2 ? 1 : 0;
+    }
+    return ret;
   } else {
-    return strncmp(v2, v1, MIN(v1len, v2len));
+    int v2len = (int) key->size;
+    const void *v2 = key->data;
+    if (dbflg & IWDB_VNUM64_KEYS) {
+      if (v2len - v1len || v2len > IW_VNUMBUFSZ || v1len > IW_VNUMBUFSZ) {
+        return v2len - v1len;
+      }
+      int64_t n1, n2;
+      char vbuf[IW_VNUMBUFSZ];
+      memcpy(vbuf, v1, v1len);
+      IW_READVNUMBUF64_2(vbuf, n1);
+      memcpy(vbuf, v2, v2len);
+      IW_READVNUMBUF64_2(vbuf, n2);
+      return n1 > n2 ? -1 : n1 < n2 ? 1 : 0;
+    } else if (dbflg & IWDB_REALNUM_KEYS) {
+      return iwafcmp(v2, v2len, v1, v1len);
+    } else {
+      return strncmp(v2, v1, MIN(v1len, v2len));
+    }
   }
 }
 
-IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const void *v2, int v2len) {
-  int rv = _cmp_key2(dbflg, v1, v1len, v2, v2len);
+IW_INLINE int _cmp_key(iwdb_flags_t dbflg, const void *v1, int v1len, const IWKV_val *key) {
+  int rv = _cmp_key2(dbflg, v1, v1len, key);
   if (!rv && !(dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
+    int v2len = (int) key->size;
+    if (dbflg & IWDB_COMPOUND_KEYS) {
+      v1len -= IW_VNUMSIZE(key->compound);
+    }
     return v2len - v1len;
   } else {
     return rv;
@@ -1029,7 +1077,7 @@ static WUR iwrc _kvblk_addkv(KVBLK *kb,
   size_t i, sp;
   KVP *kvp;
   IWDB db = kb->db;
-  bool compound = (db->dbflg & IWDB_COMPOUND_KEYS) && key->compound;
+  bool compound = (db->dbflg & IWDB_COMPOUND_KEYS);
   IWFS_FSM *fsm = &db->iwkv->fsm;
   bool compacted = false;
   IWDLSNR *dlsnr = kb->db->iwkv->dlsnr;
@@ -1126,8 +1174,8 @@ start:
     IW_SETVNUMBUF64(sp, wp, key->compound);
     wp += sp;
   }
-  memcpy(wp, key->data, ksize);
-  wp += ksize;
+  memcpy(wp, key->data, key->size);
+  wp += key->size;
   memcpy(wp, uval->data, uval->size);
   wp += uval->size;
 #ifndef NDEBUG
@@ -1574,7 +1622,7 @@ static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, IWLCTX *lx, const uint8_t *mm, bool
     idx = (ub + lb) / 2;
     iwrc rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
     RCRET(rc);
-    int cr = _cmp_key(dbflg, k, kl, lx->key->data, lx->key->size);
+    int cr = _cmp_key(dbflg, k, kl, lx->key);
     if (!cr) {
       *found = true;
       break;
@@ -1614,7 +1662,7 @@ static WUR iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, IWLCTX *lx,
     idx = (ub + lb) / 2;
     iwrc rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
     RCRET(rc);
-    int cr = _cmp_key(dbflg, k, kl, lx->key->data, lx->key->size);
+    int cr = _cmp_key(dbflg, k, kl, lx->key);
     if (!cr) {
       break;
     } else if (cr < 0) {
@@ -1670,7 +1718,7 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk,
   sblk->flags |= SBLK_DURTY;
   if (idx == 0) { // the lowest key inserted
     size_t ksize = key->size;
-    bool compound = (db->dbflg & IWDB_COMPOUND_KEYS) && key->compound;
+    bool compound = (db->dbflg & IWDB_COMPOUND_KEYS);
     if (compound) {
       ksize += IW_VNUMSIZE(key->compound);
     }
@@ -1730,7 +1778,7 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx, bool skip_cursors) {
   fsm->release_mmap(fsm);
   if (idx == 0) { // the lowest key inserted
     size_t ksize = key->size;
-    bool compound = (db->dbflg & IWDB_COMPOUND_KEYS) && key->compound;
+    bool compound = (db->dbflg & IWDB_COMPOUND_KEYS);
     if (compound) {
       ksize += IW_VNUMSIZE(key->compound);
     }
@@ -1876,25 +1924,28 @@ lkfinish:
 
 //--------------------------  IWLCTX
 
-IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
+WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
   int res = 0;
   iwrc rc = 0;
   iwdb_flags_t dbflg = sblk->db->dbflg;
   const IWKV_val *key = lx->key;
   uint8_t lkl = sblk->lkl;
+  size_t ksize = key->size;
 
   if (IW_UNLIKELY(sblk->pnum < 1 || (sblk->flags & SBLK_DB))) {
     *resp = 0;
     iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   }
-
+  if (dbflg & IWDB_COMPOUND_KEYS) {
+    ksize += IW_VNUMSIZE(key->compound);
+  }
   if ((sblk->flags & SBLK_FULL_LKEY)
-      || key->size < lkl
+      || ksize < lkl
       || (dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
-    res = _cmp_key(dbflg, sblk->lk, lkl, key->data, key->size);
+    res = _cmp_key(dbflg, sblk->lk, lkl, key);
   } else {
-    res = _cmp_key2(dbflg, sblk->lk, lkl, key->data, key->size);
+    res = _cmp_key2(dbflg, sblk->lk, lkl, key);
     if (!res) {
       uint32_t kl;
       uint8_t *mm, *k;
@@ -1914,7 +1965,7 @@ IW_INLINE WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
       }
       rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[0], mm, &k, &kl);
       RCRET(rc);
-      res = _cmp_key(dbflg, k, kl, key->data, key->size);
+      res = _cmp_key(dbflg, k, kl, key);
       fsm->release_mmap(fsm);
     }
   }
@@ -2466,8 +2517,17 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
   if (!kl2 && cn2->fullkey) {
     kl2 = cn2->sblkn;
   }
-
-  *res = _cmp_key2(dbflg, k1, kl1, k2, kl2);
+  IWKV_val key2 = {
+    .data = k2,
+    .size = kl2
+  };
+  if (dbflg & IWDB_COMPOUND_KEYS) {
+    int step;
+    IW_READVNUMBUF64(k2, key2.compound, step);
+    key2.size -= step;
+    key2.data = (char *) key2.data + step;
+  }
+  *res = _cmp_key2(dbflg, k1, kl1, &key2);
   if (*res == 0 && (!cn1->fullkey || !cn2->fullkey)) {
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCRET(rc);
@@ -2482,8 +2542,16 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
       RCGO(rc, finish);
       rc = _kvblk_peek_key(kb, cn2->k0idx, mm, &k2, &kl2);
       RCGO(rc, finish);
+      key2.size = kl2;
+      key2.data = k2;
+      if (dbflg & IWDB_COMPOUND_KEYS) {
+        int step;
+        IW_READVNUMBUF64(k2, key2.compound, step);
+        key2.size -= step;
+        key2.data = (char *) key2.data + step;
+      }
     }
-    *res = _cmp_key(dbflg, k1, kl1, k2, kl2);
+    *res = _cmp_key(dbflg, k1, kl1, &key2);
   }
 
 finish:
@@ -2576,13 +2644,17 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   uint8_t dbcbuf[1024];
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
+  const IWKV_val *key = lx->key;
   cache->atime = lx->ts;
   if (lx->nlvl > -1 || cache->num < 1) {
     lx->lower = &lx->dblk;
     return 0;
   }
   assert(cache->nodes);
-  size_t lxksiz = lx->key->size;
+  size_t lxksiz = key->size;
+  if (db->dbflg & IWDB_COMPOUND_KEYS) {
+    lxksiz += IW_VNUMSIZE(key->compound);
+  }
 
   if (sizeof(DBCNODE) + lxksiz <= sizeof(dbcbuf)) {
     n = (DBCNODE *) dbcbuf;
@@ -2593,12 +2665,21 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
     }
   }
   n->sblkn = (uint32_t) lxksiz; // `sblkn` used to store key size (to keep DBCNODE compact)
+  n->kblkn = 0;
   n->fullkey = 1;
   n->lkl = 0;
   n->k0idx = 0;
-  n->kblkn = 0;
 
-  memcpy((uint8_t *) n + offsetof(DBCNODE, lk), lx->key->data, lx->key->size);
+  uint8_t *wp = (uint8_t *) n + offsetof(DBCNODE, lk);
+  if (db->dbflg & IWDB_COMPOUND_KEYS) {
+    size_t step;
+    char vbuf[IW_VNUMBUFSZ];
+    IW_SETVNUMBUF(step, vbuf, key->compound);
+    memcpy(wp, vbuf, step);
+    wp += step;
+  }
+  memcpy(wp, key->data, key->size);
+
   idx = iwarr_sorted_find2(cache->nodes, cache->num, cache->nsize, n, lx, &found, _dbcache_cmp_nodes);
   if (idx > 0) {
     DBCNODE *fn = (DBCNODE *) ((uint8_t *) cache->nodes + (idx - 1) * cache->nsize);
