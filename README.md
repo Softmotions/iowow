@@ -63,7 +63,7 @@ Successfully tested on OSX 10.12/10.13
 
 ## Windows
 
-[Port pending](https://github.com/Softmotions/iowow/issues/1)
+[Cross-compilation for windows](http://iowow.io/iw/win)
 
 
 ## MIPS based systems (+big-endian)
