@@ -58,7 +58,10 @@ static void iwkv_test6_1() {
       CU_ASSERT_EQUAL_FATAL(rc, 0);
       rc = iwkv_cursor_key(cur, &ckey);
       CU_ASSERT_EQUAL_FATAL(rc, 0);
-      CU_ASSERT_TRUE_FATAL(ckey.size == 4 && ckey.compound == j && !memcmp(ckey.data, &i, sizeof(i)));
+      int64_t llv;
+      CU_ASSERT_TRUE_FATAL(ckey.size == 8);
+      memcpy(&llv, ckey.data, sizeof(llv));
+      CU_ASSERT_TRUE_FATAL(ckey.compound == j && llv == i);
       iwkv_val_dispose(&ckey);
       rc = iwkv_cursor_close(&cur);
       CU_ASSERT_EQUAL_FATAL(rc, 0);

@@ -74,14 +74,8 @@ iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
     }
     memcpy(nbuf, data, key->size);
     IW_READVNUMBUF64_2(nbuf, llv);
-    if (llv > INT32_MAX || llv < INT32_MIN) {
-      memcpy(key->data, &llv, sizeof(llv));
-      key->size = sizeof(llv);
-    } else {
-      int32_t lv = (int32_t) llv;
-      memcpy(key->data, &lv, sizeof(lv));
-      key->size = sizeof(lv);
-    }
+    memcpy(key->data, &llv, sizeof(llv));
+    key->size = sizeof(llv);
   }
   return 0;
 }
