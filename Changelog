@@ -1,6 +1,7 @@
 iowow (1.3.1) UNRELEASED; urgency=medium
 
   * Eliminate adaptive `IWDB_VNUM64_KEYS` key sizing in `_unpack_effective_key` for the sake of API simplicity (iwkv.c)
+  * BUG: incorrect key handling in `iwkv_del` - key was not unpacked before. (iwkv.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Wed, 27 Feb 2019 22:36:36 +0700
 

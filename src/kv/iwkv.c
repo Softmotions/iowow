@@ -3574,12 +3574,16 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key, iwkv_opflags opflags) {
     return IW_ERROR_INVALID_ARGS;
   }
   int rci;
-  iwrc rc = 0;
-  bool exclusive = false;
+  IWKV_val ekey;
   IWKV iwkv = db->iwkv;
+  bool exclusive = false;
+
+  uint8_t nbuf[IW_VNUMBUFSZ];
+  iwrc rc = _to_effective_key(db, key, &ekey, nbuf);
+  RCRET(rc);
   IWLCTX lx = {
     .db = db,
-    .key = key,
+    .key = &ekey,
     .nlvl = -1,
     .op = IWLCTX_DEL,
     .opflags = opflags
@@ -3591,7 +3595,7 @@ start:
     uint64_t ots = lx.ts;
     memset(&lx, 0, sizeof(lx));
     lx.db = db;
-    lx.key = key;
+    lx.key = &ekey;
     lx.nlvl = -1;
     lx.op = IWLCTX_DEL;
     lx.opflags = opflags;
