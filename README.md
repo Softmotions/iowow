@@ -14,9 +14,9 @@ Website http://iowow.io
 
 * Support of multiple key-value databases within a single file.
 * Native support of integer keys
-* Support of record values represented as sorted array of integers
 * [Write Ahead Logging (WAL) support](http://iowow.io/wal)
 * Ultra-fast traversal of database records
+* Compound keys support
 * Good performance comparing its main competitors: `lmdb`, `leveldb`, `kyoto cabinet`
 * Tiny C11 library (150Kb) can be easily embedded into any software
 
