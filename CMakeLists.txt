@@ -9,6 +9,8 @@ unset(CHANGELOG_LAST_MESSAGE)
 include(DebChangelog)
 
 set(PROJECT_NAME "iowow")
+project(${PROJECT_NAME} C)
+
 set(PROJECT_VENDOR "Softmotions (https://softmotions.com)")
 set(PROJECT_WEBSITE "https://github.com/Softmotions/iowow")
 set(PROJECT_MAINTAINER "Anton Adamansky <adamansky@gmail.com>")
@@ -17,8 +19,6 @@ set(PROJECT_DESCRIPTION "The skiplist based persistent key/value storage engine"
 set(CHANGELOG_MESSAGE ${CHANGELOG_LAST_MESSAGE})
 set(PROJECT_PPA "ppa:adamansky/iowow")
 set(PROJECT_PPA_USER "adamansky")
-
-project(${PROJECT_NAME} C)
 
 set(PROJECT_VERSION_MAJOR ${CHANGELOG_LAST_VERSION_MAJOR})
 set(PROJECT_VERSION_MINOR ${CHANGELOG_LAST_VERSION_MINOR})
