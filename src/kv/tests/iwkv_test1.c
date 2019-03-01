@@ -714,7 +714,8 @@ static void iwkv_test8(void) {
 
 
   llv = 0;
-  rc = iwkv_cursor_copy_key(cur, &llv, sizeof(llv), &ksz);
+  int64_t compound;
+  rc = iwkv_cursor_copy_key(cur, &llv, sizeof(llv), &ksz, &compound);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL(llv, 0xffffffffffffffe);
 
@@ -730,7 +731,7 @@ static void iwkv_test8(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   llv = 0;
-  rc = iwkv_cursor_copy_key(cur, &llv, sizeof(llv), &ksz);
+  rc = iwkv_cursor_copy_key(cur, &llv, sizeof(llv), &ksz, &compound);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL(llv, 1);
 

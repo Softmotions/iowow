@@ -454,8 +454,9 @@ IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
  * @param kbuf Pointer to value buffer
  * @param kbufsz Key buffer size
  * @param [out] ksz Actual key size
+ * @param [out] compound Compound key part value
  */
-IW_EXPORT iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz);
+IW_EXPORT iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz, int64_t *compound);
 
 /**
  * @brief Set record value at current cursor position.

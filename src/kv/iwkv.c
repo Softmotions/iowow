@@ -51,7 +51,7 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
   return 0;
 }
 
-// NOTE: at least `sizeof(int64_t)` must be allocated for key->data
+// NOTE: at least `2*IW_VNUMBUFSZ` must be allocated for key->data
 iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
   iwdb_flags_t dbflg = db->dbflg;
   uint8_t *data = key->data;
@@ -3846,7 +3846,7 @@ finish:
   return rc;
 }
 
-iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz) {
+iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz, int64_t *compound) {
   int rci;
   iwrc rc = 0;
   if (!cur || !kbuf) {
@@ -3860,6 +3860,7 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
   API_DB_RLOCK(lx->db, rci);
   uint8_t *mm = 0, *okey;
   uint32_t okeysz;
+  iwdb_flags_t dbflg = lx->db->dbflg;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
@@ -3868,21 +3869,27 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
     RCGO(rc, finish);
   }
 
-  iwdb_flags_t dbflg = lx->db->dbflg;
   uint8_t idx = cur->cn->pi[cur->cnpos];
   rc = _kvblk_peek_key(cur->cn->kvblk, idx, mm, &okey, &okeysz);
   RCGO(rc, finish);
-
-  if (dbflg & IWDB_VNUM64_KEYS) {
-    char nbuf[IW_VNUMBUFSZ];
-    IWKV_val key = {.data = nbuf, .size = MIN(IW_VNUMBUFSZ, okeysz)};
-    memcpy(key.data, okey, key.size);
+  
+  if (dbflg & (IWDB_COMPOUND_KEYS | IWDB_VNUM64_KEYS)) {
+    char nbuf[2 * IW_VNUMBUFSZ];
+    IWKV_val key = {.data = nbuf, .size = okeysz};
+    memcpy(key.data, okey, MIN(key.size, sizeof(nbuf)));
     rc = _unpack_effective_key(lx->db, &key);
     RCGO(rc, finish);
+    *compound = key.compound;
     *ksz = key.size;
-    memcpy(kbuf, key.data, MIN(kbufsz, key.size));
+    if (dbflg & IWDB_VNUM64_KEYS)  {
+      memcpy(kbuf, key.data, MIN(kbufsz, key.size));
+    } else {
+      okey += (okeysz - key.size);
+      memcpy(kbuf, okey, MIN(kbufsz, key.size));
+    }
   } else {
     *ksz = okeysz;
+    *compound = 0;
     memcpy(kbuf, okey, MIN(kbufsz, okeysz));
   }
 
