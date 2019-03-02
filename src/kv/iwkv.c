@@ -3879,7 +3879,7 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
     memcpy(key.data, okey, MIN(key.size, sizeof(nbuf)));
     rc = _unpack_effective_key(lx->db, &key);
     RCGO(rc, finish);
-    *compound = key.compound;
+    if (compound) *compound = key.compound;
     *ksz = key.size;
     if (dbflg & IWDB_VNUM64_KEYS)  {
       memcpy(kbuf, key.data, MIN(kbufsz, key.size));
@@ -3889,7 +3889,7 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
     }
   } else {
     *ksz = okeysz;
-    *compound = 0;
+    if (compound) *compound = 0;
     memcpy(kbuf, okey, MIN(kbufsz, okeysz));
   }
 
