@@ -458,6 +458,8 @@ IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
  */
 IW_EXPORT iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz, int64_t *compound);
 
+IW_EXPORT iwrc iwkv_cursor_is_matched_key(IWKV_cursor cur, const IWKV_val *key, bool *ores, int64_t *ocompound);
+
 /**
  * @brief Set record value at current cursor position.
  * @note This is equivalent to `iwkv_put()` operation.

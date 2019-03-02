@@ -3846,6 +3846,62 @@ finish:
   return rc;
 }
 
+iwrc iwkv_cursor_is_matched_key(IWKV_cursor cur, const IWKV_val *key, bool *ores, int64_t *ocompound) {
+  int rci;
+  iwrc rc = 0;
+  if (!cur || !ores || !key) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  if (!cur->cn || !cur->lx.db || cur->cnpos >= cur->cn->pnum) {
+    return IW_ERROR_INVALID_STATE;
+  }
+  *ores = 0;
+  if (ocompound) *ocompound = 0;
+
+  IWLCTX *lx = &cur->lx;
+  API_DB_RLOCK(lx->db, rci);
+  uint8_t *mm = 0, *okey;
+  uint32_t okeysz;
+  iwdb_flags_t dbflg = lx->db->dbflg;
+  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  RCGO(rc, finish);
+  if (!cur->cn->kvblk) {
+    rc = _sblk_loadkvblk_mm(lx, cur->cn, mm);
+    RCGO(rc, finish);
+  }
+
+  uint8_t idx = cur->cn->pi[cur->cnpos];
+  rc = _kvblk_peek_key(cur->cn->kvblk, idx, mm, &okey, &okeysz);
+  RCGO(rc, finish);
+
+  if (dbflg & (IWDB_COMPOUND_KEYS | IWDB_VNUM64_KEYS)) {
+    char nbuf[2 * IW_VNUMBUFSZ];
+    IWKV_val rkey = {.data = nbuf, .size = okeysz};
+    memcpy(rkey.data, okey, MIN(rkey.size, sizeof(nbuf)));
+    rc = _unpack_effective_key(lx->db, &rkey);
+    RCGO(rc, finish);
+    if (ocompound) *ocompound = rkey.compound;
+    if (rkey.size != key->size) {
+      *ores = false;
+      goto finish;
+    }
+    if (dbflg & IWDB_COMPOUND_KEYS) {
+      okey += (okeysz - rkey.size);
+    }
+    *ores = !memcmp(okey, key->data, key->size);
+  } else {
+    *ores = (okeysz == key->size) && memcmp(okey, key->data, key->size);
+  }
+
+finish:
+  if (mm) {
+    fsm->release_mmap(fsm);
+  }
+  API_DB_UNLOCK(cur->lx.db, rci, rc);
+  return rc;
+}
+
 iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz, int64_t *compound) {
   int rci;
   iwrc rc = 0;
@@ -3872,7 +3928,7 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
   uint8_t idx = cur->cn->pi[cur->cnpos];
   rc = _kvblk_peek_key(cur->cn->kvblk, idx, mm, &okey, &okeysz);
   RCGO(rc, finish);
-  
+
   if (dbflg & (IWDB_COMPOUND_KEYS | IWDB_VNUM64_KEYS)) {
     char nbuf[2 * IW_VNUMBUFSZ];
     IWKV_val key = {.data = nbuf, .size = okeysz};
@@ -3881,7 +3937,7 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
     RCGO(rc, finish);
     if (compound) *compound = key.compound;
     *ksz = key.size;
-    if (dbflg & IWDB_VNUM64_KEYS)  {
+    if (dbflg & IWDB_VNUM64_KEYS) {
       memcpy(kbuf, key.data, MIN(kbufsz, key.size));
     } else {
       okey += (okeysz - key.size);
