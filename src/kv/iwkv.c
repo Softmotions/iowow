@@ -3905,7 +3905,7 @@ finish:
 iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz, int64_t *compound) {
   int rci;
   iwrc rc = 0;
-  if (!cur || !kbuf) {
+  if (!cur) {
     return IW_ERROR_INVALID_ARGS;
   }
   if (!cur->cn || !cur->lx.db || cur->cnpos >= cur->cn->pnum) {

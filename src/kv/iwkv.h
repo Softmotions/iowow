@@ -451,8 +451,8 @@ IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
  * @note At most of `bufsz` bytes will be copied into `kbuf`.
  *
  * @param cur Opened cursor object
- * @param kbuf Pointer to value buffer
- * @param kbufsz Key buffer size
+ * @param kbuf Pointer to value buffer, can be zero if kbufsz is zero too.
+ * @param kbufsz Key buffer size, cab be zero.
  * @param [out] ksz Actual key size
  * @param [out] compound Compound key part value, can be zero.
  */
