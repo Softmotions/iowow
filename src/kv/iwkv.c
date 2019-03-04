@@ -3888,10 +3888,8 @@ iwrc iwkv_cursor_is_matched_key(IWKV_cursor cur, const IWKV_val *key, bool *ores
     }
     if (dbflg & IWDB_VNUM64_KEYS) {
       *ores = !memcmp(rkey.data, key->data, key->size);
-    } else if (dbflg & IWDB_COMPOUND_KEYS) {
-      *ores = !memcmp(okey + IW_VNUMSIZE(rkey.compound), key->data, key->size);
     } else {
-      *ores = !memcmp(okey, key->data, key->size);
+      *ores = !memcmp(okey + (okeysz - rkey.size), key->data, key->size);
     }
   } else {
     *ores = (okeysz == key->size) && !memcmp(okey, key->data, key->size);
@@ -3943,8 +3941,7 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
     if (dbflg & IWDB_VNUM64_KEYS) {
       memcpy(kbuf, rkey.data, MIN(kbufsz, rkey.size));
     } else {
-      okey += IW_VNUMSIZE(rkey.compound);
-      memcpy(kbuf, okey, MIN(kbufsz, rkey.size));
+      memcpy(kbuf, okey + (okeysz - rkey.size), MIN(kbufsz, rkey.size));
     }
   } else {
     *ksz = okeysz;
