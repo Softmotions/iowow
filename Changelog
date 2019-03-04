@@ -1,10 +1,10 @@
-iowow (1.3.2) UNRELEASED; urgency=medium
+iowow (1.3.2) testing; urgency=medium
 
   * Added `iwkv_cursor_is_matched_key` (iwkv.h)
   * `iwkv_cursor_copy_key` now aware of `IWDB_COMPOUND_KEYS` mode (iwkv.h)
   * `iwkv_cursor_copy_key` can accept zero kbuf,kbufsz only compound part will returned in this case (iwkv.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 02 Mar 2019 01:04:01 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 04 Mar 2019 20:50:03 +0700
 
 iowow (1.3.1) testing; urgency=medium
 
