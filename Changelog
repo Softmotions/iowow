@@ -1,4 +1,4 @@
-iowow (1.3.3) UNRELEASED; urgency=medium
+iowow (1.3.3) testing; urgency=medium
 
   * BUG: `iwkv_puth` called with incorrect previous value (iwkv.h)
   * _kvblk_getvalue renamed to _kvblk_value_get (iwkv.c)
@@ -6,7 +6,7 @@ iowow (1.3.3) UNRELEASED; urgency=medium
   * _kvblk_getkey renamed to _kvblk_key_get (iwkv.c)
   * _kvblk_getkv renamed to _kvblk_kv_get (iwkv.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 08 Mar 2019 13:20:16 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Fri, 08 Mar 2019 17:02:46 +0700
 
 iowow (1.3.2) testing; urgency=medium
 
