@@ -26,7 +26,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
       iwlog_ecode_error3(rc);
       return;
     }
-    _kvblk_peek_val(kb, i, mm, &vbuf, &vlen);
+    _kvblk_value_peek(kb, i, mm, &vbuf, &vlen);
     fprintf(f, "\n    %02d: [%04" PRIx64 ", %02u, %02d]: %.*s:%.*s",
             i, kvp->off, kvp->len, kvp->ridx,
             klen, kbuf, MIN(vlen, maxvlen), vbuf);
@@ -85,7 +85,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
       return rc;
     }
     if (flags & IWKVD_PRINT_VALS) {
-      _kvblk_peek_val(sb->kvblk, sb->pi[i], mm, &vbuf, &vlen);
+      _kvblk_value_peek(sb->kvblk, sb->pi[i], mm, &vbuf, &vlen);
       fprintf(f, "    [%03d,%03d] %.*s:%.*s", i, sb->pi[i], klen, kbuf, MIN(vlen, IWKVD_MAX_VALSZ), vbuf);
     } else {
       fprintf(f, "    [%03d,%03d] %.*s", i, sb->pi[i], klen, kbuf);

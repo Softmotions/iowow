@@ -677,7 +677,7 @@ IW_INLINE WUR iwrc _kvblk_peek_key(const KVBLK *kb,
   return 0;
 }
 
-IW_INLINE void _kvblk_peek_val(const KVBLK *kb, uint8_t idx, const uint8_t *mm, uint8_t **obuf, uint32_t *olen) {
+IW_INLINE void _kvblk_value_peek(const KVBLK *kb, uint8_t idx, const uint8_t *mm, uint8_t **obuf, uint32_t *olen) {
   assert(idx < KVBLK_IDXNUM);
   if (kb->pidx[idx].len) {
     uint32_t klen, step;
@@ -693,7 +693,7 @@ IW_INLINE void _kvblk_peek_val(const KVBLK *kb, uint8_t idx, const uint8_t *mm, 
   }
 }
 
-static WUR iwrc _kvblk_getkey(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key) {
+static WUR iwrc _kvblk_key_get(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key) {
   assert(mm && idx < KVBLK_IDXNUM);
   int32_t klen;
   int step;
@@ -726,7 +726,7 @@ static WUR iwrc _kvblk_getkey(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key
   return 0;
 }
 
-static WUR iwrc _kvblk_getvalue(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *val) {
+static WUR iwrc _kvblk_value_get(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *val) {
   assert(mm && idx < KVBLK_IDXNUM);
   int32_t klen;
   int step;
@@ -763,7 +763,7 @@ static WUR iwrc _kvblk_getvalue(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *v
   return 0;
 }
 
-static WUR iwrc _kvblk_getkv(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key, IWKV_val *val) {
+static WUR iwrc _kvblk_kv_get(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *key, IWKV_val *val) {
   assert(mm && idx < KVBLK_IDXNUM);
   int32_t klen;
   int step;
@@ -1240,7 +1240,7 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
     kb->flags |= KVBLK_DURTY;
     if (!ukey) { // we need a key
       ukey = &skey;
-      rc = _kvblk_getkey(kb, mm, pidx, ukey);
+      rc = _kvblk_key_get(kb, mm, pidx, ukey);
       RCGO(rc, finish);
     }
     for (i = 0; i < KVBLK_IDXNUM; ++i) {
@@ -2151,7 +2151,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
       uint8_t *mm;
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCBREAK(rc);
-      rc = _kvblk_getkv(sblk->kvblk, mm, sblk->pi[i], &key, &val);
+      rc = _kvblk_kv_get(sblk->kvblk, mm, sblk->pi[i], &key, &val);
       assert(key.size);
       fsm->release_mmap(fsm);
       RCBREAK(rc);
@@ -2283,7 +2283,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
         fsm->release_mmap(fsm);
         return rc;
       }
-      _kvblk_peek_val(sblk->kvblk, idx, mm, &rp, &len);
+      _kvblk_value_peek(sblk->kvblk, sblk->pi[idx], mm, &rp, &len);
       sval.data = rp;
       sval.size = len;
       if (sval.size == 4) {
@@ -2308,7 +2308,7 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
     }
     if (lx->ph) {
       IWKV_val oldval;
-      rc = _kvblk_getvalue(sblk->kvblk, mm, idx, &oldval);
+      rc = _kvblk_value_get(sblk->kvblk, mm, sblk->pi[idx], &oldval);
       fsm->release_mmap(fsm);
       if (!rc) {
         // note: oldval should be disposed by ph
@@ -2391,8 +2391,7 @@ IW_INLINE WUR iwrc _lx_get_lr(IWLCTX *lx) {
   rc = _sblk_find_pi_mm(lx->lower, lx, mm, &found, &idx);
   RCGO(rc, finish);
   if (found) {
-    idx = (uint8_t) lx->lower->pi[idx];
-    rc = _kvblk_getvalue(lx->lower->kvblk, mm, idx, lx->val);
+    rc = _kvblk_value_get(lx->lower->kvblk, mm, lx->lower->pi[idx], lx->val);
   } else {
     rc = IWKV_ERROR_NOTFOUND;
   }
@@ -3463,8 +3462,7 @@ iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vbufsz, size
   rc = _sblk_find_pi_mm(lx.lower, &lx, mm, &found, &idx);
   RCGO(rc, finish);
   if (found) {
-    idx = lx.lower->pi[idx];
-    _kvblk_peek_val(lx.lower->kvblk, idx, mm, &oval, &ovalsz);
+    _kvblk_value_peek(lx.lower->kvblk, lx.lower->pi[idx], mm, &oval, &ovalsz);
     *vsz = ovalsz;
     memcpy(vbuf, oval, MIN(vbufsz, ovalsz));
   } else {
@@ -3793,11 +3791,11 @@ iwrc iwkv_cursor_get(IWKV_cursor cur,
   }
   uint8_t idx = cur->cn->pi[cur->cnpos];
   if (okey && oval) {
-    rc = _kvblk_getkv(cur->cn->kvblk, mm, idx, okey, oval);
+    rc = _kvblk_kv_get(cur->cn->kvblk, mm, idx, okey, oval);
   } else if (oval) {
-    rc = _kvblk_getvalue(cur->cn->kvblk, mm, idx, oval);
+    rc = _kvblk_value_get(cur->cn->kvblk, mm, idx, oval);
   } else if (okey) {
-    rc = _kvblk_getkey(cur->cn->kvblk, mm, idx, okey);
+    rc = _kvblk_key_get(cur->cn->kvblk, mm, idx, okey);
   } else {
     rc = IW_ERROR_INVALID_ARGS;
   }
@@ -3834,7 +3832,7 @@ iwrc iwkv_cursor_copy_val(IWKV_cursor cur, void *vbuf, size_t vbufsz, size_t *vs
     RCGO(rc, finish);
   }
   uint8_t idx = cur->cn->pi[cur->cnpos];
-  _kvblk_peek_val(cur->cn->kvblk, idx, mm, &oval, &ovalsz);
+  _kvblk_value_peek(cur->cn->kvblk, idx, mm, &oval, &ovalsz);
   *vsz = ovalsz;
   memcpy(vbuf, oval, MIN(vbufsz, ovalsz));
 
