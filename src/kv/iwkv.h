@@ -7,7 +7,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2018 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2019 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,9 +37,9 @@
  * - Simple design of key value storage
  * - Lightweight shared/static library: 200Kb
  * - Support of multiple key-value databases within a single file
+ * - Compound keys supported
  * - Ultra-fast traversal of database records
  * - Native support of integer keys
- * - Support of record values represented as sorted array of integers
  *
  * <strong>Limitations:<strong>
  * - Maximum iwkv storage file size: 512 GB (0x7fffffff80)
@@ -100,7 +100,11 @@ typedef uint8_t iwdb_flags_t;
 /** Variable-length number keys */
 #define IWDB_VNUM64_KEYS      ((iwdb_flags_t) 0x20U)
 
-/** todo */
+/**
+ * Enable compound database keys. Keys stored in the following format: `<key value><numeric key suffix>`
+ * Allows associate one `key value` with many references represented as VNUM64 (eg.: Non unique table indexes).
+ * @see IWKV_val.compound
+ */
 #define IWDB_COMPOUND_KEYS    ((iwdb_flags_t) 0x40U)
 
 /**  Record store modes used in `iwkv_put()` and `iwkv_cursor_set()` functions. */
@@ -124,13 +128,13 @@ struct _IWDB;
 typedef struct _IWDB *IWDB;
 
 /**
- * @brief WAL oprions.
+ * @brief Write ahead log (WAL) options.
  */
 typedef struct IWKV_WAL_OPTS {
   bool enabled;                     /**< WAL enabled */
   bool check_crc_on_checkpoint;     /**< Check CRC32 sum of data blocks during checkpoint. Default: false */
   uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds. Default: 10 sec */
-  uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 300 (5 min); */
+  uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 300 sec (5 min); */
   size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. Default: 8Mb */
   uint64_t checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. Default: 1Gb */
 } IWKV_WAL_OPTS;
@@ -152,9 +156,9 @@ typedef struct IWKV_val {
   void *data;            /**< Data buffer */
   size_t size;           /**< Data buffer size */
   /** Extra key part used for key comparison.
-   *  If set to non zero and database in `IWDB_EXTRA_KEYS` mode
-   *  then `IWKV_val` will behave as compound key: `<key data><extra number>`
-   *  Value of this field will be ignored if database not in `IWDB_EXTRA_KEYS` mode.
+   *  If set to non zero and database in `IWDB_COMPOUND_KEYS` mode
+   *  then `IWKV_val` will behave as compound key: `<key value><numeric key suffix>`
+   *  Value of this field will be ignored if database not in `IWDB_COMPOUND_KEYS` mode.
    */
   int64_t compound;
 } IWKV_val;
@@ -205,8 +209,8 @@ IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
  *          a new database will be created using specified function arguments.
  *
  * @note Database handler doesn't require to be explicitly closed or freed.
- *       Although it may be usefull to cleanup database cache memory of unused databases
- *       dependening on memory requirements of your application.
+ *       Although it may be useful to release database cache memory of unused databases
+ *       dependening on memory requirements of your application using `iwkv_db_cache_release()`.
  * @note Database `flags` argument must be same for all subsequent
  *       calls after first call for particular database,
  *       otherwise `IWKV_ERROR_INCOMPATIBLE_DB_MODE` will be reported.
@@ -231,7 +235,7 @@ IW_EXPORT WUR iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, I
 /**
  * @brief Frees memory resources used by database cache
  *        until to next database access operation (get/put/cursor).
- *        It will free about ~130Kb of memory per database in use.
+ *        Typicaly it will free ~130Kb of memory per database in use.
  *
  * @param db Database handler
  */
@@ -420,7 +424,7 @@ IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor cur, IWKV_val *okey, IWKV_val *oval);
 
 /**
  * @brief Get value at current cursor position.
- * @note Data stored in oval container must be freed with `iwkv_val_dispose()`.
+ * @note Data stored in `oval` container must be freed with `iwkv_val_dispose()`.
  * @param cur Opened cursor object
  * @param oval Value holder to be initialized by value at current position
  */
