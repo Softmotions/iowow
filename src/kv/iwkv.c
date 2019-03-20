@@ -385,7 +385,7 @@ finish:
   return rc;
 }
 
-static WUR iwrc _db_save(IWDB db, uint8_t *mm) {
+static WUR iwrc _db_save(IWDB db, bool newdb, uint8_t *mm) {
   iwrc rc = 0;
   uint32_t lv;
   uint8_t *wp = mm + db->addr, bv;
@@ -402,7 +402,10 @@ static WUR iwrc _db_save(IWDB db, uint8_t *mm) {
     RCRET(rc);
   }
   if (db->iwkv->fmt_version >= 1) {
-    wp += 4 /* p0 */ + SLEVELS * 4 * 2; // Skip p0 + n[24] + c[24]
+    if (newdb) {
+      memset(wp, 0, 4 + SLEVELS * 4 * 2); // p0 + n[24] + c[24]
+    }
+    wp += 4 + SLEVELS * 4 * 2;
     sp = wp;
     IW_WRITELV(wp, lv, db->meta_blk);
     IW_WRITELV(wp, lv, db->meta_blkn);
@@ -453,7 +456,7 @@ static void _db_release_lw(IWDB *dbp) {
 
 typedef struct DISPOSE_DB_CTX {
   IWKV iwkv;
-  IWDB *dbp;
+  IWDB db;
   blkn_t sbn; // First `SBLK` block in DB
   pthread_t thr;
 } DISPOSE_DB_CTX;
@@ -492,7 +495,7 @@ static void *_db_dispose_chain_thr(void *op) {
       }
     }
   }
-  _db_release_lw(dctx->dbp);
+  _db_release_lw(&dctx->db);
   rc = _iwkv_worker_dec_nolk(dctx->iwkv);
   if (rc) {
     iwlog_ecode_error3(rc);
@@ -518,12 +521,12 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
   RCRET(rc);
   if (prev) {
     prev->next = next;
-    rc = _db_save(prev, mm);
+    rc = _db_save(prev, false, mm);
     RCRET(rc);
   }
   if (next) {
     next->prev = prev;
-    rc = _db_save(next, mm);
+    rc = _db_save(next, false, mm);
     RCRET(rc);
   }
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
@@ -548,7 +551,7 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
       db->open = false;
       dctx->sbn = first_sblkn;
       dctx->iwkv = db->iwkv;
-      dctx->dbp = dbp;
+      dctx->db = db;
       rci = pthread_create(&dctx->thr, 0, _db_dispose_chain_thr, dctx);
       if (rci) {
         free(dctx);
@@ -562,7 +565,7 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
   }
   IWRC(fsm->deallocate(fsm, db_addr, DB_SZ), rc);
   if (dec_worker) {
-    _db_release_lw(dbp);
+    _db_release_lw(&db);
     _iwkv_worker_dec_nolk(iwkv);
   }
   return rc;
@@ -618,10 +621,10 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   }
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
-  rc = _db_save(db, mm);
+  rc = _db_save(db, true, mm);
   RCGO(rc, finish);
   if (db->prev) {
-    rc = _db_save(db->prev, mm);
+    rc = _db_save(db->prev, false, mm);
     RCGO(rc, finish);
   }
   db->open = true;
@@ -3318,6 +3321,7 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   }
   IWDB db = *dbp;
   IWKV iwkv = db->iwkv;
+  *dbp = 0;
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
   }
@@ -3325,7 +3329,7 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
   RCGO(rc, finish);
   rc = _iwkv_worker_inc_nolk(iwkv);
   if (!rc) {
-    rc = _db_destroy_lw(dbp);
+    rc = _db_destroy_lw(&db);
   }
   iwkv_exclusive_unlock(iwkv);
 
