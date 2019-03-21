@@ -1,6 +1,7 @@
 tmp/
 git.diff
 .vscode/.ropeproject
+.vscode/ipch
 .codelite/
 .cmaketools.json
 *.tags
