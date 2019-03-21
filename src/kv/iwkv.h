@@ -481,6 +481,9 @@ IW_EXPORT iwrc iwkv_cursor_is_matched_key(IWKV_cursor cur, const IWKV_val *key, 
  */
 IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags);
 
+IW_EXPORT iwrc iwkv_cursor_seth(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags,
+                                IWKV_PUT_HANDLER ph, void *phop);
+
 /**
  * @brief Close cursor object.
  * @param cur Opened cursor

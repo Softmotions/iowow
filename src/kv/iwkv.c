@@ -3961,7 +3961,8 @@ finish:
   return rc;
 }
 
-iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
+IW_EXPORT iwrc iwkv_cursor_seth(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags,
+                                IWKV_PUT_HANDLER ph, void *phop) {
   int rci;
   iwrc rc = 0, irc = 0;
   if (!cur) {
@@ -3974,13 +3975,32 @@ iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
   IWDB db = lx->db;
   IWKV iwkv = db->iwkv;
   API_DB_WLOCK(db, rci);
+
+  if (ph) {
+    uint8_t *mm;
+    IWKV_val key, oldval;
+    IWFS_FSM *fsm = &db->iwkv->fsm;
+    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCGO(rc, finish);
+    rc = _kvblk_kv_get(cur->cn->kvblk, mm, cur->cnpos, &key, &oldval);
+    fsm->release_mmap(fsm);
+    if (!rc) {
+      // note: oldval should be disposed by ph
+      rc = ph(&key, val, &oldval, phop);
+      _kv_val_dispose(&key);
+    }
+    RCGO(rc, finish);
+  }
+
   rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val);
+
   if (IWKV_IS_INTERNAL_RC(rc)) {
     irc = rc;
     rc = 0;
   }
   RCGO(rc, finish);
   rc = _sblk_sync(lx, cur->cn);
+
 finish:
   API_DB_UNLOCK(db, rci, rc);
   if (!rc) {
@@ -3991,6 +4011,10 @@ finish:
     }
   }
   return rc ? rc : irc;
+}
+
+iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags) {
+  return iwkv_cursor_seth(cur, val, opflags, 0, 0);
 }
 
 iwrc iwkv_cursor_val(IWKV_cursor cur, IWKV_val *oval) {
