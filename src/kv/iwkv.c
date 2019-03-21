@@ -3697,7 +3697,9 @@ iwrc iwkv_cursor_open(IWDB db,
 finish:
   if (cur) {
     if (rc) {
+      *curptr = 0;
       IWRC(_cursor_close_lw(cur), rc);
+      free(cur);
     } else {
       pthread_spin_lock(&db->cursors_slk);
       cur->next = db->cursors;
@@ -3715,10 +3717,11 @@ finish:
 iwrc iwkv_cursor_close(IWKV_cursor *curp) {
   iwrc rc = 0;
   int rci;
-  if (!curp) {
-    return IW_ERROR_INVALID_ARGS;
+  if (!curp || !*curp) {
+    return 0;
   }
   IWKV_cursor cur = *curp;
+  *curp = 0;
   IWKV iwkv = cur->lx.db->iwkv;
   if (cur->closed) {
     free(cur);
@@ -3732,7 +3735,6 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
   API_DB_UNLOCK(cur->lx.db, rci, rc);
   IWRC(_db_worker_dec_nolk(cur->lx.db), rc);
   free(cur);
-  *curp = 0;
   if (!rc) {
     rc = iwal_poke_checkpoint(iwkv, false);
   }
