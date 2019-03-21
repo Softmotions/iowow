@@ -18,6 +18,7 @@ struct _IWXSTR {
 };
 
 IWXSTR *iwxstr_new2(size_t siz) {
+  if (!siz) siz = IWXSTR_AUNIT;
   IWXSTR *xstr = malloc(sizeof(*xstr));
   if (!xstr) return 0;
   xstr->ptr = malloc(siz);
