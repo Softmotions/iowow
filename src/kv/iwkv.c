@@ -1731,9 +1731,11 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk,
     pthread_spin_lock(&db->cursors_slk);
     for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
       if (cur->cn && cur->cn->addr == sblk->addr) {
-        memcpy(cur->cn, sblk, sizeof(*cur->cn));
-        cur->cn->kvblk = 0;
-        cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
+        if (cur->cn != sblk) {
+          memcpy(cur->cn, sblk, sizeof(*cur->cn));
+          cur->cn->kvblk = 0;
+          cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
+        }
         if (cur->cnpos >= idx) {
           cur->cnpos++;
         }
@@ -1798,9 +1800,11 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx, bool skip_cursors) {
     pthread_spin_lock(&db->cursors_slk);
     for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
       if (cur->cn && cur->cn->addr == sblk->addr) {
-        memcpy(cur->cn, sblk, sizeof(*cur->cn));
-        cur->cn->kvblk = 0;
-        cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
+        if (cur->cn != sblk) {
+          memcpy(cur->cn, sblk, sizeof(*cur->cn));
+          cur->cn->kvblk = 0;
+          cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
+        }
         if (cur->cnpos >= idx) {
           cur->cnpos++;
         }
@@ -1835,7 +1839,7 @@ static WUR iwrc _sblk_updatekv(SBLK *sblk, int8_t idx,
   // Update active cursors inside this block
   pthread_spin_lock(&db->cursors_slk);
   for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
-    if (cur->cn && cur->cn->addr == sblk->addr) {
+    if (cur->cn && cur->cn != sblk && cur->cn->addr == sblk->addr) {
       memcpy(cur->cn, sblk, sizeof(*cur->cn));
       cur->cn->kvblk = 0;
       cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
@@ -1896,9 +1900,11 @@ lkfinish:
     pthread_spin_lock(&db->cursors_slk);
     for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
       if (cur->cn && cur->cn->addr == sblk->addr) {
-        memcpy(cur->cn, sblk, sizeof(*cur->cn));
-        cur->cn->kvblk = 0;
-        cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
+        if (cur->cn != sblk) {
+          memcpy(cur->cn, sblk, sizeof(*cur->cn));
+          cur->cn->kvblk = 0;
+          cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
+        }
         if (cur->cnpos > idx) {
           cur->cnpos--;
         }
