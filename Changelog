@@ -1,4 +1,4 @@
-iowow (1.3.6) UNRELEASED; urgency=medium
+iowow (1.3.6) testing; urgency=medium
 
   * BUG: Memory leak in `iwkv_cursor_open` on error (#21)
   * BUG: `iwxstr_new2()` with zero size argument causes illegal memory write (#20)
@@ -6,7 +6,7 @@ iowow (1.3.6) UNRELEASED; urgency=medium
   * Avoided deadlocks with `iwkv_del()` - now this function does't escalate exclusive lock on storage
   * More consistent error reporting using cursor functions
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 21 Mar 2019 09:40:38 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Fri, 22 Mar 2019 16:29:32 +0700
 
 iowow (1.3.5) testing; urgency=medium
 
