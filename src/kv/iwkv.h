@@ -80,7 +80,6 @@ typedef enum {
   // Internal only
     _IWKV_RC_KVBLOCK_FULL,
   _IWKV_RC_REQUIRE_NLEVEL,
-  _IWKV_RC_ACQUIRE_EXCLUSIVE,
   _IWKV_RC_END,
 } iwkv_ecode;
 

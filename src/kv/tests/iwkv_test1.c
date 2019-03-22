@@ -462,16 +462,16 @@ static void iwkv_test1(void) {
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
   rc = iwkv_cursor_close(&cur1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_get(cur1, &key, &val);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
   rc = iwkv_cursor_to(cur1, IWKV_CURSOR_NEXT);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
   rc = iwkv_cursor_close(&cur1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
