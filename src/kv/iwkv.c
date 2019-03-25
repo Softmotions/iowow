@@ -2446,9 +2446,6 @@ static WUR iwrc _lx_del_lw(IWLCTX *lx) {
           --lx->plower[i]->lvl;
         }
       }
-      if (lx->pupper[i] == lx->upper) {
-        lx->pupper[i] = 0;
-      }
     }
     SBLK *nb;
     assert(!lx->nb);
