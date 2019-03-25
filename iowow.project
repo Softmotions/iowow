@@ -211,10 +211,10 @@
       <PreBuild/>
       <PostBuild/>
       <CustomBuild Enabled="yes">
-        <Target Name="cmake">cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=1</Target>
-        <RebuildCommand>make clean &amp;&amp; make -j4</RebuildCommand>
-        <CleanCommand>make clean</CleanCommand>
-        <BuildCommand>make -j4</BuildCommand>
+        <Target Name="cmake">cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=1</Target>
+        <RebuildCommand>ninja clean &amp;&amp; ninja</RebuildCommand>
+        <CleanCommand>ninja clean</CleanCommand>
+        <BuildCommand>ninja</BuildCommand>
         <PreprocessFileCommand/>
         <SingleFileCommand/>
         <MakefileGenerationCommand/>

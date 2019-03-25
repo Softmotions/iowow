@@ -484,6 +484,12 @@ IW_EXPORT iwrc iwkv_cursor_seth(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opf
                                 IWKV_PUT_HANDLER ph, void *phop);
 
 /**
+ * @brief Remove record value at current cursor position.
+ * @param cur Opened cursor object
+ */
+IW_EXPORT iwrc iwkv_cursor_del(IWKV_cursor cur, iwkv_opflags opflags);
+
+/**
  * @brief Close cursor object.
  * @param cur Opened cursor
  */
