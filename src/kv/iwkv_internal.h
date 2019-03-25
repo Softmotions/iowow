@@ -292,6 +292,10 @@ typedef struct IWLCTX {
 struct _IWKV_cursor {
   uint8_t cnpos;              /**< Position in the current `SBLK` node */
   bool closed;                /**< Cursor closed */
+  int8_t skip_next;           /**< When to skip next IWKV_CURSOR_NEXT|IWKV_CURSOR_PREV cursor move
+                                   due to the side effect of `iwkv_cursor_del()` call.
+                                   If `skip_next > 0` `IWKV_CURSOR_NEXT` will be skipped
+                                   If `skip_next < 0` `IWKV_CURSOR_PREV` will be skipped */
   SBLK *cn;                   /**< Current `SBLK` node */
   struct _IWKV_cursor *next;  /**< Next cursor in active db cursors chain */
   off_t dbaddr;               /**< Database address used as `cn` */
