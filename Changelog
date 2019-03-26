@@ -1,8 +1,9 @@
-iowow (1.3.7) UNRELEASED; urgency=medium
+iowow (1.3.7) testing; urgency=medium
 
+  * Added `iwkv_cursor_del()` (#22)
   * Fixed memory corruption during simultaneous cursor iteration and value updating
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 22 Mar 2019 18:22:20 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Tue, 26 Mar 2019 18:24:35 +0700
 
 iowow (1.3.6) testing; urgency=medium
 
