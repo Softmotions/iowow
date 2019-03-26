@@ -4105,10 +4105,12 @@ iwrc iwkv_cursor_del(IWKV_cursor cur, iwkv_opflags opflags) {
     return IWKV_ERROR_NOTFOUND;
   }
 
+  uint8_t *mm;
   SBLK *sblk = cur->cn;
   IWLCTX *lx = &cur->lx;
   IWDB db = lx->db;
   IWKV iwkv = db->iwkv;
+  IWFS_FSM *fsm = &iwkv->fsm;
 
   API_DB_WLOCK(db, rci);
   if (!db->cache.open) {
@@ -4116,41 +4118,44 @@ iwrc iwkv_cursor_del(IWKV_cursor cur, iwkv_opflags opflags) {
     RCGO(rc, finish);
   }
   if (sblk->pnum == 1) { // sblk will be removed
-    uint8_t *mm = 0;
     IWKV_val key = {0};
-    IWFS_FSM *fsm = &db->iwkv->fsm;
-
     // Key a key
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCGO(rc, finish2);
     if (!sblk->kvblk) {
       rc = _sblk_loadkvblk_mm(lx, sblk, mm);
+      fsm->release_mmap(fsm);
       RCGO(rc, finish2);
     }
     rc = _kvblk_key_get(sblk->kvblk, mm, sblk->pi[cur->cnpos], &key);
-    RCGO(rc, finish2);
     fsm->release_mmap(fsm);
-    mm = 0;
+    RCGO(rc, finish2);
 
     lx->key = &key;
     rc = _lx_del_sblk_lw(lx, sblk, cur->cnpos);
-    RCGO(rc, finish2);
+    lx->key = 0;
+    //RCGO(rc, finish2);
 
 finish2:
-    if (mm) {
-      fsm->release_mmap(fsm);
-    }
-    if (key.data) {
-      _kv_val_dispose(&key);
-    }
     if (rc) {
       _lx_release_mm(lx, 0);
     } else {
       rc = _lx_release(lx);
     }
-
+    if (key.data) {
+      _kv_val_dispose(&key);
+    }
   } else { // Simple case
+    if (!sblk->kvblk) {
+      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      RCGO(rc, finish);
+      rc = _sblk_loadkvblk_mm(lx, sblk, mm);
+      fsm->release_mmap(fsm);
+      RCGO(rc, finish);
+    }
     rc = _sblk_rmkv(sblk, cur->cnpos);
+    RCGO(rc, finish);
+    rc = _sblk_sync(lx, sblk);
   }
 
 finish:
