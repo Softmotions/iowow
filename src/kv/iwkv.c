@@ -1855,8 +1855,10 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   KVBLK *kvblk = sblk->kvblk;
   IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
   assert(kvblk && idx < sblk->pnum && sblk->pi[idx] < KVBLK_IDXNUM);
+
   iwrc rc = _kvblk_rmkv(kvblk, sblk->pi[idx], 0);
   RCRET(rc);
+
   if (sblk->kvblkn != ADDR2BLK(kvblk->addr)) {
     sblk->kvblkn = ADDR2BLK(kvblk->addr);
     if (!(sblk->flags & SBLK_CACHE_FLAGS)) {
@@ -1868,6 +1870,7 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   if (idx < sblk->pnum && sblk->pnum > 0) {
     memmove(sblk->pi + idx, sblk->pi + idx + 1, sblk->pnum - idx);
   }
+
   if (idx == 0) { // Lowest key removed
     uint8_t *mm;
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -1877,7 +1880,7 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
       uint8_t *kbuf;
       uint32_t klen;
       rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &kbuf, &klen);
-      RCGO(rc, lkfinish);
+      RCGO(rc, finish);
       sblk->lkl = MIN(SBLK_LKLEN, klen);
       memcpy(sblk->lk, kbuf, sblk->lkl);
       if (klen <= SBLK_LKLEN) {
@@ -1892,26 +1895,37 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
       sblk->lkl = 0;
       sblk->flags |= SBLK_CACHE_REMOVE;
     }
-lkfinish:
+
+finish:
     fsm->release_mmap(fsm);
   }
+
   if (!rc) {
     // Update active cursors
     pthread_spin_lock(&db->cursors_slk);
     for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
       if (cur->cn && cur->cn->addr == sblk->addr) {
+        cur->skip_next = 0;
         if (cur->cn != sblk) {
           memcpy(cur->cn, sblk, sizeof(*cur->cn));
           cur->cn->kvblk = 0;
           cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
         }
-        if (cur->cnpos > 0 && (cur->cnpos > idx || cur->cnpos == sblk->pnum)) {
+        if (cur->cnpos == idx) {
+          if (idx && idx == sblk->pnum) {
+            cur->cnpos--;
+            cur->skip_next = -1;
+          } else {
+            cur->skip_next = 1;
+          }
+        } else if (cur->cnpos > idx) {
           cur->cnpos--;
         }
       }
     }
     pthread_spin_unlock(&db->cursors_slk);
   }
+
   return rc;
 }
 
@@ -2403,6 +2417,7 @@ finish:
 
 static WUR iwrc _lx_del_sblk_lw(IWLCTX *lx, SBLK *sblk, uint8_t idx) {
   assert(sblk->pnum == 1 && sblk->kvblk);
+
   iwrc rc;
   IWDB db = lx->db;
   KVBLK *kvblk = sblk->kvblk;
@@ -2428,9 +2443,13 @@ static WUR iwrc _lx_del_sblk_lw(IWLCTX *lx, SBLK *sblk, uint8_t idx) {
         --lx->plower[i]->lvl;
       }
     }
+    if (lx->pupper[i] == lx->upper) {
+      // Do not touch `lx->upper` in next `_lx_release_mm()` call
+      lx->pupper[i] = 0;
+    }
   }
 
-  SBLK *nb;
+  SBLK *nb; // Block after lx->upper
   assert(!lx->nb);
   rc = _sblk_at(lx, BLK2ADDR(lx->upper->n[0]), 0, &nb);
   RCGO(rc, finish);
@@ -2438,6 +2457,7 @@ static WUR iwrc _lx_del_sblk_lw(IWLCTX *lx, SBLK *sblk, uint8_t idx) {
   lx->nb->p0 = lx->upper->p0;
   lx->nb->flags |= SBLK_DURTY;
 
+  // Update cursors within sblk removed
   pthread_spin_lock(&db->cursors_slk);
   for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
     if (cur->cn) {
@@ -2447,17 +2467,20 @@ static WUR iwrc _lx_del_sblk_lw(IWLCTX *lx, SBLK *sblk, uint8_t idx) {
             memcpy(cur->cn, lx->plower[0], sizeof(*cur->cn));
             cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
             cur->cn->kvblk = 0;
+            cur->skip_next = -1;
             cur->cnpos = lx->plower[0]->pnum;
             if (cur->cnpos) cur->cnpos--;
           } else {
             cur->cn = 0;
             cur->cnpos = 0;
+            cur->skip_next = 0;
           }
         } else {
           memcpy(cur->cn, nb, sizeof(*nb));
           cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
           cur->cn->kvblk = 0;
           cur->cnpos = 0;
+          cur->skip_next = 1;
         }
       } else if (cur->cn->n[0] == sblk_blkn) {
         memcpy(cur->cn, lx->plower[0], sizeof(*cur->cn));
@@ -4074,7 +4097,7 @@ iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey) {
 
 iwrc iwkv_cursor_del(IWKV_cursor cur, iwkv_opflags opflags) {
   int rci;
-  iwrc rc = 0, irc = 0;
+  iwrc rc = 0;
   if (!cur || !cur->lx.db) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -4113,8 +4136,6 @@ iwrc iwkv_cursor_del(IWKV_cursor cur, iwkv_opflags opflags) {
     rc = _lx_del_sblk_lw(lx, sblk, cur->cnpos);
     RCGO(rc, finish2);
 
-    // TODO: Update cur->skip_next
-
 finish2:
     if (mm) {
       fsm->release_mmap(fsm);
@@ -4130,13 +4151,6 @@ finish2:
 
   } else { // Simple case
     rc = _sblk_rmkv(sblk, cur->cnpos);
-    RCGO(rc, finish);
-    if (cur->cnpos == sblk->pnum - 1) {
-      // Last pair in block deleted
-      cur->skip_next = -1;
-    } else {
-      cur->skip_next = 1;
-    }
   }
 
 finish:
@@ -4148,7 +4162,7 @@ finish:
       rc = iwal_poke_checkpoint(iwkv, false);
     }
   }
-  return rc ? rc : irc;
+  return rc;
 }
 
 #include "./dbg/iwkvdbg.c"
