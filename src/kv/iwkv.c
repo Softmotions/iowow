@@ -4029,15 +4029,16 @@ IW_EXPORT iwrc iwkv_cursor_seth(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opf
   IWLCTX *lx = &cur->lx;
   IWDB db = lx->db;
   IWKV iwkv = db->iwkv;
-  API_DB_WLOCK(db, rci);
+  SBLK *sblk = cur->cn;
 
+  API_DB_WLOCK(db, rci);
   if (ph) {
     uint8_t *mm;
     IWKV_val key, oldval;
     IWFS_FSM *fsm = &db->iwkv->fsm;
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCGO(rc, finish);
-    rc = _kvblk_kv_get(cur->cn->kvblk, mm, cur->cnpos, &key, &oldval);
+    rc = _kvblk_kv_get(sblk->kvblk, mm, sblk->pi[cur->cnpos], &key, &oldval);
     fsm->release_mmap(fsm);
     if (!rc) {
       // note: oldval should be disposed by ph
@@ -4047,18 +4048,17 @@ IW_EXPORT iwrc iwkv_cursor_seth(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opf
     RCGO(rc, finish);
   }
 
-  rc = _sblk_updatekv(cur->cn, cur->cnpos, 0, val);
+  rc = _sblk_updatekv(sblk, cur->cnpos, 0, val);
   if (IWKV_IS_INTERNAL_RC(rc)) {
     irc = rc;
     rc = 0;
   }
   RCGO(rc, finish);
 
-  rc = _sblk_sync(lx, cur->cn);
+  rc = _sblk_sync(lx, sblk);
   RCGO(rc, finish);
 
   // Update active cursors inside this block
-  SBLK *sblk = cur->cn;
   pthread_spin_lock(&db->cursors_slk);
   for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
     if (cur->cn && cur->cn->addr == sblk->addr) {
