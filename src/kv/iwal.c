@@ -720,7 +720,7 @@ static void *_cpt_worker_fn(void *op) {
       goto cprun;
     }
 
-#ifdef IW_HAVE_CLOCK_MONOTONIC
+#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
     clockid_t clockid = CLOCK_MONOTONIC;
 #else
     clockid_t clockid = CLOCK_REALTIME;
