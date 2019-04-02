@@ -2,7 +2,7 @@ IOWOW - The C11 persistent key/value database engine based on [skip list](https:
 ==================================================================================================================
 
 [![Join ejdb2 telegram](https://img.shields.io/badge/join-ejdb2%20telegram-0088cc.svg)](https://t.me/ejdb2)
-[![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/ejdb/blob/master/LICENSE)
+[![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/iowow/blob/master/LICENSE)
 ![Maintained](https://img.shields.io/maintenance/yes/2019.svg)
 
 Website http://iowow.io
