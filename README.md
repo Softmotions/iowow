@@ -22,7 +22,7 @@ Website http://iowow.io
 * Ultra-fast traversal of database records
 * Compound keys support
 * Good performance comparing its main competitors: `lmdb`, `leveldb`, `kyoto cabinet`
-* Tiny C11 library (150Kb) can be easily embedded into any software
+* Tiny C11 library (200Kb) can be easily embedded into any software
 
 ## Limitations
 
