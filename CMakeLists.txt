@@ -42,6 +42,7 @@ option(ENABLE_PPA "Enable PPA package build" OFF)
 option(UPLOAD_PPA "Upload debian packages to the launchpad ppa repository" OFF)
 option(PPA_DEBIAN_VERSION "PPA version suffix for debian packages" "ppa1")
 option(PROJECT_PPA_DISTRIB_TARGET "Ubuntu PPA distrubutive names" "xenial;bionic")
+option(OWNER_PROJECT_NAME "Owner project name, used to place public headers under this name")
 
 if(POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
