@@ -20,6 +20,10 @@ Website http://iowow.io
 * Good performance comparing its main competitors: `lmdb`, `leveldb`, `kyoto cabinet`
 * Tiny C11 library (200Kb) can be easily embedded into any software
 
+## Used by
+
+* EJDB - Embeddable JSON database engine. http://ejdb.org
+
 ## Limitations
 
 * Maximum iwkv storage file size: `512 GB (0x7fffffff80)`
