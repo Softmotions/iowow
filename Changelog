@@ -1,18 +1,19 @@
 iowow (1.3.10) UNRELEASED; urgency=medium
 
   * Added cmake `OWNER_PROJECT_NAME` option used to install header files in `CMAKE_INSTALL_INCLUDEDIR}/OWNER_PROJECT_NAME/PROJECT_NAME`
+  * Removed `-fvisibility=hidden` C flag when building shared library
 
  -- Anton Adamansky <adamansky@gmail.com>  Tue, 02 Apr 2019 11:56:13 +0700
 
 iowow (1.3.9) testing; urgency=medium
 
-  * BUG `IW_HAVE_PTHREAD_CONDATTR_SETCLOCK` was not properly set for `iwal.c` hence high CPU usage when `wal` mode is on. 
+  * BUG `IW_HAVE_PTHREAD_CONDATTR_SETCLOCK` was not properly set for `iwal.c` hence high CPU usage when `wal` mode is on.
 
  -- Anton Adamansky <adamansky@gmail.com>  Fri, 29 Mar 2019 23:56:25 +0700
 
 iowow (1.3.8) testing; urgency=medium
 
-  * BUG Fixed incorrect call of `_kvblk_kv_get` in `iwkv_cursor_seth`. 
+  * BUG Fixed incorrect call of `_kvblk_kv_get` in `iwkv_cursor_seth`.
     See https://github.com/Softmotions/ejdb/issues/231
 
  -- Anton Adamansky <adamansky@gmail.com>  Wed, 27 Mar 2019 12:34:10 +0700

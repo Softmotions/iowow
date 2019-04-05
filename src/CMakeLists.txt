@@ -179,9 +179,6 @@ endif()
 
 if (CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
-    if (BUILD_SHARED_LIBS)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
-    endif(BUILD_SHARED_LIBS)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/iwcfg.h ${PROJECT_GENERATED_DIR}/iwcfg.h)
