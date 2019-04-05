@@ -115,6 +115,10 @@ char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp) {
   return iwpool_strndup(pool, str, strlen(str) + 1, rcp);
 }
 
+size_t iwpool_allocated_size(IWPOOL *pool) {
+  return pool->asiz;
+}
+
 void iwpool_destroy(IWPOOL *pool) {
   if (!pool) {
     return;
