@@ -125,6 +125,7 @@
     "**/mxe/**": true
   },
   "cmake.configureOnOpen": false,
-  "editor.trimAutoWhitespace": false
+  "editor.trimAutoWhitespace": false,
+  "git.autoRepositoryDetection": false
 }
 
