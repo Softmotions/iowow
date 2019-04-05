@@ -1,9 +1,9 @@
-iowow (1.3.10) UNRELEASED; urgency=medium
+iowow (1.3.10) testing; urgency=medium
 
   * Added cmake `OWNER_PROJECT_NAME` option used to install header files in `CMAKE_INSTALL_INCLUDEDIR}/OWNER_PROJECT_NAME/PROJECT_NAME`
   * Removed `-fvisibility=hidden` C flag when building shared library
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 02 Apr 2019 11:56:13 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Fri, 05 Apr 2019 11:53:34 +0700
 
 iowow (1.3.9) testing; urgency=medium
 
