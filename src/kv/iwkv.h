@@ -145,6 +145,7 @@ typedef struct IWKV_OPTS {
   const char *path;                 /**< Path to database file */
   uint32_t random_seed;             /**< Random seed used for iwu random generator */
   iwkv_openflags oflags;            /**< Bitmask of database file open modes */
+  bool file_lock_fail_fast;         /**< Do not wait and raise error if database is locked by another process */
   IWKV_WAL_OPTS wal;                /**< WAL options */
 } IWKV_OPTS;
 

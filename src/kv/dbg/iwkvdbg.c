@@ -1,6 +1,5 @@
 //--------------------------  DEBUG STAFF
 
-
 void iwkvd_trigger_xor(uint64_t val) {
   g_trigger ^= val;
 }
@@ -12,7 +11,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
   IWFS_FSM *fsm = &kb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(kb->addr);
   fprintf(f, "\n === KVBLK[%u] maxoff=%" PRIx64 ", zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
-          blkn, kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
+          blkn, (int64_t) kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
 
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
   if (rc) {
@@ -28,7 +27,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
     }
     _kvblk_value_peek(kb, i, mm, &vbuf, &vlen);
     fprintf(f, "\n    %02d: [%04" PRIx64 ", %02u, %02d]: %.*s:%.*s",
-            i, kvp->off, kvp->len, kvp->ridx,
+            i, (int64_t) kvp->off, kvp->len, kvp->ridx,
             klen, kbuf, MIN(vlen, maxvlen), vbuf);
   }
   fprintf(f, "\n");

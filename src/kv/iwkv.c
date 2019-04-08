@@ -589,8 +589,8 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   }
   rci = pthread_spin_init(&db->cursors_slk, 0);
   if (rci) {
-    free(db);
     pthread_rwlock_destroy(&db->rwl);
+    free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   rc = fsm->allocate(fsm, DB_SZ, &baddr, &blen, IWKV_FSM_ALLOC_FLAGS);
@@ -1372,7 +1372,6 @@ static WUR iwrc _sblk_create(IWLCTX *lx, uint8_t nlevel, uint8_t kvbpow, off_t b
 
   assert(blen - SBLK_SZ == kvblksz);
   _kvblk_create(lx, baddr + SBLK_SZ, kvbpow, &kvblk);
-  RCRET(rc);
 
   sblk = &lx->saa[lx->saan];
   sblk->db = lx->db;
@@ -3152,6 +3151,11 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     .oflags = ((oflags & IWKV_RDONLY) ? IWFSM_NOLOCKS : 0),
     .mmap_all = true
   };
+
+  if (opts->file_lock_fail_fast) {
+    fsmopts.exfile.file.lock_mode |= IWP_NBLOCK;
+  }
+
 #if defined(IW_TESTS) && !defined(IW_RELEASE)
   fsmopts.oflags |= IWFSM_STRICT;
 #endif
@@ -3353,8 +3357,6 @@ iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp) {
   rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
   if (!rc) {
     *dbidp = dbid;
-  }
-  if (!rc) {
     rc = iwal_savepoint_exlk(iwkv, true);
   }
   iwkv_exclusive_unlock(iwkv);

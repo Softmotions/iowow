@@ -56,10 +56,11 @@ iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size) {
         xstr->asize = nsize;
       }
     }
-    xstr->ptr = realloc(xstr->ptr, xstr->asize);
-    if (!xstr->ptr) {
+    char *ptr = realloc(xstr->ptr, xstr->asize);
+    if (!ptr) {
       return IW_ERROR_ERRNO;
     }
+    xstr->ptr = ptr;
   }
   memcpy(xstr->ptr + xstr->size, buf, size);
   xstr->size += size;
@@ -80,10 +81,11 @@ iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size) {
         xstr->asize = nsize;
       }
     }
-    xstr->ptr = realloc(xstr->ptr, xstr->asize);
-    if (!xstr->ptr) {
+    char *ptr = realloc(xstr->ptr, xstr->asize);
+    if (!ptr) {
       return IW_ERROR_ERRNO;
     }
+    xstr->ptr = ptr;
   }
   if (xstr->size) {
     // shift to right
