@@ -46,7 +46,7 @@
 #include "mt19937ar.h"
 #include <stdlib.h>
 #include <pthread.h>
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__ANDROID__)
 #include "pthread_spin_lock_shim.h"
 #endif
 

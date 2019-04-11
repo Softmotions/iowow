@@ -16,6 +16,10 @@
 #include <unistd.h>
 #include "iwcfg.h"
 
+#if defined(__APPLE__) || defined(__ANDROID__)
+#include "pthread_spin_lock_shim.h"
+#endif
+
 // IWKV magic number
 #define IWKV_MAGIC 0x69776b76U
 
