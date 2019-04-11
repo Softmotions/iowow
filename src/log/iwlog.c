@@ -40,7 +40,7 @@
 #include <time.h>
 #include <limits.h>
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__)
 #include <libgen.h>
 #elif defined(_WIN32)
 #include <libiberty/libiberty.h>
@@ -309,7 +309,7 @@ static iwrc _default_logfn(FILE *out,
   char *fname = 0;
 
   if (errno_code) {
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__)
     int rci = strerror_r(errno_code, ebuf, EBUF_SZ);
     if (!rci) {
       errno_msg = ebuf;
