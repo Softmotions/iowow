@@ -341,7 +341,9 @@ static WUR iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   }
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
+  #ifdef __linux__
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  #endif
   rci = pthread_rwlock_init(&db->rwl, &attr);
   if (rci) {
     free(db);
@@ -587,7 +589,9 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   }
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
+  #ifdef __linux__
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  #endif
   rci = pthread_rwlock_init(&db->rwl, &attr);
   if (rci) {
     free(db);
@@ -3115,7 +3119,9 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
+  #ifdef __linux__
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  #endif
   rci = pthread_rwlock_init(&iwkv->rwl, &attr);
   if (rci) {
     free(*iwkvp);

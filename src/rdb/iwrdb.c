@@ -50,7 +50,9 @@ static iwrc _initlocks(IWRDB db) {
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
+  #ifdef __linux__
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  #endif
   int rci = pthread_rwlock_init(db->cwl, &attr);
   if (rci) {
     free(db->cwl);
