@@ -47,7 +47,11 @@ static iwrc _initlocks(IWRDB db) {
   if (!db->cwl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  int rci = pthread_rwlock_init(db->cwl, 0);
+
+  pthread_rwlockattr_t attr;
+  pthread_rwlockattr_init(&attr);
+  pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  int rci = pthread_rwlock_init(db->cwl, &attr);
   if (rci) {
     free(db->cwl);
     db->cwl = 0;

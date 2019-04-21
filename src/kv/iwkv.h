@@ -297,6 +297,7 @@ IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_
 /**
  * @brief Intercepts old(replaced) value in put operation.
  * @note If `oldval` is not zero IWKV_PUT_HANDLER responsive for releasing it using iwkv_val_dispose()
+ * @warning Use `IWKV_PUT_HANDLER` with caution: mind deadlocks.
  *
  * @param key Key used in put operation
  * @param val Value used in put operation

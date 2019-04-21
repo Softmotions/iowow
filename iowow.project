@@ -130,7 +130,6 @@
     <File Name="src/basedefs.h"/>
     <File Name="src/iowow.c"/>
     <VirtualDirectory Name="kv">
-      <File Name="src/kv/CMakeLists.txt"/>
       <File Name="src/kv/iwkv_internal.h"/>
       <File Name="src/kv/iwal.h"/>
       <File Name="src/kv/iwal.c"/>
