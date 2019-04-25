@@ -544,10 +544,7 @@ static iwrc _recover_wl(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
 IW_INLINE bool _need_checkpoint(IWAL *wal) {
   uint64_t mbytes = wal->mbytes;
   bool force = wal->force_cp;
-  if (force || mbytes >= wal->checkpoint_buffer_sz) {
-    return !wal->synched;
-  }
-  return false;
+  return (force || mbytes >= wal->checkpoint_buffer_sz);
 }
 
 static iwrc _checkpoint_wl(IWAL *wal) {
@@ -742,9 +739,11 @@ static void *_cpt_worker_fn(void *op) {
       _unlock(wal);
       break;
     }
-    cp = ((tick_ts - wal->checkpoint_ts) >= wal->checkpoint_timeout_sec * 1000) || _need_checkpoint(wal);
+    bool synched = wal->synched;
+    uint64_t mbytes = wal->mbytes;
+    cp = _need_checkpoint(wal) || ((mbytes && (tick_ts - wal->checkpoint_ts) >= 1000L * wal->checkpoint_timeout_sec));
     if (!cp) {
-      sp = ((tick_ts - savepoint_ts) >= wal->savepoint_timeout_sec * 1000) || wal->force_sp;
+      sp = !synched && (wal->force_sp || ((tick_ts - savepoint_ts) >= 1000L * wal->savepoint_timeout_sec));
     }
     _unlock(wal);
 
@@ -752,7 +751,7 @@ cprun:
     if (cp || sp) {
       rc = iwkv_exclusive_lock(iwkv);
       RCBREAK(rc);
-      if (iwkv->open && !wal->synched) {
+      if (iwkv->open) {
         if (cp) {
           rc = _checkpoint_wl(wal);
           savepoint_ts = wal->checkpoint_ts;
