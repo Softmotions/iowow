@@ -854,14 +854,24 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
 
   wal->wal_buffer_sz =
     opts->wal.wal_buffer_sz > 0 ?
-    opts->wal.wal_buffer_sz  : 8 * 1024 * 1024; // 8M
+    opts->wal.wal_buffer_sz  :
+#ifdef __ANDROID__
+    2 * 1024 * 1024; // 2M
+#else
+    8 * 1024 * 1024; // 8M
+#endif
   if (wal->wal_buffer_sz < 4096) {
     wal->wal_buffer_sz = 4096;
   }
 
   wal->checkpoint_buffer_sz
     = opts->wal.checkpoint_buffer_sz > 0 ?
-      opts->wal.checkpoint_buffer_sz : 1024ULL * 1024 * 1024; // 1G
+      opts->wal.checkpoint_buffer_sz :
+#ifdef __ANDROID__
+      64ULL * 1024 * 1024 // 64M
+#else
+      1024ULL * 1024 * 1024; // 1G
+#endif
   if (wal->checkpoint_buffer_sz < 1024 * 1024) { // 1M minimal
     wal->checkpoint_buffer_sz = 1024 * 1024;
   }
@@ -872,7 +882,12 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
 
   wal->checkpoint_timeout_sec
     = opts->wal.checkpoint_timeout_sec > 0 ?
+#ifdef __ANDROID__
+      opts->wal.checkpoint_timeout_sec : 60; // 1 min
+#else
       opts->wal.checkpoint_timeout_sec : 300; // 5 min
+#endif
+
   if (wal->checkpoint_timeout_sec < 10) { // 10 sec minimal
     wal->checkpoint_timeout_sec = 10;
   }
