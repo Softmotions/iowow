@@ -3167,15 +3167,12 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     .oflags = ((oflags & IWKV_RDONLY) ? IWFSM_NOLOCKS : 0),
     .mmap_all = true
   };
-
+#ifndef NDEBUG
+  fsmopts.oflags |= IWFSM_STRICT;
+#endif
   if (opts->file_lock_fail_fast) {
     fsmopts.exfile.file.lock_mode |= IWP_NBLOCK;
   }
-
-#if defined(IW_TESTS) && !defined(IW_RELEASE)
-  fsmopts.oflags |= IWFSM_STRICT;
-#endif
-
   // Init WAL
   rc = iwal_create(iwkv, opts, &fsmopts);
   RCGO(rc, finish);
