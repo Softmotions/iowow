@@ -839,23 +839,30 @@ static iwrc _fsm_blk_deallocate_lw(FSM *impl,
   int hasleft = 0, hasright = 0;
   uint64_t key_offset = offset_blk, key_length = length_blk;
   uint64_t rm_offset = 0, rm_length = 0;
+  uint64_t lfbkoff = impl->lfbkoff;
+  uint64_t end_offset_blk = offset_blk + length_blk;
   fsm_bmopts_t bopts = FSM_BM_NONE;
+
 
   if (impl->oflags & IWFSM_STRICT) {
     bopts |= FSM_BM_STRICT;
   }
   rc = _fsm_set_bit_status_lw(impl, offset_blk, length_blk, 0, bopts);
   RCRET(rc);
+
   rc = _fsm_bmptr(impl, &bmptr);
   RCRET(rc);
+
   /* Merge with neighborhoods */
   left = _fsm_find_prev_set_bit(bmptr, offset_blk, 0, &hasleft);
-  if (impl->lfbkoff > 0 && impl->lfbkoff == offset_blk + length_blk) {
-    right = impl->lfbkoff + impl->lfbklen;
+  if (lfbkoff && lfbkoff == end_offset_blk) {
+    right = lfbkoff + impl->lfbklen;
     hasright = 1;
   } else {
-    right = _fsm_find_next_set_bit(bmptr, offset_blk + length_blk, impl->lfbkoff, &hasright);
+    uint64_t maxoff = lfbkoff ? lfbkoff : (impl->bmlen << 3);
+    right = _fsm_find_next_set_bit(bmptr, end_offset_blk, maxoff, &hasright);
   }
+
   if (hasleft) {
     if (offset_blk > left + 1) {
       left += 1;
@@ -872,9 +879,9 @@ static iwrc _fsm_blk_deallocate_lw(FSM *impl,
     key_offset = rm_offset;
     key_length += rm_length;
   }
-  if (hasright && right > offset_blk + length_blk) {
-    rm_offset = offset_blk + length_blk;
-    rm_length = right - (offset_blk + length_blk);
+  if (hasright && right > end_offset_blk) {
+    rm_offset = end_offset_blk;
+    rm_length = right - end_offset_blk;
     _fsm_del_fbk(impl, rm_offset, rm_length);
     key_length += rm_length;
   }
@@ -1177,7 +1184,7 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
   IWFS_EXT_STATE pstate;
   uint64_t offset = 0;
 
-  if (!(impl->omode & IWFS_OWRITE) || !impl->lfbkoff) {
+  if (!(impl->omode & IWFS_OWRITE)) {
     return 0;
   }
   /* find free space for fsm with lesser offset than actual */
@@ -1207,8 +1214,8 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
   rc = _fsm_bmptr(impl, &bmptr);
   RCGO(rc, finish);
 
-  lastblk = impl->lfbkoff;
-  offset = _fsm_find_prev_set_bit(bmptr, impl->lfbkoff, 0, &hasleft);
+  lastblk = (impl->bmoff + impl->bmlen) >> impl->bpow;
+  offset = _fsm_find_prev_set_bit(bmptr, (impl->bmlen << 3), lastblk, &hasleft);
   if (hasleft) {
     lastblk = offset + 1;
   }
