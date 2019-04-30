@@ -868,7 +868,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
     = opts->wal.checkpoint_buffer_sz > 0 ?
       opts->wal.checkpoint_buffer_sz :
 #ifdef __ANDROID__
-      64ULL * 1024 * 1024 // 64M
+      64ULL * 1024 * 1024; // 64M
 #else
       1024ULL * 1024 * 1024; // 1G
 #endif
