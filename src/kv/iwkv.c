@@ -1876,22 +1876,26 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
   }
   --sblk->pnum;
   sblk->flags |= SBLK_DURTY;
+
   if (idx < sblk->pnum && sblk->pnum > 0) {
     memmove(sblk->pi + idx, sblk->pi + idx + 1, sblk->pnum - idx);
   }
 
   if (idx == 0) { // Lowest key removed
-    uint8_t *mm;
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCRET(rc);
     // Replace the lowest key with the next one or reset
     if (sblk->pnum > 0) {
-      uint8_t *kbuf;
+      uint8_t *mm, *kbuf;
       uint32_t klen;
+      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      RCRET(rc);
       rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &kbuf, &klen);
-      RCGO(rc, finish);
+      if (rc) {
+        fsm->release_mmap(fsm);
+        return rc;
+      }
       sblk->lkl = MIN(SBLK_LKLEN, klen);
       memcpy(sblk->lk, kbuf, sblk->lkl);
+      fsm->release_mmap(fsm);
       if (klen <= SBLK_LKLEN) {
         sblk->flags |= SBLK_FULL_LKEY;
       } else {
@@ -1904,38 +1908,32 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
       sblk->lkl = 0;
       sblk->flags |= SBLK_CACHE_REMOVE;
     }
-
-finish:
-    fsm->release_mmap(fsm);
   }
 
-  if (!rc) {
-    // Update active cursors
-    pthread_spin_lock(&db->cursors_slk);
-    for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
-      if (cur->cn && cur->cn->addr == sblk->addr) {
-        cur->skip_next = 0;
-        if (cur->cn != sblk) {
-          memcpy(cur->cn, sblk, sizeof(*cur->cn));
-          cur->cn->kvblk = 0;
-          cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
-        }
-        if (cur->cnpos == idx) {
-          if (idx && idx == sblk->pnum) {
-            cur->cnpos--;
-            cur->skip_next = -1;
-          } else {
-            cur->skip_next = 1;
-          }
-        } else if (cur->cnpos > idx) {
+  // Update active cursors
+  pthread_spin_lock(&db->cursors_slk);
+  for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
+    if (cur->cn && cur->cn->addr == sblk->addr) {
+      cur->skip_next = 0;
+      if (cur->cn != sblk) {
+        memcpy(cur->cn, sblk, sizeof(*cur->cn));
+        cur->cn->kvblk = 0;
+        cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
+      }
+      if (cur->cnpos == idx) {
+        if (idx && idx == sblk->pnum) {
           cur->cnpos--;
+          cur->skip_next = -1;
+        } else {
+          cur->skip_next = 1;
         }
+      } else if (cur->cnpos > idx) {
+        cur->cnpos--;
       }
     }
-    pthread_spin_unlock(&db->cursors_slk);
   }
-
-  return rc;
+  pthread_spin_unlock(&db->cursors_slk);
+  return 0;
 }
 
 //--------------------------  IWLCTX
@@ -2458,12 +2456,17 @@ static WUR iwrc _lx_del_sblk_lw(IWLCTX *lx, SBLK *sblk, uint8_t idx) {
     }
   }
 
-  SBLK *nb; // Block after lx->upper
+  SBLK rb;  // Block to remove
+  memcpy(&rb, lx->upper, sizeof(rb));
+
+  SBLK *nb, // Block after lx->upper
+       *rbp = &rb;
+
   assert(!lx->nb);
-  rc = _sblk_at(lx, BLK2ADDR(lx->upper->n[0]), 0, &nb);
+  rc = _sblk_at(lx, BLK2ADDR(rb.n[0]), 0, &nb);
   RCGO(rc, finish);
   lx->nb = nb;
-  lx->nb->p0 = lx->upper->p0;
+  lx->nb->p0 = rb.p0;
   lx->nb->flags |= SBLK_DURTY;
 
   // Update cursors within sblk removed
@@ -2504,7 +2507,7 @@ static WUR iwrc _lx_del_sblk_lw(IWLCTX *lx, SBLK *sblk, uint8_t idx) {
   }
   pthread_spin_unlock(&db->cursors_slk);
 
-  rc = _sblk_destroy(lx, &lx->upper);
+  rc = _sblk_destroy(lx, &rbp);
 
 finish:
   return rc;
@@ -4149,7 +4152,6 @@ iwrc iwkv_cursor_del(IWKV_cursor cur, iwkv_opflags opflags) {
     lx->key = &key;
     rc = _lx_del_sblk_lw(lx, sblk, cur->cnpos);
     lx->key = 0;
-    //RCGO(rc, finish2);
 
 finish2:
     if (rc) {

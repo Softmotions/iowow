@@ -1,3 +1,9 @@
+iowow (1.3.15) UNRELEASED; urgency=medium
+
+  * CRITICAL: Fixed database file corruption during sequential records deletion with `iwkv_cursor_del` (iwkv.c)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 01 May 2019 23:24:58 +0700
+
 iowow (1.3.14) testing; urgency=medium
 
   * CRITICAL: Fixed unexpected database file truncation and data loss on close.
