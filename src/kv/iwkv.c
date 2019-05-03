@@ -463,14 +463,10 @@ typedef struct DISPOSE_DB_CTX {
   IWKV iwkv;
   IWDB db;
   blkn_t sbn; // First `SBLK` block in DB
-  pthread_t thr;
 } DISPOSE_DB_CTX;
 
-static void *_db_dispose_chain_thr(void *op) {
-  assert(op);
+static iwrc _db_dispose_chain(DISPOSE_DB_CTX *dctx) {
   iwrc rc = 0;
-  DISPOSE_DB_CTX *dctx = op;
-  pthread_detach(dctx->thr);
   uint8_t *mm, kvszpow;
   IWFS_FSM *fsm = &dctx->iwkv->fsm;
   blkn_t sbn = dctx->sbn, kvblkn;
@@ -489,90 +485,72 @@ static void *_db_dispose_chain_thr(void *op) {
     RCBREAK(rc);
     // Deallocate `SBLK`
     rc = fsm->deallocate(fsm, sba, SBLK_SZ);
-    if (rc) {
-      iwlog_ecode_error3(rc);
-    }
+    RCBREAK(rc);
     // Deallocate `KVBLK`
     if (kvblkn) {
       rc = fsm->deallocate(fsm, BLK2ADDR(kvblkn), 1ULL << kvszpow);
-      if (rc) {
-        iwlog_ecode_error3(rc);
-      }
+      RCBREAK(rc);
     }
   }
   _db_release_lw(&dctx->db);
-  rc = _iwkv_worker_dec_nolk(dctx->iwkv);
-  if (rc) {
-    iwlog_ecode_error3(rc);
-  }
-  free(dctx);
-  return 0;
+  return rc;
 }
 
 static WUR iwrc _db_destroy_lw(IWDB *dbp) {
-  int rci;
   iwrc rc;
   uint8_t *mm;
   IWDB db = *dbp;
   IWKV iwkv = db->iwkv;
   IWDB prev = db->prev;
   IWDB next = db->next;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
+  IWFS_FSM *fsm = &iwkv->fsm;
   uint32_t first_sblkn;
-  bool dec_worker = true;
 
-  kh_del(DBS, db->iwkv->dbs, db->id);
+  kh_del(DBS, iwkv->dbs, db->id);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   if (prev) {
     prev->next = next;
     rc = _db_save(prev, false, mm);
-    RCRET(rc);
+    if (rc) {
+      fsm->release_mmap(fsm);
+      return rc;
+    }
   }
   if (next) {
     next->prev = prev;
     rc = _db_save(next, false, mm);
-    RCRET(rc);
+    if (rc) {
+      fsm->release_mmap(fsm);
+      return rc;
+    }
   }
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
   memcpy(&first_sblkn, mm + db->addr + DOFF_N0_U4, 4);
   first_sblkn = IW_ITOHL(first_sblkn);
   fsm->release_mmap(fsm);
-  if (db->iwkv->first_db && db->iwkv->first_db->addr == db->addr) {
+
+  if (iwkv->first_db && iwkv->first_db->addr == db->addr) {
     uint64_t llv;
     db->iwkv->first_db = next;
     llv = next ? (uint64_t) next->addr : 0;
     llv = IW_HTOILL(llv);
     rc = fsm->writehdr(fsm, sizeof(uint32_t) /*skip magic*/, &llv, sizeof(llv));
   }
-  if (db->iwkv->last_db && db->iwkv->last_db->addr == db->addr) {
-    db->iwkv->last_db = prev;
+  if (iwkv->last_db && iwkv->last_db->addr == db->addr) {
+    iwkv->last_db = prev;
   }
   // Cleanup DB
   off_t db_addr = db->addr;
-  if (first_sblkn) {
-    DISPOSE_DB_CTX *dctx = malloc(sizeof(*dctx));
-    if (dctx) {
-      db->open = false;
-      dctx->sbn = first_sblkn;
-      dctx->iwkv = db->iwkv;
-      dctx->db = db;
-      rci = pthread_create(&dctx->thr, 0, _db_dispose_chain_thr, dctx);
-      if (rci) {
-        free(dctx);
-        rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-      } else {
-        dec_worker = false;
-      }
-    } else {
-      rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    }
-  }
+  db->open = false;
+
+  DISPOSE_DB_CTX dctx = {
+    .sbn = first_sblkn,
+    .iwkv = iwkv,
+    .db = db
+  };
+  rc = _db_dispose_chain(&dctx);
   IWRC(fsm->deallocate(fsm, db_addr, DB_SZ), rc);
-  if (dec_worker) {
-    _db_release_lw(&db);
-    _iwkv_worker_dec_nolk(iwkv);
-  }
   return rc;
 }
 
@@ -3418,14 +3396,9 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
     return IW_ERROR_READONLY;
   }
   iwrc rc = iwkv_exclusive_lock(iwkv);
-  RCGO(rc, finish);
-  rc = _iwkv_worker_inc_nolk(iwkv);
-  if (!rc) {
-    rc = _db_destroy_lw(&db);
-  }
+  RCRET(rc);
+  rc = _db_destroy_lw(&db);
   iwkv_exclusive_unlock(iwkv);
-
-finish:
   return rc;
 }
 
