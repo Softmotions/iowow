@@ -409,9 +409,12 @@ static WUR iwrc _db_save(IWDB db, bool newdb, uint8_t *mm) {
   if (db->iwkv->fmt_version >= 1) {
     if (newdb) {
       memset(wp, 0, 4 + SLEVELS * 4 * 2); // p0 + n[24] + c[24]
+      sp = wp;
+      wp += 4 + SLEVELS * 4 * 2; // set to zero
+    } else {
+      wp += 4 + SLEVELS * 4 * 2; // skip
+      sp = wp;
     }
-    wp += 4 + SLEVELS * 4 * 2;
-    sp = wp;
     IW_WRITELV(wp, lv, db->meta_blk);
     IW_WRITELV(wp, lv, db->meta_blkn);
     if (dlsnr) {
@@ -542,6 +545,8 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
   }
   // Cleanup DB
   off_t db_addr = db->addr;
+  blkn_t meta_blk = db->meta_blk;
+  blkn_t meta_blkn = db->meta_blkn;
   db->open = false;
 
   DISPOSE_DB_CTX dctx = {
@@ -550,6 +555,9 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
     .db = db
   };
   rc = _db_dispose_chain(&dctx);
+  if (meta_blk && meta_blkn) {
+    IWRC(fsm->deallocate(fsm, BLK2ADDR(db->meta_blk), BLK2ADDR(db->meta_blkn)), rc);
+  }
   IWRC(fsm->deallocate(fsm, db_addr, DB_SZ), rc);
   return rc;
 }
