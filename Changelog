@@ -1,8 +1,8 @@
-iowow (1.3.18) UNRELEASED; urgency=medium
+iowow (1.3.18) testing; urgency=medium
 
   * Limit one time file allocation step to 2G 
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 12 Jun 2019 16:41:19 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 12 Jun 2019 16:42:47 +0700
 
 iowow (1.3.17) testing; urgency=medium
 
