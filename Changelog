@@ -1,8 +1,8 @@
-iowow (1.3.20) UNRELEASED; urgency=medium
+iowow (1.3.20) testing; urgency=medium
 
   * CRITICAL Fixed incorrect keys allocation in IWDB_COMPOUND_KEYS mode
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 13 Jun 2019 21:39:57 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 13 Jun 2019 21:43:47 +0700
 
 iowow (1.3.19) testing; urgency=medium
 
