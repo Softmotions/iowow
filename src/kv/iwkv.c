@@ -2589,30 +2589,34 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
     key2.data = (char *) key2.data + step;
   }
   *res = _cmp_key2(dbflg, k1, kl1, &key2);
-  if (*res == 0 && (!cn1->fullkey || !cn2->fullkey)) {
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCRET(rc);
-    if (!cn1->fullkey) {
-      rc = _kvblk_at_mm(lx, BLK2ADDR(cn1->kblkn), mm, 0, &kb);
-      RCGO(rc, finish);
-      rc = _kvblk_peek_key(kb, cn1->k0idx, mm, &k1, &kl1);
-      RCGO(rc, finish);
-    }
-    if (!cn2->fullkey) {
-      rc = _kvblk_at_mm(lx, BLK2ADDR(cn2->kblkn), mm, 0, &kb);
-      RCGO(rc, finish);
-      rc = _kvblk_peek_key(kb, cn2->k0idx, mm, &k2, &kl2);
-      RCGO(rc, finish);
-      key2.size = kl2;
-      key2.data = k2;
-      if (dbflg & IWDB_COMPOUND_KEYS) {
-        int step;
-        IW_READVNUMBUF64(k2, key2.compound, step);
-        key2.size -= step;
-        key2.data = (char *) key2.data + step;
+  if (*res == 0) {
+    if ((!cn1->fullkey || !cn2->fullkey)) {
+      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+      RCRET(rc);
+      if (!cn1->fullkey) {
+        rc = _kvblk_at_mm(lx, BLK2ADDR(cn1->kblkn), mm, 0, &kb);
+        RCGO(rc, finish);
+        rc = _kvblk_peek_key(kb, cn1->k0idx, mm, &k1, &kl1);
+        RCGO(rc, finish);
       }
+      if (!cn2->fullkey) {
+        rc = _kvblk_at_mm(lx, BLK2ADDR(cn2->kblkn), mm, 0, &kb);
+        RCGO(rc, finish);
+        rc = _kvblk_peek_key(kb, cn2->k0idx, mm, &k2, &kl2);
+        RCGO(rc, finish);
+        key2.size = kl2;
+        key2.data = k2;
+        if (dbflg & IWDB_COMPOUND_KEYS) {
+          int step;
+          IW_READVNUMBUF64(k2, key2.compound, step);
+          key2.size -= step;
+          key2.data = (char *) key2.data + step;
+        }
+      }
+      *res = _cmp_key(dbflg, k1, kl1, &key2);
+    } else {
+      *res = (int) kl2 - kl1;
     }
-    *res = _cmp_key(dbflg, k1, kl1, &key2);
   }
 
 finish:
@@ -2702,7 +2706,7 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   off_t idx;
   bool found;
   DBCNODE *n;
-  uint8_t dbcbuf[1024];
+  uint8_t dbcbuf[255];
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   const IWKV_val *key = lx->key;
@@ -2759,7 +2763,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   off_t idx;
   bool found;
   IWDB db = lx->db;
-  uint8_t dbcbuf[1024];
+  uint8_t dbcbuf[255];
   DBCNODE *n = (DBCNODE *) dbcbuf;
   DBCACHE *cache = &db->cache;
   size_t nsize = cache->nsize;
@@ -2787,6 +2791,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
 
   idx = iwarr_sorted_find2(cache->nodes, cache->num, nsize, n, lx, &found, _dbcache_cmp_nodes);
   assert(!found);
+
   if (cache->asize <= cache->num * nsize) {
     size_t nsz = cache->asize + (nsize * DBCACHE_ALLOC_STEP);
     DBCNODE *nodes = realloc(cache->nodes, nsz);
@@ -2799,8 +2804,11 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
     cache->asize = nsz;
     cache->nodes = nodes;
   }
+
   uint8_t *cptr = (uint8_t *) cache->nodes;
-  memmove(cptr + (idx + 1) * nsize, cptr + idx * nsize, (cache->num - idx) * nsize);
+  if (cache->num - idx > 0) {
+    memmove(cptr + (idx + 1) * nsize, cptr + idx * nsize, (cache->num - idx) * nsize);
+  }
   memcpy(cptr + idx * nsize, n, nsize);
   ++cache->num;
   return 0;

@@ -1047,7 +1047,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
     bmoffset = bmoffset << impl->bpow;
     bmlen = sp << impl->bpow;
   } else if (rc == IWFS_ERROR_NO_FREE_SPACE) {
-    bmoffset = 8U * impl->bmlen * (1U << impl->bpow);
+    bmoffset = impl->bmlen * (1U << impl->bpow) * 8U;
     bmoffset = IW_ROUNDUP(bmoffset, impl->aunit);
   }
   if (!impl->mmap_all) {
@@ -1109,14 +1109,8 @@ start:
     *offset_blk = FSMBK_OFFSET(nk);
     assert(kb_get(fsm, impl->fsm, *nk));
 
-#ifndef NDEBUG
-    int s2, s1 = kb_size(impl->fsm);
-#endif
     _fsm_del_fbk2(impl, *nk);
-#ifndef NDEBUG
-    s2 = kb_size(impl->fsm);
-    assert(s1 && (s1 > s2));
-#endif
+
     if (nlength > length_blk) { /* re-save rest of free-space */
       if (!(opts & IWFSM_ALLOC_NO_OVERALLOCATE) && impl->crznum) {
         /* todo use lognormal distribution? */
