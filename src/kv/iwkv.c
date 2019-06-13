@@ -3045,6 +3045,8 @@ iwrc iwkv_init(void) {
   return iwlog_register_ecodefn(_kv_ecodefn);
 }
 
+#define MAX_ALLOC_DELTA 0x80000000 // 2GB
+
 static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx) {
   struct _FIBO_CTX {
     off_t prev_sz;
@@ -3072,6 +3074,9 @@ static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx
   } else {
     res = (uint64_t) csize + ctx->prev_sz;
     res = MAX(res, nsize);
+    if (res - csize > MAX_ALLOC_DELTA && nsize - csize < MAX_ALLOC_DELTA) {
+      res = csize + MAX_ALLOC_DELTA;
+    }
   }
   res = IW_ROUNDUP(res, aunit);
   if (res > OFF_T_MAX) {
