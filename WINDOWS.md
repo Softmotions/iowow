@@ -9,18 +9,18 @@
 ## Build
 
 
-### Prepare MXE 
+### Prepare MXE
 
 ```sh
 git submodule update --init
 ```
 
-`nano ./mxr/settings.mk`:
+`nano ./mxe/settings.mk`:
 
 ```
 JOBS := 1
 MXE_TARGETS := x86_64-w64-mingw32.static
-LOCAL_PKG_LIST := cunit libiberty	
+LOCAL_PKG_LIST := cunit libiberty
 .DEFAULT local-pkg-list:
 local-pkg-list: $(LOCAL_PKG_LIST)
 ```
@@ -39,7 +39,7 @@ cd  ./build
 export MXE_HOME=<path to project>/mxe
 
 cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=../win64-tc.cmake \
-         -DBUILD_TESTS=OFF -DTEST_TOOL_CMD=wine
+         -DBUILD_TESTS=ON -DTEST_TOOL_CMD=wine
 
-make package         
+make package
 ```
