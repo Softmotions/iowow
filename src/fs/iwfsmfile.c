@@ -261,10 +261,21 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(FSM *impl,
     iwlog_ecode_error3(rc);
     return 0;
   }
+
   kb_intervalp(fsm, impl->fsm, &k, &lk, &uk);
+
   uint64_t lklength = lk ? FSMBK_LENGTH(lk) : 0;
   uint64_t uklength = uk ? FSMBK_LENGTH(uk) : 0;
-  return (lklength >= length_blk ? lk : (uklength >= length_blk) ? uk : 0);
+  if (lklength == length_blk) {
+    return lk;
+  } else if (uklength == length_blk) {
+    return uk;
+  }
+  if (lklength > uklength) {
+    return (lklength > length_blk) ? lk : 0;
+  } else {
+    return (uklength > length_blk) ? uk : 0;
+  }
 }
 
 /**
@@ -1609,7 +1620,7 @@ static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *ol
     return IW_ERROR_INVALID_ARGS;
   }
   /* Required blocks number */
-  sbnum = (uint64_t) *oaddr >> impl->bpow;
+  sbnum = (uint64_t) * oaddr >> impl->bpow;
   len = IW_ROUNDUP(len, 1ULL << impl->bpow);
 
   rc = _fsm_ctrl_wlock(impl);
@@ -1636,8 +1647,8 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t 
   }
   uint64_t sp;
   uint64_t nlen_blk = IW_ROUNDUP((uint64_t) nlen, 1U << impl->bpow) >> impl->bpow;
-  uint64_t olen_blk = (uint64_t) *olen >> impl->bpow;
-  uint64_t oaddr_blk = (uint64_t) *oaddr >> impl->bpow;
+  uint64_t olen_blk = (uint64_t) * olen >> impl->bpow;
+  uint64_t oaddr_blk = (uint64_t) * oaddr >> impl->bpow;
   uint64_t naddr_blk = oaddr_blk;
 
   if (nlen_blk == olen_blk) {
@@ -1655,7 +1666,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t 
     rc = _fsm_blk_allocate_lw(impl, nlen_blk, &naddr_blk, &sp, opts);
     RCGO(rc, finish);
     if (naddr_blk != oaddr_blk) {
-      rc = impl->pool.copy(&impl->pool, *oaddr, (size_t) *olen, naddr_blk << impl->bpow);
+      rc = impl->pool.copy(&impl->pool, *oaddr, (size_t) * olen, naddr_blk << impl->bpow);
       RCGO(rc, finish);
     }
     rc = _fsm_blk_deallocate_lw(impl, oaddr_blk, olen_blk);
