@@ -37,6 +37,15 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <sys/time.h>
+
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME              0
+#endif
+
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC             1
+#endif
 
 #define IWCPU_SSE     0x1
 #define IWCPU_SSE2    0x2
@@ -91,6 +100,11 @@ typedef enum {
   IWP_SEEK_CUR,
   IWP_SEEK_END
 } iwp_seek_origin;
+
+/**
+ * Portable version of `int clock_gettime(clockid_t clk_id, struct timespec *tp)`
+ */
+IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec* t);
 
 /**
  * @brief Get current time in milliseconds.

@@ -718,12 +718,11 @@ static void *_cpt_worker_fn(void *op) {
     }
 
 #if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
-    clockid_t clockid = CLOCK_MONOTONIC;
+    rc = iwp_clock_get_time(CLOCK_MONOTONIC, &tp);
 #else
-    clockid_t clockid = CLOCK_REALTIME;
+    rc = iwp_clock_get_time(CLOCK_REALTIME, &tp);
 #endif
-    if (clock_gettime(clockid, &tp)) {
-      rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+    if (rc) {
       _unlock(wal);
       break;
     }

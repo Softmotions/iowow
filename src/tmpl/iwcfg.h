@@ -46,9 +46,9 @@
 
 #ifndef MAXPATHLEN
 #ifdef PATH_MAX
-# define MAXPATHLEN PATH_MAX
+#define MAXPATHLEN PATH_MAX
 #else
-# define MAXPATHLEN 4096
+#define MAXPATHLEN 4096
 #endif
 #endif
 
@@ -61,5 +61,8 @@
 #define IOWOW_VERSION_MINOR @iowow_VERSION_MINOR@
 #define IOWOW_VERSION_PATCH @iowow_VERSION_PATCH@
 
+#ifndef static_assert
+#define static_assert _Static_assert
+#endif
 
 #endif

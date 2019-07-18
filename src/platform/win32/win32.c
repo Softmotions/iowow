@@ -33,10 +33,12 @@ IW_INLINE uint64_t _iwp_filetime2millisecons(const FILETIME *ft) {
   return ticks / _TICKS_PER_MILLISECOND;
 }
 
-static void _iwp_clock_gettime(int clock, struct timespec *spec) {
-  FILETIME ft;
-  GetSystemTimeAsFileTime(&ft);
-  _iwp_filetime2timespec(&ft, spec);
+iwrc iwp_clock_get_time(int clock_id, struct timespec* spec) {
+  int rci = clock_gettime(clock_id, spec);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+  return 0;
 }
 
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {

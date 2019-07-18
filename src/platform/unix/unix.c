@@ -48,17 +48,35 @@
 
 #define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6))
 
+
+IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
+#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
+  struct timeval now;
+  int rci = gettimeofday(&now, NULL);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+  t->tv_sec  = now.tv_sec;
+  t->tv_nsec = now.tv_usec * 1000;
+#else
+  int rci = clock_gettime(clock_id, t);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+#endif
+  return 0;
+}
+
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   struct timespec spec;
-
 #ifdef IW_HAVE_CLOCK_MONOTONIC
-  clockid_t clockid = monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME;
+  iwrc rc = iwp_clock_get_time(monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME, &spec);
 #else
-  clockid_t clockid = CLOCK_REALTIME;
+  iwrc rc = iwp_clock_get_time(CLOCK_REALTIME, &spec);
 #endif
-  if (clock_gettime(clockid, &spec) < 0) {
+  if (rc) {
     *time = 0;
-    return IW_ERROR_ERRNO;
+    return rc;
   }
   *time = _IW_TIMESPEC2MS(spec);
   return 0;
