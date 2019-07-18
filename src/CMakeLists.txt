@@ -156,6 +156,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
 if (NOT WIN32) ## todo review
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 else()
+    add_definitions(-D__USE_MINGW_ANSI_STDIO)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pedantic-ms-format")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
 endif()
