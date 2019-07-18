@@ -1,11 +1,11 @@
-iowow (1.3.22) UNRELEASED; urgency=medium
+iowow (1.3.22) testing; urgency=medium
 
   * Small optimizations in `iwfsmfile.c`
   * Added `iwp_clock_get_time` as  portable version of `clock_gettime`
   * `static_assert` is  set to `_Static_assert` if not defined
   * Added `__USE_MINGW_ANSI_STDIO` for MinGW build
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 18 Jul 2019 13:11:04 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 18 Jul 2019 17:50:14 +0700
 
 iowow (1.3.20) testing; urgency=medium
 
