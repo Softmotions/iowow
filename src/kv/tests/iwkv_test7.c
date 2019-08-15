@@ -70,6 +70,7 @@ static void iwkv_test7_2_impl(int direction) {
     key.compound = direction > 0 ? i + 1 : nrecords - i;
     rc = iwkv_get(db, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
+    iwkv_val_dispose(&val);
   }
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
