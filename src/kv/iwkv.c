@@ -3163,7 +3163,8 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
         .lock_mode  = (oflags & IWKV_RDONLY) ? IWP_RLOCK : IWP_WLOCK
       },
       .rspolicy     = _szpolicy,
-      .maxoff       = IWKV_MAX_DBSZ
+      .maxoff       = IWKV_MAX_DBSZ,
+      .use_locks = true
     },
     .bpow = IWKV_FSM_BPOW,      // 64 bytes block size
     .hdrlen = KVHDRSZ,          // Size of custom file header
