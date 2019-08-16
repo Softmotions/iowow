@@ -67,6 +67,7 @@ typedef struct MMAPSLOT {
 // For internal usage only
 bool extfile_use_locks(IWFS_EXT *f, bool use_locks) {
   bool ret = f->impl->use_locks;
+  __asm__ __volatile__("" ::: "memory");
   f->impl->use_locks = use_locks;
   return ret;
 }
@@ -239,7 +240,7 @@ truncfail:
   return rc;
 }
 
-IW_INLINE iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
+static iwrc _exfile_ensure_size_lw(struct IWFS_EXT *f, off_t sz) {
   EXF *impl = f->impl;
   assert(impl && impl->rspolicy);
   if (impl->fsize >= sz) {
