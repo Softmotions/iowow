@@ -141,10 +141,11 @@ static iwrc _flush_wl(IWAL *wal, bool sync) {
   iwrc rc = 0;
   if (wal->bufpos) {
     uint32_t crc = iwu_crc32(wal->buf, wal->bufpos, 0);
-    WBSEP sep = {0}; // Avoid uninitialized padding bytes
-    sep.id = WOP_SEP;
-    sep.crc = crc;
-    sep.len = wal->bufpos;
+    WBSEP sep = {
+      .id = WOP_SEP,
+      .crc = crc,
+      .len = wal->bufpos
+    };
     size_t wz = wal->bufpos + sizeof(WBSEP);
     uint8_t *wp = wal->buf - sizeof(WBSEP);
     memcpy(wp, &sep, sizeof(WBSEP));
@@ -235,11 +236,12 @@ static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int 
   if (wal->applying) {
     return 0;
   }
-  WBSET wb = {0}; // Avoid uninitialized padding bytes
-  wb.id = WOP_SET;
-  wb.val = val;
-  wb.off = off;
-  wb.len = len;
+  WBSET wb = {
+    .id = WOP_SET,
+    .val = val,
+    .off = off,
+    .len = len
+  };
   wal->mbytes += len;
   return _write_op((IWAL *) self, &wb, sizeof(wb), 0, 0, false);
 }
@@ -249,11 +251,12 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
   if (wal->applying) {
     return 0;
   }
-  WBCOPY wb = {0}; // Avoid uninitialized padding bytes
-  wb.id = WOP_COPY;
-  wb.off = off;
-  wb.len = len;
-  wb.noff = noff;
+  WBCOPY wb = {
+    .id = WOP_COPY,
+    .off = off,
+    .len = len,
+    .noff = noff
+  };
   wal->mbytes += len;
   return _write_op(wal, &wb, sizeof(wb), 0, 0, false);
 }
@@ -264,11 +267,12 @@ static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len
   if (wal->applying) {
     return 0;
   }
-  WBWRITE wb = {0}; // Avoid uninitialized padding bytes
-  wb.id = WOP_WRITE;
-  wb.crc = iwu_crc32(buf, len, 0);
-  wb.len = len;
-  wb.off = off;
+  WBWRITE wb = {
+    .id = WOP_WRITE,
+    .crc = iwu_crc32(buf, len, 0),
+    .len = len,
+    .off = off
+  };
   wal->mbytes += len;
   return _write_op(wal, &wb, sizeof(wb), buf, len, false);
 }
@@ -280,10 +284,11 @@ static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags,
     return 0;
   }
   *handled = true;
-  WBRESIZE wb = {0}; // Avoid uninitialized padding bytes
-  wb.id = WOP_RESIZE;
-  wb.osize = osize;
-  wb.nsize = nsize;
+  WBRESIZE wb = {
+    .id = WOP_RESIZE,
+    .osize = osize,
+    .nsize = nsize
+  };
   return _write_op(wal, &wb, sizeof(wb), 0, 0, true);
 }
 
@@ -555,8 +560,9 @@ static iwrc _checkpoint_wl(IWAL *wal) {
   wal->force_cp = false;
   wal->force_sp = false;
 
-  WBFIXPOINT wbfp = {0};
-  wbfp.id = WOP_FIXPOINT;
+  WBFIXPOINT wbfp = {
+    .id = WOP_FIXPOINT
+  };
   iwrc rc = iwp_current_time_ms(&wbfp.ts, false);
   RCRET(rc);
 
@@ -643,8 +649,9 @@ iwrc _savepoint_wl(IWAL *wal, bool sync) {
   RCRET(rc);
   wal->force_sp = false;
 
-  WBFIXPOINT wbfp = {0};
-  wbfp.id = WOP_FIXPOINT;
+  WBFIXPOINT wbfp = {
+    .id = WOP_FIXPOINT
+  };
   rc = iwp_current_time_ms(&wbfp.ts, false);
   RCGO(rc, finish);
 
