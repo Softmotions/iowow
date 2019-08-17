@@ -19,6 +19,7 @@ typedef enum {
   WOP_SEP = 127, /**< WAL file separator */
 } wop_t;
 
+#pragma pack(push, 1)
 typedef struct WBSEP {
   uint8_t id;
   uint32_t crc;
@@ -56,6 +57,7 @@ typedef struct WBFIXPOINT {
   uint8_t id;
   uint64_t ts;
 } WBFIXPOINT;
+#pragma pack(pop)
 
 typedef struct IWAL {
   IWDLSNR lsnr;
