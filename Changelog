@@ -1,8 +1,8 @@
-iowow (1.3.23) UNRELEASED; urgency=medium
+iowow (1.3.23) testing; urgency=medium
 
-  * CRITICAL: Fixed db file access race conditions
+  * WAL refactoring, better stability
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 16 Aug 2019 19:36:11 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Sat, 17 Aug 2019 21:17:05 +0700
 
 iowow (1.3.22) testing; urgency=medium
 
