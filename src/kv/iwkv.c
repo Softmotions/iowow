@@ -3164,7 +3164,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
       },
       .rspolicy     = _szpolicy,
       .maxoff       = IWKV_MAX_DBSZ,
-      .use_locks = true
+      .use_locks    = true
     },
     .bpow = IWKV_FSM_BPOW,      // 64 bytes block size
     .hdrlen = KVHDRSZ,          // Size of custom file header
@@ -3181,7 +3181,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   rc = iwal_create(iwkv, opts, &fsmopts);
   RCGO(rc, finish);
 
-  // Now open main database file
+  // Now open database file
   rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
   RCGO(rc, finish);
 
