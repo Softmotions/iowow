@@ -94,7 +94,6 @@ typedef struct IWAL {
   IWKV iwkv;
 } IWAL;
 
-bool extfile_use_locks(IWFS_EXT *f, bool use_locks);
 static iwrc _checkpoint(IWAL *wal);
 static iwrc _checkpoint_wl(IWAL *wal);
 
@@ -175,7 +174,7 @@ IW_INLINE iwrc _truncate(IWAL *wal) {
   return rc;
 }
 
-static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len, bool checkpoint) {
+static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len) {
   iwrc rc = 0;
   const off_t bufsz = wal->bufsz;
   wal->synched = false;
@@ -196,16 +195,13 @@ static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *dat
     memcpy(wal->buf + wal->bufpos, data, (size_t) len);
     wal->bufpos += len;
   }
-  if (checkpoint) {
-    rc = _checkpoint_wl(wal);
-  }
   return rc;
 }
 
-IW_INLINE iwrc _write_op(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len, bool checkpoint) {
+IW_INLINE iwrc _write_op(IWAL *wal, const void *op, off_t oplen, const uint8_t *data, off_t len) {
   iwrc rc = _lock(wal);
   RCRET(rc);
-  rc = _write_wl(wal, op, oplen, data, len, checkpoint);
+  rc = _write_wl(wal, op, oplen, data, len);
   IWRC(_unlock(wal), rc);
   return rc;
 }
@@ -249,7 +245,7 @@ static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int 
     .len = len
   };
   wal->mbytes += len;
-  return _write_op((IWAL *) self, &wb, sizeof(wb), 0, 0, false);
+  return _write_op((IWAL *) self, &wb, sizeof(wb), 0, 0);
 }
 
 static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
@@ -264,7 +260,7 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
     .noff = noff
   };
   wal->mbytes += len;
-  return _write_op(wal, &wb, sizeof(wb), 0, 0, false);
+  return _write_op(wal, &wb, sizeof(wb), 0, 0);
 }
 
 static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
@@ -280,7 +276,7 @@ static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len
     .off = off
   };
   wal->mbytes += len;
-  return _write_op(wal, &wb, sizeof(wb), buf, len, false);
+  return _write_op(wal, &wb, sizeof(wb), buf, len);
 }
 
 static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags, bool *handled) {
@@ -295,7 +291,17 @@ static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags,
     .osize = osize,
     .nsize = nsize
   };
-  return _write_op(wal, &wb, sizeof(wb), 0, 0, true);
+  iwrc rc = _lock(wal);
+  RCRET(rc);
+
+  rc = _write_wl(wal, &wb, sizeof(wb), 0, 0);
+  RCGO(rc, finish);
+
+  rc = _checkpoint_wl(wal);
+
+finish:
+  IWRC(_unlock(wal), rc);
+  return rc;
 }
 
 static iwrc _onsynced(struct IWDLSNR *self, int flags) {
@@ -407,14 +413,12 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
   }
   // Temporary turn off extf locking
   wal->applying = true;
-  bool eul = extfile_use_locks(extf, false);
 
   // Remap fsm in MAP_SHARED mode
-  extf->remove_mmap(extf, 0);
-  rc = extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_SHARED);
+  extf->remove_mmap_unsafe(extf, 0);
+  rc = extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_SHARED);
   if (rc) {
     munmap(wmm, (size_t) pfsz);
-    extfile_use_locks(extf, eul);
     wal->applying = false;
     return rc;
   }
@@ -459,7 +463,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBSET)");
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        rc = extf->probe_mmap(extf, 0, &mm, &sp);
+        rc = extf->probe_mmap_unsafe(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memset(mm + wb.off, wb.val, (size_t) wb.len);
         break;
@@ -469,7 +473,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBCOPY)");
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        rc = extf->probe_mmap(extf, 0, &mm, &sp);
+        rc = extf->probe_mmap_unsafe(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memmove(mm + wb.noff, mm + wb.off, (size_t) wb.len);
         break;
@@ -486,7 +490,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
             _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBWRITE)");
           }
         }
-        rc = extf->probe_mmap(extf, 0, &mm, &sp);
+        rc = extf->probe_mmap_unsafe(extf, 0, &mm, &sp);
         RCGO(rc, finish);
         memmove(mm + wb.off, rp, wb.len);
         rp += wb.len;
@@ -497,7 +501,7 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
         if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBRESIZE)");
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        rc = extf->truncate(extf, wb.nsize);
+        rc = extf->truncate_unsafe(extf, wb.nsize);
         RCGO(rc, finish);
         break;
       }
@@ -520,17 +524,16 @@ static iwrc _rollforward_wl(IWAL *wal, IWFS_EXT *extf, bool recover) {
 
 finish:
   if (!rc) {
-    rc = extf->sync_mmap(extf, 0, IWFS_SYNCDEFAULT);
+    rc = extf->sync_mmap_unsafe(extf, 0, IWFS_SYNCDEFAULT);
   }
   munmap(wmm, (size_t) pfsz);
-  extf->remove_mmap(extf, 0);
-  IWRC(extf->add_mmap(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
+  extf->remove_mmap_unsafe(extf, 0);
+  IWRC(extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
   if (!rc) {
     rc = _truncate(wal);
   }
   wal->synched = true;
   wal->applying = false;
-  extfile_use_locks(extf, eul);
   return rc;
 }
 
@@ -572,7 +575,7 @@ static iwrc _checkpoint_wl(IWAL *wal) {
   iwrc rc = iwp_current_time_ms(&wbfp.ts, false);
   RCRET(rc);
 
-  rc = _write_wl(wal, &wbfp, sizeof(wbfp), 0, 0, false);
+  rc = _write_wl(wal, &wbfp, sizeof(wbfp), 0, 0);
   RCRET(rc);
 
   rc = _flush_wl(wal, true);
@@ -580,7 +583,9 @@ static iwrc _checkpoint_wl(IWAL *wal) {
 
   rc = iwkv->fsm.extfile(&iwkv->fsm, &extf);
   RCGO(rc, finish);
+
   rc = _rollforward_wl(wal, extf, false);
+
   wal->mbytes = 0;
   wal->synched = true;
   iwp_current_time_ms(&wal->checkpoint_ts, true);
@@ -661,7 +666,7 @@ iwrc _savepoint_wl(IWAL *wal, bool sync) {
   rc = iwp_current_time_ms(&wbfp.ts, false);
   RCGO(rc, finish);
 
-  rc = _write_wl(wal, &wbfp, sizeof(wbfp), 0, 0, false);
+  rc = _write_wl(wal, &wbfp, sizeof(wbfp), 0, 0);
   RCRET(rc);
 
   rc = _flush_wl(wal, sync);

@@ -183,6 +183,8 @@ typedef struct IWFS_EXT {
    */
   iwrc(*truncate)(struct IWFS_EXT *f, off_t off);
 
+  iwrc(*truncate_unsafe)(struct IWFS_EXT *f, off_t off);
+
   /**
    * @brief Register an address space specified by @a off and @a len as memory
    * mmaped region
@@ -211,6 +213,8 @@ typedef struct IWFS_EXT {
    */
   iwrc(*add_mmap)(struct IWFS_EXT *f, off_t off, size_t len, iwfs_ext_mmap_opts_t opts);
 
+  iwrc(*add_mmap_unsafe)(struct IWFS_EXT *f, off_t off, size_t len, iwfs_ext_mmap_opts_t opts);
+
   /**
    * @brief Retrieve mmaped region by its offset @a off and keep file as read locked.
    *
@@ -235,6 +239,8 @@ typedef struct IWFS_EXT {
    */
   iwrc(*probe_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
 
+  iwrc(*probe_mmap_unsafe)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
+
   /**
    * @brief Release the lock acquired by successfull call of `acquire_mmap()`
    */
@@ -252,6 +258,8 @@ typedef struct IWFS_EXT {
    */
   iwrc(*remove_mmap)(struct IWFS_EXT *f, off_t off);
 
+  iwrc(*remove_mmap_unsafe)(struct IWFS_EXT *f, off_t off);
+
   /**
    * @brief Synchronize a file with a mmaped region identified by @a off offset.
    *
@@ -264,6 +272,8 @@ typedef struct IWFS_EXT {
    * @return `0` on success or error code.
    */
   iwrc(*sync_mmap)(struct IWFS_EXT *f, off_t off, iwfs_sync_flags flags);
+
+  iwrc(*sync_mmap_unsafe)(struct IWFS_EXT *f, off_t off, iwfs_sync_flags flags);
 
   /**
    * @brief Remap all mmaped regions.
