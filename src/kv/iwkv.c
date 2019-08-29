@@ -509,7 +509,13 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
   IWFS_FSM *fsm = &iwkv->fsm;
   uint32_t first_sblkn;
 
-  kh_del(DBS, iwkv->dbs, db->id);
+  khiter_t k = kh_get(DBS, iwkv->dbs, db->id);
+  if (k == kh_end(iwkv->dbs)) {
+    iwlog_ecode_error3(IW_ERROR_INVALID_STATE);
+    return IW_ERROR_INVALID_STATE;
+  }
+  kh_del(DBS, iwkv->dbs, k);
+
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   if (prev) {
