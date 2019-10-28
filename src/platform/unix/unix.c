@@ -177,6 +177,23 @@ iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
   }
 }
 
+iwrc iwp_read(HANDLE fh, void *buf, size_t count, size_t *sp) {
+  if (INVALIDHANDLE(fh)) {
+    return IW_ERROR_INVALID_HANDLE;
+  }
+  if (!buf || !sp) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  ssize_t rs = read(fh, buf, count);
+  if (rs == -1) {
+    *sp = 0;
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  } else {
+    *sp = rs;
+    return 0;
+  }
+}
+
 iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
   if (INVALIDHANDLE(fh)) {
     return IW_ERROR_INVALID_HANDLE;
@@ -218,6 +235,9 @@ iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
 }
 
 iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
+  if (pos) {
+    *pos = 0;
+  }
   if (INVALIDHANDLE(fh)) {
     return IW_ERROR_INVALID_HANDLE;
   }
@@ -319,7 +339,7 @@ iwrc iwp_exec_path(char *opath) {
 
 uint16_t iwp_num_cpu_cores() {
   long res = sysconf(_SC_NPROCESSORS_ONLN);
-  return (uint16_t) (res > 0 ? res : 1);
+  return (uint16_t)(res > 0 ? res : 1);
 }
 
 iwrc iwp_fsync(HANDLE fh) {

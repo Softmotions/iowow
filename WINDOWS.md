@@ -3,7 +3,7 @@
 ## Prerequisites
 
 ```sh
-  sudo apt-get install bison flex libtool ruby scons intltool libtool-bin p7zip-full wine
+  sudo apt-get install bison flex libtool ruby scons intltool libtool-bin p7zip-full wine wine32
 ```
 
 ## Build

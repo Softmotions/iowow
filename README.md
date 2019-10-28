@@ -17,7 +17,8 @@ Website http://iowow.io
 
 ## Features
 
-* Support of multiple key-value databases within a single file.
+* Support of multiple key-value databases within a single file
+* Online database backups
 * Native support of integer keys
 * [Write Ahead Logging (WAL) support](http://iowow.io/wal)
 * Ultra-fast traversal of database records

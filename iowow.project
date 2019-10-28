@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="iowow" Version="10.0.0" InternalType="Console">
+<CodeLite_Project Name="iowow" Version="11000" InternalType="Console">
   <Plugins>
     <Plugin Name="CppCheck"/>
   </Plugins>
@@ -10,15 +10,15 @@
     <File Name="man/CMakeLists.txt"/>
   </VirtualDirectory>
   <Reconciliation>
-    <Regexes/>
-    <Excludepaths>
-      <Path>mxe/</Path>
-      <Path>build/</Path>
-    </Excludepaths>
-    <Ignorefiles/>
     <Extensions>
       <![CDATA[*.cpp;*.c;*.h;*.hpp;*.xrc;*.wxcp;*.fbp;*.txt;*.md;*.txt]]>
     </Extensions>
+    <Regexes/>
+    <Excludepaths>
+      <Path>build/</Path>
+      <Path>mxe/</Path>
+    </Excludepaths>
+    <Ignorefiles/>
     <Topleveldir>/home/adam/Projects/softmotions/iowow</Topleveldir>
   </Reconciliation>
   <Description/>
@@ -153,6 +153,7 @@
       <File Name="src/kv/data-format.txt"/>
       <File Name="src/kv/iwkv.h"/>
       <VirtualDirectory Name="tests">
+        <File Name="src/kv/tests/iwkv_test8.c"/>
         <File Name="src/kv/tests/iwkv_test7.c"/>
         <File Name="src/kv/tests/iwkv_test6.c"/>
         <File Name="src/kv/tests/iwkv_test5.c"/>
@@ -198,7 +199,7 @@
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/iwkv_test7" IntermediateDirectory="$(ProjectPath)/build/src/kv/tests" Command="$(OutputFile)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/iwkv_test8" IntermediateDirectory="$(ProjectPath)/build/src/kv/tests" Command="$(OutputFile)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="CMake">-DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON</BuildSystem>
       <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>

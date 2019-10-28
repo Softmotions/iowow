@@ -187,6 +187,8 @@ IW_EXPORT iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, siz
 
 IW_EXPORT iwrc iwp_write(HANDLE fh, const void *buf, size_t count);
 
+IW_EXPORT iwrc iwp_read(HANDLE fh, void *buf, size_t count, size_t *sp);
+
 IW_EXPORT iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos);
 
 /**

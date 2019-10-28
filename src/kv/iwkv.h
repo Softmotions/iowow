@@ -75,6 +75,8 @@ typedef enum {
   IWKV_ERROR_INCOMPATIBLE_DB_FORMAT,  /**< Incompatible database format version, please migrate database data (IWKV_ERROR_INCOMPATIBLE_DB_FORMAT) */
   IWKV_ERROR_CORRUPTED_WAL_FILE,      /**< Corrupted WAL file (IWKV_ERROR_CORRUPTED_WAL_FILE) */
   IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED, /**< Stored value cannot be incremented/descremented (IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED) */
+  IWKV_ERROR_WAL_MODE_REQUIRED,       /**< Operation requires WAL enabled database. (IWKV_ERROR_WAL_MODE_REQUIRED) */
+  IWKV_ERROR_BACKUP_IN_PROGRESS,      /**< Backup operation in progress. (IWKV_ERROR_BACKUP_IN_PROGRESS) */
   _IWKV_ERROR_END,
 
   // Internal only
@@ -498,12 +500,30 @@ IW_EXPORT iwrc iwkv_cursor_del(IWKV_cursor cur, iwkv_opflags opflags);
 IW_EXPORT iwrc iwkv_cursor_close(IWKV_cursor *cur);
 
 /**
+ * Creates an online database backup image and copies it into the specified `target_file`.
+ * During online backup phase read/write database operations are not
+ * blocked for significant amount of time. Backup finish time is
+ * placed into `ts` as number of milliseconds since epoch.
+ * Online backup guaranties what all records before `ts` timestamp will
+ * be stored in backup image. Later, online backup image can be
+ * opened as ordinary database file.
+ *
+ * @note In order to avoid deadlocks: close all opened database cursors
+ * before calling this method.
+ *
+ * @param iwkv
+ * @param [out] ts Backup completion timestamp
+ * @param target_file backup file path
+ */
+IW_EXPORT iwrc iwkv_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file);
+
+/**
  * @brief Get database file status info.
  * @note Database should be in opened state.
  *
  * @see IWFS_FILE::state
  * @param db Database handler
- * @param [out] IWFS_FSM_STATE placeholder iwkv file state
+ * @param [out] out IWFS_FSM_STATE placeholder iwkv file state
  */
 IW_EXPORT iwrc iwkv_state(IWKV iwkv, IWFS_FSM_STATE *out);
 

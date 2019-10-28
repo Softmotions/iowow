@@ -7,8 +7,8 @@
 
 #define KBUFSZ 128
 #define VBUFSZ 128
-char kbuf[KBUFSZ];
-char vbuf[VBUFSZ];
+static char kbuf[KBUFSZ];
+static char vbuf[VBUFSZ];
 
 /**
  * Test cursor consistency

@@ -23,6 +23,9 @@
 // IWKV magic number
 #define IWKV_MAGIC 0x69776b76U
 
+// IWKV backup magic number
+#define IWKV_BACKUP_MAGIC 0xBACBAC69U
+
 // IWKV file format version
 #define IWKV_FORMAT 1
 

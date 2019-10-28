@@ -959,10 +959,10 @@ static WUR iwrc _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
     off_t noff = coff + kvp->len;
     if (kvp->off > noff) {
       assert(noff <= (1ULL << kb->szpow) && kvp->len <= noff);
-      memmove(wp - noff, wp - kvp->off, kvp->len);
       if (dlsnr) {
-        rc = dlsnr->oncopy(dlsnr, blkend - kvp->off, kvp->len, blkend - noff, 0);
+        rc = dlsnr->onwrite(dlsnr, blkend - noff, wp - kvp->off, kvp->len, 0);
       }
+      memmove(wp - noff, wp - kvp->off, kvp->len);
       kvp->off = noff;
     }
     coff += kvp->len;
@@ -1031,13 +1031,14 @@ static WUR iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
       RCGO(rc, finish);
 
       off_t maxoff = _kvblk_maxkvoff(kb);
+      if (dlsnr) {
+        rc = dlsnr->onwrite(dlsnr, kb->addr + (1ULL << npow) - maxoff, mm + kb->addr + nlen - maxoff, maxoff, 0);
+        RCGO(rc, finish);
+      }
       memmove(mm + kb->addr + (1ULL << npow) - maxoff,
               mm + kb->addr + nlen - maxoff,
               (size_t) maxoff);
-      if (dlsnr) {
-        rc = dlsnr->oncopy(dlsnr, kb->addr + nlen - maxoff, maxoff, kb->addr + (1ULL << npow) - maxoff, 0);
-        RCGO(rc, finish);
-      }
+
       fsm->release_mmap(fsm);
       mm = 0;
       rc = fsm->reallocate(fsm, (1ULL << npow), &kb->addr, &nlen, IWKV_FSM_ALLOC_FLAGS);
@@ -1130,13 +1131,16 @@ start:
     assert(nlen == (1ULL << npow));
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCGO(rc, finish);
-    memcpy(mm + naddr, mm + kb->addr, KVBLK_HDRSZ);
-    memcpy(mm + naddr + nlen - kb->maxoff, mm + kb->addr + olen - kb->maxoff, (size_t) kb->maxoff);
     if (dlsnr) {
-      rc = dlsnr->oncopy(dlsnr, kb->addr, KVBLK_HDRSZ, naddr, 0);
+      rc = dlsnr->onwrite(dlsnr, naddr, mm + kb->addr, KVBLK_HDRSZ, 0);
       RCGO(rc, finish);
-      rc = dlsnr->oncopy(dlsnr, kb->addr + olen - kb->maxoff, kb->maxoff, naddr + nlen - kb->maxoff, 0);
+      memcpy(mm + naddr, mm + kb->addr, KVBLK_HDRSZ);
+      rc = dlsnr->onwrite(dlsnr, naddr + nlen - kb->maxoff, mm + kb->addr + olen - kb->maxoff, kb->maxoff, 0);
       RCGO(rc, finish);
+      memcpy(mm + naddr + nlen - kb->maxoff, mm + kb->addr + olen - kb->maxoff, (size_t) kb->maxoff);
+    } else {
+      memcpy(mm + naddr, mm + kb->addr, KVBLK_HDRSZ);
+      memcpy(mm + naddr + nlen - kb->maxoff, mm + kb->addr + olen - kb->maxoff, (size_t) kb->maxoff);
     }
     fsm->release_mmap(fsm);
     rc = fsm->deallocate(fsm, kb->addr, olen);
@@ -1313,7 +1317,7 @@ IW_INLINE WUR iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
     uint8_t kvb_szpow;
     IWFS_FSM *fsm = &lx->db->iwkv->fsm;
     off_t kvb_addr = BLK2ADDR(sblk->kvblkn),
-          sblk_addr = sblk->addr;
+      sblk_addr = sblk->addr;
     if (!sblk->kvblk) {
       // Read KVBLK size as power of two
       uint8_t *mm;
@@ -2453,7 +2457,7 @@ static WUR iwrc _lx_del_sblk_lw(IWLCTX *lx, SBLK *sblk, uint8_t idx) {
   memcpy(&rb, lx->upper, sizeof(rb));
 
   SBLK *nb, // Block after lx->upper
-       *rbp = &rb;
+    *rbp = &rb;
 
   assert(!lx->nb);
   rc = _sblk_at(lx, BLK2ADDR(rb.n[0]), 0, &nb);
@@ -2622,7 +2626,7 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
       }
       *res = _cmp_key(dbflg, k1, kl1, &key2);
     } else {
-      *res = (int) kl2 - kl1;
+      *res = (int) (kl2 - kl1);
     }
   }
 
@@ -2754,7 +2758,7 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
 
   idx = iwarr_sorted_find2(cache->nodes, cache->num, cache->nsize, n, lx, &found, _dbcache_cmp_nodes);
   if (idx > 0) {
-    DBCNODE *fn = (DBCNODE *)((uint8_t *) cache->nodes + (idx - 1) * cache->nsize);
+    DBCNODE *fn = (DBCNODE *) ((uint8_t *) cache->nodes + (idx - 1) * cache->nsize);
     assert(fn && idx - 1 < cache->num);
     rc = _sblk_at(lx, BLK2ADDR(fn->sblkn), 0, &lx->lower);
   } else {
@@ -2839,7 +2843,7 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
   size_t nsize = cache->nsize;
   uint8_t *rp = (uint8_t *) cache->nodes;
   for (size_t i = 0; i < num; ++i) {
-    DBCNODE *n = (DBCNODE *)(rp + i * nsize);
+    DBCNODE *n = (DBCNODE *) (rp + i * nsize);
     if (sblkn == n->sblkn) {
       if (i < num - 1) {
         memmove(rp + i * nsize, rp + (i + 1) * nsize, (num - i - 1) * nsize);
@@ -2864,7 +2868,7 @@ static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk) {
   size_t nsize = cache->nsize;
   uint8_t *rp = (uint8_t *) cache->nodes;
   for (size_t i = 0; i < num; ++i) {
-    DBCNODE *n = (DBCNODE *)(rp + i * nsize);
+    DBCNODE *n = (DBCNODE *) (rp + i * nsize);
     if (sblkn == n->sblkn) {
       n->kblkn = sblk->kvblkn;
       n->lkl = sblk->lkl;
@@ -3038,6 +3042,10 @@ static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
       return "Corrupted WAL file (IWKV_ERROR_CORRUPTED_WAL_FILE)";
     case IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED:
       return "Stored value cannot be incremented/descremented (IWKV_ERROR_VALUE_CANNOT_BE_INCREMENTED)";
+    case IWKV_ERROR_WAL_MODE_REQUIRED:
+      return "Operation requires WAL enabled database. (IWKV_ERROR_WAL_MODE_REQUIRED)";
+    case IWKV_ERROR_BACKUP_IN_PROGRESS:
+      return "ackup operation in progress. (IWKV_ERROR_BACKUP_IN_PROGRESS)";
     default:
       break;
   }
@@ -3105,10 +3113,155 @@ iwrc iwkv_state(IWKV iwkv, IWFS_FSM_STATE *out) {
   return rc;
 }
 
+iwrc iwkv_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file) {
+  return iwal_online_backup(iwkv, ts, target_file);
+}
+
+static iwrc _iwkv_check_online_backup(const char *path) {
+  size_t sp;
+  uint32_t lv;
+  off_t fsz, pos;
+  uint64_t waloff; // WAL offset
+  char buf[16384];
+
+  const size_t aunit = iwp_alloc_unit();
+  char *wpath = 0;
+
+  IWFS_FILE f = {0}, w = {0};
+  IWFS_FILE_STATE fs, fw;
+  iwrc rc = iwfs_file_open(&f, &(IWFS_FILE_OPTS) {
+    .path = path,
+    .omode = IWFS_OREAD | IWFS_OWRITE,
+    .lock_mode = IWP_WLOCK
+  });
+  if (rc == IW_ERROR_NOT_EXISTS) {
+    return 0;
+  }
+  RCRET(rc);
+
+  rc = f.state(&f, &fs);
+  RCGO(rc, finish);
+
+  rc = iwp_lseek(fs.fh, 0, IWP_SEEK_END, &fsz);
+  RCGO(rc, finish);
+  if (fsz < iwp_alloc_unit()) {
+    goto finish;
+  }
+
+  rc = iwp_pread(fs.fh, 0, &lv, sizeof(lv), &sp);
+  RCGO(rc, finish);
+  lv = IW_ITOHL(lv);
+  if (sp != sizeof(lv) || lv != IWFSM_MAGICK) {
+    goto finish;
+  }
+
+  rc = iwp_pread(fs.fh, IWFSM_CUSTOM_HDR_DATA_OFFSET, &lv, sizeof(lv), &sp);
+  RCGO(rc, finish);
+  lv = IW_ITOHL(lv);
+  if (sp != sizeof(lv) || lv != IWKV_MAGIC) {
+    goto finish;
+  }
+
+  rc = iwp_lseek(fs.fh, -sizeof(lv), IWP_SEEK_END, 0);
+  RCGO(rc, finish);
+
+  rc = iwp_read(fs.fh, &lv, sizeof(lv), &sp);
+  RCGO(rc, finish);
+  lv = IW_ITOHL(lv);
+  if (sp != sizeof(lv) || lv != IWKV_BACKUP_MAGIC) {
+    goto finish;
+  }
+
+  // Get WAL data offset
+  rc = iwp_lseek(fs.fh, -sizeof(waloff) - sizeof(lv), IWP_SEEK_END, &pos);
+  RCGO(rc, finish);
+
+  rc = iwp_read(fs.fh, &waloff, sizeof(waloff), &sp);
+  RCGO(rc, finish);
+
+  waloff = IW_ITOHLL(waloff);
+  if ((waloff != pos && waloff > pos - sizeof(WBSEP)) || (waloff & (aunit - 1))) {
+    goto finish;
+  }
+
+  // Read the first WAL instruction: WBSEP
+  if (waloff != pos) { // Not an empty WAL?
+    WBSEP wbsep = {0};
+    rc = iwp_pread(fs.fh, waloff, &wbsep, sizeof(wbsep), &sp);
+    RCGO(rc, finish);
+    if (wbsep.id != WOP_SEP) {
+      goto finish;
+    }
+  }
+
+  // Now we have an online backup image, unpack WAL file
+
+  sp = strlen(path);
+  wpath = malloc(sp + 4 /*-wal*/ + 1 /*\0*/);
+  if (!wpath) {
+    rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    goto finish;
+  }
+  memcpy(wpath, path, sp);
+  memcpy(wpath + sp, "-wal", 4);
+  wpath[sp + 4] = '\0';
+
+  iwlog_warn("Unpacking WAL from online backup into: %s", wpath);
+
+  // WAL file
+  rc = iwfs_file_open(&w, &(IWFS_FILE_OPTS) {
+    .path = wpath,
+    .omode = IWFS_OREAD | IWFS_OWRITE | IWFS_OTRUNC
+  });
+  RCGO(rc, finish);
+
+  rc = w.state(&w, &fw);
+  RCGO(rc, finish);
+
+  // WAL content copy
+  rc = iwp_lseek(fs.fh, waloff, IWP_SEEK_SET, 0);
+  RCGO(rc, finish);
+  fsz = fsz - waloff - sizeof(lv) /* magic */ - sizeof(waloff) /* wal offset */;
+  if (fsz > 0) {
+    sp = 0;
+    do {
+      rc = iwp_read(fs.fh, buf, sizeof(buf), &sp);
+      RCGO(rc, finish);
+      if (sp > fsz) {
+        sp = fsz;
+      }
+      fsz -= sp;
+      rc = iwp_write(fw.fh, buf, sp);
+      RCGO(rc, finish);
+    } while (fsz > 0 && sp > 0);
+  }
+  rc = iwp_fsync(fw.fh);
+  RCGO(rc, finish);
+
+  rc = iwp_ftruncate(fs.fh, waloff);
+  RCGO(rc, finish);
+
+  rc = iwp_fsync(fs.fh);
+  RCGO(rc, finish);
+
+finish:
+  if (f.impl) {
+    IWRC(f.close(&f), rc);
+  }
+  if (w.impl) {
+    IWRC(w.close(&w), rc);
+  }
+  if (wpath) {
+    free(wpath);
+  }
+  return rc;
+}
+
 iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
-  if (!opts || !iwkvp) {
+  if (!opts || !iwkvp || !opts->path) {
     return IW_ERROR_INVALID_ARGS;
   }
+  *iwkvp = 0;
   int rci;
   iwrc rc = 0;
   uint32_t lv;
@@ -3116,9 +3269,26 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   uint8_t *rp, *mm;
   rc = iw_init();
   RCRET(rc);
+
   if (opts->random_seed) {
     iwu_rand_seed(opts->random_seed);
   }
+
+  iwkv_openflags oflags = opts->oflags;
+  iwfs_omode omode = IWFS_OREAD;
+  if (oflags & IWKV_TRUNC) {
+    oflags &= ~IWKV_RDONLY;
+    omode |= IWFS_OTRUNC;
+  }
+  if (!(oflags & IWKV_RDONLY)) {
+    omode |= IWFS_OWRITE;
+    omode |= IWFS_OCREATE;
+  }
+  if ((omode & IWFS_OWRITE) && !(omode & IWFS_OTRUNC)) {
+    rc = _iwkv_check_online_backup(opts->path);
+    RCRET(rc);
+  }
+
   *iwkvp = calloc(1, sizeof(struct _IWKV));
   if (!*iwkvp) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -3148,16 +3318,6 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     pthread_mutex_destroy(&iwkv->wk_mtx);
     free(*iwkvp);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-  }
-  iwkv_openflags oflags = opts->oflags;
-  iwfs_omode omode = IWFS_OREAD;
-  if (oflags & IWKV_TRUNC) {
-    oflags &= ~IWKV_RDONLY;
-    omode |= IWFS_OTRUNC;
-  }
-  if (!(oflags & IWKV_RDONLY)) {
-    omode |= IWFS_OWRITE;
-    omode |= IWFS_OCREATE;
   }
   iwkv->oflags = oflags;
   IWFS_FSM_STATE fsmstate;
@@ -3307,7 +3467,7 @@ iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags _flags) {
   if (iwkv->dlsnr) {
     rc = iwkv_exclusive_lock(iwkv);
     RCRET(rc);
-    rc = iwal_savepoint_exlk(iwkv, true);
+    rc = iwal_savepoint_exl(iwkv, true);
     iwkv_exclusive_unlock(iwkv);
   } else {
     IWFS_FSM *fsm = &iwkv->fsm;
@@ -3356,7 +3516,7 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
     rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
   }
   if (!rc) {
-    rc = iwal_savepoint_exlk(iwkv, true);
+    rc = iwal_savepoint_exl(iwkv, true);
   }
   iwkv_exclusive_unlock(iwkv);
   return rc;
@@ -3380,7 +3540,7 @@ iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp) {
   rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
   if (!rc) {
     *dbidp = dbid;
-    rc = iwal_savepoint_exlk(iwkv, true);
+    rc = iwal_savepoint_exl(iwkv, true);
   }
   iwkv_exclusive_unlock(iwkv);
   return rc;
@@ -4080,12 +4240,12 @@ IW_EXPORT iwrc iwkv_cursor_seth(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opf
 
   // Update active cursors inside this block
   pthread_spin_lock(&db->cursors_slk);
-  for (IWKV_cursor cur = db->cursors; cur; cur = cur->next) {
-    if (cur->cn && cur->cn->addr == sblk->addr) {
-      if (cur->cn != sblk) {
-        memcpy(cur->cn, sblk, sizeof(*cur->cn));
-        cur->cn->kvblk = 0;
-        cur->cn->flags &= SBLK_PERSISTENT_FLAGS;
+  for (IWKV_cursor c = db->cursors; c; c = c->next) {
+    if (c->cn && c->cn->addr == sblk->addr) {
+      if (c->cn != sblk) {
+        memcpy(c->cn, sblk, sizeof(*c->cn));
+        c->cn->kvblk = 0;
+        c->cn->flags &= SBLK_PERSISTENT_FLAGS;
       }
     }
   }

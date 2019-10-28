@@ -152,8 +152,9 @@ static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
 }
 
 iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
-  assert(f);
-  assert(_opts && _opts->path);
+  if (!f || !_opts || !_opts->path) {
+    return IW_ERROR_INVALID_ARGS;
+  }
 
   IWFS_FILE_OPTS *opts;
   IWF *impl;
@@ -251,7 +252,11 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
 #ifndef _WIN32
   impl->fh = open(opts->path, mode, opts->filemode);
   if (INVALIDHANDLE(impl->fh)) {
-    rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    if (errno == ENOENT) {
+      rc = IW_ERROR_NOT_EXISTS;
+    } else {
+      rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    }
     goto finish;
   }
 #else
@@ -273,7 +278,12 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   }
   impl->fh = CreateFile(opts->path, womode, smode, NULL, wcmode, flags, NULL);
   if (INVALIDHANDLE(impl->fh)) {
-    rc = iwrc_set_werror(IW_ERROR_IO_ERRNO, GetLastError());
+    uint32_t err = GetLastError();
+    if (err == ERROR_FILE_NOT_FOUND) {
+      rc = IW_ERROR_NOT_EXISTS;
+    } else {
+      rc = iwrc_set_werror(IW_ERROR_IO_ERRNO, err);
+    }
     goto finish;
   }
 #endif

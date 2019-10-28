@@ -36,6 +36,67 @@
 
 IW_EXTERN_C_START
 
+typedef enum {
+  WOP_SET = 1,
+  WOP_COPY,
+  WOP_WRITE,
+  WOP_RESIZE,
+  WOP_FIXPOINT,
+  WOP_RESET,
+  WOP_SEP = 127, /**< WAL file separator */
+} wop_t;
+
+#pragma pack(push, 1)
+typedef struct WBSEP {
+  uint8_t id;
+  uint8_t pad[3];
+  uint32_t crc;
+  uint32_t len;
+} WBSEP;
+
+typedef struct WBRESET {
+  uint8_t id;
+  uint8_t pad[3];
+} WBRESET;
+
+typedef struct WBSET {
+  uint8_t id;
+  uint8_t pad[3];
+  uint32_t val;
+  off_t off;
+  off_t len;
+} WBSET;
+
+typedef struct WBCOPY {
+  uint8_t id;
+  uint8_t pad[3];
+  off_t off;
+  off_t len;
+  off_t noff;
+} WBCOPY;
+
+typedef struct WBWRITE {
+  uint8_t id;
+  uint8_t pad[3];
+  uint32_t crc;
+  uint32_t len;
+  off_t off;
+} WBWRITE;
+
+typedef struct WBRESIZE {
+  uint8_t id;
+  uint8_t pad[3];
+  off_t osize;
+  off_t nsize;
+} WBRESIZE;
+
+typedef struct WBFIXPOINT {
+  uint8_t id;
+  uint8_t pad[3];
+  uint64_t ts;
+} WBFIXPOINT;
+#pragma pack(pop)
+
 iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts);
 
 iwrc iwal_sync(IWKV iwkv);
@@ -44,11 +105,13 @@ iwrc iwal_poke_checkpoint(IWKV iwkv, bool force);
 
 iwrc iwal_poke_savepoint(IWKV iwkv);
 
-iwrc iwal_savepoint_exlk(IWKV iwkv, bool sync);
+iwrc iwal_savepoint_exl(IWKV iwkv, bool sync);
 
 void iwal_shutdown(IWKV iwkv);
 
 bool iwal_synched(IWKV iwkv);
+
+iwrc iwal_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file);
 
 IW_EXTERN_C_END
 #endif

@@ -309,11 +309,11 @@ static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t
     }
     if (wp > 0 && s->off <= off && s->off + s->len > off) {
       len = MIN(wp, s->off + s->len - off);
-      memcpy(s->mmap + (off - s->off), (const char *) buf + (siz - wp), (size_t) len);
       if (impl->dlsnr) {
         rc = impl->dlsnr->onwrite(impl->dlsnr, off - s->off, (const char *) buf + (siz - wp), len, 0);
         RCGO(rc, finish);
       }
+      memcpy(s->mmap + (off - s->off), (const char *) buf + (siz - wp), (size_t) len);
       wp -= len;
       off += len;
     }
@@ -402,11 +402,11 @@ static iwrc _exfile_copy(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff) 
   if (s && s->mmap && s->off == 0 && s->len >= noff + siz) { // fully mmaped file
     rc = _exfile_ensure_size_lw(f, noff + siz);
     RCRET(rc);
-    memmove(s->mmap + noff, s->mmap + off, siz);
     if (impl->dlsnr) {
-      rc = impl->dlsnr->oncopy(impl->dlsnr, off, siz, noff, 0);
+      rc = impl->dlsnr->onwrite(impl->dlsnr, noff, s->mmap + off, siz, 0);
       RCRET(rc);
     }
+    memmove(s->mmap + noff, s->mmap + off, siz);
   } else {
     IWRC(impl->file.copy(&impl->file, off, siz, noff), rc);
   }

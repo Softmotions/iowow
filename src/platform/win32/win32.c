@@ -96,6 +96,17 @@ iwrc iwp_fallocate(HANDLE fh, off_t len) {
   return iwp_ftruncate(fh, len);
 }
 
+iwrc iwp_sleep(uint64_t ms) {
+  iwrc rc = 0;
+  struct timespec req;
+  req.tv_sec = ms / 1000UL;
+  req.tv_nsec = (ms % 1000UL) * 1000UL * 1000UL;
+  if (nanosleep(&req, NULL)) {
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, errno);
+  }
+  return rc;
+}
+
 iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fs) {
   memset(fs, 0, sizeof(*fs));
   struct stat st = {0};
@@ -198,8 +209,34 @@ iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
   offset.Offset = bigint.LowPart;
   offset.OffsetHigh = bigint.HighPart;
   if (!ReadFile(fh, buf, siz, &rdb, &offset)) {
+    uint32_t err = GetLastError();
+    if (err == ERROR_HANDLE_EOF) {
+      *sp = rdb;
+      return 0;
+    }
     *sp = 0;
-    return iwrc_set_werror(IW_ERROR_IO_ERRNO, GetLastError());
+    return iwrc_set_werror(IW_ERROR_IO_ERRNO, err);
+  }
+  *sp = rdb;
+  return 0;
+}
+
+iwrc iwp_read(HANDLE fh, void *buf, size_t siz, size_t *sp) {
+  if (INVALIDHANDLE(fh)) {
+    return IW_ERROR_INVALID_HANDLE;
+  }
+  if (!buf || !sp) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  DWORD rdb;
+  if (!ReadFile(fh, buf, siz, &rdb, NULL)) {
+    uint32_t err = GetLastError();
+    if (err == ERROR_HANDLE_EOF) {
+      *sp = rdb;
+      return 0;
+    }
+    *sp = 0;
+    return iwrc_set_werror(IW_ERROR_IO_ERRNO, err);
   }
   *sp = rdb;
   return 0;
@@ -240,6 +277,9 @@ iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
 iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
   if (INVALIDHANDLE(fh)) {
     return IW_ERROR_INVALID_HANDLE;
+  }
+  if (pos) {
+    *pos = 0;
   }
   int w;
   LARGE_INTEGER loff, noff;

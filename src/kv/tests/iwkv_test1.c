@@ -292,7 +292,7 @@ static void iwkv_test1(void) {
 #ifdef _WIN32
   iwrc_strip_werror(&rc);
 #endif
-  CU_ASSERT_EQUAL(rc, IW_ERROR_IO_ERRNO);
+  CU_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
 
   // Open in read-only mode and acquire not existing db
   opts.path = "iwkv_test1.db";

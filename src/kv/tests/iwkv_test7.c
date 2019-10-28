@@ -25,10 +25,6 @@ int clean_suite(void) {
   return 0;
 }
 
-
-
-
-
 static void iwkv_test7_2_impl(int direction) {
   iwrc rc;
   IWKV iwkv;
@@ -127,7 +123,7 @@ int main() {
   if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
   /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwkv_test6", init_suite, clean_suite);
+  pSuite = CU_add_suite("iwkv_test7", init_suite, clean_suite);
 
   if (NULL == pSuite) {
     CU_cleanup_registry();
