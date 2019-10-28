@@ -3,7 +3,7 @@
 #include "iwutils.h"
 #include "iwkv_tests.h"
 #include "iwkv_internal.h"
-#include <pthread.h>
+#include "iwth.h"
 
 iwrc iwal_test_checkpoint(IWKV iwkv);
 

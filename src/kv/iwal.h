@@ -97,7 +97,7 @@ typedef struct WBFIXPOINT {
 } WBFIXPOINT;
 #pragma pack(pop)
 
-iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts);
+iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool recover_backup);
 
 iwrc iwal_sync(IWKV iwkv);
 

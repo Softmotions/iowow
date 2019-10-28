@@ -554,7 +554,7 @@ finish:
   return rc;
 }
 
-static iwrc _recover_wl(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
+static iwrc _recover_wl(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts, bool recover_backup) {
   off_t fsz = 0;
   iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
   RCRET(rc);
@@ -569,7 +569,7 @@ static iwrc _recover_wl(IWKV iwkv, IWAL *wal, IWFS_FSM_OPTS *fsmopts) {
   extopts.file.dlsnr = 0;
   rc = iwfs_exfile_open(&extf, &extopts);
   RCRET(rc);
-  rc = _rollforward_exl(wal, &extf, 1);
+  rc = _rollforward_exl(wal, &extf, recover_backup ? 2 : 1);
   IWRC(extf.close(&extf), rc);
   return rc;
 }
@@ -988,7 +988,7 @@ iwrc _init_cpt(IWAL *wal) {
   return 0;
 }
 
-iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
+iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool recover_backup) {
   assert(!iwkv->dlsnr && opts && fsmopts);
   if (!opts) {
     return IW_ERROR_INVALID_ARGS;
@@ -1114,7 +1114,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts) {
     rc = _truncate_wl(wal);
     RCGO(rc, finish);
   } else {
-    rc = _recover_wl(iwkv, wal, fsmopts);
+    rc = _recover_wl(iwkv, wal, fsmopts, recover_backup);
     RCGO(rc, finish);
   }
 
