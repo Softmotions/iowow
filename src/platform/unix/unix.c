@@ -50,7 +50,7 @@
 
 
 IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
-#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
+#if defined __ANDROID__ || (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED < 101200)
   struct timeval now;
   int rci = gettimeofday(&now, NULL);
   if (rci) {
