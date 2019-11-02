@@ -46,7 +46,7 @@
 #define st_mtim st_mtimespec
 #endif
 
-#define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6))
+#define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000ULL) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6))
 
 
 IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
@@ -57,7 +57,7 @@ IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
   t->tv_sec  = now.tv_sec;
-  t->tv_nsec = now.tv_usec * 1000;
+  t->tv_nsec = now.tv_usec * 1000ULL;
 #else
   int rci = clock_gettime(clock_id, t);
   if (rci) {
