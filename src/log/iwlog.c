@@ -353,6 +353,8 @@ static iwrc _default_logfn(FILE *out,
       out = myopts.out;
     }
   }
+
+#ifndef __ANDROID__
   sz = strftime(tbuf, TBUF_SZ, "%d %b %H:%M:%S", &timeinfo);
   if (sz == 0) {
     tbuf[0] = '\0';
@@ -363,8 +365,7 @@ static iwrc _default_logfn(FILE *out,
       tbuf[sz] = '\0';
     }
   }
-
-#ifdef __ANDROID__
+#else
   android_LogPriority alp = ANDROID_LOG_INFO;
 #endif // __ANDROID__
 
@@ -447,18 +448,18 @@ static iwrc _default_logfn(FILE *out,
 
   if (ecode || errno_code || werror_code) {
     if (fname && line > 0) {
-      __android_log_print(alp, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, fname, line, ecode, errno_code,
+      __android_log_print(alp, "%s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", cat, fname, line, ecode, errno_code,
                           werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
                           (werror_msg ? werror_msg : ""));
     } else {
-      __android_log_print(alp, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, ecode, errno_code, werror_code,
+      __android_log_print(alp, "%s %" PRIu64 "|%d|%d|%s|%s|%s: ", cat, ecode, errno_code, werror_code,
                           (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
     }
   } else {
     if (fname && line > 0) {
-      __android_log_print(alp, "%s %s %s:%d: ", tbuf, cat, fname, line);
+      __android_log_print(alp, "%s %s:%d: ", cat, fname, line);
     } else {
-      __android_log_print(alp, "%s %s: ", tbuf, cat);
+      __android_log_print(alp, "%s: ", cat);
     }
   }
   if (fmt) {
