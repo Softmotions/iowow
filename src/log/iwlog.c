@@ -49,7 +49,7 @@
 #endif
 
 #ifdef __ANDROID__
-#include <log.h>
+#include <android/log.h>
 #endif // __ANDROID__
 
 static iwrc _default_logfn(FILE *out, locale_t locale, iwlog_lvl lvl, iwrc ecode, int errno_code, int werror_code,
@@ -302,10 +302,15 @@ static iwrc _default_logfn(FILE *out,
 
   iwrc rc = 0;
   IWLOG_DEFAULT_OPTS myopts = {0};
+
+#ifndef __ANDROID__
   time_t ts_sec = ((long double) ts / 1000);
   struct tm timeinfo;
   size_t sz, sz2;
-  char tbuf[TBUF_SZ], ebuf[EBUF_SZ];
+  char tbuf[TBUF_SZ];
+#endif
+
+  char ebuf[EBUF_SZ];
   char *errno_msg = 0, *werror_msg = 0;
   const char *ecode_msg = 0, *cat;
   char fnamebuf[MAXPATHLEN];
@@ -344,9 +349,6 @@ static iwrc _default_logfn(FILE *out,
   }
 #endif
 
-  // cppcheck-suppress portability
-  localtime_r(&ts_sec, &timeinfo);
-
   if (opts) {
     myopts = *(IWLOG_DEFAULT_OPTS *) opts;
     if (myopts.out) {
@@ -355,6 +357,9 @@ static iwrc _default_logfn(FILE *out,
   }
 
 #ifndef __ANDROID__
+  // cppcheck-suppress portability
+  localtime_r(&ts_sec, &timeinfo);
+
   sz = strftime(tbuf, TBUF_SZ, "%d %b %H:%M:%S", &timeinfo);
   if (sz == 0) {
     tbuf[0] = '\0';
@@ -448,22 +453,22 @@ static iwrc _default_logfn(FILE *out,
 
   if (ecode || errno_code || werror_code) {
     if (fname && line > 0) {
-      __android_log_print(alp, "%s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", cat, fname, line, ecode, errno_code,
+      __android_log_print(alp, "IWLOG", "%s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", cat, fname, line, ecode, errno_code,
                           werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
                           (werror_msg ? werror_msg : ""));
     } else {
-      __android_log_print(alp, "%s %" PRIu64 "|%d|%d|%s|%s|%s: ", cat, ecode, errno_code, werror_code,
+      __android_log_print(alp, "IWLOG", "%s %" PRIu64 "|%d|%d|%s|%s|%s: ", cat, ecode, errno_code, werror_code,
                           (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
     }
   } else {
     if (fname && line > 0) {
-      __android_log_print(alp, "%s %s:%d: ", cat, fname, line);
+      __android_log_print(alp, "IWLOG", "%s %s:%d: ", cat, fname, line);
     } else {
-      __android_log_print(alp, "%s: ", cat);
+      __android_log_print(alp, "IWLOG", "%s: ", cat);
     }
   }
   if (fmt) {
-    __android_log_vprint(alp, fmt, argp);
+    __android_log_vprint(alp, "IWLOG", fmt, argp);
   }
 
 #endif
