@@ -48,6 +48,10 @@
 #include <string.h>
 #endif
 
+#ifdef __ANDROID__
+#include <log.h>
+#endif // __ANDROID__
+
 static iwrc _default_logfn(FILE *out, locale_t locale, iwlog_lvl lvl, iwrc ecode, int errno_code, int werror_code,
                            const char *file, int line, uint64_t ts, void *opts, const char *fmt,
                            va_list argp);
@@ -360,9 +364,16 @@ static iwrc _default_logfn(FILE *out,
     }
   }
 
+#ifdef __ANDROID__
+  android_LogPriority alp = ANDROID_LOG_INFO;
+#endif // __ANDROID__
+
   switch (lvl) {
     case IWLOG_DEBUG:
       cat = "DEBUG";
+#ifdef __ANDROID__
+      alp = ANDROID_LOG_DEBUG;
+#endif
       break;
     case IWLOG_INFO:
       cat = "INFO";
@@ -370,9 +381,15 @@ static iwrc _default_logfn(FILE *out,
       break;
     case IWLOG_WARN:
       cat = "WARN";
+#ifdef __ANDROID__
+      alp = ANDROID_LOG_WARN;
+#endif
       break;
     case IWLOG_ERROR:
       cat = "ERROR";
+#ifdef __ANDROID__
+      alp = ANDROID_LOG_ERROR;
+#endif
       break;
     default:
       cat = "UNKNOW";
@@ -401,12 +418,14 @@ static iwrc _default_logfn(FILE *out,
     fname = basename(fnameptr);
 #endif
   }
+
+#ifndef __ANDROID__
+
   if (ecode || errno_code || werror_code) {
     if (fname && line > 0) {
       fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, fname, line, ecode, errno_code,
               werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
               (werror_msg ? werror_msg : ""));
-
     } else {
       fprintf(out, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, ecode, errno_code, werror_code,
               (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
@@ -418,13 +437,37 @@ static iwrc _default_logfn(FILE *out,
       fprintf(out, "%s %s: ", tbuf, cat);
     }
   }
-
   if (fmt) {
     vfprintf(out, fmt, argp);
   }
   fprintf(out, IW_LINE_SEP);
-  pthread_mutex_unlock(&_mtx);
   fflush(out);
+
+#else
+
+  if (ecode || errno_code || werror_code) {
+    if (fname && line > 0) {
+      __android_log_print(alp, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, fname, line, ecode, errno_code,
+                          werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
+                          (werror_msg ? werror_msg : ""));
+    } else {
+      __android_log_print(alp, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, ecode, errno_code, werror_code,
+                          (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
+    }
+  } else {
+    if (fname && line > 0) {
+      __android_log_print(alp, "%s %s %s:%d: ", tbuf, cat, fname, line);
+    } else {
+      __android_log_print(alp, "%s %s: ", tbuf, cat);
+    }
+  }
+  if (fmt) {
+    __android_log_vprint(alp, fmt, argp);
+  }
+
+#endif
+
+  pthread_mutex_unlock(&_mtx);
 
 finish:
   if (fnameptr != fnamebuf) {
