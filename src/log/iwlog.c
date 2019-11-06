@@ -383,6 +383,9 @@ static iwrc _default_logfn(FILE *out,
       break;
     case IWLOG_INFO:
       cat = "INFO";
+#ifdef __ANDROID__
+      alp = ANDROID_LOG_INFO;
+#endif
       file = 0;
       break;
     case IWLOG_WARN:
