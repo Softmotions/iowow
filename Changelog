@@ -1,6 +1,6 @@
 iowow (1.3.28) UNRELEASED; urgency=medium
 
-  * iwlog now uses ANDROID NDK logging (iwlog.h)
+  * iwlog now supports ANDROID NDK logging (iwlog.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Wed, 06 Nov 2019 23:24:46 +0700
 

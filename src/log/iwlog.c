@@ -48,7 +48,9 @@
 #include <string.h>
 #endif
 
+
 #ifdef __ANDROID__
+#define IW_ANDROID_LOG
 #include <android/log.h>
 #endif // __ANDROID__
 
@@ -303,7 +305,7 @@ static iwrc _default_logfn(FILE *out,
   iwrc rc = 0;
   IWLOG_DEFAULT_OPTS myopts = {0};
 
-#ifndef __ANDROID__
+#ifndef IW_ANDROID_LOG
   time_t ts_sec = ((long double) ts / 1000);
   struct tm timeinfo;
   size_t sz, sz2;
@@ -357,7 +359,7 @@ static iwrc _default_logfn(FILE *out,
     }
   }
 
-#ifndef __ANDROID__
+#ifndef IW_ANDROID_LOG
   // cppcheck-suppress portability
   localtime_r(&ts_sec, &timeinfo);
 
@@ -373,18 +375,18 @@ static iwrc _default_logfn(FILE *out,
   }
 #else
   android_LogPriority alp = ANDROID_LOG_INFO;
-#endif // __ANDROID__
+#endif // IW_ANDROID_LOG
 
   switch (lvl) {
     case IWLOG_DEBUG:
-#ifdef __ANDROID__
+#ifdef IW_ANDROID_LOG
       alp = ANDROID_LOG_DEBUG;
 #else
       cat = "DEBUG";
 #endif
       break;
     case IWLOG_INFO:
-#ifdef __ANDROID__
+#ifdef IW_ANDROID_LOG
       alp = ANDROID_LOG_INFO;
 #else
       cat = "INFO";
@@ -392,30 +394,25 @@ static iwrc _default_logfn(FILE *out,
       file = 0;
       break;
     case IWLOG_WARN:
-#ifdef __ANDROID__
+#ifdef IW_ANDROID_LOG
       alp = ANDROID_LOG_WARN;
 #else
       cat = "WARN";
 #endif
       break;
     case IWLOG_ERROR:
-#ifdef __ANDROID__
+#ifdef IW_ANDROID_LOG
       alp = ANDROID_LOG_ERROR;
 #else
       cat = "ERROR";
 #endif
       break;
     default:
-#ifndef __ANDROID__
+#ifndef IW_ANDROID_LOG
       cat = "UNKNOW";
 #endif
       assert(0);
       break;
-  }
-
-  if (pthread_mutex_lock(&_mtx)) {
-    rc = IW_ERROR_THREADING_ERRNO;
-    goto finish;
   }
   if (ecode) {
     ecode_msg = _ecode_explained(locale, ecode);
@@ -435,7 +432,12 @@ static iwrc _default_logfn(FILE *out,
 #endif
   }
 
-#ifndef __ANDROID__
+  if (pthread_mutex_lock(&_mtx)) {
+    rc = IW_ERROR_THREADING_ERRNO;
+    goto finish;
+  }
+
+#ifndef IW_ANDROID_LOG
 
   if (ecode || errno_code || werror_code) {
     if (fname && line > 0) {

@@ -3163,7 +3163,7 @@ static iwrc _iwkv_check_online_backup(const char *path, bool *has_online_bkp) {
     goto finish;
   }
 
-  rc = iwp_lseek(fs.fh, -sizeof(lv), IWP_SEEK_END, 0);
+  rc = iwp_lseek(fs.fh, (off_t) -1 * sizeof(lv), IWP_SEEK_END, 0);
   RCGO(rc, finish);
 
   rc = iwp_read(fs.fh, &lv, sizeof(lv), &sp);
@@ -3174,7 +3174,7 @@ static iwrc _iwkv_check_online_backup(const char *path, bool *has_online_bkp) {
   }
 
   // Get WAL data offset
-  rc = iwp_lseek(fs.fh, -sizeof(waloff) - sizeof(lv), IWP_SEEK_END, &pos);
+  rc = iwp_lseek(fs.fh, (off_t) -1 * (sizeof(waloff) + sizeof(lv)), IWP_SEEK_END, &pos);
   RCGO(rc, finish);
 
   rc = iwp_read(fs.fh, &waloff, sizeof(waloff), &sp);
