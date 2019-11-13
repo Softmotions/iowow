@@ -1,8 +1,8 @@
-iowow (1.3.29) UNRELEASED; urgency=medium
+iowow (1.3.29) testing; urgency=medium
 
   * FIXED iwkv_open assertion fail on opening garbage file #29
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 13 Nov 2019 18:38:14 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 13 Nov 2019 23:55:35 +0700
 
 iowow (1.3.28) testing; urgency=medium
 
