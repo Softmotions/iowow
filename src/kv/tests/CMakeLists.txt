@@ -3,7 +3,7 @@ include_directories(${CUNIT_INCLUDE_DIRS})
 set(TEST_DATA_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TEST_DATA_DIR})
 
-file(GLOB datafiles RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.ref", "*.data")
+file(GLOB datafiles RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.ref" "*.data")
 foreach(file ${datafiles})
   configure_file("${file}" "${file}" COPYONLY)
 endforeach()
