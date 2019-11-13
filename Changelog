@@ -1,3 +1,9 @@
+iowow (1.3.29) UNRELEASED; urgency=medium
+
+  * FIXED iwkv_open assertion fail on opening garbage file #29
+
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 13 Nov 2019 18:38:14 +0700
+
 iowow (1.3.28) testing; urgency=medium
 
   * iwlog now supports ANDROID NDK logging (iwlog.h)

@@ -1528,7 +1528,7 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
   FSM *impl = f->impl;
   iwrc rc = 0;
   IWRC(_fsm_ctrl_wlock(impl), rc);
-  if (impl->omode & IWFS_OWRITE) {
+  if (impl->fsm && (impl->omode & IWFS_OWRITE)) {
     IWRC(_fsm_trim_tail_lw(impl), rc);
     IWRC(_fsm_write_meta_lw(impl), rc);
     if (!impl->dlsnr) {
@@ -1881,7 +1881,7 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
 finish:
   if (rc) {
     if (f->impl) {
-      IWRC(_fsm_destroy_locks(f->impl), rc);  // we not locked
+      IWRC(_fsm_destroy_locks(f->impl), rc);  // we are not locked
       IWRC(_fsm_close(f), rc);
     }
   }

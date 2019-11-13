@@ -826,6 +826,18 @@ static void iwkv_test6(void) {
   fclose(f);
 }
 
+static void iwkv_test9(void) {
+  IWKV_OPTS opts = {
+    .path = "garbage.data",
+  };
+  // Test open/close
+  IWKV iwkv;
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL(rc, IWFS_ERROR_INVALID_FILEMETA);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
+}
+
 int main() {
   CU_pSuite pSuite = NULL;
 
@@ -849,7 +861,8 @@ int main() {
 //    (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test6", iwkv_test6)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test7", iwkv_test7)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test8", iwkv_test8))
+    (NULL == CU_add_test(pSuite, "iwkv_test8", iwkv_test8)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test9", iwkv_test9))
   )  {
     CU_cleanup_registry();
     return CU_get_error();
