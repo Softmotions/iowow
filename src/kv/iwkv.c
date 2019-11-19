@@ -1959,16 +1959,6 @@ WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
       || (dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
     res = _cmp_keys(dbflg, sblk->lk, lkl, key);
   } else {
-    //    if (dbflg & IWDB_COMPOUND_KEYS) {
-    //      int step;
-    //      int64_t c1;
-    //      uint8_t *lkbuf = sblk->lk;
-    //      IW_READVNUMBUF64(lkbuf, c1, step);
-    //      lkbuf += step;
-    //      res = _cmp_keys2(dbflg & ~IWDB_COMPOUND_KEYS, lkbuf, lkl - step, key);
-    //    } else {
-    //      res = _cmp_keys2(dbflg, sblk->lk, lkl, key);
-    //    }
     res = _cmp_keys2(dbflg, sblk->lk, lkl, key);
     if (!res) {
       uint32_t kl;
