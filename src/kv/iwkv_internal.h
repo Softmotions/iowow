@@ -109,7 +109,7 @@ typedef struct KV {
 typedef struct KVP {
   off_t off;      /**< KV block offset relative to `end` of KVBLK */
   uint32_t len;   /**< Length of kv pair block */
-  uint8_t ridx;   /**< Position of the auctually persisted slot in `KVBLK` */
+  uint8_t ridx;   /**< Position of the actually persisted slot in `KVBLK` */
 } KVP;
 
 typedef uint8_t kvblk_flags_t;

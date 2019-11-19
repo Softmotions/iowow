@@ -16,6 +16,7 @@ foreach(TN IN ITEMS iwkv_test1
                     iwkv_test6
                     iwkv_test7
                     iwkv_test8
+                    iwkv_test9
                     )
     add_executable(${TN} ${TN}.c)
     target_link_libraries(${TN} iowow_s ${CUNIT_LIBRARIES})

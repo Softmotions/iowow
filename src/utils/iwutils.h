@@ -312,14 +312,28 @@ IW_EXTERN_C_START
 #define IW_CMP(rv_, vp1_, vp1sz_, vp2_, vp2sz_) \
   do { \
     (rv_) = 0; \
-    int _min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
-    for (int _i_ = 0; _i_ < _min_; _i_++) { \
-      if (((uint8_t *)(vp1_))[_i_] != ((uint8_t *)(vp2_))[_i_]) { \
-        (rv_) = (int) (((uint8_t *)(vp1_))[_i_] - ((uint8_t *)(vp2_))[_i_]); \
+    int min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
+    for (int i = 0; i < min_; i++) { \
+      (rv_) = (int) (((uint8_t *)(vp1_))[i] - ((uint8_t *)(vp2_))[i]); \
+      if (rv_) { \
         break; \
       } \
     } \
     if ((rv_) == 0) (rv_) = (vp1sz_) - (vp2sz_); \
+  } while(0)
+
+
+/* Lexicographic comparison common prefix of values */
+#define IW_CMP2(rv_, vp1_, vp1sz_, vp2_, vp2sz_) \
+  do { \
+    (rv_) = 0; \
+    int min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
+    for (int i = 0; i < min_; i++) { \
+      (rv_) = (int) (((uint8_t *)(vp1_))[i] - ((uint8_t *)(vp2_))[i]); \
+      if (rv_) { \
+        break; \
+      } \
+    } \
   } while(0)
 
 /**
