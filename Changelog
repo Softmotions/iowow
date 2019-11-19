@@ -1,3 +1,9 @@
+iowow (1.3.30) UNRELEASED; urgency=medium
+
+  * Added check if  __unused is already defined in iwth.c
+
+ -- Anton Adamansky <adamansky@gmail.com>  Tue, 19 Nov 2019 13:21:56 +0700
+
 iowow (1.3.29) testing; urgency=medium
 
   * FIXED iwkv_open assertion fail on opening garbage file #29

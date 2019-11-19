@@ -3,7 +3,9 @@
 
 #ifdef __APPLE__
 
+#ifndef __unused
 #define __unused __attribute__((unused))
+#endif
 
 int
 pthread_barrierattr_init(pthread_barrierattr_t *attr __unused) {
