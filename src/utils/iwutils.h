@@ -314,7 +314,7 @@ IW_EXTERN_C_START
     (rv_) = 0; \
     int min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
     for (int i = 0; i < min_; i++) { \
-      (rv_) = (int) (((uint8_t *)(vp1_))[i] - ((uint8_t *)(vp2_))[i]); \
+      (rv_) = (int) (((const uint8_t *)(vp1_))[i] - ((const uint8_t *)(vp2_))[i]); \
       if (rv_) { \
         break; \
       } \
@@ -329,7 +329,7 @@ IW_EXTERN_C_START
     (rv_) = 0; \
     int min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
     for (int i = 0; i < min_; i++) { \
-      (rv_) = (int) (((uint8_t *)(vp1_))[i] - ((uint8_t *)(vp2_))[i]); \
+      (rv_) = (int) (((const uint8_t *)(vp1_))[i] - ((const uint8_t *)(vp2_))[i]); \
       if (rv_) { \
         break; \
       } \

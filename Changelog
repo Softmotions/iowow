@@ -1,3 +1,9 @@
+iowow (1.3.31) testing; urgency=medium
+
+  * Keys comparison refactoring
+
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 20 Nov 2019 00:41:15 +0700
+
 iowow (1.3.30) testing; urgency=medium
 
   * Added check if  __unused is already defined in `iwth.c`

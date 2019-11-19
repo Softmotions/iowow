@@ -10,8 +10,6 @@
 char kbuf[KBUFSZ];
 char vbuf[VBUFSZ];
 
-static const IWKV_val EMPTY_VAL = {0};
-
 uint32_t g_seed;
 
 int init_suite(void) {
@@ -31,7 +29,6 @@ static void iwkv_test7_2_impl(int direction) {
   IWDB db;
   IWKV_val key = {0};
   IWKV_val val = {0};
-  IWKV_cursor cur1;
   IWKV_OPTS opts = {
     .path = direction > 0 ? "iwkv_test7_2_fwd.db" : "iwkv_test7_2_back.db",
     .oflags = IWKV_TRUNC,
@@ -90,7 +87,6 @@ static void iwkv_test7_1() {
   IWDB db;
   IWKV_val key = {0};
   IWKV_val val = {0};
-  IWKV_cursor cur1;
   IWKV_OPTS opts = {
     .path = "iwkv_test7_1.db",
     .oflags = IWKV_TRUNC,
