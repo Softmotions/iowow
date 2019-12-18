@@ -235,7 +235,7 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
 }
 
 static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
-  assert(len <= (size_t) (-1));
+  assert(len <= (size_t)(-1));
   IWAL *wal = (IWAL *) self;
   if (wal->applying) {
     return 0;
@@ -305,10 +305,14 @@ static iwrc _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t
     switch (opid) {
       case WOP_SEP: {
         WBSEP wb;
-        if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
+        if (avail < sizeof(wb)) {
+          return 0;
+        }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (wb.len > avail) _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
+        if (wb.len > avail) {
+          return 0;
+        }
         break;
       }
       case WOP_SET: {
@@ -500,8 +504,8 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
           WBFIXPOINT wb;
           memcpy(&wb, rp, sizeof(wb));
           iwlog_warn("Database recovered at point of time: %"
-                       PRIu64
-                       " ms since epoch\n", wb.ts);
+                     PRIu64
+                     " ms since epoch\n", wb.ts);
           goto finish;
         }
         rp += sizeof(WBFIXPOINT);
@@ -1033,9 +1037,9 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
   wal->wal_buffer_sz =
     opts->wal.wal_buffer_sz > 0 ?
     opts->wal.wal_buffer_sz :
-    #ifdef __ANDROID__
+#ifdef __ANDROID__
     2 * 1024 * 1024; // 2M
-    #else
+#else
     8 * 1024 * 1024; // 8M
 #endif
   if (wal->wal_buffer_sz < 4096) {
@@ -1045,9 +1049,9 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
   wal->checkpoint_buffer_sz
     = opts->wal.checkpoint_buffer_sz > 0 ?
       opts->wal.checkpoint_buffer_sz :
-      #ifdef __ANDROID__
+#ifdef __ANDROID__
       64ULL * 1024 * 1024; // 64M
-      #else
+#else
       1024ULL * 1024 * 1024; // 1G
 #endif
   if (wal->checkpoint_buffer_sz < 1024 * 1024) { // 1M minimal
@@ -1060,9 +1064,9 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
 
   wal->checkpoint_timeout_sec
     = opts->wal.checkpoint_timeout_sec > 0 ?
-      #ifdef __ANDROID__
+#ifdef __ANDROID__
       opts->wal.checkpoint_timeout_sec : 60; // 1 min
-      #else
+#else
       opts->wal.checkpoint_timeout_sec : 300; // 5 min
 #endif
 
