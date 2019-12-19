@@ -316,26 +316,36 @@ static iwrc _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t
         break;
       }
       case WOP_SET: {
-        if (avail < sizeof(WBSET)) _WAL_CORRUPTED("Premature end of WAL (WBSET)");
+        if (avail < sizeof(WBSET)) {
+          return 0;
+        }
         rp += sizeof(WBSET);
         break;
       }
       case WOP_COPY: {
-        if (avail < sizeof(WBCOPY)) _WAL_CORRUPTED("Premature end of WAL (WBCOPY)");
+        if (avail < sizeof(WBCOPY)) {
+          return 0;
+        }
         rp += sizeof(WBCOPY);
         break;
       }
       case WOP_WRITE: {
         WBWRITE wb;
-        if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
+        if (avail < sizeof(wb)) {
+          return 0;
+        }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (avail < wb.len) _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
+        if (avail < wb.len) {
+          return 0;
+        }
         rp += wb.len;
         break;
       }
       case WOP_RESIZE: {
-        if (avail < sizeof(WBRESIZE)) _WAL_CORRUPTED("Premature end of WAL (WBRESIZE)");
+        if (avail < sizeof(WBRESIZE)) {
+          return 0;
+        }
         rp += sizeof(WBRESIZE);
         break;
       }
@@ -350,7 +360,7 @@ static iwrc _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t
         break;
       }
       default: {
-        _WAL_CORRUPTED("Invalid WAL command");
+        return 0;
         break;
       }
     }
