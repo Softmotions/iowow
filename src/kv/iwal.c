@@ -284,47 +284,41 @@ static iwrc _onsynced(struct IWDLSNR *self, int flags) {
   return rc;
 }
 
-static iwrc _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t *fpos, off_t *rpos) {
+static void _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t *fpos, off_t *rpos) {
   uint8_t *rp = wmm;
   *fpos = 0;
   *rpos = 0;
-
-#define _WAL_CORRUPTED(msg_) do { \
-    iwrc rc = IWKV_ERROR_CORRUPTED_WAL_FILE; \
-    iwlog_ecode_error2(rc, msg_); \
-    return rc; \
-  } while(0);
 
   for (uint32_t i = 0; rp - wmm < fsz; ++i) {
     uint8_t opid;
     off_t avail = fsz - (rp - wmm);
     memcpy(&opid, rp, 1);
     if (i == 0 && opid != WOP_SEP) {
-      return IWKV_ERROR_CORRUPTED_WAL_FILE;
+      return;
     }
     switch (opid) {
       case WOP_SEP: {
         WBSEP wb;
         if (avail < sizeof(wb)) {
-          return 0;
+          return;
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
         if (wb.len > avail) {
-          return 0;
+          return;
         }
         break;
       }
       case WOP_SET: {
         if (avail < sizeof(WBSET)) {
-          return 0;
+          return;
         }
         rp += sizeof(WBSET);
         break;
       }
       case WOP_COPY: {
         if (avail < sizeof(WBCOPY)) {
-          return 0;
+          return;
         }
         rp += sizeof(WBCOPY);
         break;
@@ -332,19 +326,19 @@ static iwrc _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t
       case WOP_WRITE: {
         WBWRITE wb;
         if (avail < sizeof(wb)) {
-          return 0;
+          return;
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
         if (avail < wb.len) {
-          return 0;
+          return;
         }
         rp += wb.len;
         break;
       }
       case WOP_RESIZE: {
         if (avail < sizeof(WBRESIZE)) {
-          return 0;
+          return;
         }
         rp += sizeof(WBRESIZE);
         break;
@@ -360,13 +354,11 @@ static iwrc _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t
         break;
       }
       default: {
-        return 0;
+        return;
         break;
       }
     }
   }
-#undef _WAL_CORRUPTED
-  return 0;
 }
 
 static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
@@ -413,8 +405,8 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
 
   if (recover_mode) {
     off_t rpos; // reset point
-    rc = _last_fix_and_reset_points(wal, wmm, fsz, &fpos, &rpos);
-    if (rc || !fpos) {
+    _last_fix_and_reset_points(wal, wmm, fsz, &fpos, &rpos);
+    if (!fpos) {
       goto finish;
     }
     if (rpos > 0 && recover_mode == 1) {
