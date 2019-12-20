@@ -1039,7 +1039,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
   wal->wal_buffer_sz =
     opts->wal.wal_buffer_sz > 0 ?
     opts->wal.wal_buffer_sz :
-#ifdef __ANDROID__
+#if defined __ANDROID__ || defined TARGET_OS_IPHONE
     2 * 1024 * 1024; // 2M
 #else
     8 * 1024 * 1024; // 8M
@@ -1051,7 +1051,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
   wal->checkpoint_buffer_sz
     = opts->wal.checkpoint_buffer_sz > 0 ?
       opts->wal.checkpoint_buffer_sz :
-#ifdef __ANDROID__
+#if defined __ANDROID__ || defined TARGET_OS_IPHONE
       64ULL * 1024 * 1024; // 64M
 #else
       1024ULL * 1024 * 1024; // 1G
@@ -1066,7 +1066,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
 
   wal->checkpoint_timeout_sec
     = opts->wal.checkpoint_timeout_sec > 0 ?
-#ifdef __ANDROID__
+#if defined __ANDROID__ || defined TARGET_OS_IPHONE
       opts->wal.checkpoint_timeout_sec : 60; // 1 min
 #else
       opts->wal.checkpoint_timeout_sec : 300; // 5 min
