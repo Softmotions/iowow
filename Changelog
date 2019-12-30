@@ -1,8 +1,9 @@
-iowow (1.3.33) UNRELEASED; urgency=medium
+iowow (1.3.34) UNRELEASED; urgency=medium
 
   * Added specific checks for TARGET_OS_IPHONE
+  * Ported to iOS
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 20 Dec 2019 17:11:44 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Tue, 24 Dec 2019 20:53:10 +0700
 
 iowow (1.3.32) testing; urgency=medium
 
