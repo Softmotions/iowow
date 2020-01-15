@@ -1,10 +1,10 @@
-iowow (1.3.35) UNRELEASED; urgency=medium
+iowow (1.3.35) testing; urgency=medium
 
   * Added specific checks for TARGET_OS_IPHONE
   * Ported to iOS
   * Added wal locking interceptor to WAL opts
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 15 Jan 2020 12:55:44 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 15 Jan 2020 13:10:51 +0700
 
 iowow (1.3.32) testing; urgency=medium
 
