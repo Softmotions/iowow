@@ -80,7 +80,7 @@ typedef enum {
   _IWKV_ERROR_END,
 
   // Internal only
-    _IWKV_RC_KVBLOCK_FULL,
+  _IWKV_RC_KVBLOCK_FULL,
   _IWKV_RC_REQUIRE_NLEVEL,
   _IWKV_RC_END,
 } iwkv_ecode;
@@ -138,6 +138,13 @@ typedef struct IWKV_WAL_OPTS {
   uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 300 sec (5 min); */
   size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. Default: 8Mb */
   uint64_t checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. Default: 1Gb */
+  iwrc(*wal_lock_interceptor)(bool, void *);
+  /**< Optional function called
+       - before acquiring
+       - after releasing
+       exclusive database lock by WAL checkpoint thread.
+       In the case of `before lock` first argument will be set to true */
+  void *wal_lock_interceptor_opaque;/**< Opaque data for `wal_lock_interceptor` */
 } IWKV_WAL_OPTS;
 
 /**

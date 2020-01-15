@@ -39,6 +39,13 @@ typedef struct IWAL {
   pthread_mutex_t *mtxp;            /**< Global WAL mutex */
   pthread_cond_t *cpt_condp;        /**< Checkpoint thread cond variable */
   pthread_t *cptp;                  /**< Checkpoint thread */
+  iwrc(*wal_lock_interceptor)(bool, void *);
+  /**< Optional function called
+       - before acquiring
+       - after releasing
+       exclusive database lock by WAL checkpoint thread.
+       In the case of `before lock` first argument will be set to true */
+  void *wal_lock_interceptor_opaque;/**< Opaque data for `wal_lock_interceptor` */
   uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds */
   uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds */
   atomic_size_t mbytes;             /**< Estimated size of modifed private mmaped memory bytes */
@@ -62,19 +69,32 @@ IW_INLINE iwrc _unlock(IWAL *wal) {
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
-static iwrc _excl_lock(IWKV iwkv) {
-  iwrc rc = iwkv_exclusive_lock(iwkv);
-  RCRET(rc);
-  rc = _lock((IWAL *) iwkv->dlsnr);
+static iwrc _excl_lock(IWAL *wal) {
+  iwrc rc = 0;
+  if (wal->wal_lock_interceptor) {
+    rc = wal->wal_lock_interceptor(true, wal->wal_lock_interceptor_opaque);
+    RCRET(rc);
+  }
+  rc = iwkv_exclusive_lock(wal->iwkv);
+  RCGO(rc, finish);
+  rc = _lock(wal);
+
+finish:
   if (rc) {
-    IWRC(iwkv_exclusive_unlock(iwkv), rc);
+    IWRC(iwkv_exclusive_unlock(wal->iwkv), rc);
+    if (wal->wal_lock_interceptor) {
+      IWRC(wal->wal_lock_interceptor(false, wal->wal_lock_interceptor_opaque), rc);
+    }
   }
   return rc;
 }
 
-static iwrc _excl_unlock(IWKV iwkv) {
-  iwrc rc = _unlock((IWAL *) iwkv->dlsnr);
-  IWRC(iwkv_exclusive_unlock(iwkv), rc);
+static iwrc _excl_unlock(IWAL *wal) {
+  iwrc rc = _unlock(wal);
+  IWRC(iwkv_exclusive_unlock(wal->iwkv), rc);
+  if (wal->wal_lock_interceptor) {
+    IWRC(wal->wal_lock_interceptor(false, wal->wal_lock_interceptor_opaque), rc);
+  }
   return rc;
 }
 
@@ -639,10 +659,11 @@ iwrc iwal_test_checkpoint(IWKV iwkv) {
   if (!iwkv->dlsnr) {
     return IWKV_ERROR_WAL_MODE_REQUIRED;
   }
-  iwrc rc = _excl_lock(iwkv);
+  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  iwrc rc = _excl_lock(wal);
   RCRET(rc);
-  rc = _checkpoint_exl((IWAL *) iwkv->dlsnr, 0, false);
-  IWRC(_excl_unlock(iwkv), rc);
+  rc = _checkpoint_exl(wal, 0, false);
+  IWRC(_excl_unlock(wal), rc);
   return rc;
 }
 
@@ -808,7 +829,7 @@ static void *_cpt_worker_fn(void *op) {
 
 cprun:
     if (cp || sp) {
-      rc = _excl_lock(iwkv);
+      rc = _excl_lock(wal);
       RCBREAK(rc);
       if (iwkv->open) {
         if (cp) {
@@ -817,7 +838,7 @@ cprun:
           rc = _savepoint_exl(wal, &savepoint_ts, true);
         }
       }
-      _excl_unlock(iwkv);
+      _excl_unlock(wal);
       if (rc) {
         iwlog_ecode_error2(rc, "WAL worker savepoint/checkpoint error\n");
         rc = 0;
@@ -872,12 +893,12 @@ iwrc iwal_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file) {
 #endif
 
   // Flush all pending WAL changes
-  rc = _excl_lock(iwkv);
+  rc = _excl_lock(wal);
   RCGO(rc, finish);
   wal->bkp_stage = BKP_WAL_CLEANUP;
   rc = _checkpoint_exl(wal, 0, false);
   wal->bkp_stage = BKP_MAIN_COPY;
-  _excl_unlock(iwkv);
+  _excl_unlock(wal);
   RCGO(rc, finish);
 
   // Copy main database file
@@ -916,7 +937,7 @@ iwrc iwal_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file) {
 
 
   // Copy rest of WAL file in exclusive locked mode
-  rc = _excl_lock(iwkv);
+  rc = _excl_lock(wal);
   RCGO(rc, finish);
   wal->bkp_stage = BKP_WAL_COPY2;
   rc = _savepoint_exl(wal, ts, true);
@@ -941,7 +962,7 @@ iwrc iwal_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file) {
 
 unlock:
   wal->bkp_stage = 0;
-  IWRC(_excl_unlock(iwkv), rc);
+  IWRC(_excl_unlock(wal), rc);
 
 finish:
   if (rc) {
@@ -1007,6 +1028,10 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
   if (!wal) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
+
+  wal->wal_lock_interceptor = opts->wal.wal_lock_interceptor;
+  wal->wal_lock_interceptor_opaque = opts->wal.wal_lock_interceptor_opaque;
+
   size_t sz = strlen(opts->path);
   char *wpath = malloc(sz + 4 /*-wal*/ + 1 /*\0*/);
   if (!wpath) {
