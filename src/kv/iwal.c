@@ -76,10 +76,13 @@ static iwrc _excl_lock(IWAL *wal) {
     RCRET(rc);
   }
   rc = iwkv_exclusive_lock(wal->iwkv);
-  RCGO(rc, finish);
+  if (rc) {
+    if (wal->wal_lock_interceptor) {
+      IWRC(wal->wal_lock_interceptor(false, wal->wal_lock_interceptor_opaque), rc);
+    }
+    return rc;
+  }
   rc = _lock(wal);
-
-finish:
   if (rc) {
     IWRC(iwkv_exclusive_unlock(wal->iwkv), rc);
     if (wal->wal_lock_interceptor) {
