@@ -250,7 +250,7 @@ IW_EXPORT iwrc iwp_exec_path(char *opath);
 /**
  * @brief Return number of CPU cores.
  */
-IW_EXPORT uint16_t iwp_num_cpu_cores();
+IW_EXPORT uint16_t iwp_num_cpu_cores(void);
 
 /**
  * @brief Init iwp module.
