@@ -1,3 +1,9 @@
+iowow (1.3.36) UNRELEASED; urgency=medium
+
+  * Safer iowow initialization bootstrap process.
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 16 Jan 2020 12:43:01 +0700
+
 iowow (1.3.35) testing; urgency=medium
 
   * Added specific checks for TARGET_OS_IPHONE

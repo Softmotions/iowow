@@ -60,15 +60,25 @@
 static unsigned long mt[N]; /* the array for the state vector  */
 static int mti = N + 1; /* mti==N+1 means mt[N] is not initialized */
 static pthread_spinlock_t lock;
+static volatile int mt_initialized;
+
+void init_mt19937ar() {
+  if (!__sync_bool_compare_and_swap(&mt_initialized, 0, 1)) {
+    return;  // initialized already
+  }
+  pthread_spin_init(&lock, 0);
+}
 
 __attribute__((constructor))
 void lock_constructor() {
-  if (pthread_spin_init(&lock, 0) != 0) {
-    exit(1);
-  }
+  init_mt19937ar();
 }
+
 __attribute__((destructor))
 void lock_destructor() {
+  if (!__sync_bool_compare_and_swap(&mt_initialized, 1, 0)) {
+    return;  // initialized already
+  }
   pthread_spin_destroy(&lock);
 }
 

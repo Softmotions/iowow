@@ -46,6 +46,8 @@
    email: m-mat @ math.sci.hiroshima-u.ac.jp (remove space)
 */
 
+void init_mt19937ar(void);
+
 /* initializes mt[N] with a seed */
 void init_genrand(unsigned long s);
 

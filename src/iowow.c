@@ -47,6 +47,9 @@ iwrc iw_init(void) {
   rc = iwlog_init();
   RCGO(rc, finish);
 
+  rc = iwu_init();
+  RCGO(rc, finish);
+
   rc = iwp_init();
   RCGO(rc, finish);
 
@@ -82,8 +85,3 @@ unsigned int iowow_version_minor(void) {
 unsigned int iowow_version_patch(void) {
   return IOWOW_VERSION_PATCH;
 }
-
-//__attribute__((constructor))
-//void lock_constructor() {
-//  iwrc rc = iw_init();
-//}

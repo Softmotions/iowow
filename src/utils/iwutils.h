@@ -336,6 +336,8 @@ IW_EXTERN_C_START
     } \
   } while(0)
 
+IW_EXPORT iwrc iwu_init(void);
+
 /**
  * @brief Set seed to random generator
  */

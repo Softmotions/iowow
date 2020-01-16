@@ -38,6 +38,11 @@
 
 #define IWU_RAND_MAX 0xffffffff
 
+iwrc iwu_init(void) {
+  init_mt19937ar();
+  return 0;
+}
+
 void iwu_rand_seed(uint32_t seed) {
   init_genrand(seed);
 }
