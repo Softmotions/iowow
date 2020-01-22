@@ -44,7 +44,7 @@ set_target_properties(leveldb_benchmark
   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
 )
 
-# LMDB 
+# LMDB
 ExternalProject_Add(
   extern_lmdb
   GIT_REPOSITORY https://github.com/LMDB/lmdb.git
@@ -65,7 +65,7 @@ add_library(liblmdb STATIC IMPORTED)
 set_target_properties(
   liblmdb
   PROPERTIES
-  IMPORTED_LOCATION "${LMDB_BINARY_DIR}/libraries/liblmdb/liblmdb.a"  
+  IMPORTED_LOCATION "${LMDB_BINARY_DIR}/libraries/liblmdb/liblmdb.a"
 )
 add_dependencies(liblmdb extern_lmdb)
 include_directories(AFTER "${LMDB_SOURCE_DIR}/libraries/liblmdb")
@@ -77,15 +77,15 @@ set_target_properties(lmdb_benchmark
   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
 )
 
-# KyotoCabinet 
+# KyotoCabinet
 ExternalProject_Add(
   extern_kyc
-  GIT_REPOSITORY git@github.com:Softmotions/kyotocabinet.git
+  GIT_REPOSITORY https://github.com/trustyou/kyotocabinet.git
   GIT_TAG master
   PREFIX ${CMAKE_BINARY_DIR}
   BUILD_IN_SOURCE ON
   GIT_PROGRESS ON
-  UPDATE_DISCONNECTED ON  
+  UPDATE_DISCONNECTED ON
   BUILD_COMMAND make
   CONFIGURE_COMMAND ./configure --disable-zlib --prefix=${CMAKE_BINARY_DIR}/src/extern_kyc/install
   INSTALL_COMMAND make install
@@ -99,7 +99,7 @@ add_library(libkyotocabinet STATIC IMPORTED)
 set_target_properties(
   libkyotocabinet
   PROPERTIES
-  IMPORTED_LOCATION "${KYC_BINARY_DIR}/install/lib/libkyotocabinet.a"  
+  IMPORTED_LOCATION "${KYC_BINARY_DIR}/install/lib/libkyotocabinet.a"
   IMPORTED_LINK_INTERFACE_LANGUAGES CXX
 )
 add_dependencies(libkyotocabinet extern_kyc)
