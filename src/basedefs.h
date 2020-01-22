@@ -116,6 +116,14 @@ typedef int HANDLE;
 #define RCBREAK(rc__) if (rc__) break
 #endif
 
+#ifndef RCGA
+#define RCGA(v__, label__)                        \
+  if (!(v__)) {                                   \
+    rc =  iwrc_set_errno(IW_ERROR_ALLOC, errno);  \
+    goto label__;                                 \
+  }
+#endif
+
 #ifndef MIN
 #define MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))
 #endif
