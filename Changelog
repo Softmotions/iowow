@@ -1,6 +1,8 @@
 iowow (1.3.37) UNRELEASED; urgency=medium
 
   * Added RCGA macro definition
+  * Removed IW_EXPORT iwrc iwkv_db_last_access_time(IWDB db, uint64_t *ts)
+    for performance and simplicity reasons
 
  -- Anton Adamansky <adamansky@gmail.com>  Wed, 22 Jan 2020 22:42:51 +0700
 
