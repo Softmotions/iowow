@@ -26,10 +26,11 @@ static const char  *_replace_mapper1(const char *key, void *op) {
 void test_iwu_replace_into(void) {
   IWXSTR *res = 0;
   const char *data = "What you said about my {}?";
-  const char *keys[] = {"{}", "$", "?", "you"};
-  iwrc rc = iwu_replace(&res, data, strlen(data), keys, 4, _replace_mapper1, 0);
+  const char *keys[] = {"{}", "$", "?", "you", "my"};
+  iwrc rc = iwu_replace(&res, data, strlen(data), keys, 5, _replace_mapper1, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
+  fprintf(stderr, "\n%s", iwxstr_ptr(res));
   CU_ASSERT_STRING_EQUAL(iwxstr_ptr(res), "What I said about my Mother?!!");
   iwxstr_destroy(res);
 }

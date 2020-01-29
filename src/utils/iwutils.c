@@ -297,10 +297,8 @@ iwrc iwu_replace(IWXSTR **result,
       }
       iwxstr_cat(bbuf, ptr, p - ptr);
       const char *repl = mapper(key, mapper_op);
-      if (repl) {
-        rc = iwxstr_cat2(bbuf, repl);
-        RCGO(rc, finish);
-      }
+      rc = iwxstr_cat2(bbuf, repl ? repl : key);
+      RCGO(rc, finish);
       ptr = p + strlen(key);
       if (ptr - start >= datalen) {
         break;
