@@ -2670,7 +2670,6 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
   SBLK *sblk = sdb;
   DBCACHE *c = &db->cache;
   assert(lx->db->addr == sdb->addr);
-  c->atime = lx->ts;
   c->num = 0;
   if (c->nodes) {
     free(c->nodes);
@@ -2740,7 +2739,6 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   const IWKV_val *key = lx->key;
-  cache->atime = lx->ts;
   if (lx->nlvl > -1 || cache->num < 1) {
     lx->lower = &lx->dblk;
     return 0;
@@ -2799,7 +2797,6 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   size_t nsize = cache->nsize;
 
   sblk->flags &= ~SBLK_CACHE_PUT;
-  cache->atime = lx->ts;
   assert(sizeof(*cache) + sblk->lkl <= sizeof(dbcbuf));
   if (sblk->pnum < 1 || sblk->lvl < cache->lvl) {
     return 0;
@@ -2848,7 +2845,6 @@ static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk) {
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   sblk->flags &= ~SBLK_CACHE_REMOVE;
-  cache->atime = lx->ts;
   if (sblk->lvl < cache->lvl || cache->num < 1) {
     return;
   }
@@ -2878,7 +2874,6 @@ static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk) {
   DBCACHE *cache = &db->cache;
   assert(sblk->pnum > 0);
   sblk->flags &= ~SBLK_CACHE_UPDATE;
-  cache->atime = lx->ts;
   if (sblk->lvl < cache->lvl || cache->num < 1) {
     return;
   }
@@ -3581,22 +3576,6 @@ iwrc iwkv_db_cache_release(IWDB db) {
   return rc;
 }
 
-iwrc iwkv_db_last_access_time(IWDB db, uint64_t *ts) {
-  if (!db || !db->iwkv || !ts) {
-    return IW_ERROR_INVALID_ARGS;
-  }
-  int rci;
-  iwrc rc = 0;
-  API_DB_RLOCK(db, rci);
-  if (db->cache.open) {
-    *ts = db->cache.atime;
-  } else {
-    *ts = 0;
-  }
-  API_DB_UNLOCK(db, rci, rc);
-  return rc;
-}
-
 iwrc iwkv_db_destroy(IWDB *dbp) {
   if (!dbp || !*dbp) {
     return IW_ERROR_INVALID_ARGS;
@@ -3644,7 +3623,6 @@ iwrc iwkv_puth(IWDB db, const IWKV_val *key, const IWKV_val *val,
     .ph = ph,
     .phop = phop
   };
-  iwp_current_time_ms(&lx.ts, true);
   API_DB_WLOCK(db, rci);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
@@ -3685,7 +3663,6 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     .val = oval,
     .nlvl = -1
   };
-  iwp_current_time_ms(&lx.ts, true);
   oval->size = 0;
   if (IW_LIKELY(db->cache.open)) {
     API_DB_RLOCK(db, rci);
@@ -3724,7 +3701,6 @@ iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vbufsz, size
     .key = &ekey,
     .nlvl = -1
   };
-  iwp_current_time_ms(&lx.ts, true);
   if (IW_LIKELY(db->cache.open)) {
     API_DB_RLOCK(db, rci);
   } else {
@@ -3866,7 +3842,6 @@ iwrc iwkv_del(IWDB db, const IWKV_val *key, iwkv_opflags opflags) {
     .op = IWLCTX_DEL,
     .opflags = opflags
   };
-  iwp_current_time_ms(&lx.ts, true);
   API_DB_WLOCK(db, rci);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(&lx);
@@ -3941,7 +3916,6 @@ iwrc iwkv_cursor_open(IWDB db,
   }
   lx->db = db;
   lx->nlvl = -1;
-  iwp_current_time_ms(&lx->ts, true);
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(lx);
     RCGO(rc, finish);

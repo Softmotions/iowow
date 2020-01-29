@@ -251,15 +251,6 @@ IW_EXPORT WUR iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, I
 IW_EXPORT iwrc iwkv_db_cache_release(IWDB db);
 
 /**
- * @brief Get system MONOTONIC time (ms) of last access to database get/put/cursor operation.
- * @details Returns `0` if database was not used before: no get/put/cursor operations used.
- *
- * @param db Database handler
- * @param [out] ts Tims ms since epoch
- */
-IW_EXPORT iwrc iwkv_db_last_access_time(IWDB db, uint64_t *ts);
-
-/**
  * @brief Destroy(drop) existing database and cleanup all of its data.
  *
  * @param dbp Pointer to database opened.
