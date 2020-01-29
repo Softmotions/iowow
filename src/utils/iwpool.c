@@ -100,7 +100,7 @@ void *iwpool_calloc(size_t siz, IWPOOL *pool) {
 }
 
 char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp) {
-  char *ret = iwpool_alloc(len, pool);
+  char *ret = iwpool_alloc(len + 1, pool);
   if (!ret) {
     *rcp = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     return 0;
@@ -108,11 +108,12 @@ char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp) {
     *rcp = 0;
   }
   memcpy(ret, str, len);
+  ret[len] = '\0';
   return ret;
 }
 
 char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp) {
-  return iwpool_strndup(pool, str, strlen(str) + 1, rcp);
+  return iwpool_strndup(pool, str, strlen(str), rcp);
 }
 
 size_t iwpool_allocated_size(IWPOOL *pool) {
