@@ -337,6 +337,14 @@ IW_EXPORT iwrc iwlog_va(FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, 
     }                                                           \
   }
 
+#ifndef RCGA
+#define RCGA(v__, label__)                        \
+  if (!(v__)) {                                   \
+    rc =  iwrc_set_errno(IW_ERROR_ALLOC, errno);  \
+    goto label__;                                 \
+  }
+#endif
+
 /**
  * @brief Initiate this submodule.
  * @return `0` on success or error code.

@@ -28,12 +28,14 @@
 
 #include "iwcfg.h"
 #include "iwutils.h"
+#include "iwlog.h"
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdint.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 #include "mt19937ar.h"
 
 #define IWU_RAND_MAX 0xffffffff
@@ -218,7 +220,7 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   return (c1 - c2);
 }
 
-char* iwu_file_read_as_buf(const char *path) {
+char *iwu_file_read_as_buf(const char *path) {
   struct stat st;
   if (stat(path, &st) == -1) {
     return 0;
@@ -238,4 +240,95 @@ char* iwu_file_read_as_buf(const char *path) {
   close(fd);
   data[st.st_size] = '\0';
   return data;
+}
+
+uint32_t iwu_x31_u32_hash(const char *s) {
+  uint32_t h = (uint32_t) * s;
+  if (h) {
+    for (++s; *s; ++s) {
+      h = (h << 5) - h + (uint32_t) * s;
+    }
+  }
+  return h;
+}
+
+iwrc iwu_replace(IWXSTR **result,
+                 const char *data,
+                 int datalen,
+                 const char *keys[],
+                 int keysz,
+                 iwu_replace_mapper mapper,
+                 void *mapper_op) {
+
+  if (!result || !data || !keys || !mapper) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+
+  iwrc rc = 0;
+  if (datalen < 1 || keysz < 1) {
+    *result = iwxstr_new2(datalen < 1 ? 1 : datalen);
+    if (datalen > 0) {
+      rc = iwxstr_cat(*result, data, datalen);
+    }
+    return rc;
+  }
+
+  IWXSTR *bbuf = 0;
+  IWXSTR *inter = 0;
+  bbuf = iwxstr_new2(datalen);
+  RCGA(bbuf, finish);
+  inter = iwxstr_new2(datalen);
+  RCGA(inter, finish);
+
+  const char *start = data;
+  const char *ptr = start;
+
+  for (int i = 0; i < keysz; ++i) {
+    iwxstr_clear(bbuf);
+    const char *key = keys[i];
+    while (true) {
+      const char *p = strstr(ptr, key);
+      if (!p) {
+        if (ptr != start) {
+          rc = iwxstr_cat(bbuf, ptr, datalen - (ptr - start));
+          RCGO(rc, finish);
+        }
+        break;
+      }
+      iwxstr_cat(bbuf, ptr, p - ptr);
+      const char *repl = mapper(key, mapper_op);
+      if (repl) {
+        rc = iwxstr_cat2(bbuf, repl);
+        RCGO(rc, finish);
+      }
+      ptr = p + strlen(key);
+      if (ptr - start >= datalen) {
+        break;
+      }
+    }
+    if (ptr != start) {
+      iwxstr_clear(inter);
+      rc = iwxstr_cat(inter, iwxstr_ptr(bbuf), iwxstr_size(bbuf));
+      RCGO(rc, finish);
+      ptr = iwxstr_ptr(inter);
+      start = ptr;
+      datalen = iwxstr_size(inter);
+    }
+  }
+
+finish:
+  if (bbuf) {
+    iwxstr_destroy(bbuf);
+  }
+  if (!rc && start == data) {
+    rc = iwxstr_cat(inter, data, datalen);
+  }
+  if (rc) {
+    if (inter) {
+      iwxstr_destroy(inter);
+    }
+  } else {
+    *result = inter;
+  }
+  return rc;
 }

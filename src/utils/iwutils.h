@@ -33,6 +33,7 @@
  */
 
 #include "basedefs.h"
+#include "iwxstr.h"
 #include <math.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -376,9 +377,40 @@ IW_EXPORT uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init);
  */
 IW_EXPORT char *iwu_replace_char(char *data, char sch, char rch);
 
+/**
+ * @brief Returns `\0` terminated string as replacement
+ * of given `key`.
+ */
+typedef const char *(*iwu_replace_mapper)(const char *key, void *op);
+
+/**
+ * @brief Replaces all occurriences of `keys`
+ * in `data` using `mapper` function.
+ *
+ * @param [out] result Resulting xstr buffer.
+ * @param data   Data to search
+ * @param datalen Length of data buffer
+ * @param keys   Array of keys to search
+ * @param keysz  Number of elements in keys array
+ * @param mapper Replacement mapper
+ * @param mapper_op Replacement mapper opaque data
+ */
+IW_EXPORT iwrc iwu_replace(IWXSTR **result,
+                           const char *data,
+                           int datalen,
+                           const char *keys[],
+                           int keysz,
+                           iwu_replace_mapper mapper,
+                           void *mapper_op);
+
 IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 
 IW_EXPORT char *iwu_file_read_as_buf(const char *path);
+
+/**
+ * @brief Create X31 hash value.
+ */
+IW_EXPORT uint32_t iwu_x31_u32_hash(const char *data);
 
 IW_EXTERN_C_END
 
