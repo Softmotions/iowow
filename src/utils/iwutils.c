@@ -273,15 +273,15 @@ iwrc iwu_replace(IWXSTR **result,
     return rc;
   }
 
+  const char *start = data;
+  const char *ptr = start;
+
   IWXSTR *bbuf = 0;
   IWXSTR *inter = 0;
   bbuf = iwxstr_new2(datalen);
   RCGA(bbuf, finish);
   inter = iwxstr_new2(datalen);
   RCGA(inter, finish);
-
-  const char *start = data;
-  const char *ptr = start;
 
   for (int i = 0; i < keysz; ++i) {
     iwxstr_clear(bbuf);
