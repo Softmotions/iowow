@@ -2153,7 +2153,7 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
     rc = _sblk_addkv(nb, lx);
     RCGO(rc, finish);
 
-  } else { // New key is somewere in a middle of sblk->kvblk
+  } else { // New key is somewhere in a middle of sblk->kvblk
     assert(sblk->kvblk);
     // We are in the middle
     // Do the partial split
