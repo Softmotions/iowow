@@ -280,6 +280,8 @@ static const char *_default_ecodefn(locale_t locale, uint32_t ecode) {
       return "Invalid function arguments. (IW_ERROR_INVALID_ARGS)";
     case IW_ERROR_OVERFLOW:
       return "Overflow. (IW_ERROR_OVERFLOW)";
+    case IW_ERROR_INVALID_VALUE:
+      return " Invalid value. (IW_ERROR_INVALID_VALUE)";
     case IW_OK:
     default:
       return 0;

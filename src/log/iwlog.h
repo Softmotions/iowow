@@ -95,7 +95,8 @@ typedef enum {
   IW_ERROR_NOT_ALIGNED,     /**< Argument is not aligned properly. */
   IW_ERROR_FALSE,           /**< Request rejection/false response. */
   IW_ERROR_INVALID_ARGS,    /**< Invalid function arguments. */
-  IW_ERROR_OVERFLOW         /**< Overflow. */
+  IW_ERROR_OVERFLOW,        /**< Overflow. */
+  IW_ERROR_INVALID_VALUE    /**< Invalid value. */
 } iw_ecode;
 
 /**
