@@ -19,9 +19,9 @@ addons:
     - llvm-toolchain-xenial-8
     - ubuntu-toolchain-r-test
     packages:
-    - clang-8
+    - clang
     - cmake
-    - gcc-9
+    - gcc
     - ninja-build
     - libcunit1-dev
   homebrew:
@@ -38,11 +38,6 @@ install:
 - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
     export PATH="$(brew --prefix llvm)/bin:$PATH";
   fi
-- if [ "$CC" = "gcc" ]; then export CC="gcc-9"; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    if [ "$CC" = "clang" ]; then export CC="clang-8"; fi;
-  fi
-
 - echo ${CC}
 - ${CC} --version
 - cmake --version
