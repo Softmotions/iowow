@@ -39,13 +39,23 @@ IW_EXTERN_C_START
 typedef struct {
   void *root;
   int (*cmp)(const void *, const void *);
+  void (*kvfree)(void *, void *);
   int count;
 } IWSTREE;
 
+/**
+ * @brief Constructs new splay tree
+ *
+ * @param cmp Keys compare function. Required.
+ * @param kvfree Optional `(key, value)` free function
+ * @return IWSTREE* or NULL if memory allocation failed
+ */
 IWSTREE *iwstree_create(
-  int (*cmp)(const void *,
-             const void *)
+  int (*cmp)(const void *, const void *),
+  void (*kvfree)(void *, void *)
 );
+
+IW_EXPORT int iwstree_str_cmp(const void *o1, const void *o2);
 
 IW_EXPORT void iwstree_free(IWSTREE *st);
 

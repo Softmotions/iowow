@@ -37,12 +37,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RIGHT 1
 
 typedef struct _tree_node_t {
-  struct _tree_node_t  *left, *right;
-  void *key, *value;
+  struct _tree_node_t  *left;
+  struct _tree_node_t  *right;
+  void *key;
+  void *value;
 } tree_node_t;
 
+
+int iwstree_str_cmp(const void *o1, const void *o2) {
+  return strcmp(o1, o2);
+}
+
 IWSTREE *iwstree_create(
-  int (*cmp)(const void *, const void *)
+  int (*cmp)(const void *, const void *),
+  void (*kvfree)(void *, void *)
 ) {
   IWSTREE *st;
   st = malloc(sizeof(IWSTREE));
@@ -51,19 +59,23 @@ IWSTREE *iwstree_create(
   }
   memset(st, 0, sizeof(IWSTREE));
   st->cmp = cmp;
+  st->kvfree = kvfree;
   return st;
 }
 
-static void _free_node(tree_node_t *node) {
+static void _free_node(IWSTREE *st, tree_node_t *node) {
   if (node) {
-    _free_node(node->left);
-    _free_node(node->right);
+    _free_node(st, node->left);
+    _free_node(st, node->right);
+    if (st->kvfree) {
+      st->kvfree(node->key, node->value);
+    }
     free(node);
   }
 }
 
 void iwstree_free(IWSTREE *st) {
-  _free_node(st->root);
+  _free_node(st, st->root);
   free(st);
 }
 
