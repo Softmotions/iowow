@@ -231,7 +231,7 @@ void *iwstree_peek(IWSTREE *st) {
 }
 
 iwrc iwstree_put(IWSTREE *st, void *key, void *value) {
-  tree_node_t *new;
+  tree_node_t *n;
   int cmp;
   if (!st->root) {
     st->root = _init_node(key, value);
@@ -241,22 +241,22 @@ iwrc iwstree_put(IWSTREE *st, void *key, void *value) {
     st->count++;
     goto exit;
   }
-  new = _splay(st, 1, 0, 0, (tree_node_t **) &st->root, key);
+  n = _splay(st, 1, 0, 0, (tree_node_t **) &st->root, key);
   cmp = st->cmp(((tree_node_t *) st->root)->key, key);
   if (cmp != 0) {
-    new = _init_node(key, value);
+    n = _init_node(key, value);
     if (0 < cmp) {
-      new->right = st->root;
-      new->left = new->right->left;
-      new->right->left = 0;
+      n->right = st->root;
+      n->left = n->right->left;
+      n->right->left = 0;
     } else {
-      new->left = st->root;
-      new->right = new->left->right;
-      new->left->right = 0;
+      n->left = st->root;
+      n->right = n->left->right;
+      n->left->right = 0;
     }
     st->count++;
   }
-  st->root = new;
+  st->root = n;
 
 exit:
   return 0;
