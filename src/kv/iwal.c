@@ -810,7 +810,7 @@ static void *_cpt_worker_fn(void *op) {
       _unlock(wal);
       break;
     }
-    tp.tv_sec += 1; // one sec tic
+    tp.tv_sec += 1; // one sec tick
     tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);
     rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
     if (rci && rci != ETIMEDOUT) {
@@ -824,9 +824,9 @@ static void *_cpt_worker_fn(void *op) {
     }
     bool synched = wal->synched;
     size_t mbytes = wal->mbytes;
-    cp = _need_checkpoint(wal) || ((mbytes && (tick_ts - wal->checkpoint_ts) >= 1000L * wal->checkpoint_timeout_sec));
+    cp = _need_checkpoint(wal) || ((mbytes && (tick_ts - wal->checkpoint_ts) >= 1000LL * wal->checkpoint_timeout_sec));
     if (!cp) {
-      sp = !synched && (wal->force_sp || ((tick_ts - savepoint_ts) >= 1000L * wal->savepoint_timeout_sec));
+      sp = !synched && (wal->force_sp || ((tick_ts - savepoint_ts) >= 1000LL * wal->savepoint_timeout_sec));
     }
     _unlock(wal);
 
