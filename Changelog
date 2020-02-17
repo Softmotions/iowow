@@ -8,6 +8,7 @@ iowow (1.3.37) UNRELEASED; urgency=medium
     for performance and simplicity reasons
   * Added `IW_ERROR_INVALID_VALUE`
   * Added iwstree - splay tree imlementation (iwstree.h)
+  * Pointers allocated by iwpool are now 8-byte aligned
 
  -- Anton Adamansky <adamansky@gmail.com>  Wed, 22 Jan 2020 22:42:51 +0700
 

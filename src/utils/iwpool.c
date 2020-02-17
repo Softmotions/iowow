@@ -5,7 +5,7 @@
 #include <string.h>
 #include <errno.h>
 
-#define IWPOOL_UNIT_ALIGN_SIZE 16
+#define IWPOOL_UNIT_ALIGN_SIZE 8
 
 /** Atomic heap unit */
 typedef struct IWPOOL_UNIT {
@@ -77,6 +77,7 @@ IW_INLINE int iwpool_extend(IWPOOL *pool, IWPOOL_UNIT *unit, size_t siz) {
 
 void *iwpool_alloc(size_t siz, IWPOOL *pool) {
   IWPOOL_UNIT  *unit = pool->unit;
+  siz = IW_ROUNDUP(siz, IWPOOL_UNIT_ALIGN_SIZE);
   size_t usiz = pool->usiz + siz;
   void *h = pool->heap;
   if (usiz > pool->asiz) {
