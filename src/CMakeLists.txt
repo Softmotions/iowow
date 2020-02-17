@@ -99,11 +99,7 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "mips")
   endif()
 endif()
 
-find_library(M_LIB m)
-if (NOT M_LIB)
-	message(FATAL_ERROR "Library 'm' not FOUND")
-endif()
-list(APPEND PROJECT_LLIBRARIES "${M_LIB}")
+list(APPEND PROJECT_LLIBRARIES "-lm")
 
 check_symbol_exists(CLOCK_MONOTONIC time.h HAVE_CLOCK_MONOTONIC)
 if (HAVE_CLOCK_MONOTONIC)
