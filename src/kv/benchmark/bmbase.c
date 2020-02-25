@@ -123,6 +123,7 @@ static void _bm_help() {
   fprintf(stderr, "Usage %s [options]\n\n", g_program);
   fprintf(stderr, "Options:\n");
   fprintf(stderr, "  -h Show this help\n");
+  fprintf(stderr, "  -w Write Ahead Log (WAL) enabled\n");
   fprintf(stderr, "  -n <num> Number of stored records\n");
   fprintf(stderr,
           "  -r <num> Number of records to read (equals to number of stored records if not specified, not for readseq,readreverse)\n");

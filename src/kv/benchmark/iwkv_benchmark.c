@@ -32,10 +32,16 @@ static void *db_open(BMCTX *ctx) {
   if (ctx->db) {
     return 0; // db is not closed properly
   }
+  bool wal_enabled = false;
+  for (int i = 0; i <  bm.argc; ++i) {
+    if (!strcmp(bm.argv[i], "-w")) {
+      wal_enabled = true;
+    }
+  }
   IWKV_OPTS opts = {
     .wal = {
-      .enabled = false,
-      .check_crc_on_checkpoint = false,
+      .enabled = wal_enabled,
+      .check_crc_on_checkpoint = wal_enabled,
       .savepoint_timeout_sec = 10, // 10 sec
       .checkpoint_timeout_sec = 300, // 5 min
       .wal_buffer_sz = 8 * 1024 * 1024, // 8M
