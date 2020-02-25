@@ -110,3 +110,12 @@ target_link_libraries(kyc_benchmark libkyotocabinet iowow_s)
 set_target_properties(kyc_benchmark
   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
 )
+
+
+# BDB 5.3
+find_library(BDB_LIBRARY NAMES db)
+if (BDB_LIBRARY)
+  add_executable(bdb_benchmark bdb_benchmark.c)
+  target_link_libraries(bdb_benchmark db iowow_s)
+endif()
+

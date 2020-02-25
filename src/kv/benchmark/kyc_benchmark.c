@@ -147,6 +147,7 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
     kccurdel(cur);
     return false;
   }
+  val->data = kccurgetvalue(cur, &val->size, 0);
   kccurdel(cur);
   return true;
 }
