@@ -17,7 +17,7 @@ static void env_setup() {
   fprintf(stderr, " engine: IWKV %s\n", iowow_version_full());
 }
 
-uint64_t db_size_bytes(BMCTX *ctx) {
+static uint64_t db_size_bytes(BMCTX *ctx) {
   const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
   IWP_FILE_STAT fst;
   iwrc rc = iwp_fstat(path, &fst);
@@ -41,7 +41,7 @@ static void *db_open(BMCTX *ctx) {
   IWKV_OPTS opts = {
     .wal = {
       .enabled = wal_enabled,
-      .check_crc_on_checkpoint = wal_enabled,
+      .check_crc_on_checkpoint = false,
       .savepoint_timeout_sec = 10, // 10 sec
       .checkpoint_timeout_sec = 300, // 5 min
       .wal_buffer_sz = 8 * 1024 * 1024, // 8M
