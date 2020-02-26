@@ -143,7 +143,7 @@ def main():
         # save(p)
         # export_png(p, filename="{}.png".format(bn))
 
-    grid = gridplot(plots, ncols=1)
+    grid = gridplot(plots, ncols=1, merge_tools=False)
     script, div = components(plots)
     output_file('runbench.html')
     save(grid)
