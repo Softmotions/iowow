@@ -94,9 +94,7 @@ static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) 
 
 static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync) {
   BM_KYC *bmdb = ctx->db;
-  if (!kcdbremove(bmdb->db, key->data, key->size)) {
-    return false;
-  }
+  kcdbremove(bmdb->db, key->data, key->size);
   if (sync) {
     int32_t rc = kcdbsync(bmdb->db, true, 0, 0);
     if (!rc) {
