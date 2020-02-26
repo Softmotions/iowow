@@ -26,12 +26,21 @@ static void *db_open(BMCTX *ctx) {
   if (ctx->db) {
     return 0; // db is not closed properly
   }
+  bool wal_enabled = false;
+  for (int i = 0; i <  bm.argc; ++i) {
+    if (!strcmp(bm.argv[i], "-w")) {
+      wal_enabled = true;
+    }
+  }
   const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
   BM_KYC *bmdb = malloc(sizeof(*bmdb));
   bmdb->db = kcdbnew();
   uint32_t mode = KCOWRITER | KCOCREATE;
   if (ctx->freshdb) {
     mode |= KCOTRUNCATE;
+  }
+  if (wal_enabled) {
+    mode |= KCOAUTOTRAN;
   }
   if (!kcdbopen(bmdb->db, path, mode)) {
     kcdbdel(bmdb->db);

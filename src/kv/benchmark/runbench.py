@@ -9,6 +9,7 @@ from bokeh.plotting import figure, output_file, show, save
 from bokeh.models import ColumnDataSource, FactorRange
 from bokeh.transform import factor_cmap
 from bokeh.layouts import gridplot
+from bokeh.embed import components
 
 parser = argparse.ArgumentParser(description='IWKV Benchmarks')
 parser.add_argument(
@@ -56,26 +57,7 @@ runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 3434783568}
          for n in (int(10e3),)
          for vz in ((200 * 1024),)]
 
-tests = [
-    'fillseq',
-    'fillseq2',
-    'fillrandom',
-    'fillrandom2',
-    'overwrite',
-    'fillsync',
-    'fill100K',
-    'deleteseq',
-    'deleterandom',
-    'readseq',
-    'readreverse',
-    'readrandom',
-    'readmissing',
-    'readhot',
-    'seekrandom'
-]
-
 results = OrderedDict()
-
 
 def fill_result(bm, run, sizestats, line):
     key = ' '.join(['-{} {}'.format(a, v) for a, v in run.items()])
@@ -156,15 +138,15 @@ def main():
         p.xgrid.grid_line_color = None
         # p.toolbar_location = None
         plots.append(p)
-        output_file("{}.html".format(bn))
-        save(p)
-        export_png(p, filename="{}.png".format(bn))
+        # output_file("{}.html".format(bn))
+        # save(p)
+        # export_png(p, filename="{}.png".format(bn))
 
-    # grid = gridplot(plots, ncols=1)
-    # script, div = components(plots)
-    # output_file('runbench.html')
-    # save(grid)
-    # show(grid)
+    grid = gridplot(plots, ncols=1)
+    script, div = components(plots)
+    output_file('runbench.html')
+    save(grid)
+    show(grid)
 
 
 if __name__ == '__main__':
