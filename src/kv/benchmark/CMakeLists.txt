@@ -80,8 +80,7 @@ set_target_properties(lmdb_benchmark
 # KyotoCabinet
 ExternalProject_Add(
   extern_kyc
-  GIT_REPOSITORY https://github.com/trustyou/kyotocabinet.git
-  GIT_TAG master
+  URL https://fallabs.com/kyotocabinet/pkg/kyotocabinet-1.2.77.tar.gz
   PREFIX ${CMAKE_BINARY_DIR}
   BUILD_IN_SOURCE ON
   GIT_PROGRESS ON
