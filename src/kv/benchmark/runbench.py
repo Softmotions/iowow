@@ -24,6 +24,7 @@ benchmarks = [
     'lmdb',
     'leveldb',
     'kyc',
+    'tc',
     'bdb'
 ]
 
