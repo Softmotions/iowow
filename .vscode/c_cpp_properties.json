@@ -33,6 +33,7 @@
                 "${workspaceRoot}/src/rdb",
                 "${workspaceRoot}/build/src/extern_leveldb/include",
                 "${workspaceRoot}/build/src/extern_kyc/install/include",
+                "${workspaceRoot}/build/src/extern_tc/install/include",
                 "${workspaceRoot}/build/src/extern_lmdb/libraries/liblmdb"
             ],
             "defines": [

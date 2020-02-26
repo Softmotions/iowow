@@ -83,7 +83,6 @@ ExternalProject_Add(
   URL https://fallabs.com/kyotocabinet/pkg/kyotocabinet-1.2.77.tar.gz
   PREFIX ${CMAKE_BINARY_DIR}
   BUILD_IN_SOURCE ON
-  GIT_PROGRESS ON
   UPDATE_DISCONNECTED ON
   BUILD_COMMAND make
   CONFIGURE_COMMAND ./configure --disable-zlib --prefix=${CMAKE_BINARY_DIR}/src/extern_kyc/install
@@ -110,6 +109,37 @@ set_target_properties(kyc_benchmark
   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
 )
 
+# TokyoCabinet
+ExternalProject_Add(
+  extern_tc
+  URL https://fallabs.com/tokyocabinet/tokyocabinet-1.4.48.tar.gz
+  PREFIX ${CMAKE_BINARY_DIR}
+  BUILD_IN_SOURCE ON
+  UPDATE_DISCONNECTED ON
+  BUILD_COMMAND make
+  CONFIGURE_COMMAND ./configure --disable-bzip --disable-exlzo --disable-exlzma --disable-zlib --prefix=${CMAKE_BINARY_DIR}/src/extern_tc/install
+  INSTALL_COMMAND make install
+  LOG_DOWNLOAD ON
+  LOG_BUILD OFF
+  LOG_CONFIGURE OFF
+)
+set(TC_SOURCE_DIR "${CMAKE_BINARY_DIR}/src/extern_tc")
+set(TC_BINARY_DIR "${CMAKE_BINARY_DIR}/src/extern_tc")
+add_library(libtokyocabinet STATIC IMPORTED)
+set_target_properties(
+  libtokyocabinet
+  PROPERTIES
+  IMPORTED_LOCATION "${TC_BINARY_DIR}/install/lib/libtokyocabinet.a"
+  IMPORTED_LINK_INTERFACE_LANGUAGES C
+)
+add_dependencies(libtokyocabinet extern_tc)
+include_directories(AFTER "${TC_BINARY_DIR}/install/include")
+
+add_executable(tc_benchmark tc_benchmark.c)
+target_link_libraries(tc_benchmark libtokyocabinet iowow_s)
+set_target_properties(tc_benchmark
+  PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
+)
 
 # BDB 5.3
 find_library(BDB_LIBRARY NAMES db)
@@ -117,4 +147,5 @@ if (BDB_LIBRARY)
   add_executable(bdb_benchmark bdb_benchmark.c)
   target_link_libraries(bdb_benchmark db iowow_s)
 endif()
+
 

@@ -1,7 +1,7 @@
 #include "bmbase.c"
 #include <kclangc.h>
 
-#define DEFAULT_DB "iwkv_bench.kct"
+#define DEFAULT_DB "kyc_bench.kct"
 
 typedef struct BM_KYC {
   KCDB *db;
@@ -94,7 +94,9 @@ static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) 
 
 static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync) {
   BM_KYC *bmdb = ctx->db;
-  kcdbremove(bmdb->db, key->data, key->size);
+  if (!kcdbremove(bmdb->db, key->data, key->size)) {
+    return false;
+  }
   if (sync) {
     int32_t rc = kcdbsync(bmdb->db, true, 0, 0);
     if (!rc) {
