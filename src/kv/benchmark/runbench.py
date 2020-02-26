@@ -32,27 +32,27 @@ runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 2853624176, 'sizestats': T
          for n in (int(1e6),)
          for vz in (1000,)]
 
-runs += [{'b': 'fillrandom2,readrandom,deleterandom', 'n': n, 'vz': vz, 'rs': 2105940112, 'w': ''}
+runs += [{'b': 'fillrandom2,readrandom,deleterandom', 'n': n, 'vz': vz, 'rs': 2105940112}
          for n in (int(1e6),)
          for vz in (400,)]
 
-runs += [{'b': 'fillseq,overwrite,deleteseq', 'n': n, 'rs': 570078848, 'w': ''}
+runs += [{'b': 'fillseq,overwrite,deleteseq', 'n': n, 'rs': 570078848}
          for n in (int(1e6),)
          for vz in (400,)]
 
-runs += [{'b': 'fill100K', 'n': n, 'rs': 1313807505, 'w': ''}
+runs += [{'b': 'fill100K', 'n': n, 'rs': 1313807505}
          for n in (int(1e6),)
          for vz in (400,)]
 
-runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 1513135152, 'w': ''}
+runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 1513135152}
          for n in (int(10e6),)
          for vz in (200,)]
 
-runs += [{'b': 'readseq,readreverse', 'n': n, 'vz': vz, 'rs': 1553195152, 'w': ''}
+runs += [{'b': 'readseq,readreverse', 'n': n, 'vz': vz, 'rs': 1553195152}
          for n in (int(10e6),)
          for vz in (200,)]
 
-runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 3434783568, 'w': ''}
+runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 3434783568}
          for n in (int(10e3),)
          for vz in ((200 * 1024),)]
 
