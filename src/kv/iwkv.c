@@ -670,7 +670,7 @@ IW_INLINE void _kvblk_create(IWLCTX *lx, off_t baddr, uint8_t kvbpow, KVBLK **ob
   AAPOS_INC(lx->kaan);
 }
 
-IW_INLINE WUR iwrc _kvblk_peek_key(const KVBLK *kb,
+IW_INLINE WUR iwrc _kvblk_key_peek(const KVBLK *kb,
                                    uint8_t idx, const uint8_t *mm, uint8_t **obuf,
                                    uint32_t *olen) {
   if (kb->pidx[idx].len) {
@@ -1624,7 +1624,7 @@ static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, IWLCTX *lx, const uint8_t *mm, bool
   }
   while (1) {
     idx = (ub + lb) / 2;
-    iwrc rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
+    iwrc rc = _kvblk_key_peek(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
     RCRET(rc);
     int cr = _cmp_keys(dbflg, k, kl, lx->key);
     if (!cr) {
@@ -1664,7 +1664,7 @@ static WUR iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, IWLCTX *lx,
   iwdb_flags_t dbflg = sblk->db->dbflg;
   while (1) {
     idx = (ub + lb) / 2;
-    iwrc rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
+    iwrc rc = _kvblk_key_peek(sblk->kvblk, sblk->pi[idx], mm, &k, &kl);
     RCRET(rc);
     int cr = _cmp_keys(dbflg, k, kl, lx->key);
     if (!cr) {
@@ -1896,7 +1896,7 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
       uint32_t klen;
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCRET(rc);
-      rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[idx], mm, &kbuf, &klen);
+      rc = _kvblk_key_peek(sblk->kvblk, sblk->pi[idx], mm, &kbuf, &klen);
       if (rc) {
         fsm->release_mmap(fsm);
         return rc;
@@ -1985,7 +1985,7 @@ WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
           return rc;
         }
       }
-      rc = _kvblk_peek_key(sblk->kvblk, sblk->pi[0], mm, &k, &kl);
+      rc = _kvblk_key_peek(sblk->kvblk, sblk->pi[0], mm, &k, &kl);
       RCRET(rc);
       res = _cmp_keys(dbflg, k, kl, key);
       fsm->release_mmap(fsm);
@@ -2179,12 +2179,15 @@ static iwrc _lx_split_addkv(IWLCTX *lx, int idx, SBLK *sblk) {
       uint8_t *mm;
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCBREAK(rc);
+
       rc = _kvblk_kv_get(sblk->kvblk, mm, sblk->pi[i], &key, &val);
       assert(key.size);
       fsm->release_mmap(fsm);
       RCBREAK(rc);
+
       rc = _sblk_addkv2(nb, i - pivot, &key, &val, true);
       _kv_dispose(&key, &val);
+
       RCBREAK(rc);
       sblk->kvblk->pidx[sblk->pi[i]].len = 0;
       sblk->kvblk->pidx[sblk->pi[i]].off = 0;
@@ -2618,13 +2621,13 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
       if (!cn1->fullkey) {
         rc = _kvblk_at_mm(lx, BLK2ADDR(cn1->kblkn), mm, 0, &kb);
         RCGO(rc, finish);
-        rc = _kvblk_peek_key(kb, cn1->k0idx, mm, &k1, &kl1);
+        rc = _kvblk_key_peek(kb, cn1->k0idx, mm, &k1, &kl1);
         RCGO(rc, finish);
       }
       if (!cn2->fullkey) {
         rc = _kvblk_at_mm(lx, BLK2ADDR(cn2->kblkn), mm, 0, &kb);
         RCGO(rc, finish);
-        rc = _kvblk_peek_key(kb, cn2->k0idx, mm, &k2, &kl2);
+        rc = _kvblk_key_peek(kb, cn2->k0idx, mm, &k2, &kl2);
         RCGO(rc, finish);
         key2.size = kl2;
         key2.data = k2;
@@ -4106,7 +4109,7 @@ iwrc iwkv_cursor_is_matched_key(IWKV_cursor cur, const IWKV_val *key, bool *ores
   }
 
   uint8_t idx = cur->cn->pi[cur->cnpos];
-  rc = _kvblk_peek_key(cur->cn->kvblk, idx, mm, &okey, &okeysz);
+  rc = _kvblk_key_peek(cur->cn->kvblk, idx, mm, &okey, &okeysz);
   RCGO(rc, finish);
 
   if (dbflg & (IWDB_COMPOUND_KEYS | IWDB_VNUM64_KEYS)) {
@@ -4162,7 +4165,7 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
   }
 
   uint8_t idx = cur->cn->pi[cur->cnpos];
-  rc = _kvblk_peek_key(cur->cn->kvblk, idx, mm, &okey, &okeysz);
+  rc = _kvblk_key_peek(cur->cn->kvblk, idx, mm, &okey, &okeysz);
   RCGO(rc, finish);
 
   if (dbflg & (IWDB_COMPOUND_KEYS | IWDB_VNUM64_KEYS)) {

@@ -20,7 +20,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
   }
   for (int i = 0; i < KVBLK_IDXNUM; ++i) {
     KVP *kvp = &kb->pidx[i];
-    rc = _kvblk_peek_key(kb, i, mm, &kbuf, &klen);
+    rc = _kvblk_key_peek(kb, i, mm, &kbuf, &klen);
     if (rc) {
       iwlog_ecode_error3(rc);
       return;
@@ -78,7 +78,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
     if (j == 0) {
       fprintf(f, " === SBLK[%u]", blkn);
     }
-    rc = _kvblk_peek_key(sb->kvblk, sb->pi[i], mm, &kbuf, &klen);
+    rc = _kvblk_key_peek(sb->kvblk, sb->pi[i], mm, &kbuf, &klen);
     if (rc) {
       iwlog_ecode_error3(rc);
       return rc;
