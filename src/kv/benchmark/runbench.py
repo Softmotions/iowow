@@ -22,36 +22,37 @@ benchmarks = [
     'iwkv',
     'lmdb',
     'leveldb',
-    'kyc'
+    'kyc',
+    'bdb'
 ]
 
 runs = []
 
-runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 2853624976, 'sizestats': True}
+runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 2853624176, 'sizestats': True}
          for n in (int(1e6),)
          for vz in (1000,)]
 
-runs += [{'b': 'fillrandom2,readrandom,deleterandom', 'n': n, 'vz': vz, 'rs': 2605940112}
+runs += [{'b': 'fillrandom2,readrandom,deleterandom', 'n': n, 'vz': vz, 'rs': 2105940112, 'w': ''}
          for n in (int(1e6),)
          for vz in (400,)]
 
-runs += [{'b': 'fillseq,overwrite,deleteseq', 'n': n, 'rs': 560078848}
+runs += [{'b': 'fillseq,overwrite,deleteseq', 'n': n, 'rs': 570078848, 'w': ''}
          for n in (int(1e6),)
          for vz in (400,)]
 
-runs += [{'b': 'fill100K', 'n': n, 'rs': 1313807505}
+runs += [{'b': 'fill100K', 'n': n, 'rs': 1313807505, 'w': ''}
          for n in (int(1e6),)
          for vz in (400,)]
 
-runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 1513195152}
+runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 1513135152, 'w': ''}
          for n in (int(10e6),)
          for vz in (200,)]
 
-runs += [{'b': 'readseq,readreverse', 'n': n, 'vz': vz, 'rs': 1513195152}
+runs += [{'b': 'readseq,readreverse', 'n': n, 'vz': vz, 'rs': 1553195152, 'w': ''}
          for n in (int(10e6),)
          for vz in (200,)]
 
-runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 3434183568}
+runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 3434783568, 'w': ''}
          for n in (int(10e3),)
          for vz in ((200 * 1024),)]
 
@@ -157,13 +158,13 @@ def main():
         plots.append(p)
         output_file("{}.html".format(bn))
         save(p)
-        # export_png(p, filename="{}.png".format(bn))
+        export_png(p, filename="{}.png".format(bn))
 
-    grid = gridplot(plots, ncols=1)
+    # grid = gridplot(plots, ncols=1)
     # script, div = components(plots)
-    output_file('runbench.html')
-    save(grid)
-    show(grid)
+    # output_file('runbench.html')
+    # save(grid)
+    # show(grid)
 
 
 if __name__ == '__main__':
