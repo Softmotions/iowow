@@ -141,6 +141,38 @@ set_target_properties(tc_benchmark
   PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
 )
 
+# Wiredtiger
+set(WT_SOURCE_DIR "${CMAKE_BINARY_DIR}/src/extern_wt")
+set(WT_BINARY_DIR "${CMAKE_BINARY_DIR}/src/extern_wt")
+ExternalProject_Add(
+  extern_wt
+  GIT_REPOSITORY https://github.com/wiredtiger/wiredtiger.git
+  PREFIX ${WT_BINARY_DIR}
+  BUILD_IN_SOURCE ON
+  UPDATE_DISCONNECTED ON
+  CONFIGURE_COMMAND sh -c "test -f ${WT_BINARY_DIR}/install/include/wiredtiger.h || (./autogen.sh && ./configure --prefix=${WT_BINARY_DIR}/install)"
+  BUILD_COMMAND ""
+  INSTALL_COMMAND sh -c "test -f ${WT_BINARY_DIR}/install/include/wiredtiger.h || make install"
+  LOG_DOWNLOAD ON
+  LOG_BUILD OFF
+  LOG_CONFIGURE OFF
+)
+add_library(libwiredtiger STATIC IMPORTED)
+set_target_properties(
+  libwiredtiger
+  PROPERTIES
+  IMPORTED_LOCATION "${WT_BINARY_DIR}/install/lib/libwiredtiger.a"
+  IMPORTED_LINK_INTERFACE_LANGUAGES C
+)
+add_dependencies(libwiredtiger extern_wt)
+include_directories(AFTER "${WT_BINARY_DIR}/install/include")
+
+add_executable(wiredtiger_benchmark wiredtiger_benchmark.c)
+target_link_libraries(wiredtiger_benchmark libwiredtiger iowow_s "-ldl")
+set_target_properties(wiredtiger_benchmark
+  PROPERTIES COMPILE_FLAGS "-DIW_STATIC"
+)
+
 # BDB 5.3
 find_library(BDB_LIBRARY NAMES db)
 if (BDB_LIBRARY)

@@ -5,7 +5,7 @@
     "-DCMAKE_VERBOSE_MAKEFILE=OFF",
     "-DBUILD_SHARED_LIBS=ON",
     "-DBUILD_EXAMPLES=ON",
-    "-DBUILD_BENCHMARKS=OFF"
+    "-DBUILD_BENCHMARKS=ON"
   ],
   "cmake.ctestArgs": [],
   "cmake.debugConfig": {
@@ -44,6 +44,7 @@
     "-I${workspaceRoot}/build/src/extern_lmdb/libraries/liblmdb",
     "-I${workspaceRoot}/build/src/extern_kyc/install/include",
     "-I${workspaceRoot}/build/src/extern_tc/install/include",
+    "-I${workspaceRoot}/build/src/extern_wt/install/include",
     "-I${workspaceRoot}/src",
     "-I${workspaceRoot}/src/log",
     "-I${workspaceRoot}/src/utils",
@@ -75,6 +76,7 @@
     "-I${workspaceRoot}/build/src/extern_lmdb/libraries/liblmdb",
     "-I${workspaceRoot}/build/src/extern_kyc/install/include",
     "-I${workspaceRoot}/build/src/extern_tc/install/include",
+    "-I${workspaceRoot}/build/src/extern_wt/install/include",
     "-I${workspaceRoot}/src",
     "-I${workspaceRoot}/src/log",
     "-I${workspaceRoot}/src/utils",

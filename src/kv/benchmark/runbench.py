@@ -22,43 +22,38 @@ print('Base directory:', basedir)
 benchmarks = [
     'iwkv',
     'lmdb',
-    'leveldb',
+    'bdb',
+    'wiredtiger',
     'kyc',
-    'tc',
-    'bdb'
+    'leveldb'
 ]
 
 runs = []
 
 runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 2853624176, 'sizestats': True}
-         for n in (int(1e6),)
+         for n in (int(2e6),)
          for vz in (1000,)]
 
-runs += [{'b': 'fillrandom2,readrandom,deleterandom', 'n': n, 'vz': vz, 'rs': 2105940112}
-         for n in (int(1e6),)
-         for vz in (400,)]
+runs += [{'b': 'fillrandom2,readrandom,deleterandom', 'n': n, 'vz': vz, 'kz': kz, 'rs': 2105940112}
+         for n in (int(2e6),)
+         for vz in (40, 400,)
+         for kz in (16, 1024,)]
 
-runs += [{'b': 'fillseq,overwrite,deleteseq', 'n': n, 'rs': 570078848}
-         for n in (int(1e6),)
-         for vz in (400,)]
+runs += [{'b': 'fillseq,overwrite,deleteseq', 'n': n, 'kz': kz, 'rs': 570078848}
+         for n in (int(2e6),)
+         for vz in (400,)
+         for kz in (16, 1024,)]
 
-runs += [{'b': 'fill100K', 'n': n, 'rs': 1313807505}
-         for n in (int(1e6),)
-         for vz in (400,)]
-
-runs += [{'b': 'fillrandom2,readrandom', 'n': n, 'vz': vz, 'rs': 1513135152}
+runs += [{'b': 'fillrandom2,readrandom,readseq,readreverse', 'n': n, 'vz': vz, 'rs': 1513135152}
          for n in (int(10e6),)
          for vz in (200,)]
 
-runs += [{'b': 'readseq,readreverse', 'n': n, 'vz': vz, 'rs': 1553195152}
-         for n in (int(10e6),)
-         for vz in (200,)]
-
-runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 3434783568}
+runs += [{'b': 'fillrandom2,', 'n': n, 'vz': vz, 'rs': 3434783568}
          for n in (int(10e3),)
          for vz in ((200 * 1024),)]
 
 results = OrderedDict()
+
 
 def fill_result(bm, run, sizestats, line):
     key = ' '.join(['-{} {}'.format(a, v) for a, v in run.items()])
@@ -128,7 +123,7 @@ def main():
         counts = [rmap[bm][brun]
                   for bm in iter(rmap) for brun in iter(rmap[bm])]
         source = ColumnDataSource(data=dict(x=x, counts=counts))
-        p = figure(x_range=FactorRange(*x), plot_height=350,
+        p = figure(x_range=FactorRange(*x), plot_height=350, plot_width=750,
                    title=bn)  # y_axis_type="log"
         p.vbar(x='x', top='counts', width=0.9, source=source, line_color='white',
                fill_color=factor_cmap('x', palette=palette, factors=pfactors, start=1, end=2))
@@ -137,15 +132,14 @@ def main():
         p.x_range.range_padding = 0.1
         p.xaxis.major_label_orientation = 1
         p.xgrid.grid_line_color = None
-        # p.toolbar_location = None
+        p.toolbar_location = None
         plots.append(p)
-        # output_file("{}.html".format(bn))
-        # save(p)
-        # export_png(p, filename="{}.png".format(bn))
+        os.makedirs("charts", exist_ok=True)
+        export_png(p, filename="charts/{}.png".format(bn))
+        p.toolbar_location = "right"
 
     grid = gridplot(plots, ncols=1, merge_tools=False)
-    script, div = components(plots)
-    output_file('runbench.html')
+    output_file('benchmark_results_raw.html')
     save(grid)
     show(grid)
 

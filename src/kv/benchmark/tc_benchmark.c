@@ -37,7 +37,7 @@ static void *db_open(BMCTX *ctx) {
     return 0;
   }
   tcbdbsetxmsiz(btc.db, 1024ULL * 1024 * 1024 * 10);
-  tcbdbtune(btc.db, 0, 0, 32749 * 10, 8, 10, BDBTLARGE);
+  tcbdbtune(btc.db, 0, 0, 32749 * 4, 8, 10, BDBTLARGE);
   if (!tcbdbopen(btc.db, path, omode)) {
     tcbdbdel(btc.db);
     btc.db = 0;

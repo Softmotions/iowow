@@ -18,6 +18,7 @@ char RND_DATA[RND_DATA_SZ];
 
 struct BM {
   bool initiated;
+  int ksz;
   int argc;
   char **argv;
   char *param_db;
@@ -128,6 +129,7 @@ static void _bm_help() {
   fprintf(stderr,
           "  -r <num> Number of records to read (equals to number of stored records if not specified, not for readseq,readreverse)\n");
   fprintf(stderr, "  -vz <size> Size of a single record value in bytes\n");
+  fprintf(stderr, "  -kz <16|192|1024> Size of record key. Either 16 (default) or 192 or 1024 bytes\n");
   fprintf(stderr, "  -b <comma separated benchmarks to run>\n\n");
   fprintf(stderr, "  -db <file/dir> Database file/directory\n\n");
   fprintf(stderr, "  -rs <random seed> Random seed used for iwu random generator\n\n");
@@ -230,7 +232,24 @@ static bool _bm_init(int argc, char *argv[]) {
         return false;
       }
       bm.param_seed = atoll(argv[i]);
+    } else if (!strcmp(argv[i], "-kz")) {
+      if (++i >= argc) {
+        fprintf(stderr, "'-kz 16|192|1024' options has no value\n");
+        return false;
+      }
+      int ksz = atoi(argv[i]);
+      if (ksz == 192) {
+        bm.ksz = 192;
+      } else if (ksz == 1024) {
+        bm.ksz = 1024;
+      } else if (ksz != 16) {
+        fprintf(stderr, "'-kz 16|192|1024' options has invalid value %d\n", ksz);
+        return false;
+      }
     }
+  }
+  if (bm.ksz == 0) {
+    bm.ksz = 16;
   }
   if (bm.param_num_reads < 0) {
     bm.param_num_reads = bm.param_num;
@@ -251,9 +270,11 @@ static bool _bm_init(int argc, char *argv[]) {
   fprintf(stderr,
           "\n exec size: %u"
           "\n random seed: %u"
-          "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s\n\n",
+          "\n num records: %d\n read num records: %d\n value size: %d\n benchmarks: %s"
+          "\n key size: %d \n\n",
           _execsize(),
-          bm.param_seed, bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks);
+          bm.param_seed, bm.param_num, bm.param_num_reads, bm.param_value_size, bm.param_benchmarks,
+          bm.ksz);
 
   // Fill up random data array
   for (int i = 0; i < RND_DATA_SZ; ++i) {
@@ -298,8 +319,12 @@ static void _bm_run(BMCTX *ctx) {
   ctx->end_ms = llv;
 }
 
+
+#define FILLKEY() snprintf(key.data, sizeof(kbuf), bm.ksz == 16 ? "%016d" : bm.ksz == 192 ? "%0192d" : "%01024d", k)
+
+
 static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
-  char kbuf[100];
+  char kbuf[1025];
   IWKV_val key, val;
   key.data = kbuf;
   int value_size = ctx->value_size;
@@ -311,7 +336,8 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
       }
     }
     const int k = seq ? i : iwu_rand_range(bm.param_num);
-    snprintf(key.data, sizeof(kbuf), "%016d", k);
+    FILLKEY();
+
     key.size = strlen(key.data);
     val.data = (void *) _bmctx_rndbuf_nextptr(ctx, value_size);
     val.size = value_size;
@@ -323,12 +349,12 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
 }
 
 static bool _do_delete(BMCTX *ctx, bool sync, bool seq) {
-  char kbuf[100];
+  char kbuf[1025];
   IWKV_val key;
   key.data = kbuf;
   for (int i = 0; i < ctx->num; ++i) {
     const int k = seq ? i : iwu_rand_range(bm.param_num);
-    snprintf(key.data, sizeof(kbuf), "%016d", k);
+    FILLKEY();
     key.size = strlen(key.data);
     if (!bm.db_del(ctx, &key, sync)) {
       return false;
@@ -346,13 +372,13 @@ static bool _do_read_reverse(BMCTX *ctx) {
 }
 
 static bool _do_read_random(BMCTX *ctx) {
-  char kbuf[100];
+  char kbuf[1025];
   IWKV_val key, val;
   bool found;
   key.data = kbuf;
   for (int i = 0; i < bm.param_num_reads; ++i) {
     const int k = iwu_rand_range(bm.param_num);
-    snprintf(key.data, sizeof(kbuf), "%016d", k);
+    FILLKEY();
     key.size = strlen(key.data);
     val.data = 0;
     val.size = 0;
@@ -366,13 +392,14 @@ static bool _do_read_random(BMCTX *ctx) {
 }
 
 static bool _do_read_missing(BMCTX *ctx) {
-  char kbuf[100];
+  char kbuf[1025];
   IWKV_val key, val;
   bool found;
   key.data = kbuf;
   for (int i = 0; i < bm.param_num_reads; ++i) {
     const int k = iwu_rand_range(bm.param_num);
-    snprintf(key.data, sizeof(kbuf), "%016d.", k);
+    snprintf(key.data, sizeof(kbuf),
+             bm.ksz == 16 ? "%016d." : bm.ksz == 192 ? "%0192d." : "%01024d.", k);
     key.size = strlen(key.data);
     val.data = 0;
     val.size = 0;
@@ -389,14 +416,14 @@ static bool _do_read_missing(BMCTX *ctx) {
 }
 
 static bool _do_read_hot(BMCTX *ctx) {
-  char kbuf[100];
+  char kbuf[1025];
   IWKV_val key, val;
   bool found;
   key.data = kbuf;
   const int range = (bm.param_num + 99) / 100;
   for (int i = 0; i < bm.param_num_reads; ++i) {
     const int k = iwu_rand_range(range);
-    snprintf(key.data, sizeof(kbuf), "%016d", k);
+    FILLKEY();
     key.size = strlen(key.data);
     val.data = 0;
     val.size = 0;
@@ -410,13 +437,13 @@ static bool _do_read_hot(BMCTX *ctx) {
 }
 
 static bool _do_seek_random(BMCTX *ctx) {
-  char kbuf[100];
+  char kbuf[1025];
   IWKV_val key, val;
   bool found;
   key.data = kbuf;
   for (int i = 0; i < bm.param_num_reads; ++i) {
     const int k = iwu_rand_range(bm.param_num);
-    snprintf(key.data, sizeof(kbuf), "%016d", k);
+    FILLKEY();
     key.size = strlen(key.data);
     val.data = 0;
     val.size = 0;
