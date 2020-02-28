@@ -143,8 +143,8 @@ static void _bm_help() {
   fprintf(stderr, "  fill100K       write N/100 100K values in random order\n");
   fprintf(stderr, "  deleteseq      delete N keys in sequential order\n");
   fprintf(stderr, "  deleterandom   delete N keys in random order\n");
-  fprintf(stderr, "  readseq        read N times sequentially\n");
-  fprintf(stderr, "  readreverse    read N times in reverse order\n");
+  fprintf(stderr, "  readseq        read all records sequentially\n");
+  fprintf(stderr, "  readreverse    read all records sequentially in reverse order\n");
   fprintf(stderr, "  readrandom     read N times in random order\n");
   fprintf(stderr, "  readmissing    read N missing keys in random order\n");
   fprintf(stderr, "  readhot        read N times in random order from 1%% section of DB\n");
