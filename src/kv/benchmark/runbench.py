@@ -25,6 +25,7 @@ benchmarks = [
     'bdb',
     'wiredtiger',
     'kyc',
+    'tc',
     'leveldb'
 ]
 

@@ -1,6 +1,8 @@
 iowow (1.3.38) UNRELEASED; urgency=medium
 
-  * Added BerkeleyDB 5.3.28 benchmarks
+  * Added WiredTiger v3.2.1 benchmarks
+  * Added BerkeleyDB v5.3.28 benchmarks
+  * Added TokyoCabinet v1.4.48 benchmarks
 
  -- Anton Adamansky <adamansky@gmail.com>  Wed, 26 Feb 2020 00:25:11 +0700
 
