@@ -31,7 +31,7 @@ benchmarks = [
 runs = []
 
 runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 2853624176, 'sizestats': True}
-         for n in (int(2e6),)
+         for n in (int(1e6),)
          for vz in (1000,)]
 
 runs += [{'b': 'fillrandom2,readrandom,deleterandom', 'n': n, 'vz': vz, 'kz': kz, 'rs': 2105940112}
@@ -48,7 +48,7 @@ runs += [{'b': 'fillrandom2,readrandom,readseq,readreverse', 'n': n, 'vz': vz, '
          for n in (int(10e6),)
          for vz in (200,)]
 
-runs += [{'b': 'fillrandom2,', 'n': n, 'vz': vz, 'rs': 3434783568}
+runs += [{'b': 'fillrandom2', 'n': n, 'vz': vz, 'rs': 3434783568}
          for n in (int(10e3),)
          for vz in ((200 * 1024),)]
 
