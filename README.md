@@ -26,6 +26,9 @@ Website http://iowow.io
 * Good performance comparing its main competitors: `lmdb`, `leveldb`, `kyoto cabinet`
 * Tiny C11 library (200Kb) can be easily embedded into any software
 
+[![Presentation](https://iowow.io/articles/iowow-presentation-cover-small.png)](https://iowow.io/articles/intro/)
+
+
 ## Used by
 
 * EJDB - Embeddable JSON database engine. http://ejdb.org
