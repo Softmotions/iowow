@@ -15,10 +15,13 @@ SBLK - Skip list node with pointers to next nodes and pointer to KVBLK (key/valu
   flags  - Persistent block flags (1 byte)
   lvl    - Skiplist level of this block (1 byte)
   lkl    - Length of the lower key in this block (1 byte)
+  pnum   - Number of active kv indexes in `SBLK::pi`
+  p0     - Address of previous sblk block at zero level
   kblk   - Block number of associated KVBLK. (4 bytes)
   pi[32] - Array of key/value pair indexes in KVBLK block.
            Indexes are sorted by keys. (32 bytes)
   n[24]  - Pointers to next SBLK blocks in skiplist (96 bytes)
+  bpos   - Position of SBLK in a page block starting with 1 (zero means SBLK deleted)
   lk     - Buffer for the lowest key among all key/value pairs stored in KVBLK
 
 
