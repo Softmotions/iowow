@@ -101,10 +101,10 @@ static void iwkv_test10_1_impl(int fmt_version) {
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  IWP_FILE_STAT fs;
-  rc = iwp_fstat(opts.path, &fs);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_TRUE(fs.size < 1024 * 1024);
+  // IWP_FILE_STAT fs;
+  // rc = iwp_fstat(opts.path, &fs);
+  // CU_ASSERT_EQUAL_FATAL(rc, 0);
+  // CU_ASSERT_TRUE(fs.size < 1024 * 1024);
 }
 
 static void iwkv_test10_1_v1() {
