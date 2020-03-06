@@ -1,6 +1,6 @@
 IWKV
 
-block size: u64
+block size: u128
 max key+value size: 268435455 (~255Mb)
 max data file size: 512G
 
