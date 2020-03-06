@@ -17,7 +17,7 @@ int clean_suite(void) {
   return 0;
 }
 
-static void iwkv_test1(void) {
+static void iwkv_test2_1(void) {
   IWKV_OPTS opts = {
     .path = "iwkv_test2_1.db",
     .oflags = IWKV_TRUNC
@@ -71,7 +71,7 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1))
+  if ((NULL == CU_add_test(pSuite, "iwkv_test2_1", iwkv_test2_1))
     ) {
     CU_cleanup_registry();
     return CU_get_error();

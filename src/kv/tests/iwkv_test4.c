@@ -41,7 +41,7 @@ int clean_suite(void) {
   return 0;
 }
 
-static void iwkv_test4(void) {
+static void iwkv_test4_4(void) {
   char *path = "iwkv_test4_4.db";
   IWKV iwkv;
   IWDB db1;
@@ -79,7 +79,7 @@ static void iwkv_test4(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test3(void) {
+static void iwkv_test4_3_impl(int fmt_version) {
   char *path = "iwkv_test4_3.db";
   IWKV iwkv;
   IWDB db1;
@@ -87,8 +87,9 @@ static void iwkv_test3(void) {
   IWKV_val val = {0};
   IWKV_OPTS opts = {
     .path = path,
-    .oflags = IWKV_TRUNC,
+    .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
     .random_seed = g_seed,
+    .fmt_version = fmt_version,
     .wal = {
       .enabled = true,
       .check_crc_on_checkpoint = true,
@@ -165,6 +166,14 @@ static void iwkv_test3(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
+static void iwkv_test4_3_v1() {
+  iwkv_test4_3_impl(1);
+}
+
+static void iwkv_test4_3_v2() {
+  iwkv_test4_3_impl(2);
+}
+
 static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint32_t vrange) {
   g_rnd_data_pos = 0;
   char kbuf[100];
@@ -213,7 +222,7 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test2(void) {
+static void iwkv_test4_2(void) {
   uint32_t num = 1000;
   uint32_t vrange = 100000;
   iwkv_test2_impl("iwkv_test4_2.db", NULL, num, vrange);
@@ -227,7 +236,6 @@ static void iwkv_test2(void) {
   fclose(iw1);
   fclose(iw2);
 }
-
 
 static void iwkv_test1_impl(char *path, const char *walpath)  {
   iwrc rc;
@@ -288,7 +296,7 @@ static void iwkv_test1_impl(char *path, const char *walpath)  {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test1(void) {
+static void iwkv_test4_1(void) {
   iwkv_test1_impl("iwkv_test4_1.db", NULL);
   iwkv_test1_impl("iwkv_test4_1wal.db", "iwkv_test4_1wal.db-wal");
   FILE *iw1 = fopen("iwkv_test4_1.db", "rb");
@@ -314,14 +322,13 @@ int main() {
     CU_cleanup_registry();
     return CU_get_error();
   }
-
   /* Add the tests to the suite */
   if (
-    (NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4))
-
+    (NULL == CU_add_test(pSuite, "iwkv_test4_1", iwkv_test4_1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test4_2", iwkv_test4_2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test4_3_v1", iwkv_test4_3_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test4_3_v2", iwkv_test4_3_v2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test4_4", iwkv_test4_4))
   )  {
     CU_cleanup_registry();
     return CU_get_error();

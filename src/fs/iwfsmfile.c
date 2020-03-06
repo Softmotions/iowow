@@ -1529,7 +1529,9 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
   iwrc rc = 0;
   IWRC(_fsm_ctrl_wlock(impl), rc);
   if (impl->fsm && (impl->omode & IWFS_OWRITE)) {
-    IWRC(_fsm_trim_tail_lw(impl), rc);
+    if (!(impl->oflags & IWFSM_NO_TRIM_ON_CLOSE)) {
+      IWRC(_fsm_trim_tail_lw(impl), rc);
+    }
     IWRC(_fsm_write_meta_lw(impl), rc);
     if (!impl->dlsnr) {
       IWRC(impl->pool.sync(&impl->pool, IWFS_SYNCDEFAULT), rc);

@@ -131,6 +131,9 @@ typedef uint8_t iwfs_fsm_openflags;
 /** Strict block checking for alloc/dealloc operations. 10-15% performance overhead. */
 #define IWFSM_STRICT ((iwfs_fsm_openflags) 0x02U)
 
+/** Do not trim fsm file on close */
+#define IWFSM_NO_TRIM_ON_CLOSE ((iwfs_fsm_openflags) 0x04U)
+
 /**
  * @brief Error codes specific to `IWFS_FSM`.
  */

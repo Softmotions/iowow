@@ -14,7 +14,7 @@ int clean_suite(void) {
   return 0;
 }
 
-static void iwkv_test6_1() {
+static void iwkv_test6_1_impl(int fmt_version) {
   iwrc rc;
   IWKV_val key = {0};
   IWKV_val val = {0};
@@ -24,7 +24,8 @@ static void iwkv_test6_1() {
 
   IWKV_OPTS opts = {
     .path = "iwkv_test6_1.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .fmt_version = fmt_version
   };
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -71,28 +72,40 @@ static void iwkv_test6_1() {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test6_2() {
+void iwkv_test6_1_v1() {
+  iwkv_test6_1_impl(1);
+}
+
+void iwkv_test6_1_v2() {
+  iwkv_test6_1_impl(2);
+}
+
+static void iwkv_test6_2_impl(int fmt_version) {
   iwrc rc;
   IWKV iwkv;
   IWDB db;
   IWKV_val key = {0};
   IWKV_val val = {0};
-  char kbuf[PREFIX_KEY_LEN - 1];
-  for (int i = 0; i < sizeof(kbuf); ++i) {
-    kbuf[i] = (i % 94) + 33;
-  }
+  char kbuf[PREFIX_KEY_LEN_V1];
+
   IWKV_OPTS opts = {
     .path = "iwkv_test6_2.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .fmt_version = fmt_version
   };
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  for (int i = 0; i < iwkv->pklen - 1; ++i) {
+    kbuf[i] = (i % 94) + 33;
+  }
+
   rc = iwkv_db(iwkv, 1, IWDB_COMPOUND_KEYS, &db);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   for (uint32_t i = 0; i < 1000; ++i) {
     key.data = kbuf;
-    key.size = sizeof(kbuf);
+    key.size = iwkv->pklen - 1;
     key.compound = i;
     rc = iwkv_put(db, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -101,6 +114,14 @@ static void iwkv_test6_2() {
   }
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+}
+
+static void iwkv_test6_2_v1() {
+  iwkv_test6_2_impl(1);
+}
+
+static void iwkv_test6_2_v2() {
+  iwkv_test6_2_impl(2);
 }
 
 int main() {
@@ -119,8 +140,10 @@ int main() {
 
   /* Add the tests to the suite */
   if (
-    (NULL == CU_add_test(pSuite, "iwkv_test6_1", iwkv_test6_1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test6_2", iwkv_test6_2))
+    (NULL == CU_add_test(pSuite, "iwkv_test6_1_v1", iwkv_test6_1_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test6_1_v2", iwkv_test6_1_v2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test6_2_v1", iwkv_test6_2_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test6_2_v2", iwkv_test6_2_v2))
     ) {
     CU_cleanup_registry();
     return CU_get_error();

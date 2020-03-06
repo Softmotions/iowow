@@ -32,6 +32,10 @@
 #include "utils/iwuuid.h"
 #include <stdio.h>
 
+#if (defined(_WIN32) || defined(__WIN32__))
+#include <direct.h>
+#endif
+
 unsigned int iwcpuflags = 0;
 static iwrc _iwp_init_impl(void);
 
@@ -152,7 +156,11 @@ iwrc iwp_mkdirs(const char *path) {
     if (*p == '/') {
       /* Temporarily truncate */
       *p = '\0';
+      #if (defined(_WIN32) || defined(__WIN32__))
+      if (_mkdir(_path) != 0) {
+      #else
       if (mkdir(_path, S_IRWXU) != 0) {
+      #endif
         if (errno != EEXIST) {
           return iwrc_set_errno(IW_ERROR_ERRNO, errno);
         }
@@ -160,8 +168,11 @@ iwrc iwp_mkdirs(const char *path) {
       *p = '/';
     }
   }
-
-  if (mkdir(_path, S_IRWXU) != 0) {
+  #if (defined(_WIN32) || defined(__WIN32__))
+    if (_mkdir(_path) != 0) {
+  #else
+    if (mkdir(_path, S_IRWXU) != 0) {
+  #endif
     if (errno != EEXIST) {
       return iwrc_set_errno(IW_ERROR_ERRNO, errno);
     }

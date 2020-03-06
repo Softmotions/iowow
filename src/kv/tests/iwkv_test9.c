@@ -46,7 +46,6 @@ static void iwkv_test9_1() {
     ival.size = 0;
     iwkv_opflags opflags = IWKV_NO_OVERWRITE;
     iwrc rc = iwkv_put(db, &ikey, &ival, opflags);
-    iwlog_ecode_error3(rc);
     CU_ASSERT_EQUAL(rc, 0);
   }
   iwkv_close(&kv);

@@ -27,7 +27,7 @@
 #define IWKV_BACKUP_MAGIC 0xBACBAC69U
 
 // IWKV file format version
-#define IWKV_FORMAT 1
+#define IWKV_FORMAT 2
 
 // IWDB magic number
 #define IWDB_MAGIC 0x69776462U
@@ -50,22 +50,31 @@
 
 // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK
 
+// Maximum length of prefix key to compare for v2 formst
+#define PREFIX_KEY_LEN_V1 116U
+
+#define PREFIX_KEY_LEN_V2 115U
+
 // Number of skip list levels
 #define SLEVELS 24U
 
 #define AANUM (2U * SLEVELS + 2 /* levels + (new block created) + (db block may be updated) */)
 
 // Lower key length in SBLK
-#define SBLK_LKLEN PREFIX_KEY_LEN
-
-// Lower key padding
-#define LKPAD 0
+#define SBLK_LKLEN PREFIX_KEY_LEN_V2
 
 // Size of database start block in bytes
 #define DB_SZ (2U * (1U << IWKV_FSM_BPOW))
 
 // Size of `SBLK` in bytes
 #define SBLK_SZ (2U * (1U << IWKV_FSM_BPOW))
+
+// Number of SBLK blocks in one page
+#define SBLK_PAGE_SBLK_NUM_V2 16U
+
+// Size of page with adjacent SBLK blocks. 4096
+// Data format version: v2
+#define SBLK_PAGE_SZ_V2 (SBLK_PAGE_SBLK_NUM_V2 * SBLK_SZ)
 
 // Number of `KV` blocks in KVBLK
 #define KVBLK_IDXNUM 32U
@@ -227,6 +236,7 @@ typedef struct SBLK {
   off_t addr;                 /**< Block address */
   sblk_flags_t flags;         /**< Flags */
   uint8_t lvl;                /**< Skip list node level */
+  uint8_t bpos;               /**< Position of SBLK in a page block starting with 1 (zero means SBLK deleted) */
   blkn_t p0;                  /**< Prev node, if IWDB it is the last node */
   blkn_t n[SLEVELS];          /**< Next nodes */
   // !SBH
@@ -234,8 +244,8 @@ typedef struct SBLK {
   blkn_t kvblkn;              /**< Associated KVBLK block number */
   int8_t pnum;                /**< Number of active kv indexes in `SBLK::pi` */
   uint8_t lkl;                /**< Lower key length within a buffer */
-  uint8_t pi[KVBLK_IDXNUM];    /**< Sorted KV slots, value is an index of kv slot in `KVBLK` */
-  uint8_t lk[SBLK_LKLEN];     /**< Lower key buffer */
+  uint8_t pi[KVBLK_IDXNUM];   /**< Sorted KV slots, value is an index of kv slot in `KVBLK` */
+  uint8_t lk[PREFIX_KEY_LEN_V1];   /**< Lower key buffer */
 } SBLK;
 
 KHASH_MAP_INIT_INT(DBS, IWDB)
@@ -253,6 +263,7 @@ struct _IWKV {
   pthread_cond_t wk_cond;     /**< Workers cond variable */
   pthread_mutex_t wk_mtx;     /**< Workers cond mutext */
   int32_t fmt_version;        /**< Database format version */
+  int32_t pklen;              /**< Prefix key length in use */
   volatile int32_t wk_count;  /**< Number of active workers */
   volatile bool wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWKV */
   atomic_bool open;           /**< True if kvstore is in OPEN state */
@@ -266,6 +277,7 @@ typedef struct IWLCTX {
   SBLK *lower;                /**< Next to upper bound block */
   SBLK *upper;                /**< Upper bound block */
   SBLK *nb;                   /**< New block */
+  off_t destroy_addr;         /**< Block to destroy address */
   off_t upper_addr;           /**< Upper block address used in `_lx_del_lr()` */
 #ifndef NDEBUG
   uint32_t num_cmps;
@@ -386,7 +398,7 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 
 
 // SBLK
-// [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
+// [flags:u1,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,pi:u1[32],n:u4[24],bpos:u1,lk:u115]:u256
 
 #define SOFF_FLAGS_U1     0
 #define SOFF_LVL_U1       (SOFF_FLAGS_U1 + 1)
@@ -396,8 +408,10 @@ IW_INLINE iwrc _api_db_wlock(IWDB db)  {
 #define SOFF_KBLK_U4      (SOFF_P0_U4 + 4)
 #define SOFF_PI0_U1       (SOFF_KBLK_U4 + 4)
 #define SOFF_N0_U4        (SOFF_PI0_U1 + 1 * KVBLK_IDXNUM)
-#define SOFF_LK           (SOFF_N0_U4 + 4 * SLEVELS + LKPAD)
-#define SOFF_END          (SOFF_LK + SBLK_LKLEN)
+#define SOFF_BPOS_U1_V2   (SOFF_N0_U4 + 4 * SLEVELS)
+#define SOFF_LK_V2        (SOFF_BPOS_U1_V2 + 1)
+#define SOFF_LK_V1        (SOFF_N0_U4 + 4 * SLEVELS)
+#define SOFF_END          (SOFF_LK_V2 + SBLK_LKLEN)
 static_assert(SOFF_END == 256, "SOFF_END == 256");
 static_assert(SBLK_SZ >= SOFF_END, "SBLK_SZ >= SOFF_END");
 

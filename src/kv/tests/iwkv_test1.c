@@ -63,8 +63,8 @@ static int64_t _test5dup5visitor(uint64_t dv, int64_t idx, void *op) {
 }
 
 // Test Slides
-static void iwkv_test3(void) {
-  FILE *f = fopen("iwkv_test1_3.log", "w+");
+static void iwkv_test3_impl(int fmt_version) {
+  FILE *f = fmt_version > 1 ? fopen("iwkv_test1_3_v2.log", "w+") : fopen("iwkv_test1_3.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
 
   iwrc rc;
@@ -74,7 +74,8 @@ static void iwkv_test3(void) {
   IWDB db1;
   IWKV_OPTS opts = {
     .path = "iwkv_test1_3.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .fmt_version = fmt_version
   };
 
   rc = iwkv_open(&opts, &iwkv);
@@ -112,9 +113,9 @@ static void iwkv_test3(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   // Compare logs with referenced
 #ifndef _WIN32
-  FILE *r = fopen("iwkv_test1_3.ref", "r+");
+  FILE *r = fmt_version > 1 ? fopen("iwkv_test1_3_v2.ref", "r+") : fopen("iwkv_test1_3.ref", "r+");
 #else
-  FILE *r = fopen("iwkv_test1_3w.ref", "r+");
+  FILE *r = fmt_version > 1 ? fopen("iwkv_test1_3w_v2.ref", "r+") : fopen("iwkv_test1_3w.ref", "r+");
 #endif
   CU_ASSERT_PTR_NOT_NULL(r);
   int rci = cmp_files(r, f);
@@ -123,8 +124,16 @@ static void iwkv_test3(void) {
   fclose(r);
 }
 
-static void iwkv_test2(void) {
-  FILE *f = fopen("iwkv_test1_2.log", "w+");
+static void iwkv_test3_v1() {
+  iwkv_test3_impl(1);
+}
+
+static void iwkv_test3_v2() {
+  iwkv_test3_impl(2);
+}
+
+static void iwkv_test2_impl(int fmt_version) {
+  FILE *f = fmt_version > 1 ? fopen("iwkv_test1_2_v2.log", "w+") : fopen("iwkv_test1_2.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
 
   iwrc rc;
@@ -134,7 +143,8 @@ static void iwkv_test2(void) {
   IWDB db1;
   IWKV_OPTS opts = {
     .path = "iwkv_test1_2.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .fmt_version = fmt_version
   };
 
   rc = iwkv_open(&opts, &iwkv);
@@ -227,9 +237,9 @@ static void iwkv_test2(void) {
 
   // Compare logs with referenced
 #ifndef _WIN32
-  FILE *r = fopen("iwkv_test1_2.ref", "r+");
+  FILE *r = fmt_version > 1 ? fopen("iwkv_test1_2_v2.ref", "r+") : fopen("iwkv_test1_2.ref", "r+");
 #else
-  FILE *r = fopen("iwkv_test1_2w.ref", "r+");
+  FILE *r = fmt_version > 1 ? fopen("iwkv_test1_2w_v2.ref", "r+") : fopen("iwkv_test1_2w.ref", "r+");
 #endif
   CU_ASSERT_PTR_NOT_NULL(r);
   int rci = cmp_files(r, f);
@@ -238,15 +248,24 @@ static void iwkv_test2(void) {
   fclose(r);
 }
 
-static void iwkv_test1(void) {
-  FILE *f = fopen("iwkv_test1_1.log", "w+");
+static void iwkv_test2_v1() {
+  iwkv_test2_impl(1);
+}
+
+static void iwkv_test2_v2() {
+  iwkv_test2_impl(2);
+}
+
+static void iwkv_test1_impl(int fmt_version) {
+  FILE *f = fmt_version > 1 ? fopen("iwkv_test1_1_v2.log", "w+") : fopen("iwkv_test1_1.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
   char buf[128];
   size_t vsize;
 
   IWKV_OPTS opts = {
     .path = "iwkv_test1.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .fmt_version = fmt_version
   };
   // Test open/close
   IWKV iwkv;
@@ -477,8 +496,12 @@ static void iwkv_test1(void) {
 
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_AFTER_LAST, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
   int i  = 0;
-  while (!(rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV))) {
+  do  {
     IWKV_val key;
     IWKV_val val;
     iwrc rc2 = iwkv_cursor_get(cur1, &key, &val);
@@ -502,7 +525,7 @@ static void iwkv_test1(void) {
       iwkv_kv_dispose(&key, &val);
     }
     ++i;
-  }
+  } while (!(rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV)));
   CU_ASSERT_EQUAL(rc, IWKV_ERROR_NOTFOUND);
   rc = iwkv_cursor_close(&cur1);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -647,21 +670,30 @@ static void iwkv_test1(void) {
 
   // Compare logs with referenced
 #ifndef _WIN32
-  FILE *r = fopen("iwkv_test1_1.ref", "r+");
+  FILE *r = fmt_version > 1 ? fopen("iwkv_test1_1_v2.ref", "r+") : fopen("iwkv_test1_1.ref", "r+");
 #else
-  FILE *r = fopen("iwkv_test1_1w.ref", "r+");
+  FILE *r = fmt_version > 1 ? fopen("iwkv_test1_1w_v2.ref", "r+") : fopen("iwkv_test1_1w.ref", "r+");
 #endif
-  CU_ASSERT_PTR_NOT_NULL(r);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(r);
   int rci = cmp_files(r, f);
   CU_ASSERT_EQUAL_FATAL(rci, 0);
-  fclose(f);
   fclose(r);
+  fclose(f);
 }
 
-static void iwkv_test8(void) {
+static void iwkv_test1_v1() {
+  iwkv_test1_impl(1);
+}
+
+static void iwkv_test1_v2() {
+  iwkv_test1_impl(2);
+}
+
+static void iwkv_test8_impl(int fmt_version) {
   IWKV_OPTS opts = {
     .path = "iwkv_test1_8.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .fmt_version = fmt_version
   };
   IWKV iwkv;
   IWDB db1;
@@ -741,10 +773,19 @@ static void iwkv_test8(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test7(void) {
+static void iwkv_test8_v1() {
+  iwkv_test1_impl(1);
+}
+
+static void iwkv_test8_v2() {
+  iwkv_test1_impl(2);
+}
+
+static void iwkv_test7_impl(int fmt_version) {
   IWKV_OPTS opts = {
     .path = "iwkv_test1_7.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .fmt_version = fmt_version
   };
   IWKV iwkv;
   IWDB db1;
@@ -787,12 +828,19 @@ static void iwkv_test7(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test6(void) {
-  FILE *f = fopen("iwkv_test1_6.log", "w+");
-  CU_ASSERT_PTR_NOT_NULL(f);
+static void iwkv_test7_v1() {
+  iwkv_test7_impl(1) ;
+}
+
+static void iwkv_test7_v2() {
+  iwkv_test7_impl(2) ;
+}
+
+static void iwkv_test6_impl(int fmt_version) {
   IWKV_OPTS opts = {
     .path = "iwkv_test1_6.db",
-    .oflags = IWKV_TRUNC
+    .oflags = IWKV_TRUNC,
+    .fmt_version =  fmt_version
   };
   const int vbsiz = 1000 * 1000;
   // Test open/close
@@ -823,7 +871,14 @@ static void iwkv_test6(void) {
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   free(vbuf);
-  fclose(f);
+}
+
+static void iwkv_test6_v1() {
+  iwkv_test6_impl(1);
+}
+
+static void iwkv_test6_v2() {
+  iwkv_test6_impl(2);
 }
 
 static void iwkv_test9(void) {
@@ -854,14 +909,22 @@ int main() {
 
   /* Add the tests to the suite */
   if (
-    (NULL == CU_add_test(pSuite, "iwkv_test1", iwkv_test1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test2", iwkv_test2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test3", iwkv_test3)) ||
-//    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
-//    (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test6", iwkv_test6)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test7", iwkv_test7)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test8", iwkv_test8)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test1_v1", iwkv_test1_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test1_v2", iwkv_test1_v2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test2_v1", iwkv_test2_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test2_v2", iwkv_test2_v2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test3_v1", iwkv_test3_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test3_v2", iwkv_test3_v2)) ||
+
+    //-    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
+    //-    (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
+
+    (NULL == CU_add_test(pSuite, "iwkv_test6_v1", iwkv_test6_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test6_v2", iwkv_test6_v2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test7_v1", iwkv_test7_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test7_v2", iwkv_test7_v2)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test8_v1", iwkv_test8_v1)) ||
+    (NULL == CU_add_test(pSuite, "iwkv_test8_v2", iwkv_test8_v2)) ||
     (NULL == CU_add_test(pSuite, "iwkv_test9", iwkv_test9))
   )  {
     CU_cleanup_registry();

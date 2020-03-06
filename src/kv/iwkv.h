@@ -57,9 +57,6 @@ IW_EXTERN_C_START
 // Max key + value size: 255Mb
 #define IWKV_MAX_KVSZ 0xfffffff
 
-// Maximum length of prefix key to compare
-#define PREFIX_KEY_LEN 116U
-
 /**
  * @brief IWKV error codes.
  */
@@ -91,6 +88,7 @@ typedef uint8_t iwkv_openflags;
 #define IWKV_RDONLY ((iwkv_openflags) 0x02U)
 /** Truncate storage file on open */
 #define IWKV_TRUNC  ((iwkv_openflags) 0x04U)
+#define IWKV_NO_TRIM_ON_CLOSE ((iwkv_openflags) 0x08U)
 
 /** Database initialization modes */
 typedef uint8_t iwdb_flags_t;
@@ -153,6 +151,12 @@ typedef struct IWKV_WAL_OPTS {
 typedef struct IWKV_OPTS {
   const char *path;                 /**< Path to database file */
   uint32_t random_seed;             /**< Random seed used for iwu random generator */
+  /**
+   * Database storage format version.
+   * Leave it as zero for the latest supported format.
+   * Used only for newly created databases,
+   */
+  int32_t fmt_version;
   iwkv_openflags oflags;            /**< Bitmask of database file open modes */
   bool file_lock_fail_fast;         /**< Do not wait and raise error if database is locked by another process */
   IWKV_WAL_OPTS wal;                /**< WAL options */
