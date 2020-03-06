@@ -8,7 +8,7 @@ SBLK - Skip list node with pointers to next nodes and pointer to KVBLK (key/valu
        SBLK has fixed size (256 bytes). SBLK file position (block adress) within a file is
        fixed and cannot be changed.
 
- flags:u1,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,pi:u1[32],n:u4[24],lk:u116]:u256
+  [flags:u1,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,pi:u1[32],n:u4[24],bpos:u1,lk:u115]:u256
                                         \
                                        KVBLK
 
