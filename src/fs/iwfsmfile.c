@@ -458,7 +458,9 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
   uint64_t akoff = FSMBK_OFFSET(nk);
   uint64_t aklen = FSMBK_LENGTH(nk);
   uint64_t noff = IW_ROUNDUP(akoff, aunit_blk);
+
   if (noff <= max_offset_blk && (noff < aklen + akoff) && (aklen - (noff - akoff) >= length_blk)) {
+    _fsm_del_fbk(impl, akoff, aklen);
     aklen = aklen - (noff - akoff);
     if (noff > akoff) {
       _fsm_put_fbk(impl, akoff, noff - akoff);
@@ -468,7 +470,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
     }
     *offset_blk = noff;
     *olength_blk = length_blk;
-    return _fsm_set_bit_status_lw(impl, akoff, length_blk, 1, bopts);
+    return _fsm_set_bit_status_lw(impl, noff, length_blk, 1, bopts);
   }
 
   aklen = 0;
@@ -477,11 +479,10 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
 #define _fsm_traverse(k)                                                                                     \
   {                                                                                                          \
     uint64_t koff = FSMBK_OFFSET(k);                                                                         \
+    uint64_t klen = FSMBK_LENGTH(k);                                                                         \
     if (koff < akoff) {                                                                                      \
-      uint64_t klen;                                                                                         \
       noff = IW_ROUNDUP(koff, aunit_blk);                                                                    \
-      klen = FSMBK_LENGTH(k);                                                                                \
-      if (noff <= max_offset_blk && (noff < klen + akoff) && (klen - (noff - koff) >= length_blk)) {         \
+      if (noff <= max_offset_blk && (noff < klen + koff) && (klen - (noff - koff) >= length_blk)) {          \
         akoff = koff;                                                                                        \
         aklen = klen;                                                                                        \
       }                                                                                                      \
@@ -493,6 +494,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
   if (akoff == UINT64_MAX) {
     return IWFS_ERROR_NO_FREE_SPACE;
   }
+  _fsm_del_fbk(impl, akoff, aklen);
   noff = IW_ROUNDUP(akoff, aunit_blk);
   aklen = aklen - (noff - akoff);
   if (noff > akoff) {
@@ -503,7 +505,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
   }
   *offset_blk = noff;
   *olength_blk = length_blk;
-  return _fsm_set_bit_status_lw(impl, akoff, length_blk, 1, bopts);
+  return _fsm_set_bit_status_lw(impl, noff, length_blk, 1, bopts);
 }
 
 /**
