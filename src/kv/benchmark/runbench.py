@@ -25,8 +25,8 @@ benchmarks = [
     'bdb',
     'wiredtiger',
     'kyc',
-    # 'tc',
-    'leveldb'
+    'tc'
+    #'leveldb'
 ]
 
 runs = []
