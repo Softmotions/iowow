@@ -1513,11 +1513,11 @@ static WUR iwrc _sblk_create_v2(IWLCTX *lx, uint8_t nlevel, uint8_t kvbpow, SBLK
   SBLK *_lower = lower;
   SBLK *_upper = upper;
 
-  for (int i = 0; i < SLEVELS; ++i) {
-    if (lx->pupper[i] && lx->pupper[i]->lvl == nlevel) {
+  for (int i = SLEVELS - 1; i >= 0; --i) {
+    if (lx->pupper[i] && lx->pupper[i]->lvl >= nlevel) {
       _upper = lx->pupper[i];
     }
-    if (lx->plower[i] && lx->plower[i]->lvl == nlevel) {
+    if (lx->plower[i] && lx->plower[i]->lvl >= nlevel) {
       _lower = lx->plower[i];
     }
   }

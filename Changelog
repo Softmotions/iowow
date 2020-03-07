@@ -1,3 +1,9 @@
+iowow (1.4.1) UNRELEASED; urgency=medium
+
+  * Better new SBLK blocks locality  (performance)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Sat, 07 Mar 2020 18:29:36 +0700
+
 iowow (1.4.0) testing; urgency=medium
 
   * Implemented new compact and performant data storage format v2
