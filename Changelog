@@ -1,9 +1,9 @@
-iowow (1.4.1) UNRELEASED; urgency=medium
+iowow (1.4.1) testing; urgency=medium
 
   * Fixed possible data corruption in `_fsm_blk_allocate_aligned_lw` (iwfsmfile.c)
   * Better new SBLK blocks locality  (performance)
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 07 Mar 2020 18:29:36 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Sat, 07 Mar 2020 23:23:13 +0700
 
 iowow (1.4.0) testing; urgency=medium
 
