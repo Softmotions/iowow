@@ -87,6 +87,18 @@ void test_iwpool_split_string() {
     }
   }
   CU_ASSERT_EQUAL(i, 5);
+
+  res = iwpool_split_string(pool, " foo ", ",", false);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(res);
+  i = 0;
+  for (; res[i]; ++i) {
+    switch (i) {
+      case 0:
+        CU_ASSERT_STRING_EQUAL(res[i], " foo ");
+        break;
+    }
+  }
+  CU_ASSERT_EQUAL(i, 1);
   iwpool_destroy(pool);
 }
 
