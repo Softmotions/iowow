@@ -30,6 +30,7 @@
 
 #include "basedefs.h"
 #include <stddef.h>
+#include <stdbool.h>
 IW_EXTERN_C_START
 
 #ifndef IWPOOL_POOL_SIZ
@@ -50,6 +51,9 @@ IW_EXPORT char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *
 IW_EXPORT char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp);
 
 IW_EXPORT char *iwpool_printf(IWPOOL *pool, const char *format, ...);
+
+IW_EXPORT char **iwpool_split_string(IWPOOL *pool, const char *haystack,
+                                     const char *split_chars, bool ignore_whitespace);
 
 IW_EXPORT void iwpool_destroy(IWPOOL *pool);
 

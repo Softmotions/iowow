@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <ctype.h>
 
 #define IWPOOL_UNIT_ALIGN_SIZE 8
 
@@ -136,6 +137,39 @@ char *iwpool_printf(IWPOOL *pool, const char *format, ...) {
   char *res = iwpool_printf_va(pool, format, ap);
   va_end(ap);
   return res;
+}
+
+char **iwpool_split_string(IWPOOL *pool, const char *haystack, const char *split_chars,
+                           bool ignore_whitespace) {
+
+  int hsz = strlen(haystack);
+  char **ret = iwpool_alloc((hsz + 1) * sizeof(char *), pool);
+  if (!ret) return 0;
+  const char *sp = haystack;
+  const char *ep = sp;
+  int j = 0;
+  for (int i = 0; *ep; ++i, ++ep) {
+    const char ch = haystack[i];
+    const char *sch = strchr(split_chars, ch);
+    if (ep >= sp && (sch || *(ep + 1) == '\0')) {
+      if (!sch && *(ep + 1) == '\0') ++ep;
+      if (ignore_whitespace) {
+        while (isspace(*sp)) ++sp;
+        while (isspace(*(ep - 1))) --ep;
+      }
+      if (ep >= sp) {
+        char *s = iwpool_alloc(ep - sp + 1, pool);
+        if (!s) return 0;
+        memcpy(s, sp, ep - sp);
+        s[ep - sp] = '\0';
+        ret[j++] = s;
+        ep = haystack + i;
+      }
+      sp = haystack + i + 1;
+    }
+  }
+  ret[j] = 0;
+  return ret;
 }
 
 size_t iwpool_allocated_size(IWPOOL *pool) {
