@@ -3,6 +3,7 @@
 #include "iwlog.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <errno.h>
 
 #define IWPOOL_UNIT_ALIGN_SIZE 8
@@ -115,6 +116,26 @@ char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp) {
 
 char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp) {
   return iwpool_strndup(pool, str, strlen(str), rcp);
+}
+
+
+static char *iwpool_printf_va(IWPOOL *pool, const char *format, va_list ap) {
+  char buf[1], *wbuf;
+  int sz = vsnprintf(buf, sizeof(buf), format, ap);
+  wbuf = iwpool_alloc(sz + 1, pool);
+  if (!wbuf) {
+    return 0;
+  }
+  vsnprintf(wbuf, sz + 1, format, ap);
+  return wbuf;
+}
+
+char *iwpool_printf(IWPOOL *pool, const char *format, ...) {
+  va_list ap;
+  va_start(ap, format);
+  char *res = iwpool_printf_va(pool, format, ap);
+  va_end(ap);
+  return res;
 }
 
 size_t iwpool_allocated_size(IWPOOL *pool) {

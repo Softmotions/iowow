@@ -49,6 +49,8 @@ IW_EXPORT char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *
 
 IW_EXPORT char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp);
 
+IW_EXPORT char *iwpool_printf(IWPOOL *pool, const char *format, ...);
+
 IW_EXPORT void iwpool_destroy(IWPOOL *pool);
 
 IW_EXPORT size_t iwpool_allocated_size(IWPOOL *pool);

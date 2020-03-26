@@ -15,8 +15,8 @@
     </Extensions>
     <Regexes/>
     <Excludepaths>
-      <Path>build/</Path>
       <Path>mxe/</Path>
+      <Path>build/</Path>
     </Excludepaths>
     <Ignorefiles/>
     <Topleveldir>/home/adam/Projects/softmotions/iowow</Topleveldir>
@@ -97,6 +97,10 @@
       <File Name="src/platform/iwp.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="utils">
+      <File Name="src/utils/iwth.h"/>
+      <File Name="src/utils/iwth.c"/>
+      <File Name="src/utils/iwstree.h"/>
+      <File Name="src/utils/iwstree.c"/>
       <File Name="src/utils/iwuuid.h"/>
       <File Name="src/utils/iwuuid.c"/>
       <File Name="src/utils/pthread_spin_lock_shim.h"/>
@@ -137,6 +141,9 @@
         <File Name="src/kv/dbg/iwkvdbg.c"/>
       </VirtualDirectory>
       <VirtualDirectory Name="benchmark">
+        <File Name="src/kv/benchmark/wiredtiger_benchmark.c"/>
+        <File Name="src/kv/benchmark/tc_benchmark.c"/>
+        <File Name="src/kv/benchmark/bdb_benchmark.c"/>
         <File Name="src/kv/benchmark/README.md"/>
         <File Name="src/kv/benchmark/runbench.py"/>
         <File Name="src/kv/benchmark/kyc_benchmark.c"/>
@@ -153,6 +160,7 @@
       <File Name="src/kv/data-format.txt"/>
       <File Name="src/kv/iwkv.h"/>
       <VirtualDirectory Name="tests">
+        <File Name="src/kv/tests/iwkv_test10.c"/>
         <File Name="src/kv/tests/iwkv_test9.c"/>
         <File Name="src/kv/tests/iwkv_test8.c"/>
         <File Name="src/kv/tests/iwkv_test7.c"/>
