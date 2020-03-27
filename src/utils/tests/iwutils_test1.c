@@ -99,6 +99,34 @@ void test_iwpool_split_string() {
     }
   }
   CU_ASSERT_EQUAL(i, 1);
+
+
+  res = iwpool_printf_split(pool, ",", true, "%s,%s", "foo", "bar");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(res);
+  i = 0;
+  for (; res[i]; ++i) {
+    switch (i) {
+      case 0:
+        CU_ASSERT_STRING_EQUAL(res[i], "foo");
+        break;
+      case 1:
+        CU_ASSERT_STRING_EQUAL(res[i], "bar");
+        break;
+    }
+  }
+  CU_ASSERT_EQUAL(i, 2);
+
+
+  iwpool_destroy(pool);
+}
+
+
+void test_iwpool_printf() {
+  IWPOOL *pool = iwpool_create(128);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
+  const char *res = iwpool_printf(pool, "%s=%s", "foo", "bar");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
+  CU_ASSERT_STRING_EQUAL(res, "foo=bar");
   iwpool_destroy(pool);
 }
 
@@ -119,9 +147,10 @@ int main() {
 
   /* Add the tests to the suite */
   if (
-      (NULL == CU_add_test(pSuite, "test_iwu_replace_into", test_iwu_replace_into)) ||
-      (NULL == CU_add_test(pSuite, "test_iwpool_split_string", test_iwpool_split_string))
-      ) {
+    (NULL == CU_add_test(pSuite, "test_iwu_replace_into", test_iwu_replace_into)) ||
+    (NULL == CU_add_test(pSuite, "test_iwpool_split_string", test_iwpool_split_string)) ||
+    (NULL == CU_add_test(pSuite, "test_iwpool_printf", test_iwpool_printf))
+  ) {
     CU_cleanup_registry();
     return CU_get_error();
   }

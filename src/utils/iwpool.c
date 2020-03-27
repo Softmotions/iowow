@@ -120,21 +120,28 @@ char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp) {
 }
 
 
-static char *iwpool_printf_va(IWPOOL *pool, const char *format, va_list ap) {
-  char buf[1], *wbuf;
-  int sz = vsnprintf(buf, sizeof(buf), format, ap);
-  wbuf = iwpool_alloc(sz + 1, pool);
+IW_INLINE int _iwpool_printf_estimate_size(const char *format, va_list ap) {
+  char buf[1];
+  return vsnprintf(buf, sizeof(buf), format, ap) + 1;
+}
+
+static char *_iwpool_printf_va(IWPOOL *pool, int size, const char *format, va_list ap) {
+  char *wbuf = iwpool_alloc(size, pool);
   if (!wbuf) {
     return 0;
   }
-  vsnprintf(wbuf, sz + 1, format, ap);
+  int sz = vsnprintf(wbuf, size + 1, format, ap);
+  assert(sz < size);
   return wbuf;
 }
 
 char *iwpool_printf(IWPOOL *pool, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
-  char *res = iwpool_printf_va(pool, format, ap);
+  int size = _iwpool_printf_estimate_size(format, ap);
+  va_end(ap);
+  va_start(ap, format);
+  char *res = _iwpool_printf_va(pool, size, format, ap);
   va_end(ap);
   return res;
 }
@@ -169,6 +176,27 @@ char **iwpool_split_string(IWPOOL *pool, const char *haystack, const char *split
     }
   }
   ret[j] = 0;
+  return ret;
+}
+
+char **iwpool_printf_split(IWPOOL *pool,
+                           const char *split_chars, bool ignore_whitespace,
+                           const char *format, ...) {
+
+  va_list ap;
+  va_start(ap, format);
+  int size = _iwpool_printf_estimate_size(format, ap);
+  va_end(ap);
+  char *buf = malloc(size);
+  if (!buf) {
+    return 0;
+  }
+  va_start(ap, format);
+  int sz = vsnprintf(buf, size, format, ap);
+  assert(sz < size);
+  va_end(ap);
+  char **ret = iwpool_split_string(pool, buf, split_chars, ignore_whitespace);
+  free(buf);
   return ret;
 }
 
