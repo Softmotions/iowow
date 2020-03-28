@@ -130,8 +130,7 @@ static char *_iwpool_printf_va(IWPOOL *pool, int size, const char *format, va_li
   if (!wbuf) {
     return 0;
   }
-  int sz = vsnprintf(wbuf, size + 1, format, ap);
-  assert(sz < size);
+  vsnprintf(wbuf, size + 1, format, ap);
   return wbuf;
 }
 
