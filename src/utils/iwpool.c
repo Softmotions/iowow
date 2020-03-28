@@ -191,8 +191,7 @@ char **iwpool_printf_split(IWPOOL *pool,
     return 0;
   }
   va_start(ap, format);
-  int sz = vsnprintf(buf, size, format, ap);
-  assert(sz < size);
+  vsnprintf(buf, size, format, ap);
   va_end(ap);
   char **ret = iwpool_split_string(pool, buf, split_chars, ignore_whitespace);
   free(buf);
