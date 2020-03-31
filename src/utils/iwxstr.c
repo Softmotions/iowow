@@ -108,6 +108,7 @@ void iwxstr_shift(IWXSTR *xstr, size_t shift_size) {
     memmove(xstr->ptr, xstr->ptr + shift_size, xstr->size - shift_size);
   }
   xstr->size -= shift_size;
+  xstr->ptr[xstr->size] = '\0';
 }
 
 static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
