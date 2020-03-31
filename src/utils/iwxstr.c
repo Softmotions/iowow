@@ -97,6 +97,19 @@ iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size) {
   return IW_OK;
 }
 
+void iwxstr_shift(IWXSTR *xstr, size_t shift_size) {
+  if (shift_size == 0) {
+    return;
+  }
+  if (shift_size > xstr->size) {
+    shift_size = xstr->size;
+  }
+  if (xstr->size > shift_size) {
+    memmove(xstr->ptr, xstr->ptr + shift_size, xstr->size - shift_size);
+  }
+  xstr->size -= shift_size;
+}
+
 static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
   iwrc rc = 0;
   while (*format) {
