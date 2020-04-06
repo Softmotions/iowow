@@ -236,16 +236,17 @@ IWULIST *iwulist_clone(IWULIST *list) {
   if (!nlist) {
     return 0;
   }
-  nlist->array = malloc(list->usize * list->num);
+  size_t anum = list->num > IWULIST_ALLOC_UNIT ? list->num : IWULIST_ALLOC_UNIT;
+  nlist->array = malloc(anum * list->usize);
   if (!nlist->array) {
     free(nlist);
     return 0;
   }
-  memcpy(nlist->array, list->array, list->num * list->usize);
+  memcpy(nlist->array, list->array + list->start, list->num * list->usize);
   nlist->usize = list->usize;
   nlist->num = list->num;
-  nlist->anum = list->anum;
-  nlist->start = list->start;
+  nlist->anum = anum;
+  nlist->start = 0;
   return nlist;
 }
 
