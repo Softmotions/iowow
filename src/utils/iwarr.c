@@ -209,7 +209,6 @@ void iwulist_destroy_keep(IWULIST *list) {
   if (list) {
     if (list->array) {
       free(list->array);
-      list->array = 0;
     }
     memset(list, 0, sizeof(*list));
   }
