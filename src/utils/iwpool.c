@@ -119,7 +119,6 @@ char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp) {
   return iwpool_strndup(pool, str, strlen(str), rcp);
 }
 
-
 IW_INLINE int _iwpool_printf_estimate_size(const char *format, va_list ap) {
   char buf[1];
   return vsnprintf(buf, sizeof(buf), format, ap) + 1;
@@ -130,7 +129,7 @@ static char *_iwpool_printf_va(IWPOOL *pool, int size, const char *format, va_li
   if (!wbuf) {
     return 0;
   }
-  vsnprintf(wbuf, size + 1, format, ap);
+  vsnprintf(wbuf, size, format, ap);
   return wbuf;
 }
 
