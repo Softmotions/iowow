@@ -254,6 +254,7 @@ void *iwulist_at(IWULIST *list, size_t index, iwrc *orc) {
   *orc = 0;
   if (index >= list->num) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
+    return 0;
   }
   return list->array + index * list->usize;
 }
