@@ -5,6 +5,7 @@ iowow (1.4.2) UNRELEASED; urgency=medium
   * Added iwpool_printf (iwpool.h)
   * Added iwpool_printf_split (iwpool.h)
   * Added iwxstr_shift (iwxstr.h)
+  * Added `#define RCHECK` (basedefs.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 26 Mar 2020 18:03:46 +0700
 

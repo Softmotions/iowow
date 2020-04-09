@@ -104,6 +104,10 @@ typedef int HANDLE;
 #define RCGO(rc__, label__) if (rc__) goto label__
 #endif
 
+#define RCHECK(rc__, label__,  expr__) \
+  rc__ = expr__;                       \
+  RCGO(rc__, label__)
+
 #ifdef __GNUC__
 #define RCRET(rc__) if (__builtin_expect((!!(rc__)), 0)) return (rc__)
 #else
