@@ -256,6 +256,7 @@ void *iwulist_at(IWULIST *list, size_t index, iwrc *orc) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
     return 0;
   }
+  index += list->start;
   return list->array + index * list->usize;
 }
 
