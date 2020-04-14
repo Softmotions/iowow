@@ -456,8 +456,7 @@ static WUR iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
     if (rci != -1) {
       kh_value(iwkv->dbs, k) = db;
     } else {
-      rc = IW_ERROR_FAIL;
-      return rc;
+      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
     }
   } while (db->next_db_addr);
   return rc;
@@ -656,7 +655,8 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   if (rci != -1) {
     kh_value(iwkv->dbs, k) = db;
   } else {
-    RCGO(IW_ERROR_FAIL, finish);
+    rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    goto finish;
   }
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
