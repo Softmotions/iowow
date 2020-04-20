@@ -120,6 +120,12 @@ typedef int HANDLE;
 #define RCBREAK(rc__) if (rc__) break
 #endif
 
+#ifdef __GNUC__
+#define RCONT(rc__) if (__builtin_expect((!!(rc__)), 0)) continue
+#else
+#define RCONT(rc__) if (rc__) continue
+#endif
+
 #ifndef MIN
 #define MIN(a_, b_) ((a_) < (b_) ? (a_) : (b_))
 #endif
