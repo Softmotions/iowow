@@ -1,4 +1,4 @@
-iowow (1.4.2) UNRELEASED; urgency=medium
+iowow (1.4.2) testing; urgency=medium
 
   * Added IWULIST, IWLIST implementation (iwarr.h)
   * Added iwpool_split_string (iwpool.h)
@@ -8,7 +8,7 @@ iowow (1.4.2) UNRELEASED; urgency=medium
   * Added `#define RCHECK` (basedefs.h)
   * Better error handling of `kh_put`
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 26 Mar 2020 18:03:46 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 20 Apr 2020 16:23:50 +0700
 
 iowow (1.4.1) testing; urgency=medium
 
