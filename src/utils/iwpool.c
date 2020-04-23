@@ -50,9 +50,7 @@ error:
     if (pool->unit && pool->unit->heap) {
       free(pool->unit->heap);
     }
-    if (pool->unit) {
-      free(pool->unit);
-    }
+    free(pool->unit);
     free(pool);
   }
   return 0;

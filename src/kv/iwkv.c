@@ -1,5 +1,8 @@
+// -V::512
+
 #include "iwkv_internal.h"
 #include "iwconv.h"
+#include <stdalign.h>
 
 static iwrc _dbcache_fill_lw(IWLCTX *lx);
 static iwrc _dbcache_get(IWLCTX *lx);
@@ -7,6 +10,8 @@ static iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk);
 static void _dbcache_remove_lw(IWLCTX *lx, SBLK *sblk);
 static void _dbcache_update_lw(IWLCTX *lx, SBLK *sblk);
 static void _dbcache_destroy_lw(IWDB db);
+
+#define _wnw_db_wl(db_) _api_db_wlock(db_)
 
 //-------------------------- GLOBALS
 
@@ -96,7 +101,7 @@ static int _cmp_keys_prefix(iwdb_flags_t dbflg, const void *v1, int v1len, const
       return v2len - v1len;
     }
     if (dbflg & IWDB_VNUM64_KEYS) {
-      if (v2len - v1len || v2len > IW_VNUMBUFSZ || v1len > IW_VNUMBUFSZ) {
+      if (v2len != v1len || v2len > IW_VNUMBUFSZ || v1len > IW_VNUMBUFSZ) {
         return v2len - v1len;
       }
       int64_t n1, n2;
@@ -122,7 +127,7 @@ static int _cmp_keys_prefix(iwdb_flags_t dbflg, const void *v1, int v1len, const
     int v2len = (int) key->size;
     const void *v2 = key->data;
     if (dbflg & IWDB_VNUM64_KEYS) {
-      if (v2len - v1len || v2len > IW_VNUMBUFSZ || v1len > IW_VNUMBUFSZ) {
+      if (v2len != v1len || v2len > IW_VNUMBUFSZ || v1len > IW_VNUMBUFSZ) {
         return v2len - v1len;
       }
       int64_t n1, n2;
@@ -162,9 +167,7 @@ IW_INLINE int _cmp_keys(iwdb_flags_t dbflg, const void *v1, int v1len, const IWK
 
 IW_INLINE void _kv_val_dispose(IWKV_val *v) {
   if (v) {
-    if (v->data) {
-      free(v->data);
-    }
+    free(v->data);
     v->size = 0;
     v->data = 0;
   }
@@ -208,7 +211,7 @@ static WUR iwrc _iwkv_worker_inc_nolk(IWKV iwkv) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  if (!iwkv->open) {
+  if (!iwkv->open) { // -V547
     pthread_mutex_unlock(&iwkv->wk_mtx);
     return IW_ERROR_INVALID_STATE;
   }
@@ -230,7 +233,7 @@ static WUR iwrc _db_worker_inc_nolk(IWDB db) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  if (!iwkv->open || !db->open) {
+  if (!iwkv->open || !db->open) { // -V560
     pthread_mutex_unlock(&iwkv->wk_mtx);
     return IW_ERROR_INVALID_STATE;
   }
@@ -284,12 +287,6 @@ static WUR iwrc _wnw_iwkw_wl(IWKV iwkv) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  return 0;
-}
-
-static WUR iwrc _wnw_db_wl(IWDB db) {
-  int rci;
-  API_DB_WLOCK(db, rci);
   return 0;
 }
 
@@ -596,7 +593,7 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
     .iwkv = iwkv,
     .db = db
   };
-  rc = _db_dispose_chain(&dctx);
+  IWRC(_db_dispose_chain(&dctx), rc);
   if (meta_blk && meta_blkn) {
     IWRC(fsm->deallocate(fsm, BLK2ADDR(db->meta_blk), BLK2ADDR(db->meta_blkn)), rc);
   }
@@ -793,7 +790,6 @@ static WUR iwrc _kvblk_value_get(KVBLK *kb, uint8_t *mm, uint8_t idx, IWKV_val *
     val->data = malloc(val->size);
     if (!val->data) {
       iwrc rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-      val->data = 0;
       val->size = 0;
       return rc;
     }
@@ -967,6 +963,7 @@ static WUR iwrc _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
 #define _kvblk_sort_kv_lt(v1, v2) \
   (((v1).off > 0 ? (v1).off : -1UL) < ((v2).off > 0 ? (v2).off : -1UL))
 
+// -V:KSORT_INIT:522, 756, 769
 KSORT_INIT(kvblk, KVP, _kvblk_sort_kv_lt)
 
 static WUR iwrc _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
@@ -1086,10 +1083,8 @@ static WUR iwrc _kvblk_rmkv(KVBLK *kb, uint8_t idx, kvblk_rmkv_opts_t opts) {
     }
   }
   if (RMKV_SYNC & opts) {
-    if (!mm) {
-      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      RCGO(rc, finish);
-    }
+    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCGO(rc, finish);
     IWRC(_kvblk_sync_mm(kb, mm), rc);
   }
 
@@ -1228,9 +1223,6 @@ start:
   fsm->release_mmap(fsm);
 
 finish:
-  if (uval != val) {
-    _kv_val_dispose(uval);
-  }
   return rc;
 }
 
@@ -1316,9 +1308,6 @@ static WUR iwrc _kvblk_updatev(KVBLK *kb,
   }
 
 finish:
-  if (uval != val) {
-    _kv_val_dispose(uval);
-  }
   if (ukey != key) {
     _kv_val_dispose(ukey);
   }
@@ -1938,8 +1927,11 @@ static WUR iwrc _sblk_addkv2(SBLK *sblk,
 static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx) {
   const IWKV_val *key = lx->key;
   const IWKV_val *val = lx->val;
-  assert(sblk && key && key->size && key->data && val && sblk->kvblk);
-
+  assert(key && key->size && key->data && val && sblk->kvblk);
+  if (!sblk) {
+    iwlog_error2("sblk != 0");
+    return IW_ERROR_ASSERTION;
+  }
   uint8_t *mm, idx, kvidx;
   IWDB db = sblk->db;
   KVBLK *kvblk = sblk->kvblk;
@@ -2576,11 +2568,7 @@ start:
     rc = IWKV_ERROR_CORRUPTED;
     iwlog_ecode_error3(rc);
   }
-  if (rc && !IWKV_IS_INTERNAL_RC(rc)) {
-    _lx_release_mm(lx, 0);
-  } else {
-    rc = _lx_release(lx);
-  }
+  IWRC(_lx_release(lx), rc);
   return rc;
 }
 
@@ -2746,9 +2734,7 @@ finish:
 //-------------------------- CACHE
 
 static void _dbcache_destroy_lw(IWDB db) {
-  if (db->cache.nodes) {
-    free(db->cache.nodes);
-  }
+  free(db->cache.nodes);
   memset(&db->cache, 0, sizeof(db->cache));
 }
 
@@ -2891,12 +2877,13 @@ static WUR iwrc _dbcache_fill_lw(IWLCTX *lx) {
     if (c->asize < nsize * (num + 1)) {
       c->asize += (nsize * DBCACHE_ALLOC_STEP);
       wp = (uint8_t *) c->nodes;
-      c->nodes = realloc(c->nodes, c->asize);
-      if (!c->nodes) {
+      DBCNODE *nn = realloc(c->nodes, c->asize);
+      if (!nn) {
         rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         free(wp);
         return rc;
       }
+      c->nodes = nn;
     }
     wp = (uint8_t *) c->nodes + nsize * num;
     memcpy(wp, &cn, offsetof(DBCNODE, lk));
@@ -2914,7 +2901,7 @@ static WUR iwrc _dbcache_get(IWLCTX *lx) {
   off_t idx;
   bool found;
   DBCNODE *n;
-  uint8_t dbcbuf[255];
+  alignas(DBCNODE) uint8_t dbcbuf[255];
   IWDB db = lx->db;
   DBCACHE *cache = &db->cache;
   const IWKV_val *key = lx->key;
@@ -2970,7 +2957,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   off_t idx;
   bool found;
   IWDB db = lx->db;
-  uint8_t dbcbuf[255];
+  alignas(DBCNODE) uint8_t dbcbuf[255];
   DBCNODE *n = (DBCNODE *) dbcbuf;
   DBCACHE *cache = &db->cache;
   size_t nsize = cache->nsize;
@@ -2985,9 +2972,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
     return 0;
   }
   if (!sblk->kvblk) {
-    if (!sblk->kvblk) {
-      assert(sblk->kvblk);
-    }
+    assert(sblk->kvblk);
     return IW_ERROR_INVALID_STATE;
   }
   n->lkl = sblk->lkl;
@@ -3014,7 +2999,7 @@ static WUR iwrc _dbcache_put_lw(IWLCTX *lx, SBLK *sblk) {
   }
 
   uint8_t *cptr = (uint8_t *) cache->nodes;
-  if (cache->num - idx > 0) {
+  if (cache->num != idx) {
     memmove(cptr + (idx + 1) * nsize, cptr + idx * nsize, (cache->num - idx) * nsize);
   }
   memcpy(cptr + idx * nsize, n, nsize);
@@ -3448,9 +3433,7 @@ finish:
   if (w.impl) {
     IWRC(w.close(&w), rc);
   }
-  if (wpath) {
-    free(wpath);
-  }
+  free(wpath);
   return rc;
 }
 
@@ -3493,7 +3476,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
   }
   IWKV iwkv = *iwkvp;
   iwkv->fmt_version = opts->fmt_version > 0 ? opts->fmt_version : IWKV_FORMAT;
-  if (iwkv->fmt_version < 0 || iwkv->fmt_version > IWKV_FORMAT) {
+  if (iwkv->fmt_version > IWKV_FORMAT) {
     rc = IWKV_ERROR_INCOMPATIBLE_DB_FORMAT;
     iwlog_ecode_error3(rc);
     return rc;
@@ -3585,7 +3568,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     uint8_t hdr[KVHDRSZ];
     rc = fsm->readhdr(fsm, 0, hdr, KVHDRSZ);
     RCGO(rc, finish);
-    rp = hdr;
+    rp = hdr; // -V507
     IW_READLV(rp, lv, lv);
     IW_READLLV(rp, llv, dbaddr);
     if (lv != IWKV_MAGIC || dbaddr < 0) {
@@ -3868,7 +3851,7 @@ iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval) {
     API_DB_RLOCK(db, rci);
   } else {
     API_DB_WLOCK(db, rci);
-    if (!db->cache.open) {
+    if (!db->cache.open) { // -V547
       rc = _dbcache_fill_lw(&lx);
       RCGO(rc, finish);
     }
@@ -3905,7 +3888,7 @@ iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vbufsz, size
     API_DB_RLOCK(db, rci);
   } else {
     API_DB_WLOCK(db, rci);
-    if (!db->cache.open) {
+    if (!db->cache.open) { // -V547
       rc = _dbcache_fill_lw(&lx);
       RCGO(rc, finish);
     }

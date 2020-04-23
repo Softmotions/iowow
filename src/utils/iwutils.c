@@ -197,8 +197,8 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   }
   fseek(f1, 0, SEEK_SET);
   fseek(f2, 0, SEEK_SET);
-  char c1 = getc(f1);
-  char c2 = getc(f2);
+  int c1 = getc(f1);
+  int c2 = getc(f2);
   int pos = 0, line = 1;
   while (c1 != EOF && c2 != EOF) {
     pos++;
@@ -214,7 +214,7 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
     c1 = getc(f1);
     c2 = getc(f2);
   }
-  if (c1 - c2 && verbose) {
+  if ((c1 - c2) && verbose) { // -V793
     fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
   }
   return (c1 - c2);
@@ -286,6 +286,7 @@ iwrc iwu_replace(IWXSTR **result,
   for (int i = 0; i < keysz; ++i) {
     iwxstr_clear(bbuf);
     const char *key = keys[i];
+    int klen = strlen(key);
     while (true) {
       const char *p = strstr(ptr, key);
       if (!p) {
@@ -299,7 +300,7 @@ iwrc iwu_replace(IWXSTR **result,
       const char *repl = mapper(key, mapper_op);
       rc = iwxstr_cat2(bbuf, repl ? repl : key);
       RCGO(rc, finish);
-      ptr = p + strlen(key);
+      ptr = p + klen;
       if (ptr - start >= datalen) {
         break;
       }

@@ -113,7 +113,7 @@ char* iwftoa(long double n, char s[static IWFTOA_BUFSIZE]) {
     strcpy(s, "nan");
   } else if (isinf(n)) {
     strcpy(s, "inf");
-  } else if (n == 0.0) {
+  } else if (n == 0.0) { // -V550
     strcpy(s, "0");
   } else {
     int digit, m, m1;

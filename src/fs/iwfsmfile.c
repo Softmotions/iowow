@@ -81,6 +81,8 @@ typedef uint8_t fsm_bmopts_t;
 
 IW_INLINE int _fsm_cmp_ptr(const FSMBK *a, const FSMBK *b);
 #define _fsm_cmp(a_, b_) (_fsm_cmp_ptr(&(a_), &(b_)))
+
+// -V:KBTREE_INIT:522, 641
 KBTREE_INIT(fsm, FSMBK, _fsm_cmp)
 
 struct IWFS_FSM_IMPL {
@@ -488,6 +490,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
       }                                                                                                      \
     }                                                                                                        \
   }
+  //-V:__kb_traverse:576, 701, 619, 769, 522
   __kb_traverse(FSMBK, impl->fsm, _fsm_traverse);
 #undef _fsm_traverse
 
@@ -519,6 +522,7 @@ static void _fsm_load_fsm_lw(FSM *impl, const uint8_t *bm, uint64_t len) {
   uint64_t fbklength = 0;
   uint64_t fbkoffset = 0;
   if (impl->fsm) {
+    // -V:kb_destroy:701, 769
     kb_destroy(fsm, impl->fsm);
   }
   impl->fsm = kb_init(fsm, KB_DEFAULT_SIZE);
@@ -1053,7 +1057,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
     bmoffset = bmoffset << impl->bpow;
     bmlen = sp << impl->bpow;
   } else if (rc == IWFS_ERROR_NO_FREE_SPACE) {
-    bmoffset = impl->bmlen * (1U << impl->bpow) * 8U;
+    bmoffset = impl->bmlen * (1ULL << impl->bpow) * 8U;
     bmoffset = IW_ROUNDUP(bmoffset, impl->aunit);
   }
   if (!impl->mmap_all) {
@@ -1211,7 +1215,7 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
     RCGO(rc, finish);
   }
 
-  rc = _fsm_bmptr(impl, &bmptr);
+  rc = _fsm_bmptr(impl, &bmptr); // -V519
   RCGO(rc, finish);
 
   lastblk = (impl->bmoff + impl->bmlen) >> impl->bpow;
@@ -1297,7 +1301,7 @@ static iwrc _fsm_read_meta_lr(FSM *impl) {
   }
 
   /* Magic */
-  memcpy(&lv, hdr + rp, sizeof(lv));
+  memcpy(&lv, hdr + rp, sizeof(lv)); // -V512
   lv = IW_ITOHL(lv);
   if (lv != IWFSM_MAGICK) {
     rc = IWFS_ERROR_INVALID_FILEMETA;
@@ -1541,6 +1545,7 @@ static iwrc _fsm_close(struct IWFS_FSM *f) {
   }
   IWRC(impl->pool.close(&impl->pool), rc);
   if (impl->fsm) {
+    // -V:__kb_destroy:701, 769
     __kb_destroy(impl->fsm);
   }
   IWRC(_fsm_ctrl_unlock(impl), rc);
@@ -1643,7 +1648,7 @@ static iwrc _fsm_reallocate(struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t 
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
   }
   uint64_t sp;
-  uint64_t nlen_blk = IW_ROUNDUP((uint64_t) nlen, 1U << impl->bpow) >> impl->bpow;
+  uint64_t nlen_blk = IW_ROUNDUP((uint64_t) nlen, 1ULL << impl->bpow) >> impl->bpow;
   uint64_t olen_blk = (uint64_t) * olen >> impl->bpow;
   uint64_t oaddr_blk = (uint64_t) * oaddr >> impl->bpow;
   uint64_t naddr_blk = oaddr_blk;

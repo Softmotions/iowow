@@ -191,9 +191,7 @@ iwrc iwrdb_close(IWRDB *rdb) {
   db->fh = INVALID_HANDLE_VALUE;
   IWRC(_destroy_locks(db), rc);
   free(db->path);
-  if (db->buf) {
-    free(db->buf);
-  }
+  free(db->buf);
   free(db);
   *rdb = 0;
   return rc;

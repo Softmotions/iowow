@@ -206,7 +206,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   }
 
   if (!opts->lock_mode) {
-    opts->lock_mode = IWFS_DEFAULT_LOCKMODE;
+    opts->lock_mode = IWFS_DEFAULT_LOCKMODE; // -V1048
   }
   if (!opts->omode) {
     opts->omode = IWFS_DEFAULT_OMODE;

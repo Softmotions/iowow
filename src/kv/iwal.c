@@ -125,9 +125,7 @@ static void _destroy(IWAL *wal) {
       pthread_mutex_destroy(wal->mtxp);
       wal->mtxp = 0;
     }
-    if (wal->path) {
-      free(wal->path);
-    }
+    free(wal->path);
     if (wal->buf) {
       wal->buf -= sizeof(WBSEP);
       free(wal->buf);

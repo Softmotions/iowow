@@ -207,9 +207,7 @@ IWULIST *iwulist_create(size_t initial_length, size_t unit_size) {
 
 void iwulist_destroy_keep(IWULIST *list) {
   if (list) {
-    if (list->array) {
-      free(list->array);
-    }
+    free(list->array);
     memset(list, 0, sizeof(*list));
   }
 }
@@ -469,12 +467,15 @@ IWLIST *iwlist_clone(IWLIST *list) {
   const IWLISTITEM *array = list->array + list->start;
   IWLISTITEM *narray = malloc(sizeof(*narray) * num);
   if (!narray) {
+    free(nlist);
     return 0;
   }
   for (size_t i = 0; i < num; ++i) {
     size_t size = array[i].size + 1;
     narray[i].val = malloc(size);
     if (!narray[i].val) {
+      free(narray);
+      free(nlist);
       return 0;
     }
     memcpy(narray[i].val, array[i].val, size + 1);

@@ -248,6 +248,7 @@ typedef struct SBLK {
   uint8_t lk[PREFIX_KEY_LEN_V1];   /**< Lower key buffer */
 } SBLK;
 
+// -V:KHASH_MAP_INIT_INT:522
 KHASH_MAP_INIT_INT(DBS, IWDB)
 
 /** IWKV instance */

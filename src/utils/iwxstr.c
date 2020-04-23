@@ -137,7 +137,7 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
           rc = iwxstr_cat(xstr, tmp, strlen(tmp));
           break;
         case 'd':
-          if (lnum >= 2) {
+          if (lnum >= 2) { // -V1037
             tlen = sprintf(tbuf, cbuf, va_arg(ap, long long));
           } else if (lnum >= 1) {
             tlen = sprintf(tbuf, cbuf, va_arg(ap, long));

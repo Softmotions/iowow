@@ -39,18 +39,18 @@
 struct MMAPSLOT;
 typedef struct IWFS_EXT_IMPL {
   IWFS_FILE file;            /**< Underlying file */
+  IWDLSNR *dlsnr;            /**< Data events listener */
+  pthread_rwlock_t *rwlock;  /**< Thread RW lock */
+  struct MMAPSLOT *mmslots;  /**< Memory mapping slots */
+  void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
+  IW_EXT_RSPOLICY rspolicy;  /**< File resize policy function ptr */
   uint64_t fsize;            /**< Current file size */
   uint64_t maxoff;           /**< Maximum allowed file offset. Unlimited if zero.
                                   If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
-  pthread_rwlock_t *rwlock;  /**< Thread RW lock */
-  IW_EXT_RSPOLICY rspolicy;  /**< File resize policy function ptr */
-  void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
-  struct MMAPSLOT *mmslots;  /**< Memory mapping slots */
-  IWDLSNR *dlsnr;            /**< Data events listener */
-  HANDLE fh;                 /**< File handle */
   size_t psize;              /**< System page size */
-  bool use_locks;            /**< Use rwlocks to guard method access */
+  HANDLE fh;                 /**< File handle */
   iwfs_omode omode;          /**< File open mode */
+  bool use_locks;            /**< Use rwlocks to guard method access */
 } EXF;
 
 typedef struct MMAPSLOT {
@@ -154,7 +154,7 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
                 : MAP_SHARED;
     int prot = (impl->omode & IWFS_OWRITE) ? (PROT_WRITE + PROT_READ) : (PROT_READ);
     s->len = nlen;
-    s->mmap = mmap(s->mmap, s->len, prot, flags, impl->fh, s->off);
+    s->mmap = mmap(s->mmap, s->len, prot, flags, impl->fh, s->off); // -V774
     if (s->mmap == MAP_FAILED) {
       iwrc rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
       iwlog_ecode_error3(rc);

@@ -127,7 +127,7 @@ char *iwp_allocate_tmpfile_path(const char *prefix) {
   wp += tlen;
   memcpy(wp, IW_PATH_STR, sizeof(IW_PATH_STR) - 1);
   wp += sizeof(IW_PATH_STR) - 1;
-  if (plen) {
+  if (plen && prefix) {
     memcpy(wp, prefix, plen);
     wp += plen;
   }

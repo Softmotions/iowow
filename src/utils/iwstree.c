@@ -257,6 +257,9 @@ iwrc iwstree_put(IWSTREE *st, void *key, void *value) {
   cmp = st->cmp(((tree_node_t *) st->root)->key, key);
   if (cmp != 0) {
     n = _init_node(key, value);
+    if (!n) {
+      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
     if (0 < cmp) {
       n->right = st->root;
       n->left = n->right->left;

@@ -1,3 +1,9 @@
+iowow (1.4.3) UNRELEASED; urgency=medium
+
+  * Fixed errors found by PVS studio
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 23 Apr 2020 18:39:39 +0700
+
 iowow (1.4.2) testing; urgency=medium
 
   * Added IWULIST, IWLIST implementation (iwarr.h)

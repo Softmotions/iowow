@@ -426,6 +426,7 @@ static iwrc _default_logfn(FILE *out,
       fnameptr[len] = '\0';
     } else {
       fnameptr = strdup(file);
+      RCGA(fnameptr, finish);
     }
 #ifdef IW_HAVE_BASENAME_R
     fname = basename_r(file, fnameptr);
@@ -445,10 +446,10 @@ static iwrc _default_logfn(FILE *out,
     if (fname && line > 0) {
       fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, fname, line, ecode, errno_code,
               werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
-              (werror_msg ? werror_msg : ""));
+              (werror_msg ? werror_msg : "")); // -V547
     } else {
       fprintf(out, "%s %s %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, ecode, errno_code, werror_code,
-              (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
+              (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : "")); // -V547
     }
   } else {
     if (fname && line > 0) {
