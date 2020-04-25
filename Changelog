@@ -1,3 +1,9 @@
+iowow (1.4.4) UNRELEASED; urgency=medium
+
+  * Added `iwstree_visit` (iwstree.h)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Sat, 25 Apr 2020 23:35:24 +0700
+
 iowow (1.4.3) testing; urgency=medium
 
   * Fixed errors found by PVS studio

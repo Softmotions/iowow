@@ -33,9 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <errno.h>
 
-#define LEFT 0
-#define RIGHT 1
-
 typedef struct _tree_node_t {
   struct _tree_node_t  *left;
   struct _tree_node_t  *right;
@@ -43,21 +40,25 @@ typedef struct _tree_node_t {
   void *value;
 } tree_node_t;
 
-
 int iwstree_str_cmp(const void *o1, const void *o2) {
   return strcmp(o1, o2);
 }
 
-IWSTREE *iwstree_create(
-  int (*cmp)(const void *, const void *),
-  void (*kvfree)(void *, void *)
-) {
+static int _cmp_default(const void *k1, const void *k2) {
+  return k1 < k2 ? -1 : k1 > k2 ? 1 : 0;
+}
+
+IWSTREE *iwstree_create(int (*cmp)(const void *, const void *),
+                        void (*kvfree)(void *, void *)) {
   IWSTREE *st;
   st = malloc(sizeof(IWSTREE));
   if (!st) {
     return 0;
   }
   memset(st, 0, sizeof(IWSTREE));
+  if (!cmp) {
+    cmp = _cmp_default;
+  }
   st->cmp = cmp;
   st->kvfree = kvfree;
   return st;
@@ -275,4 +276,22 @@ iwrc iwstree_put(IWSTREE *st, void *key, void *value) {
 
 exit:
   return 0;
+}
+
+static void _iwstree_visit(tree_node_t *n, int (*visitor)(const void *, const void *)) {
+  if (!visitor(n->key, n->value)) {
+    return;
+  }
+  if (n->left) {
+    _iwstree_visit(n->left, visitor);
+  }
+  if (n->right) {
+    _iwstree_visit(n->right, visitor);
+  }
+}
+
+void iwstree_visit(IWSTREE *st, int (*visitor)(const void *, const void *)) {
+  if (st->root) {
+    _iwstree_visit(st->root, visitor);
+  }
 }

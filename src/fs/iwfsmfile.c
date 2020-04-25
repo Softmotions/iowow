@@ -55,8 +55,6 @@ typedef uint8_t fsm_bmopts_t;
 /** Perform strict checking of bitmap consistency */
 #define FSM_BM_STRICT   ((fsm_bmopts_t) 0x02U)
 
-#define FSM_SEQ_IO_BUF_SIZE 8192
-
 /* Maximum size of block: 1Mb */
 #define FSM_MAX_BLOCK_POW 20
 
@@ -69,13 +67,9 @@ typedef uint8_t fsm_bmopts_t;
 #define FSM_ENSURE_OPEN2(FSM_f_)                                                                             \
   if (!(FSM_f_) || !(FSM_f_)->impl) return IW_ERROR_INVALID_STATE;
 
-#define FSMBK_RESET(Bk_) memset((Bk_), 0, sizeof(*(Bk_)))
-
 #define FSMBK_OFFSET(Bk_) ((Bk_)->off)
 
 #define FSMBK_LENGTH(Bk_) ((Bk_)->len)
-
-#define FSMBK_END(Bk_) (FSMBK_OFFSET(Bk_) + FSMBK_LENGTH(Bk_))
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

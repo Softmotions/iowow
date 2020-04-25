@@ -31,10 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "basedefs.h"
+#include <stdbool.h>
 
 IW_EXTERN_C_START
-
-#include "basedefs.h"
 
 typedef struct {
   void *root;
@@ -46,7 +45,7 @@ typedef struct {
 /**
  * @brief Constructs new splay tree
  *
- * @param cmp Keys compare function. Required.
+ * @param cmp Keys compare function. If zero address pointers will be compared.
  * @param kvfree Optional `(key, value)` free function
  * @return IWSTREE* or NULL if memory allocation failed
  */
@@ -70,6 +69,8 @@ IW_EXPORT int iwstree_count(IWSTREE *st);
 IW_EXPORT void *iwstree_peek(IWSTREE *st);
 
 IW_EXPORT iwrc iwstree_put(IWSTREE *st, void *key, void *value);
+
+IW_EXPORT void iwstree_visit(IWSTREE *st, int (*visitor)(const void *, const void *));
 
 IW_EXTERN_C_END
 #endif
