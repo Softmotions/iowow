@@ -56,7 +56,7 @@ IWSTREE *iwstree_create(
 
 IW_EXPORT int iwstree_str_cmp(const void *o1, const void *o2);
 
-IW_EXPORT void iwstree_free(IWSTREE *st);
+IW_EXPORT void iwstree_destroy(IWSTREE *st);
 
 IW_EXPORT int iwstree_is_empty(IWSTREE *st);
 

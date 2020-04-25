@@ -75,7 +75,7 @@ static void _free_node(IWSTREE *st, tree_node_t *node) {
   }
 }
 
-void iwstree_free(IWSTREE *st) {
+void iwstree_destroy(IWSTREE *st) {
   _free_node(st, st->root);
   free(st);
 }
