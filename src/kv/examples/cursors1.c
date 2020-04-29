@@ -1,6 +1,6 @@
 ///
-/// Fills the sample database with a set of football table records
-/// then traverse records according to club name in ascending / descending order.
+/// Fills database with a set of football table records
+/// then traverse records according to club name in ascending and descending orders.
 ///
 
 #include "iwkv.h"
