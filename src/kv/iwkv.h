@@ -222,8 +222,8 @@ IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
  *          a new database will be created using specified function arguments.
  *
  * @note Database handler doesn't require to be explicitly closed or freed.
- *       Although it may be useful to release database cache memory of unused databases
- *       dependening on memory requirements of your application using `iwkv_db_cache_release()`.
+ *       Although it may be usefull to release database cache memory of unused databases
+ *       dependening on memory requirements of your application by `iwkv_db_cache_release()`.
  * @note Database `flags` argument must be same for all subsequent
  *       calls after first call for particular database,
  *       otherwise `IWKV_ERROR_INCOMPATIBLE_DB_MODE` will be reported.

@@ -10,11 +10,8 @@
       "name": "Debug",
       "type": "cppdbg",
       "request": "launch",
-      "cwd": "${workspaceFolder}/build/src/utils/tests",
-      "program": "${workspaceRoot}/build/src/utils/tests/iwutils_test1",
-      //"program": "${workspaceFolder}/build/src/kv/benchmark/iwkv_benchmark",
-      //"cwd": "${workspaceFolder}/build/src/kv/benchmark",
-      //"args": ["-b", "fillrandom2", "-rs", "20378036"],
+      "cwd": "${workspaceFolder}/build",
+      "program": "${command:cmake.launchTargetPath}",kk
       "stopAtEntry": false,
       "environment": [],
       "externalConsole": false,
