@@ -263,5 +263,50 @@ finish:
 }
 ```
 
+Output:
+```
+Wolverhampton Wanderers: 43
+West Ham United: 27
+Watford: 27
+Tottenham Hotspur: 41
+Southampton: 34
+Sheffield United: 43
+Norwich City: 21
+Newcastle United: 35
+Manchester United: 45
+Manchester City: 57
+Liverpool: 82
+Leicester City: 53
+Everton: 37
+Crystal Palace: 39
+Chelsea: 48
+Burnley: 39
+Brighton & Hove Albion: 29
+Aston Villa: 25
+Arsenal: 40
+AFC Bournemouth: 27
+
+
+AFC Bournemouth: 27
+Arsenal: 40
+Aston Villa: 25
+Brighton & Hove Albion: 29
+Burnley: 39
+Chelsea: 48
+Crystal Palace: 39
+Everton: 37
+Leicester City: 53
+Liverpool: 82
+Manchester City: 57
+Manchester United: 45
+Newcastle United: 35
+Norwich City: 21
+Sheffield United: 43
+Southampton: 34
+Tottenham Hotspur: 41
+Watford: 27
+West Ham United: 27
+Wolverhampton Wanderers: 43
+```
 
 
