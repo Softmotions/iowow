@@ -56,7 +56,7 @@ static iwrc run(void) {
     RCHECK(rc, finish, iwkv_put(db, &key, &val, 0));
   }
 
-  // Interate clubs in descending order
+  fprintf(stdout, ">>>> Traverse in descending order\n");
   RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0));
   while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) != IWKV_ERROR_NOTFOUND) {
     IWKV_val key, val;
@@ -69,7 +69,7 @@ static iwrc run(void) {
   rc = 0;
   iwkv_cursor_close(&cur);
 
-  fprintf(stdout, "\n\n");
+  fprintf(stdout, "\n>>>> Traverse in ascending order\n");
   RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_AFTER_LAST, 0));
   while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_PREV)) != IWKV_ERROR_NOTFOUND) {
     IWKV_val key, val;
@@ -80,6 +80,23 @@ static iwrc run(void) {
     iwkv_kv_dispose(&key, &val);
   }
   rc = 0;
+  iwkv_cursor_close(&cur);
+
+  // Select all keys greater or equal than: Manchester United
+  {
+    fprintf(stdout, "\n>>>> Records GE: %s\n", _points[9].club);
+    IWKV_val key = { .data = (void *) _points[9].club, .size = strlen(_points[9].club) }, val;
+    RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
+    do {
+      RCHECK(rc, finish, iwkv_cursor_get(cur, &key, &val));
+      fprintf(stdout, "%.*s: %u\n",
+              (int) key.size, (char *) key.data,
+              *(uint8_t *) val.data);
+      iwkv_kv_dispose(&key, &val);
+    } while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) != IWKV_ERROR_NOTFOUND);
+    rc = 0;
+  }
+  iwkv_cursor_close(&cur);
 
 finish:
   if (cur) {
@@ -91,10 +108,9 @@ finish:
 
 int main() {
   iwrc rc = run();
-  RCGO(rc, finish);
-finish:
   if (rc) {
     iwlog_ecode_error3(rc);
+    return 1;
   }
   return 0;
 }

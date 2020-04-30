@@ -191,7 +191,7 @@ typedef enum IWKV_cursor_op {
   IWKV_CURSOR_NEXT,             /**< Move cursor to the next record */
   IWKV_CURSOR_PREV,             /**< Move cursor to the previous record */
   IWKV_CURSOR_EQ,               /**< Set cursor to the specified key value */
-  IWKV_CURSOR_GE                /**< Set cursor to the key which greater of equal key specified */
+  IWKV_CURSOR_GE                /**< Set cursor to the key which greater or equal key specified */
 } IWKV_cursor_op;
 
 /**

@@ -219,7 +219,7 @@ static iwrc run(void) {
     RCHECK(rc, finish, iwkv_put(db, &key, &val, 0));
   }
 
-  // Interate clubs in descending order
+  fprintf(stdout, ">>>> Traverse in descending order\n");
   RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0));
   while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) != IWKV_ERROR_NOTFOUND) {
     IWKV_val key, val;
@@ -232,7 +232,7 @@ static iwrc run(void) {
   rc = 0;
   iwkv_cursor_close(&cur);
 
-  fprintf(stdout, "\n\n");
+  fprintf(stdout, "\n>>>> Traverse in ascending order\n");
   RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_AFTER_LAST, 0));
   while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_PREV)) != IWKV_ERROR_NOTFOUND) {
     IWKV_val key, val;
@@ -243,6 +243,23 @@ static iwrc run(void) {
     iwkv_kv_dispose(&key, &val);
   }
   rc = 0;
+  iwkv_cursor_close(&cur);
+
+  // Select all keys greater or equal than: Manchester United
+  {
+    fprintf(stdout, "\n>>>> Records GE: %s\n", _points[9].club);
+    IWKV_val key = { .data = (void *) _points[9].club, .size = strlen(_points[9].club) }, val;
+    RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
+    do {
+      RCHECK(rc, finish, iwkv_cursor_get(cur, &key, &val));
+      fprintf(stdout, "%.*s: %u\n",
+              (int) key.size, (char *) key.data,
+              *(uint8_t *) val.data);
+      iwkv_kv_dispose(&key, &val);
+    } while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) != IWKV_ERROR_NOTFOUND);
+    rc = 0;
+  }
+  iwkv_cursor_close(&cur);
 
 finish:
   if (cur) {
@@ -254,10 +271,9 @@ finish:
 
 int main() {
   iwrc rc = run();
-  RCGO(rc, finish);
-finish:
   if (rc) {
     iwlog_ecode_error3(rc);
+    return 1;
   }
   return 0;
 }
@@ -265,6 +281,7 @@ finish:
 
 Output:
 ```
+>>>> Traverse in descending order
 Wolverhampton Wanderers: 43
 West Ham United: 27
 Watford: 27
@@ -286,7 +303,7 @@ Aston Villa: 25
 Arsenal: 40
 AFC Bournemouth: 27
 
-
+>>>> Traverse in ascending order
 AFC Bournemouth: 27
 Arsenal: 40
 Aston Villa: 25
@@ -307,6 +324,20 @@ Tottenham Hotspur: 41
 Watford: 27
 West Ham United: 27
 Wolverhampton Wanderers: 43
+
+>>>> Records GE: Manchester United
+Manchester United: 45
+Manchester City: 57
+Liverpool: 82
+Leicester City: 53
+Everton: 37
+Crystal Palace: 39
+Chelsea: 48
+Burnley: 39
+Brighton & Hove Albion: 29
+Aston Villa: 25
+Arsenal: 40
+AFC Bournemouth: 27
 ```
 
 
