@@ -280,20 +280,20 @@ exit:
   return 0;
 }
 
-static void _iwstree_visit(tree_node_t *n, int (*visitor)(const void *, const void *)) {
-  if (!visitor(n->key, n->value)) {
+static void _iwstree_visit(tree_node_t *n, int (*visitor)(const void *, const void *, void *), void *op) {
+  if (!visitor(n->key, n->value, op)) {
     return;
   }
   if (n->left) {
-    _iwstree_visit(n->left, visitor);
+    _iwstree_visit(n->left, visitor, op);
   }
   if (n->right) {
-    _iwstree_visit(n->right, visitor);
+    _iwstree_visit(n->right, visitor, op);
   }
 }
 
-void iwstree_visit(IWSTREE *st, int (*visitor)(const void *, const void *)) {
+void iwstree_visit(IWSTREE *st, int (*visitor)(const void *, const void *, void *), void *op) {
   if (st->root) {
-    _iwstree_visit(st->root, visitor);
+    _iwstree_visit(st->root, visitor, op);
   }
 }

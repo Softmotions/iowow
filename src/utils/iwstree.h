@@ -70,7 +70,7 @@ IW_EXPORT void *iwstree_peek(IWSTREE *st);
 
 IW_EXPORT iwrc iwstree_put(IWSTREE *st, void *key, void *value);
 
-IW_EXPORT void iwstree_visit(IWSTREE *st, int (*visitor)(const void *, const void *));
+IW_EXPORT void iwstree_visit(IWSTREE *st, int (*visitor)(const void *, const void *, void *), void *op);
 
 IW_EXTERN_C_END
 #endif
