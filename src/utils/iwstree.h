@@ -42,6 +42,8 @@ typedef struct {
   int count;
 } IWSTREE;
 
+typedef bool (*IWSTREE_VISITOR)(const void *key, const void *val, void *op, iwrc *rcp);
+
 /**
  * @brief Constructs new splay tree
  *
@@ -70,7 +72,7 @@ IW_EXPORT void *iwstree_peek(IWSTREE *st);
 
 IW_EXPORT iwrc iwstree_put(IWSTREE *st, void *key, void *value);
 
-IW_EXPORT void iwstree_visit(IWSTREE *st, int (*visitor)(const void *, const void *, void *), void *op);
+IW_EXPORT iwrc iwstree_visit(IWSTREE *st, IWSTREE_VISITOR visitor, void *op);
 
 IW_EXTERN_C_END
 #endif

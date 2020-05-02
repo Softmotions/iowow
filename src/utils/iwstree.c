@@ -280,20 +280,25 @@ exit:
   return 0;
 }
 
-static void _iwstree_visit(tree_node_t *n, int (*visitor)(const void *, const void *, void *), void *op) {
-  if (!visitor(n->key, n->value, op)) {
-    return;
+static iwrc _iwstree_visit(tree_node_t *n, IWSTREE_VISITOR visitor, void *op) {
+  iwrc rc = 0;
+  if (!visitor(n->key, n->value, op, &rc) || rc) {
+    return rc;
   }
   if (n->left) {
-    _iwstree_visit(n->left, visitor, op);
+    rc = _iwstree_visit(n->left, visitor, op);
+    RCRET(rc);
   }
   if (n->right) {
-    _iwstree_visit(n->right, visitor, op);
+    rc = _iwstree_visit(n->right, visitor, op);
+    RCRET(rc);
   }
+  return rc;
 }
 
-void iwstree_visit(IWSTREE *st, int (*visitor)(const void *, const void *, void *), void *op) {
+iwrc iwstree_visit(IWSTREE *st, IWSTREE_VISITOR visitor, void *op) {
   if (st->root) {
-    _iwstree_visit(st->root, visitor, op);
+    return _iwstree_visit(st->root, visitor, op);
   }
+  return 0;
 }
