@@ -42,7 +42,7 @@ typedef struct {
   int count;
 } IWSTREE;
 
-typedef bool (*IWSTREE_VISITOR)(const void *key, const void *val, void *op, iwrc *rcp);
+typedef bool (*IWSTREE_VISITOR)(void *key, void *val, void *op, iwrc *rcp);
 
 /**
  * @brief Constructs new splay tree
