@@ -57,7 +57,7 @@ IW_SOFT_INLINE iwrc _to_effective_key(struct _IWDB *db, const IWKV_val *key, IWK
 }
 
 // NOTE: at least `2*IW_VNUMBUFSZ` must be allocated for key->data
-iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
+static iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key, bool no_move_key_data) {
   iwdb_flags_t dbflg = db->dbflg;
   uint8_t *data = key->data;
   if (dbflg & IWDB_COMPOUND_KEYS) {
@@ -68,6 +68,9 @@ iwrc _unpack_effective_key(struct _IWDB *db, IWKV_val *key) {
     }
     data += step;
     key->size -= step;
+    if (!no_move_key_data && !(dbflg & IWDB_VNUM64_KEYS)) {
+      memmove(key->data, data, key->size);
+    }
   } else {
     key->compound = 0;
   }
@@ -4217,7 +4220,7 @@ iwrc iwkv_cursor_get(IWKV_cursor cur,
     rc = IW_ERROR_INVALID_ARGS;
   }
   if (!rc && okey) {
-    _unpack_effective_key(lx->db, okey);
+    _unpack_effective_key(lx->db, okey, false);
   }
 finish:
   if (mm) {
@@ -4296,9 +4299,11 @@ iwrc iwkv_cursor_is_matched_key(IWKV_cursor cur, const IWKV_val *key, bool *ores
     char nbuf[2 * IW_VNUMBUFSZ];
     IWKV_val rkey = {.data = nbuf, .size = okeysz};
     memcpy(rkey.data, okey, MIN(rkey.size, sizeof(nbuf)));
-    rc = _unpack_effective_key(lx->db, &rkey);
+    rc = _unpack_effective_key(lx->db, &rkey, true);
     RCGO(rc, finish);
-    if (ocompound) *ocompound = rkey.compound;
+    if (ocompound) {
+      *ocompound = rkey.compound;
+    }
     if (rkey.size != key->size) {
       *ores = false;
       goto finish;
@@ -4352,9 +4357,11 @@ iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ks
     char nbuf[2 * IW_VNUMBUFSZ];
     IWKV_val rkey = {.data = nbuf, .size = okeysz};
     memcpy(rkey.data, okey, MIN(rkey.size, sizeof(nbuf)));
-    rc = _unpack_effective_key(lx->db, &rkey);
+    rc = _unpack_effective_key(lx->db, &rkey, true);
     RCGO(rc, finish);
-    if (compound) *compound = rkey.compound;
+    if (compound) {
+      *compound = rkey.compound;
+    }
     *ksz = rkey.size;
     if (dbflg & IWDB_VNUM64_KEYS) {
       memcpy(kbuf, rkey.data, MIN(kbufsz, rkey.size));

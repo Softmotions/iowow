@@ -100,7 +100,7 @@ typedef uint8_t iwdb_flags_t;
 #define IWDB_VNUM64_KEYS      ((iwdb_flags_t) 0x20U)
 
 /**
- * Enable compound database keys. Keys stored in the following format: `<key value><numeric key suffix>`
+ * Enable compound database keys. Keys stored in the following format: `<key value prefix><numeric key suffix>`
  * Allows associate one `key value` with many references represented as VNUM64 (eg.: Non unique table indexes).
  * @see IWKV_val.compound
  */
@@ -169,9 +169,9 @@ typedef struct IWKV_val {
   void *data;            /**< Data buffer */
   size_t size;           /**< Data buffer size */
   /** Extra key part used for key comparison.
-   *  If set to non zero and database in `IWDB_COMPOUND_KEYS` mode
-   *  then `IWKV_val` will behave as compound key: `<key value><numeric key suffix>`
-   *  Value of this field will be ignored if database not in `IWDB_COMPOUND_KEYS` mode.
+   *  If set to non zero and database is created with `IWDB_COMPOUND_KEYS` mode
+   *  keys will behave as compound: `<key value><compound>` consisting of two parts.
+   *  `compound` field ignored if db not in `IWDB_COMPOUND_KEYS` mode.
    */
   int64_t compound;
 } IWKV_val;

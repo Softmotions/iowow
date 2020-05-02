@@ -1,5 +1,5 @@
 link_libraries(iowow_s)
-foreach(EX IN ITEMS example1 cursors1)
+foreach(EX IN ITEMS example1 cursors1 compoundkeys1)
     add_executable(${EX} ${EX}.c)
     set_target_properties(${EX} PROPERTIES COMPILE_FLAGS "-DIW_STATIC")
 endforeach()

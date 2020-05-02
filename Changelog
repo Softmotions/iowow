@@ -1,8 +1,10 @@
-iowow (1.4.4) UNRELEASED; urgency=medium
+iowow (1.4.4) testing; urgency=medium
 
+  * Fixed incorrect copying of cursor key data in `IWDB_COMPOUND_KEYS` mode (iwkv.c)
+  * Adde compound key example code (compoundkeys1.c)
   * Added `iwstree_visit` (iwstree.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 25 Apr 2020 23:35:24 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Sat, 02 May 2020 19:38:31 +0700
 
 iowow (1.4.3) testing; urgency=medium
 

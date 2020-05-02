@@ -58,7 +58,7 @@ static iwrc run(void) {
 
   fprintf(stdout, ">>>> Traverse in descending order\n");
   RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0));
-  while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) != IWKV_ERROR_NOTFOUND) {
+  while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) == 0) {
     IWKV_val key, val;
     RCHECK(rc, finish, iwkv_cursor_get(cur, &key, &val));
     fprintf(stdout, "%.*s: %u\n",
@@ -71,7 +71,7 @@ static iwrc run(void) {
 
   fprintf(stdout, "\n>>>> Traverse in ascending order\n");
   RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_AFTER_LAST, 0));
-  while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_PREV)) != IWKV_ERROR_NOTFOUND) {
+  while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_PREV)) == 0) {
     IWKV_val key, val;
     RCHECK(rc, finish, iwkv_cursor_get(cur, &key, &val));
     fprintf(stdout, "%.*s: %u\n",
@@ -93,7 +93,7 @@ static iwrc run(void) {
               (int) key.size, (char *) key.data,
               *(uint8_t *) val.data);
       iwkv_kv_dispose(&key, &val);
-    } while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) != IWKV_ERROR_NOTFOUND);
+    } while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) == 0);
     rc = 0;
   }
   iwkv_cursor_close(&cur);
