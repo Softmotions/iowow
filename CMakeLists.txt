@@ -44,7 +44,7 @@ option(PACKAGE_ZIP "Build .zip package archive" ON)
 option(ENABLE_PPA "Enable PPA package build" OFF)
 option(UPLOAD_PPA "Upload debian packages to the launchpad ppa repository" OFF)
 set(PPA_DEBIAN_VERSION "ppa1" CACHE STRING "PPA version suffix for debian packages")
-set(PROJECT_PPA_DISTRIB_TARGET "xenial;bionic" CACHE STRING "Ubuntu PPA distrubutive names")
+set(PROJECT_PPA_DISTRIB_TARGET "focal;bionic;xenial" CACHE STRING "Ubuntu PPA distrubutive names")
 
 if(POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
