@@ -141,6 +141,14 @@ typedef int HANDLE;
 typedef _locale_t locale_t;
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#define IW_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#define IW_DEPRECATED __declspec(deprecated)
+#else
+#define IW_DEPRECATED
+#endif
+
 /**
  * @brief The operation result status code.
  *
