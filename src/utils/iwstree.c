@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdint.h>
 
 typedef struct _tree_node_t {
   struct _tree_node_t  *left;
@@ -42,6 +43,18 @@ typedef struct _tree_node_t {
 
 int iwstree_str_cmp(const void *o1, const void *o2) {
   return strcmp(o1, o2);
+}
+
+int iwstree_uint64_cmp(const void *o1, const void *o2) {
+  uint64_t v1 = *(uint64_t *) o1;
+  uint64_t v2 = *(uint64_t *) o2;
+  return v1 > v2 ? 1 : v1 < v2 ? -1 : 0;
+}
+
+int iwstree_int64_cmp(const void *o1, const void *o2) {
+  int64_t v1 = *(int64_t *) o1;
+  int64_t v2 = *(int64_t *) o2;
+  return v1 > v2 ? 1 : v1 < v2 ? -1 : 0;
 }
 
 static int _cmp_default(const void *k1, const void *k2) {
