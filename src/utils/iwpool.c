@@ -199,7 +199,7 @@ size_t iwpool_allocated_size(IWPOOL *pool) {
   return pool->asiz;
 }
 
-size_t iwpoll_used_size(IWPOOL *pool) {
+size_t iwpool_used_size(IWPOOL *pool) {
   return pool->usiz;
 }
 
