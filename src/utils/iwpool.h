@@ -63,5 +63,7 @@ IW_EXPORT void iwpool_destroy(IWPOOL *pool);
 
 IW_EXPORT size_t iwpool_allocated_size(IWPOOL *pool);
 
+IW_EXPORT size_t iwpoll_used_size(IWPOOL *pool);
+
 IW_EXTERN_C_END
 #endif
