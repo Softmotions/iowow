@@ -1,6 +1,7 @@
 IOWOW - The C11 persistent key/value database engine based on [skip list](https://en.wikipedia.org/wiki/Skip_list)
 ==================================================================================================================
 
+[![Build Status](https://dev.softmotions.com/jenkins/job/iowow_test/badge/icon)](https://dev.softmotions.com/jenkins/job/iowow_test/)
 [![Join ejdb2 telegram](https://img.shields.io/badge/join-ejdb2%20telegram-0088cc.svg)](https://t.me/ejdb2)
 [![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/iowow/blob/master/LICENSE)
 ![Maintained](https://img.shields.io/maintenance/yes/2020.svg)
