@@ -85,7 +85,7 @@ IW_EXPORT iwrc iwstree_put(IWSTREE *st, void *key, void *value);
 
 IW_EXPORT iwrc iwstree_visit(IWSTREE *st, IWSTREE_VISITOR visitor, void *op);
 
-IW_EXPORT iwrc iwstree_iter_create(IWSTREE *st, IWSTREE_ITER *iter);
+IW_EXPORT iwrc iwstree_iter_init(IWSTREE *st, IWSTREE_ITER *iter);
 
 IW_EXPORT bool iwstree_iter_has_next(IWSTREE_ITER *iter);
 

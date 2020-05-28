@@ -348,7 +348,7 @@ static tree_node_t *_iter_pop(IWSTREE_ITER *iter) {
   return iter->stack[iter->spos];
 }
 
-iwrc iwstree_iter_create(IWSTREE *st, IWSTREE_ITER *iter) {
+iwrc iwstree_iter_init(IWSTREE *st, IWSTREE_ITER *iter) {
   memset(iter, 0, sizeof(*iter));
   iter->st = st;
   tree_node_t *n = st->root;
