@@ -326,7 +326,7 @@ iwrc iwstree_visit(IWSTREE *st, IWSTREE_VISITOR visitor, void *op) {
 
 #define _ITER_STACK_AUNIT 32
 
-static iwrc _iter_push(IWSTREE_ITER iter, tree_node_t *n)  {
+static iwrc _iter_push(IWSTREE_ITER *iter, tree_node_t *n)  {
   if (iter->spos + 1 > iter->slen) {
     void *np = realloc(iter->stack, (iter->slen + _ITER_STACK_AUNIT) * sizeof(*iter->stack));
     if (!np) {
@@ -340,7 +340,7 @@ static iwrc _iter_push(IWSTREE_ITER iter, tree_node_t *n)  {
   return 0;
 }
 
-static tree_node_t *_iter_pop(IWSTREE_ITER iter) {
+static tree_node_t *_iter_pop(IWSTREE_ITER *iter) {
   if (iter->spos < 1) {
     return 0;
   }
@@ -348,7 +348,7 @@ static tree_node_t *_iter_pop(IWSTREE_ITER iter) {
   return iter->stack[iter->spos];
 }
 
-iwrc iwstree_iter_create(IWSTREE *st, IWSTREE_ITER iter) {
+iwrc iwstree_iter_create(IWSTREE *st, IWSTREE_ITER *iter) {
   memset(iter, 0, sizeof(*iter));
   iter->st = st;
   tree_node_t *n = st->root;
@@ -360,11 +360,11 @@ iwrc iwstree_iter_create(IWSTREE *st, IWSTREE_ITER iter) {
   return 0;
 }
 
-bool iwstree_iter_has_next(IWSTREE_ITER iter) {
+bool iwstree_iter_has_next(IWSTREE_ITER *iter) {
   return iter->spos > 0;
 }
 
-iwrc iwstree_iter_next(IWSTREE_ITER iter, void **key, void **val) {
+iwrc iwstree_iter_next(IWSTREE_ITER *iter, void **key, void **val) {
   *key = 0;
   *val = 0;
   if (iter->spos < 1) {
@@ -385,7 +385,7 @@ iwrc iwstree_iter_next(IWSTREE_ITER iter, void **key, void **val) {
   return 0;
 }
 
-void iwstree_iter_close(IWSTREE_ITER iter) {
+void iwstree_iter_close(IWSTREE_ITER *iter) {
   if (iter->stack) {
     free(iter->stack);
   }
