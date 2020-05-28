@@ -42,6 +42,8 @@ typedef struct {
   int count;
 } IWSTREE;
 
+typedef struct tree_iter_s *IWSTREE_ITER;
+
 typedef bool (*IWSTREE_VISITOR)(void *key, void *val, void *op, iwrc *rcp);
 
 /**
@@ -77,6 +79,14 @@ IW_EXPORT void *iwstree_peek(IWSTREE *st);
 IW_EXPORT iwrc iwstree_put(IWSTREE *st, void *key, void *value);
 
 IW_EXPORT iwrc iwstree_visit(IWSTREE *st, IWSTREE_VISITOR visitor, void *op);
+
+IW_EXPORT iwrc iwstree_iter_create(IWSTREE *st, IWSTREE_ITER iter);
+
+IW_EXPORT bool iwstree_iter_has_next(IWSTREE_ITER iter);
+
+IW_EXPORT iwrc iwstree_iter_next(IWSTREE_ITER iter, void **key, void **val);
+
+IW_EXPORT void iwstree_iter_close(IWSTREE_ITER iter);
 
 IW_EXTERN_C_END
 #endif

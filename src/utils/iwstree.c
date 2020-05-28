@@ -34,12 +34,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 #include <stdint.h>
 
-typedef struct _tree_node_t {
-  struct _tree_node_t  *left;
-  struct _tree_node_t  *right;
+typedef struct tree_node_s {
+  struct tree_node_s  *left;
+  struct tree_node_s  *right;
   void *key;
   void *value;
 } tree_node_t;
+
+
+struct tree_iter_s {
+  IWSTREE *st;        /**< Owner tree */
+  int spos;           /**< Position of top element stack */
+  int slen;           /**< Max number of elements in stack */
+  tree_node_t **stack; /**< Bottom of iterator stack */
+};
 
 int iwstree_str_cmp(const void *o1, const void *o2) {
   return strcmp(o1, o2);
@@ -314,4 +322,74 @@ iwrc iwstree_visit(IWSTREE *st, IWSTREE_VISITOR visitor, void *op) {
     return _iwstree_visit(st->root, visitor, op);
   }
   return 0;
+}
+
+#define _ITER_STACK_AUNIT 32
+
+static iwrc _iter_push(IWSTREE_ITER iter, tree_node_t *n)  {
+  if (iter->spos + 1 > iter->slen) {
+    void *np = realloc(iter->stack, (iter->slen + _ITER_STACK_AUNIT) * sizeof(*iter->stack));
+    if (!np) {
+      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
+    iter->stack = np;
+    iter->slen += _ITER_STACK_AUNIT;
+  }
+  iter->stack[iter->spos] = n;
+  iter->spos++;
+  return 0;
+}
+
+static tree_node_t *_iter_pop(IWSTREE_ITER iter) {
+  if (iter->spos < 1) {
+    return 0;
+  }
+  iter->spos--;
+  return iter->stack[iter->spos];
+}
+
+iwrc iwstree_iter_create(IWSTREE *st, IWSTREE_ITER iter) {
+  memset(iter, 0, sizeof(*iter));
+  iter->st = st;
+  tree_node_t *n = st->root;
+  while (n) {
+    iwrc rc = _iter_push(iter, n);
+    RCRET(rc);
+    n = n->left;
+  }
+  return 0;
+}
+
+bool iwstree_iter_has_next(IWSTREE_ITER iter) {
+  return iter->spos > 0;
+}
+
+iwrc iwstree_iter_next(IWSTREE_ITER iter, void **key, void **val) {
+  *key = 0;
+  *val = 0;
+  if (iter->spos < 1) {
+    return IW_ERROR_NOT_EXISTS;
+  }
+  tree_node_t *n = _iter_pop(iter);
+  assert(n);
+  *key = n->key;
+  *val = n->value;
+  if (n->right) {
+    n = n->right;
+    while (n) {
+      iwrc rc = _iter_push(iter, n);
+      RCRET(rc);
+      n = n->left;
+    }
+  }
+  return 0;
+}
+
+void iwstree_iter_close(IWSTREE_ITER iter) {
+  if (iter->stack) {
+    free(iter->stack);
+  }
+  iter->slen = 0;
+  iter->spos = 0;
+  iter->stack = 0;
 }

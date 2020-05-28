@@ -1,5 +1,6 @@
 iowow (1.4.5) UNRELEASED; urgency=medium
 
+  * Added  iwstree iteration API (iwstree.h)
   * Added `iwpool_used_size` (iwpool.h)
   * Added `iwstree_int64_cmp` (iwstree.h)
   * Added `IW_DEPRECATED` (basedefs.h)
