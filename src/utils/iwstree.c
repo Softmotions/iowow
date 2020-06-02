@@ -266,7 +266,7 @@ void *iwstree_peek(IWSTREE *st) {
   return st->root ? ((tree_node_t *) st->root)->value : 0;
 }
 
-iwrc iwstree_put(IWSTREE *st, void *key, void *value) {
+static iwrc _iwstree_put(IWSTREE *st, void *key, void *value, bool overwrite) {
   tree_node_t *n;
   int cmp;
   if (!st->root) {
@@ -275,7 +275,7 @@ iwrc iwstree_put(IWSTREE *st, void *key, void *value) {
       return iwrc_set_errno(IW_ERROR_ALLOC, errno);
     }
     st->count++;
-    goto exit;
+    return 0;
   }
   n = _splay(st, 1, 0, 0, (tree_node_t **) &st->root, key);
   cmp = st->cmp(((tree_node_t *) st->root)->key, key);
@@ -294,11 +294,22 @@ iwrc iwstree_put(IWSTREE *st, void *key, void *value) {
       n->left->right = 0;
     }
     st->count++;
+  } else if (overwrite) {
+    if (n->value && st->kvfree) {
+      st->kvfree(0, n->value);
+    }
+    n->value = value;
   }
   st->root = n;
-
-exit:
   return 0;
+}
+
+iwrc iwstree_put(IWSTREE *st, void *key, void *value) {
+  return _iwstree_put(st, key, value, false);
+}
+
+iwrc iwstree_put_overwrite(IWSTREE *st, void *key, void *value) {
+  return _iwstree_put(st, key, value, true);
 }
 
 static iwrc _iwstree_visit(tree_node_t *n, IWSTREE_VISITOR visitor, void *op) {
