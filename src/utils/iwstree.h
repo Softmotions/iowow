@@ -83,6 +83,8 @@ IW_EXPORT void *iwstree_peek(IWSTREE *st);
 
 IW_EXPORT iwrc iwstree_put(IWSTREE *st, void *key, void *value);
 
+IW_EXPORT iwrc iwstree_put_overwrite(IWSTREE *st, void *key, void *value);
+
 IW_EXPORT iwrc iwstree_visit(IWSTREE *st, IWSTREE_VISITOR visitor, void *op);
 
 IW_EXPORT iwrc iwstree_iter_init(IWSTREE *st, IWSTREE_ITER *iter);
