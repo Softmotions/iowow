@@ -376,8 +376,12 @@ bool iwstree_iter_has_next(IWSTREE_ITER *iter) {
 }
 
 iwrc iwstree_iter_next(IWSTREE_ITER *iter, void **key, void **val) {
-  *key = 0;
-  *val = 0;
+  if (key) {
+    *key = 0;
+  }
+  if (val) {
+    *val = 0;
+  }
   if (iter->spos < 1) {
     return IW_ERROR_NOT_EXISTS;
   }
