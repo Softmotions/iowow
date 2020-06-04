@@ -383,8 +383,12 @@ iwrc iwstree_iter_next(IWSTREE_ITER *iter, void **key, void **val) {
   }
   tree_node_t *n = _iter_pop(iter);
   assert(n);
-  *key = n->key;
-  *val = n->value;
+  if (key) {
+    *key = n->key;
+  }
+  if (val) {
+    *val = n->value;
+  }
   if (n->right) {
     n = n->right;
     while (n) {
