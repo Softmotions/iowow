@@ -1,5 +1,6 @@
 iowow (1.4.5) UNRELEASED; urgency=medium
 
+  * Fix assertion error in `iwstree_remove()` (iwstree.h)
   * Allows zero key/value placeholders in `iwstree_iter_next()` (iwstree.h)
   * Added `iwstree_put_overwrite` (iwstree.h)
   * Added  iwstree iteration API (iwstree.h)

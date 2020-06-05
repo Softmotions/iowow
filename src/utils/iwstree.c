@@ -214,7 +214,7 @@ int iwstree_is_empty(IWSTREE *st) {
 }
 
 void *iwstree_remove(IWSTREE *st, const void *key) {
-  tree_node_t *root, *left_highest;
+  tree_node_t *root, *x;
   void *val;
 
   /*  make removed node the root */
@@ -227,21 +227,13 @@ void *iwstree_remove(IWSTREE *st, const void *key) {
   assert(0 < st->count);
   assert(root->key == key);
 
-  /* get left side's most higest value node */
-  if ((left_highest = root->left)) {
-    tree_node_t *prev = root;
-    while (left_highest->right) {
-      prev = left_highest;
-      left_highest = left_highest->right;
-    }
-    /* do the swap */
-    prev->right = 0;
-    st->root = left_highest;
-    left_highest->left = root->left;
-    left_highest->right = root->right;
-  } else {
-    assert(root);
+  if (root->left == 0) {
     st->root = root->right;
+  } else {
+    x = root->right;
+    st->root = root->left;
+    _splay(st, 0, 0, 0, (tree_node_t **) &st->root, key);
+    ((tree_node_t *) st->root)->right = x;
   }
   st->count--;
   assert(root != st->root);
@@ -253,8 +245,7 @@ void *iwstree_remove(IWSTREE *st, const void *key) {
  * get this item referred to by key. Slap it as root.
  */
 void *iwstree_get(IWSTREE *st, const void *key) {
-  tree_node_t *node;
-  node = _splay(st, 0, 0, 0, (tree_node_t **) &st->root, key);
+  tree_node_t *node = _splay(st, 0, 0, 0, (tree_node_t **) &st->root, key);
   return node ? node->value : 0;
 }
 
