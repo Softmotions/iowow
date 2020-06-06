@@ -218,7 +218,7 @@ void *iwstree_remove(IWSTREE *st, const void *key) {
   void *val;
 
   /*  make removed node the root */
-  if (!_splay(st, 1, 0, 0, (tree_node_t **) &st->root, key)) {
+  if (!iwstree_get(st, key)) {
     return 0;
   }
   root = st->root;
