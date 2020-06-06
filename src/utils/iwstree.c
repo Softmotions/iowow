@@ -214,11 +214,11 @@ int iwstree_is_empty(IWSTREE *st) {
 }
 
 void *iwstree_remove(IWSTREE *st, const void *key) {
-  tree_node_t *root, *x;
+  tree_node_t *root, *tmp;
   void *val;
 
   /*  make removed node the root */
-  if (!iwstree_get(st, key)) {
+  if (!_splay(st, 1, 0, 0, (tree_node_t **) &st->root, key)) {
     return 0;
   }
   root = st->root;
@@ -230,10 +230,10 @@ void *iwstree_remove(IWSTREE *st, const void *key) {
   if (root->left == 0) {
     st->root = root->right;
   } else {
-    x = root->right;
+    tmp = root->right;
     st->root = root->left;
-    _splay(st, 0, 0, 0, (tree_node_t **) &st->root, key);
-    ((tree_node_t *) st->root)->right = x;
+    _splay(st, 1, 0, 0, (tree_node_t **) &st->root, key);
+    ((tree_node_t *) st->root)->right = tmp;
   }
   st->count--;
   assert(root != st->root);
