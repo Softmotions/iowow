@@ -104,6 +104,12 @@ typedef int HANDLE;
 #define RCGO(rc__, label__) if (rc__) goto label__
 #endif
 
+#define RCIF(res__, rc__, rcv__, label__)   \
+  if (res__) {                              \
+    rc__ = (rcv__);                         \
+    goto label__;                           \
+  }
+
 #define RCHECK(rc__, label__,  expr__) \
   rc__ = expr__;                       \
   RCGO(rc__, label__)
