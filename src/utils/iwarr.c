@@ -205,6 +205,14 @@ IWULIST *iwulist_create(size_t initial_length, size_t unit_size) {
   return list;
 }
 
+iwrc iwulist_clear(IWULIST *list) {
+  if (!list) {
+    free(list->array);
+    return iwulist_init(list, IWULIST_ALLOC_UNIT, list->usize);
+  }
+  return 0;
+}
+
 void iwulist_destroy_keep(IWULIST *list) {
   if (list) {
     free(list->array);

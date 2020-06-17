@@ -93,6 +93,13 @@ IW_EXPORT iwrc iwulist_init(IWULIST *list, size_t initial_length, size_t unit_si
 IW_EXPORT IWULIST *iwulist_create(size_t initial_length, size_t unit_size);\
 
 /**
+ * @brief Cleanup units list.
+ *
+ * @param list Unit list
+ */
+IW_EXPORT iwrc iwulist_clear(IWULIST *list);
+
+/**
  * @brief Destroys and deallocates a given unit list.
  *
  */

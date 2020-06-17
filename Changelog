@@ -1,5 +1,6 @@
 iowow (1.4.5) UNRELEASED; urgency=medium
 
+  * Added `iwulist_clear` (iwarr.h)
   * Added `RCIF` (basedefs.h)
   * Fix assertion error in `iwstree_remove()` (iwstree.h)
   * Allows zero key/value placeholders in `iwstree_iter_next()` (iwstree.h)
