@@ -1,4 +1,4 @@
-iowow (1.4.5) UNRELEASED; urgency=medium
+iowow (1.4.5) testing; urgency=medium
 
   * Added `iwulist_clear` (iwarr.h)
   * Added `RCIF` (basedefs.h)
@@ -10,7 +10,7 @@ iowow (1.4.5) UNRELEASED; urgency=medium
   * Added `iwstree_int64_cmp` (iwstree.h)
   * Added `IW_DEPRECATED` (basedefs.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Sun, 03 May 2020 01:08:50 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 18 Jun 2020 14:19:32 +0700
 
 iowow (1.4.4) testing; urgency=medium
 
