@@ -96,11 +96,15 @@ static void _free_node(IWSTREE *st, tree_node_t *node) {
   }
 }
 
-void iwstree_destroy(IWSTREE *st) {
+void iwstree_clear(IWSTREE *st) {
   if (st) {
     _free_node(st, st->root);
-    free(st);
   }
+}
+
+void iwstree_destroy(IWSTREE *st) {
+  iwstree_clear(st);
+  free(st);
 }
 
 static tree_node_t *_init_node(void *key, void *value) {
