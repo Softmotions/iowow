@@ -99,6 +99,7 @@ static void _free_node(IWSTREE *st, tree_node_t *node) {
 void iwstree_clear(IWSTREE *st) {
   if (st) {
     _free_node(st, st->root);
+    st->root = 0;
   }
 }
 
