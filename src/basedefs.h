@@ -142,6 +142,7 @@ typedef int HANDLE;
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #ifdef _WIN32
 typedef _locale_t locale_t;

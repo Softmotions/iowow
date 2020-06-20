@@ -1,9 +1,9 @@
 #pragma once
-#ifndef IWPOOL_H
-#define IWPOOL_H
+#ifndef IWSTW_H
+#define IWSTW_H
 
 /**************************************************************************************************
- * Memory pool implementation.
+ * Single thread worker.
  *
  * IOWOW library
  *
@@ -31,39 +31,45 @@
  *************************************************************************************************/
 
 #include "basedefs.h"
+
 IW_EXTERN_C_START
 
-#ifndef IWPOOL_POOL_SIZ
-#define IWPOOL_POOL_SIZ   (8 * 1024)
-#endif
+struct _IWSTW;
+typedef struct _IWSTW *IWSTW;
 
-struct _IWPOOL;
-typedef struct _IWPOOL IWPOOL;
+/**
+ * @brief Task to execute
+ */
+typedef void (*iwstw_task_f)(void *arg);
 
-IW_EXPORT IWPOOL *iwpool_create(size_t siz);
+/**
+ * @brief Start single thread worker.
+ *        Function will block until start of worker thread.
+ *
+ * @param queue_limit Max length of pending tasks queue. Unlimited if zero.
+ * @param[out] stwp_out Pointer to worker handler to be initialized.
+ */
+IW_EXPORT iwrc iwstw_start(int queue_limit, IWSTW *stwp_out);
 
-IW_EXPORT void *iwpool_alloc(size_t siz, IWPOOL *pool);
+/**
+ * @brief Shutdowns worker and disposes all resources.
+ *        Function will wait until current task completes or
+ *        wait for all pednding tasks if `wait_for_all` is set to `true`.
+ *        No new tasks will be accepted during `iwstw_shutdown` call.
+ *
+ * @param stw Pointer to worker handler which should be destroyed.
+ * @param wait_for_all If true worker will wait for all pending tasks before shutdown.
+ */
+IW_EXPORT void iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
 
-IW_EXPORT void *iwpool_calloc(size_t siz, IWPOOL *pool);
-
-IW_EXPORT char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp);
-
-IW_EXPORT char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp);
-
-IW_EXPORT char *iwpool_printf(IWPOOL *pool, const char *format, ...);
-
-IW_EXPORT char **iwpool_split_string(IWPOOL *pool, const char *haystack,
-                                     const char *split_chars, bool ignore_whitespace);
-
-IW_EXPORT char **iwpool_printf_split(IWPOOL *pool,
-                                     const char *split_chars, bool ignore_whitespace,
-                                     const char *format, ...);
-
-IW_EXPORT void iwpool_destroy(IWPOOL *pool);
-
-IW_EXPORT size_t iwpool_allocated_size(IWPOOL *pool);
-
-IW_EXPORT size_t iwpool_used_size(IWPOOL *pool);
+/**
+ * @brief Schedule task for execution.
+ *        Task will be added to pending tasks queue.
+ *
+ * @note If tasks queue is reached its length limit `IW_ERROR_OVERFLOW` will be returned.
+ * @note If worker is in process of stopping `IW_ERROR_INVALID_STATE` will be returned.
+ */
+IW_EXPORT iwrc iwstw_schedule(IWSTW stw, iwstw_task_f task, void *task_arg);
 
 IW_EXTERN_C_END
 #endif
