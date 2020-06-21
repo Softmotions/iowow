@@ -96,6 +96,7 @@ void iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
   pthread_barrier_destroy(&stw->brr);
   pthread_cond_destroy(&stw->cond);
   pthread_mutex_destroy(&stw->mtx);
+  free(stw);
   *stwp = 0;
 }
 
