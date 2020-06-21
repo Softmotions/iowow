@@ -51,10 +51,14 @@ void *worker_fn(void *op) {
     }
 
     pthread_mutex_lock(&stw->mtx);
-    if (stw->shutdown && !stw->head) {
-      // No more tasks and we are stopping
+    if (stw->head) {
       pthread_mutex_unlock(&stw->mtx);
-      break;
+      continue;
+    } else {
+      if (stw->shutdown) {
+        pthread_mutex_unlock(&stw->mtx);
+        break;
+      }
     }
     pthread_cond_wait(&stw->cond, &stw->mtx);
     pthread_mutex_unlock(&stw->mtx);
