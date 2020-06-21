@@ -54,11 +54,9 @@ void *worker_fn(void *op) {
     if (stw->head) {
       pthread_mutex_unlock(&stw->mtx);
       continue;
-    } else {
-      if (stw->shutdown) {
-        pthread_mutex_unlock(&stw->mtx);
-        break;
-      }
+    } else if (stw->shutdown) {
+      pthread_mutex_unlock(&stw->mtx);
+      break;
     }
     pthread_cond_wait(&stw->cond, &stw->mtx);
     pthread_mutex_unlock(&stw->mtx);
