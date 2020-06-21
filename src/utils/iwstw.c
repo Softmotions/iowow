@@ -88,8 +88,11 @@ void iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
   stw->shutdown = true;
   pthread_cond_broadcast(&stw->cond);
   pthread_mutex_unlock(&stw->mtx);
-  pthread_join(stw->thr, 0);
-
+  int rci = pthread_join(stw->thr, 0);
+  if (rci) {
+    iwrc rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    iwlog_ecode_error3(rc);
+  }
   pthread_barrier_destroy(&stw->brr);
   pthread_cond_destroy(&stw->cond);
   pthread_mutex_destroy(&stw->mtx);
