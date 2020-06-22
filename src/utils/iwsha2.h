@@ -34,6 +34,7 @@
  *************************************************************************************************/
 
 #include "basedefs.h"
+#include <stddef.h>
 
 IW_EXTERN_C_START
 
@@ -51,7 +52,7 @@ IW_EXTERN_C_START
  * @param input
  * @param len
  */
-void iwsha256(const void *input, size_t len, uint8_t hash_out[32]);
+IW_EXPORT void iwsha256(const void *input, size_t len, uint8_t hash_out[32]);
 
 IW_EXTERN_C_END
 #endif
