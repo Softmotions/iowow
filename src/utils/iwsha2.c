@@ -207,4 +207,8 @@ void iwsha256(const void *input, size_t len, uint8_t hash_out[32]) {
   }
 }
 
-
+void iwhash2str(uint8_t hash[32], char string_out[65]) {
+  for (int i = 0; i < 32; i++) {
+    string_out += sprintf(string_out, "%02x", hash[i]);
+  }
+}

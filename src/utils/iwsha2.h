@@ -54,5 +54,7 @@ IW_EXTERN_C_START
  */
 IW_EXPORT void iwsha256(const void *input, size_t len, uint8_t hash_out[32]);
 
+IW_EXPORT void iwhash2str(uint8_t hash[32], char string_out[65]);
+
 IW_EXTERN_C_END
 #endif
