@@ -199,10 +199,12 @@ void iwsha256(const void *input, size_t len, uint8_t hash_out[32]) {
   }
 
   /* Produce the final hash value (big-endian): */
-  hash_out[j++] = (uint8_t)(h[i] >> 24);
-  hash_out[j++] = (uint8_t)(h[i] >> 16);
-  hash_out[j++] = (uint8_t)(h[i] >> 8);
-  hash_out[j++] = (uint8_t) h[i];
+  for (i = 0, j = 0; i < 8; i++) {
+    hash_out[j++] = (uint8_t)(h[i] >> 24);
+    hash_out[j++] = (uint8_t)(h[i] >> 16);
+    hash_out[j++] = (uint8_t)(h[i] >> 8);
+    hash_out[j++] = (uint8_t) h[i];
+  }
 }
 
 
