@@ -31,7 +31,7 @@
 #include "basedefs.h"
 #include <pthread.h>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || (defined(__ANDROID_API__) && __ANDROID_API__ < 24)
 
 #ifdef __cplusplus
 extern "C" {
