@@ -1,11 +1,11 @@
-iowow (1.4.6) UNRELEASED; urgency=medium
+iowow (1.4.6) testing; urgency=medium
 
   * `pthread_barrierattr` shim for android API < 24
   * Added `iwsha256()` SHA-256 hash implementation (iwsha2.h)
   * Added single thread worker (iwstw.h)
   * Added `iwstree_clear()` (iwstree.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 18 Jun 2020 23:02:01 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 24 Jun 2020 18:32:24 +0700
 
 iowow (1.4.5) testing; urgency=medium
 
