@@ -1,6 +1,6 @@
 iowow (1.4.6) UNRELEASED; urgency=medium
 
-  * Added simple hash map implementation (iwhmap.h)
+  * Added simple hashmap implementation (iwhmap.h)
   * `IWPOOL` is able to store associated user data (iwpool.h)
   * `pthread_barrierattr` shim for android API < 24
   * Added `iwsha256()` SHA-256 hash implementation (iwsha2.h)

@@ -150,6 +150,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwutils.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwuuid.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwxstr.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/murmur3.h
                      )
 
 list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)

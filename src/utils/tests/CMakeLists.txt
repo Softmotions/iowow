@@ -4,7 +4,10 @@ include_directories(${CUNIT_INCLUDE_DIRS})
 set(TEST_DATA_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TEST_DATA_DIR})
 
-foreach(TN IN ITEMS iwarr_test1 iwutils_test1)
+foreach(TN IN ITEMS iwarr_test1
+                    iwutils_test1
+                    iwhmap_test1
+                    )
     add_executable(${TN} ${TN}.c)
     set_target_properties(${TN} PROPERTIES
                           COMPILE_FLAGS "-DIW_STATIC")

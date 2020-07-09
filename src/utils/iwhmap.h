@@ -37,34 +37,40 @@ struct _IWHMAP;
 typedef struct _IWHMAP IWHMAP;
 
 typedef struct {
-  const IWHMAP *hm;
-  void *key;
-  void *val;
+  IWHMAP *hm;
+  const void *key;
+  const void *val;
   uint32_t bucket;
   int32_t entry;
 } IWHMAP_ITER;
 
-IW_EXPORT IWHMAP *iwhmap_create(
-  int (*cmp)(const void *, const void *),
-  uint32_t (*hash_key)(const void *),
-  void (*kvfree)(void *, void *)
-);
+/**
+ * @brief Key/Value free callback which uses standard `free()` deallocation.
+ *
+ * @param key Pointer to key or zero.
+ * @param val Pointer to value of zero.
+ */
+IW_EXPORT void iwhmap_kv_free(void *key, void *val);
 
-IW_EXPORT IWHMAP *iwhmap_create_i64(void (*kvfree)(void *, void *));
+IW_EXPORT IWHMAP *iwhmap_create(int (*cmp_fn)(const void *, const void *),
+                                uint32_t (*hash_key_fn)(const void *),
+                                void (*kv_free_fn)(void *, void *));
 
-IW_EXPORT IWHMAP *iwhmap_create_i32(void (*kvfree)(void *, void *));
+IW_EXPORT IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void *, void *));
 
-IW_EXPORT IWHMAP *iwhmap_create_str(void (*kvfree)(void *, void *));
+IW_EXPORT IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void *, void *));
+
+IW_EXPORT IWHMAP *iwhmap_create_str(void (*kv_free_fn)(void *, void *));
 
 IW_EXPORT iwrc iwhmap_put(IWHMAP *hm, void *key, void *val);
 
-IW_EXPORT iwrc iwhmap_remove(IWHMAP *hm, void *key);
+IW_EXPORT void iwhmap_remove(IWHMAP *hm, void *key);
 
 IW_EXPORT void *iwhmap_get(IWHMAP *hm, void *key);
 
 IW_EXPORT int iwhmap_count(IWHMAP *hm);
 
-IW_EXPORT int iwhmap_clear(IWHMAP *hm);
+IW_EXPORT void iwhmap_clear(IWHMAP *hm);
 
 IW_EXPORT void iwhmap_iter_init(IWHMAP *hm, IWHMAP_ITER *iter);
 
