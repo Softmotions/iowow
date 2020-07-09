@@ -17,10 +17,12 @@ typedef struct IWPOOL_UNIT {
 
 /** Memory pool */
 struct _IWPOOL {
-  size_t       usiz;   /**< Used size */
-  size_t       asiz;   /**< Allocated size */
-  char        *heap;   /**< Current pool heap ptr */
-  IWPOOL_UNIT *unit;   /**< Current heap unit */
+  size_t       usiz;      /**< Used size */
+  size_t       asiz;      /**< Allocated size */
+  char        *heap;      /**< Current pool heap ptr */
+  IWPOOL_UNIT *unit;      /**< Current heap unit */
+  void        *user_data; /**< Associated user data */
+  void (*user_data_free_fn)(void *);       /**< User data dispose function */
 };
 
 IWPOOL *iwpool_create(size_t siz) {
@@ -195,6 +197,22 @@ char **iwpool_printf_split(IWPOOL *pool,
   return ret;
 }
 
+void iwpool_free_fn(void *pool) {
+  iwpool_destroy((void *)  pool);
+}
+
+void iwpool_set_user_data(IWPOOL *pool, void *data, void (*free_fn)(void *)) {
+  if (pool->user_data_free_fn) {
+    pool->user_data_free_fn(pool->user_data);
+  }
+  pool->user_data_free_fn = free_fn;
+  pool->user_data = data;
+}
+
+void *iwpool_get_user_data(IWPOOL *pool) {
+  return pool->user_data;
+}
+
 size_t iwpool_allocated_size(IWPOOL *pool) {
   return pool->asiz;
 }
@@ -211,6 +229,9 @@ void iwpool_destroy(IWPOOL *pool) {
     next = u->next;
     free(u->heap);
     free(u);
+  }
+  if (pool->user_data_free_fn) {
+    pool->user_data_free_fn(pool->user_data);
   }
   free(pool);
 }
