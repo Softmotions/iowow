@@ -41,10 +41,12 @@ IWPOOL *iwpool_create(size_t siz) {
   if (!pool->unit->heap) {
     goto error;
   }
-  pool->unit->next = 0;
-  pool->usiz = 0;
   pool->asiz = siz;
   pool->heap = pool->unit->heap;
+  pool->usiz = 0;
+  pool->unit->next = 0;
+  pool->user_data = 0;
+  pool->user_data_free_fn = 0;
   return pool;
 
 error:
