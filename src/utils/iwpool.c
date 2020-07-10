@@ -217,6 +217,11 @@ void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void *)) {
   pool->user_data = data;
 }
 
+void *iwpool_user_data_detach(IWPOOL *pool) {
+  pool->user_data_free_fn = 0;
+  return pool->user_data;
+}
+
 void *iwpool_user_data_get(IWPOOL *pool) {
   return pool->user_data;
 }
