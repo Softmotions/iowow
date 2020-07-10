@@ -125,7 +125,7 @@ typedef int HANDLE;
 #endif
 
 #ifndef RCA
-#define RCA(v__, label__) RCGA((v__, label__)
+#define RCA(v__, label__) RCGA(v__, label__)
 #endif
 
 #ifdef __GNUC__
