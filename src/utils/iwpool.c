@@ -60,7 +60,11 @@ error:
   return 0;
 }
 
-IW_INLINE int iwpool_extend(IWPOOL *pool, IWPOOL_UNIT *unit, size_t siz) {
+IWPOOL *iwpool_create_empty(void) {
+  return calloc(1, sizeof(struct _IWPOOL));
+}
+
+IW_INLINE int iwpool_extend(IWPOOL *pool, size_t siz) {
   IWPOOL_UNIT *nunit =  malloc(sizeof(*nunit));
   if (!nunit) {
     return 0;
@@ -80,12 +84,14 @@ IW_INLINE int iwpool_extend(IWPOOL *pool, IWPOOL_UNIT *unit, size_t siz) {
 }
 
 void *iwpool_alloc(size_t siz, IWPOOL *pool) {
-  IWPOOL_UNIT  *unit = pool->unit;
   siz = IW_ROUNDUP(siz, IWPOOL_UNIT_ALIGN_SIZE);
   size_t usiz = pool->usiz + siz;
   void *h = pool->heap;
   if (usiz > pool->asiz) {
-    if (!iwpool_extend(pool, unit, usiz * 2)) {
+    if (pool->asiz) {
+      usiz = usiz * 2;
+    }
+    if (!iwpool_extend(pool, usiz)) {
       return 0;
     }
     h = pool->heap;

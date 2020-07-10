@@ -1,5 +1,6 @@
 iowow (1.4.6) testing; urgency=medium
 
+  * Added `iwpool_create_empty()` (iwpool.h)
   * Added simple hashmap implementation (iwhmap.h)
   * `IWPOOL` is able to store associated user data (iwpool.h)
   * `pthread_barrierattr` shim for android API < 24
