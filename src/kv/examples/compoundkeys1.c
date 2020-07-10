@@ -65,7 +65,7 @@ static iwrc run(void) {
     for (struct user_s *user = &room->users[0]; user->id; user = &room->users[++j]) {
       IWKV_val key = { .data = room->name, .size = strlen(room->name), .compound = user->id };
       IWKV_val val = { .data = user->name, .size = strlen(user->name) };
-      RCHECK(rc, finish, iwkv_put(db, &key, &val, 0));
+      RCC(rc, finish, iwkv_put(db, &key, &val, 0));
     }
   }
 
@@ -73,7 +73,7 @@ static iwrc run(void) {
   {
     IWKV_val key = { .data = "Webinar room", .size = sizeof("Webinar room") - 1, .compound = 2 };
     IWKV_val val;
-    RCHECK(rc, finish, iwkv_get(db, &key, &val));
+    RCC(rc, finish, iwkv_get(db, &key, &val));
     fprintf(stdout, "\n>>>> Found: '%.*s' in room '%s' by id: %d\n",
             (int) val.size, (char *) val.data,
             (char *) key.data, (int) key.compound);
@@ -85,9 +85,9 @@ static iwrc run(void) {
     size_t len = strlen(rooms[0].name);
     fprintf(stdout, "\n>>>> Iterate over all members in %s\n", rooms[0].name);
     IWKV_val val, key = { .data = rooms[0].name, .size = len };
-    RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
+    RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
     do {
-      RCHECK(rc, finish, iwkv_cursor_get(cur, &key, &val));
+      RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
       if (memcmp(key.data, rooms[0].name, MIN(key.size, len))) {
         // We rolled to end of `Meeting room` room
         iwkv_kv_dispose(&key, &val);

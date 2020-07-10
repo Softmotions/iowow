@@ -53,14 +53,14 @@ static iwrc run(void) {
     struct data_s *n = &_points[i];
     IWKV_val key = { .data = (void *) n->club, .size = strlen(n->club) };
     IWKV_val val = { .data = &n->points, .size = sizeof(n->points) };
-    RCHECK(rc, finish, iwkv_put(db, &key, &val, 0));
+    RCC(rc, finish, iwkv_put(db, &key, &val, 0));
   }
 
   fprintf(stdout, ">>>> Traverse in descending order\n");
-  RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0));
+  RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0));
   while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) == 0) {
     IWKV_val key, val;
-    RCHECK(rc, finish, iwkv_cursor_get(cur, &key, &val));
+    RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
     fprintf(stdout, "%.*s: %u\n",
             (int) key.size, (char *) key.data,
             *(uint8_t *) val.data);
@@ -70,10 +70,10 @@ static iwrc run(void) {
   iwkv_cursor_close(&cur);
 
   fprintf(stdout, "\n>>>> Traverse in ascending order\n");
-  RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_AFTER_LAST, 0));
+  RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_AFTER_LAST, 0));
   while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_PREV)) == 0) {
     IWKV_val key, val;
-    RCHECK(rc, finish, iwkv_cursor_get(cur, &key, &val));
+    RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
     fprintf(stdout, "%.*s: %u\n",
             (int) key.size, (char *) key.data,
             *(uint8_t *) val.data);
@@ -86,9 +86,9 @@ static iwrc run(void) {
   {
     fprintf(stdout, "\n>>>> Records GE: %s\n", _points[9].club);
     IWKV_val key = { .data = (void *) _points[9].club, .size = strlen(_points[9].club) }, val;
-    RCHECK(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
+    RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
     do {
-      RCHECK(rc, finish, iwkv_cursor_get(cur, &key, &val));
+      RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
       fprintf(stdout, "%.*s: %u\n",
               (int) key.size, (char *) key.data,
               *(uint8_t *) val.data);
