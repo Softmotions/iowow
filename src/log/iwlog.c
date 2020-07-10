@@ -426,7 +426,7 @@ static iwrc _default_logfn(FILE *out,
       fnameptr[len] = '\0';
     } else {
       fnameptr = strdup(file);
-      RCGA(fnameptr, finish);
+      RCA((fnameptr, finish);
     }
 #ifdef IW_HAVE_BASENAME_R
     fname = basename_r(file, fnameptr);
