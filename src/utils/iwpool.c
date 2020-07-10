@@ -209,7 +209,7 @@ void iwpool_free_fn(void *pool) {
   iwpool_destroy((void *)  pool);
 }
 
-void iwpool_set_user_data(IWPOOL *pool, void *data, void (*free_fn)(void *)) {
+void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void *)) {
   if (pool->user_data_free_fn) {
     pool->user_data_free_fn(pool->user_data);
   }
@@ -217,7 +217,7 @@ void iwpool_set_user_data(IWPOOL *pool, void *data, void (*free_fn)(void *)) {
   pool->user_data = data;
 }
 
-void *iwpool_get_user_data(IWPOOL *pool) {
+void *iwpool_user_data_get(IWPOOL *pool) {
   return pool->user_data;
 }
 

@@ -135,12 +135,20 @@ IW_EXPORT void iwpool_free_fn(void *pool);
  * @param data User data. Can be zero.
  * @param free_fn User data dispose function. Can be zero.
  */
-IW_EXPORT void iwpool_set_user_data(IWPOOL *pool, void *data, void (*free_fn)(void *));
+IW_EXPORT void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void *));
 
 /**
  * @brief Returns pointer to user data associated with this pool. Or zero.
  */
-IW_EXPORT void *iwpool_get_user_data(IWPOOL *pool);
+IW_EXPORT void *iwpool_user_data_get(IWPOOL *pool);
+
+/**
+ * @brief Reset user data free function for current user data stored in pool.
+ *
+ * @param pool Pointer to memory pool.
+ * @return Pointer to current user data stored or zero,
+ */
+IW_EXPORT void *iwpool_user_data_detach(IWPOOL *pool);
 
 /**
  * @brief Returns number of bytes allocated for this memory pool.
