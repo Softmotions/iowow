@@ -114,6 +114,8 @@ typedef int HANDLE;
   rc__ = expr__;                       \
   RCGO(rc__, label__)
 
+#define RCC(rc__, label__,  expr__) RCHECK(rc__, label__, expr__)
+
 #ifdef __GNUC__
 #define RCRET(rc__) if (__builtin_expect((!!(rc__)), 0)) return (rc__)
 #else
