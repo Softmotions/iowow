@@ -86,11 +86,15 @@ IW_INLINE int iwpool_extend(IWPOOL *pool, size_t siz) {
 void *iwpool_alloc(size_t siz, IWPOOL *pool) {
   siz = IW_ROUNDUP(siz, IWPOOL_UNIT_ALIGN_SIZE);
   size_t usiz = pool->usiz + siz;
+  if (SIZE_T_MAX - pool->usiz < siz) {
+    return 0;
+  }
   void *h = pool->heap;
   if (usiz > pool->asiz) {
-    if (pool->asiz) {
-      usiz = usiz * 2;
+    if (SIZE_T_MAX - pool->asiz < usiz) {
+      return 0;
     }
+    usiz = usiz + pool->asiz;
     if (!iwpool_extend(pool, usiz)) {
       return 0;
     }
