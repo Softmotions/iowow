@@ -1,3 +1,9 @@
+iowow (1.4.7) UNRELEASED; urgency=medium
+
+  * Minor fixed on iwhmap
+
+ -- Anton Adamansky <adamansky@gmail.com>  Sun, 23 Aug 2020 14:52:27 +0700
+
 iowow (1.4.6) testing; urgency=medium
 
   * Added `iwpool_user_data_detach()` (iwpool.h)
