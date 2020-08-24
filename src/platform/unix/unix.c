@@ -234,7 +234,7 @@ iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
     ssize_t wb = write(fh, rp, size);
     switch (wb) {
       case -1:
-        if (errno != EINTR && errno != EINTR) {
+        if (errno != EAGAIN && errno != EINTR) {
           return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
         }
       case 0:
