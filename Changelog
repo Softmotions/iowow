@@ -1,5 +1,6 @@
 iowow (1.4.7) UNRELEASED; urgency=medium
 
+  * Correct handling of EINTR, EAGAIN in read/write functions (unix.c)
   * Minor fixed on iwhmap
 
  -- Anton Adamansky <adamansky@gmail.com>  Sun, 23 Aug 2020 14:52:27 +0700
