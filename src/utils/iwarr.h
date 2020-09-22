@@ -131,6 +131,8 @@ IW_EXPORT IWULIST *iwulist_clone(IWULIST *list);
  */
 IW_EXPORT void *iwulist_at(IWULIST *list, size_t index, iwrc *orc);
 
+IW_EXPORT void *iwulist_at2(IWULIST *list, size_t index);
+
 /**
  * @brief Inserts new element at given index.
  *

@@ -266,6 +266,14 @@ void *iwulist_at(IWULIST *list, size_t index, iwrc *orc) {
   return list->array + index * list->usize;
 }
 
+void *iwulist_at2(IWULIST *list, size_t index) {
+  if (index >= list->num) {
+    return 0;
+  }
+  index += list->start;
+  return list->array + index * list->usize;
+}
+
 iwrc iwulist_push(IWULIST *list, const void *data) {
   size_t index = list->start + list->num;
   if (index >= list->anum) {
