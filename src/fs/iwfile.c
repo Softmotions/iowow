@@ -244,10 +244,12 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   mode = O_RDONLY;
   if (omode & IWFS_OWRITE) {
     mode = O_RDWR;
-    if (omode & IWFS_OCREATE)
+    if (omode & IWFS_OCREATE) {
       mode |= O_CREAT;
-    if (omode & IWFS_OTRUNC)
+    }
+    if (omode & IWFS_OTRUNC) {
       mode |= O_TRUNC;
+    }
   }
 #ifndef _WIN32
   impl->fh = open(opts->path, mode, opts->filemode);

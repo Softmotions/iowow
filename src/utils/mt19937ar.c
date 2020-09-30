@@ -150,8 +150,9 @@ unsigned long genrand_int32(void) {
   if (mti >= N) { /* generate N words at one time */
     int kk;
 
-    if (mti == N + 1) /* if init_genrand() has not been called, */
+    if (mti == N + 1) { /* if init_genrand() has not been called, */
       init_genrand_impl(5489UL); /* a default initial seed is used */
+    }
 
     for (kk = 0; kk < N - M; kk++) {
       y = (mt[kk] & UPPER_MASK) | (mt[kk + 1] & LOWER_MASK);

@@ -66,9 +66,7 @@ int iwitoa(int64_t v, char *buf, int max) {
     return ret; \
   }
   int ret = 0;
-  char *ptr = buf, *p = ptr, *p1;
-  char c;
-
+  char c, *ptr = buf, *p, *p1;
   if (!v) {
     ITOA_SZSTEP(1);
     *ptr++ = '0';
@@ -106,7 +104,7 @@ int iwitoa(int64_t v, char *buf, int max) {
 #undef ITOA_SZSTEP
 }
 
-char* iwftoa(long double n, char s[static IWFTOA_BUFSIZE]) {
+char *iwftoa(long double n, char s[static IWFTOA_BUFSIZE]) {
   static double PRECISION = 0.00000000000001;
   // handle special cases
   if (isnan(n)) {
@@ -119,34 +117,38 @@ char* iwftoa(long double n, char s[static IWFTOA_BUFSIZE]) {
     int digit, m, m1;
     char *c = s;
     int neg = (n < 0);
-    if (neg)
+    if (neg) {
       n = -n;
+    }
     // calculate magnitude
-    m = log10(n);
+    m = (int) log10l(n);
     int useExp = (m >= 14 || (neg && m >= 9) || m <= -9);
-    if (neg)
+    if (neg) {
       *(c++) = '-';
+    }
     // set up for scientific notation
     if (useExp) {
-      if (m < 0)
-        m -= 1.0;
+      if (m < 0) {
+        m -= 1;
+      }
       n = n / pow(10.0, m);
       m1 = m;
       m = 0;
     }
-    if (m < 1.0) {
+    if (m < 1) {
       m = 0;
     }
     // convert the number
     while (n > PRECISION || m >= 0) {
       double weight = pow(10.0, m);
       if (weight > 0 && !isinf(weight)) {
-        digit = floor(n / weight);
+        digit = (int) floorl(n / weight);
         n -= (digit * weight);
         *(c++) = '0' + digit;
       }
-      if (m == 0 && n > 0)
+      if (m == 0 && n > 0) {
         *(c++) = '.';
+      }
       m--;
     }
     if (useExp) {

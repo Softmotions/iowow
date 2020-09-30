@@ -190,6 +190,7 @@ static entry_t *_entry_add(IWHMAP *hm, void *key, uint32_t hash) {
   }
   entry = bucket->entries;
   for (entry_t *end = entry + bucket->used; entry < end; ++entry) {
+    // NOLINTNEXTLINE (clang-analyzer-core.UndefinedBinaryOperatorResult)
     if (hash == entry->hash && hm->cmp_fn(key, entry->key) == 0) {
       return entry;
     }

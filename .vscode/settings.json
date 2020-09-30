@@ -37,9 +37,7 @@
     "restructuredtext",
     "text"
   ],
-  "cSpell.words": [
-    "IWKV"
-  ],
+  "cSpell.words": ["IWKV"],
   "cSpell.enabled": false,
   "files.watcherExclude": {
     "**/.git/objects/**": true,
@@ -49,6 +47,23 @@
   },
   "cmake.configureOnOpen": false,
   "editor.trimAutoWhitespace": false,
-  "git.autoRepositoryDetection": false
+  "git.autoRepositoryDetection": false,
+  "clang-tidy.compilerArgs": [
+    "-I",
+    "src",
+    "-I",
+    "src/fs",
+    "-I",
+    "src/kv",
+    "-I",
+    "src/log",
+    "-I",
+    "src/platform",
+    "-I",
+    "src/rdb",
+    "-I",
+    "src/utils",
+    "-I",
+    "build/src/generated"
+  ]
 }
-

@@ -115,7 +115,6 @@ off_t iwarr_sorted_find(void *restrict els,
     } else if (cr < 0) {
       lb = idx + 1;
       if (lb > ub) {
-        idx = lb;
         break;
       }
     } else {
@@ -206,7 +205,7 @@ IWULIST *iwulist_create(size_t initial_length, size_t unit_size) {
 }
 
 iwrc iwulist_clear(IWULIST *list) {
-  if (!list) {
+  if (list) {
     free(list->array);
     return iwulist_init(list, IWULIST_ALLOC_UNIT, list->usize);
   }
@@ -435,6 +434,7 @@ IWLIST *iwlist_create(size_t anum) {
     return 0;
   }
   if (iwlist_init(list, anum)) {
+    free(list);
     return 0;
   }
   return list;

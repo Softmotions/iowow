@@ -286,7 +286,7 @@ iwrc iwu_replace(IWXSTR **result,
   for (int i = 0; i < keysz; ++i) {
     iwxstr_clear(bbuf);
     const char *key = keys[i];
-    int klen = strlen(key);
+    size_t klen = strlen(key);
     while (true) {
       const char *p = strstr(ptr, key);
       if (!p) {

@@ -279,7 +279,7 @@ void murmur3_x64_128(const void *key, const size_t len, const uint32_t seed, voi
     h2 = h2 * 5 + 0x38495ab5;
   }
 
-  const uint8_t *tail = (const uint8_t *)(data + nblocks * 16);
+  const uint8_t *tail = (data + nblocks * 16);
   uint64_t k1 = 0;
   uint64_t k2 = 0;
   switch (len & 15) {

@@ -159,7 +159,7 @@ char *iwpool_printf(IWPOOL *pool, const char *format, ...) {
 char **iwpool_split_string(IWPOOL *pool, const char *haystack, const char *split_chars,
                            bool ignore_whitespace) {
 
-  int hsz = strlen(haystack);
+  size_t hsz = strlen(haystack);
   char **ret = iwpool_alloc((hsz + 1) * sizeof(char *), pool);
   if (!ret) return 0;
   const char *sp = haystack;
@@ -210,7 +210,7 @@ char **iwpool_printf_split(IWPOOL *pool,
 }
 
 void iwpool_free_fn(void *pool) {
-  iwpool_destroy((void *)  pool);
+  iwpool_destroy(pool);
 }
 
 void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void *)) {

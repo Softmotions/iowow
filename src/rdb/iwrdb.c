@@ -257,7 +257,7 @@ iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len, size_t *
   rc = _rlock(db);
   if (rc) return rc;
   if (off + len > db->end + db->bp) {
-    int l = db->end + db->bp - off;
+    off_t l = db->end + db->bp - off;
     if (l < 0) {
       rc = IW_ERROR_OUT_OF_BOUNDS;
       goto finish;

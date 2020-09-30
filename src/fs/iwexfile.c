@@ -873,7 +873,7 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
 
   if (impl->fsize < opts->initial_size) {
     rc = _exfile_truncate_lw(f, opts->initial_size);
-  } else if ((uint64_t) impl->fsize & (impl->psize - 1)) {  // not a page aligned
+  } else if (impl->fsize & (impl->psize - 1)) {  // not a page aligned
     rc = _exfile_truncate_lw(f, impl->fsize);
   }
 finish:

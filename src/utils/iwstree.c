@@ -170,12 +170,14 @@ static tree_node_t *_splay(
       return 0;
     }
   } else {
-    if (next != *child)
+    if (next != *child) {
       return next;
+    }
   }
 
-  if (!pa)
+  if (!pa) {
     return next;
+  }
 
   if (!gpa) {
     /* zig left */

@@ -1817,7 +1817,7 @@ static WUR iwrc _sblk_insert_pi_mm(SBLK *sblk, uint8_t nidx, IWLCTX *lx,
 
   uint8_t *k;
   uint32_t kl;
-  int idx = 0, lb = 0, ub = sblk->pnum - 1, nels = sblk->pnum;
+  int idx = 0, lb = 0, ub = sblk->pnum - 1, nels = sblk->pnum; // NOLINT
 
   if (nels < 1) {
     sblk->pi[0] = nidx;
@@ -2425,7 +2425,7 @@ IW_INLINE iwrc _lx_init_chute(IWLCTX *lx) {
     SBLK *dbtail;
     rc = _sblk_at(lx, 0, 0, &dbtail);
     RCRET(rc);
-    for (int i = lx->nlvl; i >= 0 && !lx->pupper[i]; --i) {
+    for (int8_t i = lx->nlvl; i >= 0 && !lx->pupper[i]; --i) {
       lx->pupper[i] = dbtail;
     }
   }
@@ -2811,7 +2811,7 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
           rv = c1 > c2 ? -1 : c1 < c2 ? 1 : 0;
         }
       } else {
-        rv = (int) kl2 - kl1;
+        rv = (int) kl2 - (int) kl1;
       }
     }
   }

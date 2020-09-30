@@ -143,8 +143,9 @@ void iwsha256(const void *input, size_t len, uint8_t hash_out[32]) {
     const uint8_t *p = chunk;
 
     /* Initialize working variables to current hash value: */
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < 8; i++) {
       ah[i] = h[i];
+    }
 
     /* Compression function main loop: */
     for (i = 0; i < 4; i++) {
@@ -195,8 +196,9 @@ void iwsha256(const void *input, size_t len, uint8_t hash_out[32]) {
     }
 
     /* Add the compressed chunk to the current hash value: */
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < 8; i++) {
       h[i] += ah[i];
+    }
   }
 
   /* Produce the final hash value (big-endian): */

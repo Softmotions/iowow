@@ -106,9 +106,7 @@ iwrc iwstw_schedule(IWSTW stw, iwstw_task_f fn, void *arg) {
   }
   iwrc rc = 0;
   struct _TASK *task = malloc(sizeof(*task));
-  if (!task) {
-    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-  }
+  RCA(task, finish);
   *task = (struct _TASK) {
     .fn = fn,
     .arg = arg
@@ -143,7 +141,7 @@ finish:
   if (rc) {
     free(task);
   }
-  return rc;
+  return rc; // NOLINT (clang-analyzer-unix.Malloc)
 }
 
 iwrc iwstw_start(int queue_limit, IWSTW *stwp_out) {

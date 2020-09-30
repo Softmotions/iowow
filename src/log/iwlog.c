@@ -334,7 +334,7 @@ static iwrc _default_logfn(FILE *out,
       errno_msg = ebuf;
     }
 #else
-    errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ);
+    errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ); // NOLINT
 #endif
   }
 
@@ -431,7 +431,7 @@ static iwrc _default_logfn(FILE *out,
 #ifdef IW_HAVE_BASENAME_R
     fname = basename_r(file, fnameptr);
 #else
-    fname = basename(fnameptr);
+    fname = basename(fnameptr); // NOLINT
 #endif
   }
 

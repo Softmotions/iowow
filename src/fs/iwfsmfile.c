@@ -312,7 +312,7 @@ static iwrc _fsm_set_bit_status_lw(FSM *impl,
     }
   }
   p = ((uint64_t *) mm) + offset_bits / 64;
-  set_bits = 64 - (offset_bits & (64 - 1));
+  set_bits = 64 - (offset_bits & (64 - 1)); // NOLINT
   set_mask = (~((uint64_t) 0) << (offset_bits & (64 - 1)));
 
 #ifdef IW_BIGENDIAN
