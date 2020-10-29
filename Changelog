@@ -4,6 +4,7 @@ iowow (1.4.8) UNRELEASED; urgency=medium
   * Fixed wrong `iwulist_clear()` behaviour (iwarr.h)
   * Code cleanup
   * Added `iwulist_at2()` (iwarr.h)
+  * Removed not needed assertion (iwstree.c)
 
  -- Anton Adamansky <adamansky@gmail.com>  Tue, 22 Sep 2020 10:56:09 +0700
 
