@@ -1,5 +1,6 @@
 iowow (1.4.8) UNRELEASED; urgency=medium
 
+  * Fixed serios bug concerning non-unique ejdb2 indexes, details: https://github.com/Softmotions/ejdb/issues/291
   * Fixed potencial memory leak in `iwlist_create()` (iwarr.h)
   * Fixed wrong `iwulist_clear()` behaviour (iwarr.h)
   * Code cleanup

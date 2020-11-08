@@ -156,11 +156,10 @@ IW_INLINE int _cmp_keys(iwdb_flags_t dbflg, const void *v1, int v1len, const IWK
       int step;
       int64_t c1, c2 = key->compound;
       IW_READVNUMBUF64(v1, c1, step);
-      rv = c1 > c2 ? -1 : c1 < c2 ? 1 : 0;
-      if (rv) {
-        return rv;
-      }
       v1len -= step;
+      if ((int) key->size == v1len) {
+        return c1 > c2 ? -1 : c1 < c2 ? 1 : 0;
+      }
     }
     return (int) key->size - v1len;
   } else {
@@ -2805,7 +2804,8 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
       rv = _cmp_keys(dbflg, k1, kl1, &key2);
     } else {
       if (dbflg & IWDB_COMPOUND_KEYS) {
-        if (!(dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
+        rv = (int) kl2 - (int) kl1;
+        if (rv == 0 && !(dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
           int64_t c1, c2 = key2.compound;
           IW_READVNUMBUF64(k1, c1, step);
           rv = c1 > c2 ? -1 : c1 < c2 ? 1 : 0;
