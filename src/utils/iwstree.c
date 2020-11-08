@@ -232,8 +232,6 @@ void *iwstree_remove(IWSTREE *st, const void *key) {
   val = root->value;
 
   assert(0 < st->count);
-  assert(root->key == key);
-
   if (root->left == 0) {
     st->root = root->right;
   } else {
