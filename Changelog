@@ -1,4 +1,4 @@
-iowow (1.4.8) UNRELEASED; urgency=medium
+iowow (1.4.8) testing; urgency=medium
 
   * Fixed serios bug concerning non-unique ejdb2 indexes, details: https://github.com/Softmotions/ejdb/issues/291
   * Fixed potencial memory leak in `iwlist_create()` (iwarr.h)
@@ -7,7 +7,7 @@ iowow (1.4.8) UNRELEASED; urgency=medium
   * Added `iwulist_at2()` (iwarr.h)
   * Removed not needed assertion (iwstree.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 22 Sep 2020 10:56:09 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Sun, 08 Nov 2020 21:51:49 +0700
 
 iowow (1.4.7) testing; urgency=medium
 
