@@ -13,7 +13,7 @@ iowow (1.4.8) testing; urgency=medium
   * Added `iwulist_at2()` (iwarr.h)
   * Removed not needed assertion (iwstree.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 09 Nov 2020 11:33:05 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Sun, 08 Nov 2020 21:51:49 +0700
 
 iowow (1.4.7) testing; urgency=medium
 
