@@ -7,6 +7,44 @@ union _uuid {
   uint32_t  rnd[4];
 };
 
+// [a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
+
+IW_INLINE bool _is_uuid_char(char ch) {
+  return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9');
+}
+
+bool iwu_uuid_valid(const char *uuid) {
+  if (!uuid || strlen(uuid) != IW_UUID_STR_LEN) {
+    return false;
+  }
+  for (int i = 0; i < 8; ++i) {
+    if (!_is_uuid_char(uuid[i])) {
+      return false;
+    }
+  }
+  if (uuid[8] != '-') {
+    return false;
+  }
+  uuid += 9;
+  for (int j = 0; j < 3; ++j) {
+    for (int i = 0; i < 4; ++i) {
+      if (!_is_uuid_char(uuid[i])) {
+        return false;
+      }
+    }
+    if (uuid[4] != '-') {
+      return false;
+    }
+    uuid += 5;
+  }
+  for (int i = 0; i < 12; ++i) {
+    if (!_is_uuid_char(uuid[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void iwu_uuid4_fill(char dest[static IW_UUID_STR_LEN]) {
   char buf[IW_UUID_STR_LEN + 1];
   union _uuid uuid;

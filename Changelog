@@ -1,3 +1,9 @@
+iowow (1.4.9) UNRELEASED; urgency=medium
+
+  * Added `bool iwu_uuid_valid(const char *uuid)` (iwuuid.h)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 11 Nov 2020 13:14:00 +0700
+
 iowow (1.4.8) testing; urgency=medium
 
   * Fixed serios bug concerning non-unique ejdb2 indexes, details: https://github.com/Softmotions/ejdb/issues/291

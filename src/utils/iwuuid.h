@@ -15,6 +15,8 @@ IW_EXTERN_C_START
  */
 IW_EXPORT void iwu_uuid4_fill(char dest[static IW_UUID_STR_LEN]);
 
+IW_EXPORT bool iwu_uuid_valid(const char *uuid);
+
 IW_EXTERN_C_END
 
 #endif
