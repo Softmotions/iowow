@@ -2768,17 +2768,22 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
   if (!kl2 && cn2->fullkey) {
     kl2 = cn2->sblkn;
   }
+
   IWKV_val key2 = {
-    .data = k2,
-    .size = kl2
+    .size = kl2,
+    .data = k2
   };
+
   if (dbflg & IWDB_COMPOUND_KEYS) {
     IW_READVNUMBUF64(k2, key2.compound, step);
     key2.size -= step;
     key2.data = (char *) key2.data + step;
   }
+
   rv = _cmp_keys_prefix(dbflg, k1, kl1, &key2);
-  if (rv == 0) {
+
+  if (rv == 0 && !(dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
+
     if (!cn1->fullkey || !cn2->fullkey) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCRET(rc);
@@ -2801,18 +2806,22 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
           key2.data = (char *) key2.data + step;
         }
       }
+
       rv = _cmp_keys(dbflg, k1, kl1, &key2);
-    } else {
-      if (dbflg & IWDB_COMPOUND_KEYS) {
-        rv = (int) kl2 - (int) kl1;
-        if (rv == 0 && !(dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
-          int64_t c1, c2 = key2.compound;
-          IW_READVNUMBUF64(k1, c1, step);
-          rv = c1 > c2 ? -1 : c1 < c2 ? 1 : 0;
-        }
+
+    } else if (dbflg & IWDB_COMPOUND_KEYS) {
+
+      int64_t c1, c2 = key2.compound;
+      IW_READVNUMBUF64(k1, c1, step);
+      kl1 -= step;
+      if (key2.size == kl1) {
+        rv = c1 > c2 ? -1 : c1 < c2 ? 1 : 0;
       } else {
-        rv = (int) kl2 - (int) kl1;
+        rv = (int) key2.size - (int) kl1;
       }
+
+    } else  {
+      rv = (int) kl2 - (int) kl1;
     }
   }
 
