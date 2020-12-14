@@ -3309,14 +3309,14 @@ iwrc iwkv_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file) {
   return iwal_online_backup(iwkv, ts, target_file);
 }
 
-static iwrc _iwkv_check_online_backup(const char *path, bool *has_online_bkp) {
+static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_flags, bool *out_has_online_bkp) {
   size_t sp;
   uint32_t lv;
   off_t fsz, pos;
   uint64_t waloff; // WAL offset
   char buf[16384];
 
-  *has_online_bkp = false;
+  *out_has_online_bkp = false;
   const size_t aunit = iwp_alloc_unit();
   char *wpath = 0;
 
@@ -3325,7 +3325,7 @@ static iwrc _iwkv_check_online_backup(const char *path, bool *has_online_bkp) {
   iwrc rc = iwfs_file_open(&f, &(IWFS_FILE_OPTS) {
     .path = path,
     .omode = IWFS_OREAD | IWFS_OWRITE,
-    .lock_mode = IWP_WLOCK
+    .lock_mode = IWP_WLOCK | extra_lock_flags
   });
   if (rc == IW_ERROR_NOT_EXISTS) {
     return 0;
@@ -3400,7 +3400,7 @@ static iwrc _iwkv_check_online_backup(const char *path, bool *has_online_bkp) {
   wpath[sp + 4] = '\0';
 
   iwlog_warn("Unpacking WAL from online backup into: %s", wpath);
-  *has_online_bkp = true;
+  *out_has_online_bkp = true;
 
   // WAL file
   rc = iwfs_file_open(&w, &(IWFS_FILE_OPTS) {
@@ -3478,7 +3478,11 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     omode |= IWFS_OCREATE;
   }
   if ((omode & IWFS_OWRITE) && !(omode & IWFS_OTRUNC)) {
-    rc = _iwkv_check_online_backup(opts->path, &has_online_bkp);
+    iwp_lockmode extra_lock_flags = 0;
+    if (opts->file_lock_fail_fast) {
+      extra_lock_flags |= IWP_NBLOCK;
+    }
+    rc = _iwkv_check_online_backup(opts->path, extra_lock_flags, &has_online_bkp);
     RCRET(rc);
   }
 
