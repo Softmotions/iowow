@@ -1,10 +1,10 @@
-iowow (1.4.9) UNRELEASED; urgency=medium
+iowow (1.4.9) testing; urgency=medium
 
   * Fixed misuse of `IWKV_OPTS.file_lock_fail_fast` (#35)
   * Code review of iwkv cache keys comparison, related issue: https://github.com/Softmotions/ejdb/issues/291
   * Added `bool iwu_uuid_valid(const char *uuid)` (iwuuid.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 11 Nov 2020 13:14:00 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 18 Nov 2020 15:04:03 +0700
 
 iowow (1.4.8) testing; urgency=medium
 
