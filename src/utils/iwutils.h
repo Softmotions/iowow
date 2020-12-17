@@ -41,11 +41,11 @@
 
 IW_EXTERN_C_START
 
-/* Align IW_x_ with IW_v_. IW_v_ must be simple power for 2 value. */
-#define IW_ROUNDUP(IW_x_, IW_v_) (((IW_x_) + (IW_v_)-1) & ~((IW_v_)-1))
+/* Align x_ with v_. v_ must be simple power for 2 value. */
+#define IW_ROUNDUP(x_, v_) (((x_) + (v_) - 1) & ~((v_) - 1))
 
-/* Round down align IW_x_ with IW_v_. IW_v_ must be simple power for 2 value. */
-#define IW_ROUNDOWN(IW_x_, IW_v_) ((IW_x_) - ((IW_x_) & ((IW_v_)-1)))
+/* Round down align x_ with v_. v_ must be simple power for 2 value. */
+#define IW_ROUNDOWN(x_, v_) ((x_) - ((x_) & ((v_) - 1)))
 
 #if defined(NDEBUG)
 #define IW_DODEBUG(IW_expr_) \
@@ -57,104 +57,104 @@ IW_EXTERN_C_START
 #endif
 
 #if __GNUC__ >= 5
-#define IW_SWAB16(IW_num_) __builtin_bswap16(IW_num_)
+#define IW_SWAB16(num_) __builtin_bswap16(num_)
 #else
-#define IW_SWAB16(IW_num_) \
-  ((((IW_num_) & 0x00ffU) << 8) | (((IW_num_) & 0xff00U) >> 8))
+#define IW_SWAB16(num_) \
+  ((((num_) & 0x00ffU) << 8) | (((num_) & 0xff00U) >> 8))
 #endif
 
 #if __GNUC__ >= 4
-#define IW_SWAB32(IW_num_) __builtin_bswap32(IW_num_)
+#define IW_SWAB32(num_) __builtin_bswap32(num_)
 #else
-#define IW_SWAB32(IW_num_)                                              \
-  ((((IW_num_) & 0x000000ffUL) << 24) | (((IW_num_) & 0x0000ff00UL) << 8) | \
-   (((IW_num_) & 0x00ff0000UL) >> 8) | (((IW_num_) & 0xff000000UL) >> 24))
+#define IW_SWAB32(num_)                                              \
+  ((((num_) & 0x000000ffUL) << 24) | (((num_) & 0x0000ff00UL) << 8) | \
+   (((num_) & 0x00ff0000UL) >> 8) | (((num_) & 0xff000000UL) >> 24))
 #endif
 
 #if __GNUC__ >= 4
-#define IW_SWAB64(IW_num_) __builtin_bswap64(IW_num_)
+#define IW_SWAB64(num_) __builtin_bswap64(num_)
 #else
-#define IW_SWAB64(IW_num_)                     \
-  ((((IW_num_) & 0x00000000000000ffULL) << 56) | \
-   (((IW_num_) & 0x000000000000ff00ULL) << 40) | \
-   (((IW_num_) & 0x0000000000ff0000ULL) << 24) | \
-   (((IW_num_) & 0x00000000ff000000ULL) << 8) |  \
-   (((IW_num_) & 0x000000ff00000000ULL) >> 8) |  \
-   (((IW_num_) & 0x0000ff0000000000ULL) >> 24) | \
-   (((IW_num_) & 0x00ff000000000000ULL) >> 40) | \
-   (((IW_num_) & 0xff00000000000000ULL) >> 56))
+#define IW_SWAB64(num_)                     \
+  ((((num_) & 0x00000000000000ffULL) << 56) | \
+   (((num_) & 0x000000000000ff00ULL) << 40) | \
+   (((num_) & 0x0000000000ff0000ULL) << 24) | \
+   (((num_) & 0x00000000ff000000ULL) << 8) |  \
+   (((num_) & 0x000000ff00000000ULL) >> 8) |  \
+   (((num_) & 0x0000ff0000000000ULL) >> 24) | \
+   (((num_) & 0x00ff000000000000ULL) >> 40) | \
+   (((num_) & 0xff00000000000000ULL) >> 56))
 #endif
 
 #ifdef IW_BIGENDIAN
-#define IW_HTOIS(IW_num_) IW_SWAB16(IW_num_)
-#define IW_HTOIL(IW_num_) IW_SWAB32(IW_num_)
-#define IW_HTOILL(IW_num_) IW_SWAB64(IW_num_)
-#define IW_ITOHS(IW_num_) IW_SWAB16(IW_num_)
-#define IW_ITOHL(IW_num_) IW_SWAB32(IW_num_)
-#define IW_ITOHLL(IW_num_) IW_SWAB64(IW_num_)
+#define IW_HTOIS(num_) IW_SWAB16(num_)
+#define IW_HTOIL(num_) IW_SWAB32(num_)
+#define IW_HTOILL(num_) IW_SWAB64(num_)
+#define IW_ITOHS(num_) IW_SWAB16(num_)
+#define IW_ITOHL(num_) IW_SWAB32(num_)
+#define IW_ITOHLL(num_) IW_SWAB64(num_)
 #else
-#define IW_HTOIS(IW_num_) (IW_num_)
-#define IW_HTOIL(IW_num_) (IW_num_)
-#define IW_HTOILL(IW_num_) (IW_num_)
-#define IW_ITOHS(IW_num_) (IW_num_)
-#define IW_ITOHL(IW_num_) (IW_num_)
-#define IW_ITOHLL(IW_num_) (IW_num_)
+#define IW_HTOIS(num_) (num_)
+#define IW_HTOIL(num_) (num_)
+#define IW_HTOILL(num_) (num_)
+#define IW_ITOHS(num_) (num_)
+#define IW_ITOHL(num_) (num_)
+#define IW_ITOHLL(num_) (num_)
 #endif
 
-#define IW_WRITEBV(IW_ptr_, IW_v_, IW_m_)  \
-  static_assert(sizeof(IW_v_) == 1, "Mismatch IW_v_ size"); \
-  (IW_v_) = (IW_m_);                          \
-  memcpy(IW_ptr_, &(IW_v_), 1); \
-  (IW_ptr_) += 1
+#define IW_WRITEBV(ptr_, v_, m_)  \
+  static_assert(sizeof(v_) == 1, "Mismatch v_ size"); \
+  (v_) = (m_);                          \
+  memcpy(ptr_, &(v_), 1); \
+  (ptr_) += 1
 
-#define IW_WRITESV(IW_ptr_, IW_v_, IW_m_)  \
-  static_assert(sizeof(IW_v_) == 2, "Mismatch IW_v_ size"); \
-  (IW_v_) = (IW_m_);                          \
-  (IW_v_) = IW_HTOIS(IW_v_);                \
-  memcpy(IW_ptr_, &(IW_v_), 2); \
-  (IW_ptr_) += 2
+#define IW_WRITESV(ptr_, v_, m_)  \
+  static_assert(sizeof(v_) == 2, "Mismatch v_ size"); \
+  (v_) = (m_);                          \
+  (v_) = IW_HTOIS(v_);                \
+  memcpy(ptr_, &(v_), 2); \
+  (ptr_) += 2
 
-#define IW_WRITELV(IW_ptr_, IW_v_, IW_m_)  \
-  static_assert(sizeof(IW_v_) == 4, "Mismatch IW_v_ size"); \
-  (IW_v_) = (IW_m_);                          \
-  (IW_v_) = IW_HTOIL(IW_v_);                \
-  memcpy(IW_ptr_, &(IW_v_), 4); \
-  (IW_ptr_) += 4
+#define IW_WRITELV(ptr_, v_, m_)  \
+  static_assert(sizeof(v_) == 4, "Mismatch v_ size"); \
+  (v_) = (m_);                          \
+  (v_) = IW_HTOIL(v_);                \
+  memcpy(ptr_, &(v_), 4); \
+  (ptr_) += 4
 
-#define IW_WRITELLV(IW_ptr_, IW_v_, IW_m_) \
-  static_assert(sizeof(IW_v_) == 8, "Mismatch IW_v_ size"); \
-  (IW_v_) = (IW_m_);                          \
-  (IW_v_) = IW_HTOILL(IW_v_);               \
-  memcpy((IW_ptr_), &(IW_v_), 8); \
-  (IW_ptr_) += 8
+#define IW_WRITELLV(ptr_, v_, m_) \
+  static_assert(sizeof(v_) == 8, "Mismatch v_ size"); \
+  (v_) = (m_);                          \
+  (v_) = IW_HTOILL(v_);               \
+  memcpy((ptr_), &(v_), 8); \
+  (ptr_) += 8
 
-#define IW_READBV(IW_ptr_, IW_t_, IW_m_)   \
-  static_assert(sizeof(IW_t_) == 1, "Mismatch IW_t_ size"); \
-  (IW_t_) = 0; \
-  memcpy(&(IW_t_), IW_ptr_, 1);  \
-  (IW_m_) = (IW_t_);   \
-  (IW_ptr_) += 1
+#define IW_READBV(ptr_, t_, m_)   \
+  static_assert(sizeof(t_) == 1, "Mismatch t_ size"); \
+  (t_) = 0; \
+  memcpy(&(t_), ptr_, 1);  \
+  (m_) = (t_);   \
+  (ptr_) += 1
 
-#define IW_READSV(IW_ptr_, IW_t_, IW_m_)   \
-  static_assert(sizeof(IW_t_) == 2, "Mismatch IW_t_ size"); \
-  (IW_t_) = 0; \
-  memcpy(&(IW_t_), IW_ptr_, 2);  \
-  (IW_m_) = IW_ITOHS(IW_t_);  \
-  (IW_ptr_) += 2
+#define IW_READSV(ptr_, t_, m_)   \
+  static_assert(sizeof(t_) == 2, "Mismatch t_ size"); \
+  (t_) = 0; \
+  memcpy(&(t_), ptr_, 2);  \
+  (m_) = IW_ITOHS(t_);  \
+  (ptr_) += 2
 
-#define IW_READLV(IW_ptr_, IW_t_, IW_m_)   \
-  static_assert(sizeof(IW_t_) == 4, "Mismatch IW_t_ size"); \
-  (IW_t_) = 0; \
-  memcpy(&(IW_t_), IW_ptr_, 4);  \
-  (IW_m_) = IW_ITOHL(IW_t_);  \
-  (IW_ptr_) += 4
+#define IW_READLV(ptr_, t_, m_)   \
+  static_assert(sizeof(t_) == 4, "Mismatch t_ size"); \
+  (t_) = 0; \
+  memcpy(&(t_), ptr_, 4);  \
+  (m_) = IW_ITOHL(t_);  \
+  (ptr_) += 4
 
-#define IW_READLLV(IW_ptr_, IW_t_, IW_m_)  \
-  static_assert(sizeof(IW_t_) == 8, "Mismatch IW_t_ size"); \
-  (IW_t_) = 0; \
-  memcpy(&(IW_t_), IW_ptr_, 8);  \
-  (IW_m_) = IW_ITOHLL(IW_t_); \
-  (IW_ptr_) += 8
+#define IW_READLLV(ptr_, t_, m_)  \
+  static_assert(sizeof(t_) == 8, "Mismatch t_ size"); \
+  (t_) = 0; \
+  memcpy(&(t_), ptr_, 8);  \
+  (m_) = IW_ITOHLL(t_); \
+  (ptr_) += 8
 
 #ifndef SIZE_T_MAX
 #define SIZE_T_MAX ((size_t)-1)

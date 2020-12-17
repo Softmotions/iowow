@@ -187,10 +187,12 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   iwfs_omode omode = impl->omode;
   uint64_t old_size = impl->fsize;
   bool rsh = false;
-  if (impl->fsize == size) {
+
+  size = IW_ROUNDUP(size, impl->psize);
+  if (old_size == size) {
     return 0;
   }
-  size = IW_ROUNDUP(size, impl->psize);
+
   if (old_size < size) {
     if (!(omode & IWFS_OWRITE)) {
       return IW_ERROR_READONLY;
@@ -348,7 +350,7 @@ static iwrc _exfile_read(struct IWFS_EXT *f, off_t off, void *buf, size_t siz, s
   impl = f->impl;
   s = impl->mmslots;
   if (end > impl->fsize) {
-    siz = (size_t) (impl->fsize - off);
+    siz = (size_t)(impl->fsize - off);
     rp = siz;
   }
   while (s && rp > 0) {
@@ -512,7 +514,7 @@ static iwrc _exfile_add_mmap_lw(struct IWFS_EXT *f, off_t off, size_t maxlen, iw
     goto finish;
   }
   if (OFF_T_MAX - off < maxlen) {
-    maxlen = (size_t) (OFF_T_MAX - off);
+    maxlen = (size_t)(OFF_T_MAX - off);
   }
   tmp = IW_ROUNDUP(maxlen, impl->psize);
   if (tmp < maxlen || OFF_T_MAX - off < tmp) {
@@ -856,18 +858,15 @@ iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts) {
   rc = iwfs_file_open(&impl->file, &opts->file);
   RCGO(rc, finish);
 
-  IWFS_FILE_STATE state;
-  rc = impl->file.state(&impl->file, &state);
+  IWFS_FILE_STATE fstate;
+  rc = impl->file.state(&impl->file, &fstate);
   RCGO(rc, finish);
 
   IWP_FILE_STAT fstat;
-  rc = iwp_fstat(state.opts.path, &fstat);
+  rc = iwp_fstat(fstate.opts.path, &fstat);
   RCGO(rc, finish);
 
   impl->fsize = fstat.size;
-
-  IWFS_FILE_STATE fstate;
-  rc = impl->file.state(&impl->file, &fstate);
   impl->omode = fstate.opts.omode;
   impl->fh = fstate.fh;
 

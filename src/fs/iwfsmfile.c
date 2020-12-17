@@ -61,15 +61,15 @@ typedef uint8_t fsm_bmopts_t;
 /* Maximum number of records used in allocation statistics */
 #define FSM_MAX_STATS_COUNT 0x0000ffff
 
-#define FSM_ENSURE_OPEN(FSM_impl_)                                                                          \
-  if (!(FSM_impl_) || !(FSM_impl_)->f) return IW_ERROR_INVALID_STATE;
+#define FSM_ENSURE_OPEN(impl_)                                                                          \
+  if (!(impl_) || !(impl_)->f) return IW_ERROR_INVALID_STATE;
 
-#define FSM_ENSURE_OPEN2(FSM_f_)                                                                             \
-  if (!(FSM_f_) || !(FSM_f_)->impl) return IW_ERROR_INVALID_STATE;
+#define FSM_ENSURE_OPEN2(f_)                                                                             \
+  if (!(f_) || !(f_)->impl) return IW_ERROR_INVALID_STATE;
 
-#define FSMBK_OFFSET(Bk_) ((Bk_)->off)
+#define FSMBK_OFFSET(b_) ((b_)->off)
 
-#define FSMBK_LENGTH(Bk_) ((Bk_)->len)
+#define FSMBK_LENGTH(b_) ((b_)->len)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -512,9 +512,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(FSM *impl,
  * @param len   Bitmap area length in bytes.
  */
 static void _fsm_load_fsm_lw(FSM *impl, const uint8_t *bm, uint64_t len) {
-  uint64_t cbnum = 0;
-  uint64_t fbklength = 0;
-  uint64_t fbkoffset = 0;
+  uint64_t cbnum = 0, fbklength = 0, fbkoffset = 0;
   if (impl->fsm) {
     // -V:kb_destroy:701, 769
     kb_destroy(fsm, impl->fsm);
@@ -525,7 +523,7 @@ static void _fsm_load_fsm_lw(FSM *impl, const uint8_t *bm, uint64_t len) {
     if (bb == 0) {
       fbklength += 8;
       cbnum += 8;
-    } else if (bb == (uint8_t) 0xffU) {
+    } else if (bb == 0xffU) {
       if (fbklength) {
         fbkoffset = cbnum - fbklength;
         _fsm_put_fbk(impl, fbkoffset, fbklength);
@@ -533,7 +531,7 @@ static void _fsm_load_fsm_lw(FSM *impl, const uint8_t *bm, uint64_t len) {
       }
       cbnum += 8;
     } else {
-      for (int i = 0; i < 8; ++i, ++cbnum) {  // TODO: optimize?
+      for (int i = 0; i < 8; ++i, ++cbnum) {
         if (bb & (1U << i)) {
           if (fbklength) {
             fbkoffset = cbnum - fbklength;
@@ -547,7 +545,7 @@ static void _fsm_load_fsm_lw(FSM *impl, const uint8_t *bm, uint64_t len) {
     }
   }
   if (fbklength > 0) {
-    fbkoffset = (len << 3) - fbklength;
+    fbkoffset = len * 8 - fbklength;
     _fsm_put_fbk(impl, fbkoffset, fbklength);
   }
 }
@@ -1051,7 +1049,7 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
     bmoffset = bmoffset << impl->bpow;
     bmlen = sp << impl->bpow;
   } else if (rc == IWFS_ERROR_NO_FREE_SPACE) {
-    bmoffset = impl->bmlen * (1ULL << impl->bpow) * 8U;
+    bmoffset = impl->bmlen * (1 << impl->bpow) * 8;
     bmoffset = IW_ROUNDUP(bmoffset, impl->aunit);
   }
   if (!impl->mmap_all) {
@@ -1108,7 +1106,7 @@ static iwrc _fsm_blk_allocate_lw(FSM *impl,
 
 start:
   nk = _fsm_find_matching_fblock_lw(impl, *offset_blk, length_blk, opts);
-  if (nk) { /* using existing free space block */
+  if (nk) { /* use existing free space block */
     uint64_t nlength = FSMBK_LENGTH(nk);
     *offset_blk = FSMBK_OFFSET(nk);
     assert(kb_get(fsm, impl->fsm, *nk));
@@ -1179,7 +1177,7 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
   iwrc rc;
   int hasleft;
   uint64_t length, lastblk, *bmptr;
-  IWFS_EXT_STATE pstate;
+  IWFS_EXT_STATE fstate;
   uint64_t offset = 0;
 
   if (!(impl->omode & IWFS_OWRITE)) {
@@ -1217,8 +1215,8 @@ static iwrc _fsm_trim_tail_lw(FSM *impl) {
   if (hasleft) {
     lastblk = offset + 1;
   }
-  rc = impl->pool.state(&impl->pool, &pstate);
-  if (!rc && pstate.fsize > (lastblk << impl->bpow)) {
+  rc = impl->pool.state(&impl->pool, &fstate);
+  if (!rc && fstate.fsize > (lastblk << impl->bpow)) {
     rc = impl->pool.truncate(&impl->pool, lastblk << impl->bpow);
   }
 
@@ -1315,7 +1313,7 @@ static iwrc _fsm_read_meta_lr(FSM *impl) {
   }
   if ((1U << impl->bpow) > impl->aunit) {
     rc = IWFS_ERROR_PLATFORM_PAGE;
-    iwlog_ecode_error(rc, "Block size: %u must not be greater than the system page size: %zu",
+    iwlog_ecode_error(rc, "Block size: %u must not be greater than system page size: %zu",
                       (1U << impl->bpow), impl->aunit);
   }
 
@@ -1404,7 +1402,7 @@ static iwrc _fsm_init_existing_lw(FSM *impl) {
   RCGO(rc, finish);
 
   if (impl->mmap_all) {
-    /* mmap whole file */
+    /* mmap the whole file */
     rc = pool->add_mmap(pool, 0, SIZE_T_MAX, impl->mmap_opts);
     RCGO(rc, finish);
     rc = pool->probe_mmap(pool, 0, &mm, &sp);
@@ -1416,7 +1414,7 @@ static iwrc _fsm_init_existing_lw(FSM *impl) {
       mm += impl->bmoff;
     }
   } else {
-    /* mmap the header part of file */
+    /* mmap the header of file */
     rc = pool->add_mmap(pool, 0, impl->hdrlen, impl->mmap_opts);
     RCGO(rc, finish);
     /* mmap the fsm bitmap index */
@@ -1429,6 +1427,7 @@ static iwrc _fsm_init_existing_lw(FSM *impl) {
       goto finish;
     }
   }
+
   _fsm_load_fsm_lw(impl, mm, impl->bmlen);
 
 finish:
