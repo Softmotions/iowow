@@ -170,7 +170,7 @@ iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
 again:
   rs = pread(fh, buf, siz, off);
   if (rs == -1) {
-    if (errno == EAGAIN || errno == EINTR) {
+    if (errno == EINTR) {
       goto again;
     }
     *sp = 0;
@@ -192,7 +192,7 @@ iwrc iwp_read(HANDLE fh, void *buf, size_t count, size_t *sp) {
 again:
   rs = read(fh, buf, count);
   if (rs == -1) {
-    if (errno == EAGAIN || errno == EINTR) {
+    if (errno == EINTR) {
       goto again;
     }
     *sp = 0;
@@ -214,7 +214,7 @@ iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
 again:
   ws = pwrite(fh, buf, siz, off);
   if (ws == -1) {
-    if (errno == EAGAIN || errno == EINTR) {
+    if (errno == EINTR) {
       goto again;
     }
     *sp = 0;
@@ -234,9 +234,10 @@ iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
     ssize_t wb = write(fh, rp, size);
     switch (wb) {
       case -1:
-        if (errno != EAGAIN && errno != EINTR) {
-          return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+        if (errno == EINTR) {
+          continue;
         }
+        return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
       case 0:
         break;
       default:

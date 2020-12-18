@@ -1,6 +1,7 @@
 iowow (1.4.10) UNRELEASED; urgency=medium
 
   * Fixed misuse of `IWKV_OPTS.file_lock_fail_fast` (#35)
+  * Correct handling of EINTR, EAGAIN in read/write functions (unix.c)
 
  -- Anton Adamansky <adamansky@gmail.com>  Mon, 14 Dec 2020 15:08:30 +0700
 
