@@ -3252,44 +3252,18 @@ iwrc iwkv_init(void) {
   return iwlog_register_ecodefn(_kv_ecodefn);
 }
 
-#define MAX_ALLOC_DELTA 0x80000000 // 2GB
-
 static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx) {
-  struct _FIBO_CTX {
-    off_t prev_sz;
-  } *ctx = *_ctx;
-  if (nsize == -1) {
-    if (ctx) {
-      free(ctx);
-      *_ctx = 0;
-    }
-    return 0;
-  }
-  const size_t aunit = iwp_alloc_unit();
-  if (!ctx) {
-    *_ctx = ctx = calloc(1, sizeof(*ctx));
-    if (!ctx) {
-      return IW_ROUNDUP(nsize, aunit);
-    }
-  }
-  uint64_t res;
-  if (csize < 0x2000000) { // doubled alloc up to 32M
+  off_t res;
+  size_t aunit = iwp_alloc_unit();
+  if (csize < 0x4000000) { // Doubled alloc up to 64M
     res = csize ? csize : aunit;
     while (res < nsize) {
       res <<= 1;
     }
   } else {
-    res = (uint64_t) csize + ctx->prev_sz;
-    res = MAX(res, nsize);
-    if (res - csize > MAX_ALLOC_DELTA && nsize - csize < MAX_ALLOC_DELTA) {
-      res = csize + MAX_ALLOC_DELTA;
-    }
+    res = nsize + 10 * 1024 * 1024; // + 10M extra space
   }
   res = IW_ROUNDUP(res, aunit);
-  if (res > OFF_T_MAX) {
-    res = OFF_T_MAX;
-  }
-  ctx->prev_sz = csize;
   return res;
 }
 

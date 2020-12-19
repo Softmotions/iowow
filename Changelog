@@ -1,5 +1,6 @@
 iowow (1.4.10) UNRELEASED; urgency=medium
 
+  * Tuned iwkv file resizing policy
   * Fixed misuse of `IWKV_OPTS.file_lock_fail_fast` (#35)
   * Correct handling of EINTR, EAGAIN in read/write functions (unix.c)
 
