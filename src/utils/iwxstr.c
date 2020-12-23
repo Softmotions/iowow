@@ -111,6 +111,17 @@ void iwxstr_shift(IWXSTR *xstr, size_t shift_size) {
   xstr->ptr[xstr->size] = '\0';
 }
 
+void iwxstr_pop(IWXSTR *xstr, size_t pop_size) {
+  if (pop_size == 0) {
+    return;
+  }
+  if (pop_size > xstr->size) {
+    pop_size = xstr->size;
+  }
+  xstr->size -= pop_size;
+  xstr->ptr[xstr->size] = '\0';
+}
+
 static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
   iwrc rc = 0;
   while (*format) {

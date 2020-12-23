@@ -50,6 +50,8 @@ IW_EXPORT iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...);
 
 IW_EXPORT void iwxstr_shift(IWXSTR *xstr, size_t shift_size);
 
+IW_EXPORT void iwxstr_pop(IWXSTR *xstr, size_t pop_size);
+
 IW_EXPORT char *iwxstr_ptr(IWXSTR *xstr);
 
 IW_EXPORT size_t iwxstr_size(IWXSTR *xstr);
