@@ -1,5 +1,6 @@
 iowow (1.4.11) UNRELEASED; urgency=medium
 
+  * Removed dependency on glibc specific features
   * Added new iwxstr_pop() (iwxstr.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Wed, 23 Dec 2020 11:20:38 +0700

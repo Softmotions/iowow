@@ -114,7 +114,8 @@ foreach(HF IN ITEMS stdlib stddef stdint stdbool stdatomic unistd dirent)
     endif()
 endforeach(HF)
 
-add_definitions(-D_GNU_SOURCE)
+add_definitions(-D_POSIX_C_SOURCE=200809L)
+add_definitions(-D_XOPEN_SOURCE=500)
 add_definitions(-D_LARGEFILE_SOURCE)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 

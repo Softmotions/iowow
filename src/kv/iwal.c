@@ -397,7 +397,9 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
 #ifndef _WIN32
   off_t pfsz = IW_ROUNDUP(fsz, iwp_page_size());
   uint8_t *wmm = mmap(0, (size_t) pfsz, PROT_READ, MAP_PRIVATE, wal->fh, 0);
+  #if defined(_DEFAULT_SOURCE) || defined(BSD_SOURCE)
   madvise(wmm, (size_t) fsz, MADV_SEQUENTIAL);
+  #endif
 #else
   off_t pfsz = fsz;
   uint8_t *wmm = mmap(0, 0, PROT_READ, MAP_PRIVATE, wal->fh, 0);
