@@ -323,13 +323,14 @@ static iwrc _default_logfn(FILE *out,
   char *fname = 0;
 
   if (errno_code) {
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE)
-    int rci = strerror_r(errno_code, ebuf, EBUF_SZ);
+
+#if defined(_WIN32)
+    int rci = strerror_s(ebuf, EBUF_SZ, errno_code);
     if (!rci) {
       errno_msg = ebuf;
     }
-#elif defined(_WIN32)
-    int rci = strerror_s(ebuf, EBUF_SZ, errno_code);
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE)
+    int rci = strerror_r(errno_code, ebuf, EBUF_SZ);
     if (!rci) {
       errno_msg = ebuf;
     }
