@@ -38,7 +38,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <sys/time.h>
-#include <sys/types.h>
 
 #ifndef CLOCK_REALTIME
 #define CLOCK_REALTIME              0
