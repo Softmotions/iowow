@@ -4,7 +4,7 @@
 
 /*
 Copyright (c) 2011, Willem-Hendrik Thiart
-Copyright (c) 2012-2020 Softmotions Ltd <info@softmotions.com>
+Copyright (c) 2012-2021 Softmotions Ltd <info@softmotions.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

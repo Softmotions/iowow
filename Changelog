@@ -1,5 +1,7 @@
 iowow (1.4.11) UNRELEASED; urgency=medium
 
+  * Updated copyright headers
+  * Fixed build errors on macOS
   * Removed dependency on glibc specific features
   * Added new iwxstr_pop() (iwxstr.h)
 

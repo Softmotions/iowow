@@ -118,6 +118,10 @@ add_definitions(-D_XOPEN_SOURCE=600)
 add_definitions(-D_DEFAULT_SOURCE)
 add_definitions(-D_LARGEFILE_SOURCE)
 add_definitions(-D_FILE_OFFSET_BITS=64)
+if(APPLE)
+  add_definitions(-D_DARWIN_C_SOURCE)
+endif(APPLE)
+
 
 list(APPEND ALL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/iowow.c)
 
