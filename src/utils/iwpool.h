@@ -34,7 +34,7 @@
 IW_EXTERN_C_START
 
 #ifndef IWPOOL_POOL_SIZ
-#define IWPOOL_POOL_SIZ   (8 * 1024)
+#define IWPOOL_POOL_SIZ (8 * 1024)
 #endif
 
 struct _IWPOOL;
@@ -105,12 +105,14 @@ IW_EXPORT char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp);
  */
 IW_EXPORT char *iwpool_printf(IWPOOL *pool, const char *format, ...);
 
-IW_EXPORT char **iwpool_split_string(IWPOOL *pool, const char *haystack,
-                                     const char *split_chars, bool ignore_whitespace);
+IW_EXPORT char **iwpool_split_string(
+  IWPOOL *pool, const char *haystack,
+  const char *split_chars, bool ignore_whitespace);
 
-IW_EXPORT char **iwpool_printf_split(IWPOOL *pool,
-                                     const char *split_chars, bool ignore_whitespace,
-                                     const char *format, ...);
+IW_EXPORT char **iwpool_printf_split(
+  IWPOOL *pool,
+  const char *split_chars, bool ignore_whitespace,
+  const char *format, ...);
 
 /**
  * @brief Destroys a given memory pool and frees its resources.
@@ -135,7 +137,7 @@ IW_EXPORT void iwpool_free_fn(void *pool);
  * @param data User data. Can be zero.
  * @param free_fn User data dispose function. Can be zero.
  */
-IW_EXPORT void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void *));
+IW_EXPORT void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void*));
 
 /**
  * @brief Returns pointer to user data associated with this pool. Or zero.

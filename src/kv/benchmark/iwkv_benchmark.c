@@ -33,19 +33,19 @@ static void *db_open(BMCTX *ctx) {
     return 0; // db is not closed properly
   }
   bool wal_enabled = false;
-  for (int i = 0; i <  bm.argc; ++i) {
+  for (int i = 0; i < bm.argc; ++i) {
     if (!strcmp(bm.argv[i], "-w")) {
       wal_enabled = true;
     }
   }
   IWKV_OPTS opts = {
-    .wal = {
-      .enabled = wal_enabled,
+    .wal                       = {
+      .enabled                 = wal_enabled,
       .check_crc_on_checkpoint = false,
-      .savepoint_timeout_sec = 10, // 10 sec
-      .checkpoint_timeout_sec = 300, // 5 min
-      .wal_buffer_sz = 8 * 1024 * 1024, // 8M
-      .checkpoint_buffer_sz = 500ULL * 1024 * 1024 // 500MB
+      .savepoint_timeout_sec   = 10,                  // 10 sec
+      .checkpoint_timeout_sec  = 300,                 // 5 min
+      .wal_buffer_sz           = 8 * 1024 * 1024,     // 8M
+      .checkpoint_buffer_sz    = 500ULL * 1024 * 1024 // 500MB
     }
   };
   opts.path = bm.param_db ? bm.param_db : DEFAULT_DB;
@@ -167,7 +167,9 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 1) return -1;
+  if (argc < 1) {
+    return -1;
+  }
   g_program = argv[0];
   bm.env_setup = env_setup;
   bm.db_size_bytes = db_size_bytes;

@@ -6,7 +6,7 @@
 #include <io.h>
 
 #ifndef FILE_MAP_EXECUTE
-#define FILE_MAP_EXECUTE    0x0020
+#define FILE_MAP_EXECUTE 0x0020
 #endif /* FILE_MAP_EXECUTE */
 
 static int __map_mman_error(const DWORD err, const int deferr) {
@@ -36,7 +36,7 @@ static DWORD __map_mmap_prot_file(const int prot, const int flags) {
   DWORD desiredAccess = 0;
   if (prot == PROT_NONE) {
     return desiredAccess;
-  }  
+  }
   if ((prot & PROT_WRITE)) {
     if (flags & MAP_PRIVATE) {
       desiredAccess |= FILE_MAP_COPY;
@@ -55,34 +55,34 @@ static DWORD __map_mmap_prot_file(const int prot, const int flags) {
 void *mmap(void *addr, size_t len, int prot, int flags, HANDLE fh, OffsetType off) {
   HANDLE fm;
   void *map = MAP_FAILED;
-  
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable: 4293)
 #endif
-  
-  const DWORD dwFileOffsetLow = (sizeof(OffsetType) <= sizeof(DWORD)) ?
-                                (DWORD)off : (DWORD)(off & 0xFFFFFFFFL);
-  const DWORD dwFileOffsetHigh = (sizeof(OffsetType) <= sizeof(DWORD)) ?
-                                 (DWORD)0 : (DWORD)((off >> 32) & 0xFFFFFFFFL);
+
+  const DWORD dwFileOffsetLow = (sizeof(OffsetType) <= sizeof(DWORD))
+                                ? (DWORD) off : (DWORD) (off & 0xFFFFFFFFL);
+  const DWORD dwFileOffsetHigh = (sizeof(OffsetType) <= sizeof(DWORD))
+                                 ? (DWORD) 0 : (DWORD) ((off >> 32) & 0xFFFFFFFFL);
   const DWORD protect = __map_mmap_prot_page(prot, flags);
   const DWORD desiredAccess = __map_mmap_prot_file(prot, flags);
-  const OffsetType maxSize = off + (OffsetType)len;
-  const DWORD dwMaxSizeLow = (sizeof(OffsetType) <= sizeof(DWORD)) ?
-                             (DWORD)maxSize : (DWORD)(maxSize & 0xFFFFFFFFL);
-  const DWORD dwMaxSizeHigh = (sizeof(OffsetType) <= sizeof(DWORD)) ?
-                              (DWORD)0 : (DWORD)((maxSize >> 32) & 0xFFFFFFFFL);
-                              
+  const OffsetType maxSize = off + (OffsetType) len;
+  const DWORD dwMaxSizeLow = (sizeof(OffsetType) <= sizeof(DWORD))
+                             ? (DWORD) maxSize : (DWORD) (maxSize & 0xFFFFFFFFL);
+  const DWORD dwMaxSizeHigh = (sizeof(OffsetType) <= sizeof(DWORD))
+                              ? (DWORD) 0 : (DWORD) ((maxSize >> 32) & 0xFFFFFFFFL);
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-                              
+
   errno = 0;
-  if ((flags & MAP_FIXED) != 0 || prot == PROT_EXEC) {
-    errno = EINVAL;    
+  if (((flags & MAP_FIXED) != 0) || (prot == PROT_EXEC)) {
+    errno = EINVAL;
     return MAP_FAILED;
   }
-  if (!(flags & MAP_ANONYMOUS) && fh == INVALID_HANDLE_VALUE) {
+  if (!(flags & MAP_ANONYMOUS) && (fh == INVALID_HANDLE_VALUE)) {
     errno = EBADF;
     return MAP_FAILED;
   }
@@ -104,7 +104,7 @@ int munmap(void *addr, size_t len) {
   if (UnmapViewOfFile(addr)) {
     return 0;
   }
-  errno =  __map_mman_error(GetLastError(), EPERM);
+  errno = __map_mman_error(GetLastError(), EPERM);
   return -1;
 }
 
@@ -112,22 +112,22 @@ int msync(void *addr, size_t len, int flags) {
   if (FlushViewOfFile(addr, len)) {
     return 0;
   }
-  errno =  __map_mman_error(GetLastError(), EPERM);
+  errno = __map_mman_error(GetLastError(), EPERM);
   return -1;
 }
 
 int mlock(const void *addr, size_t len) {
-  if (VirtualLock((LPVOID)addr, len)) {
+  if (VirtualLock((LPVOID) addr, len)) {
     return 0;
   }
-  errno =  __map_mman_error(GetLastError(), EPERM);
+  errno = __map_mman_error(GetLastError(), EPERM);
   return -1;
 }
 
 int munlock(const void *addr, size_t len) {
-  if (VirtualUnlock((LPVOID)addr, len)) {
+  if (VirtualUnlock((LPVOID) addr, len)) {
     return 0;
   }
-  errno =  __map_mman_error(GetLastError(), EPERM);
+  errno = __map_mman_error(GetLastError(), EPERM);
   return -1;
 }

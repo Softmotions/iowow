@@ -6,12 +6,13 @@
 #include <errno.h>
 #include "iwlog.h"
 
-off_t iwarr_sorted_insert(void *restrict els,
-                          size_t nels,
-                          size_t elsize,
-                          void *restrict eptr,
-                          int (*cmp)(const void *, const void *),
-                          bool skipeq) {
+off_t iwarr_sorted_insert(
+  void* restrict els,
+  size_t nels,
+  size_t elsize,
+  void* restrict eptr,
+  int (*cmp)(const void*, const void*),
+  bool skipeq) {
 
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
@@ -51,11 +52,12 @@ off_t iwarr_sorted_insert(void *restrict els,
 #undef EL
 }
 
-off_t iwarr_sorted_remove(void *restrict els,
-                          size_t nels,
-                          size_t elsize,
-                          void *restrict eptr,
-                          int (*cmp)(const void *, const void *)) {
+off_t iwarr_sorted_remove(
+  void* restrict els,
+  size_t nels,
+  size_t elsize,
+  void* restrict eptr,
+  int (*cmp)(const void*, const void*)) {
 
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
@@ -91,11 +93,12 @@ off_t iwarr_sorted_remove(void *restrict els,
 #undef EL
 }
 
-off_t iwarr_sorted_find(void *restrict els,
-                        size_t nels,
-                        size_t elsize,
-                        void *restrict eptr,
-                        int (*cmp)(const void *, const void *)) {
+off_t iwarr_sorted_find(
+  void* restrict els,
+  size_t nels,
+  size_t elsize,
+  void* restrict eptr,
+  int (*cmp)(const void*, const void*)) {
 
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
@@ -128,13 +131,14 @@ off_t iwarr_sorted_find(void *restrict els,
 #undef EL
 }
 
-off_t iwarr_sorted_find2(void *restrict els,
-                         size_t nels,
-                         size_t elsize,
-                         void *restrict eptr,
-                         void *op,
-                         bool *found,
-                         iwrc(*cmp)(const void *, const void *, void *, int *res)) {
+off_t iwarr_sorted_find2(
+  void* restrict els,
+  size_t nels,
+  size_t elsize,
+  void* restrict eptr,
+  void *op,
+  bool *found,
+  iwrc (*cmp)(const void*, const void*, void*, int *res)) {
 
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
@@ -294,7 +298,7 @@ iwrc iwulist_pop(IWULIST *list) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
   size_t num = list->num - 1;
-  if (list->anum > IWULIST_ALLOC_UNIT && list->anum >= num * 2) {
+  if ((list->anum > IWULIST_ALLOC_UNIT) && (list->anum >= num * 2)) {
     if (list->start) {
       memcpy(list->array, list->array + list->start * list->usize, num * list->usize);
       list->start = 0;
@@ -317,7 +321,7 @@ iwrc iwulist_shift(IWULIST *list) {
   }
   size_t num = list->num - 1;
   size_t start = list->start + 1;
-  if (list->anum > IWULIST_ALLOC_UNIT && list->anum >= num * 2) {
+  if ((list->anum > IWULIST_ALLOC_UNIT) && (list->anum >= num * 2)) {
     if (start) {
       memcpy(list->array, list->array + start * list->usize, num * list->usize);
       start = 0;
@@ -374,7 +378,7 @@ iwrc iwulist_remove(IWULIST *list, size_t index) {
   --list->num;
   memmove(list->array + index * list->usize, list->array + (index + 1) * list->usize,
           (list->start + list->num - index) * list->usize);
-  if (list->anum > IWULIST_ALLOC_UNIT && list->anum >= list->num * 2) {
+  if ((list->anum > IWULIST_ALLOC_UNIT) && (list->anum >= list->num * 2)) {
     if (list->start) {
       memcpy(list->array, list->array + list->start * list->usize, list->num * list->usize);
       list->start = 0;
@@ -588,7 +592,7 @@ void *iwlist_shift(IWLIST *list, size_t *osize, iwrc *orc) {
   --list->num;
   *osize = list->array[index].size;
   void *rv = list->array[index].val;
-  if (!(list->start & 0xff) && list->start > list->num / 2) {
+  if (!(list->start & 0xff) && (list->start > list->num / 2)) {
     memmove(list->array, list->array + list->start, list->num * sizeof(list->array[0]));
     list->start = 0;
   }
@@ -619,7 +623,7 @@ iwrc iwlist_insert(IWLIST *list, size_t index, const void *data, size_t data_siz
   return 0;
 }
 
-iwrc iwlist_set(IWLIST *list, size_t index, const  void *data, size_t data_size) {
+iwrc iwlist_set(IWLIST *list, size_t index, const void *data, size_t data_size) {
   if (index >= list->num) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -651,4 +655,3 @@ void *iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
           sizeof(list->array[0]) * (list->start + list->num - index));
   return rv;
 }
-

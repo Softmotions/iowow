@@ -11,45 +11,45 @@ uint32_t _execsize();
 
 typedef struct _BMCTX BMCTX;
 
-typedef bool (bench_method(BMCTX *bmctx));
+typedef bool(bench_method (BMCTX *bmctx));
 
-#define RND_DATA_SZ (10*1048576)
+#define RND_DATA_SZ (10 * 1048576)
 char RND_DATA[RND_DATA_SZ];
 
 struct BM {
-  bool initiated;
-  int ksz;
-  int argc;
-  char **argv;
-  char *param_db;
-  int param_num;
-  int param_num_reads;
-  int param_value_size;
+  bool     initiated;
+  int      ksz;
+  int      argc;
+  char     **argv;
+  char     *param_db;
+  int      param_num;
+  int      param_num_reads;
+  int      param_value_size;
   uint32_t param_seed;
-  char *param_benchmarks;
-  void (*val_free)(void *ptr);
-  void (*env_setup)(void);
-  void *(*db_open)(BMCTX *ctx);
-  bool (*db_close)(BMCTX *ctx);
-  bool (*db_put)(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync);
-  bool (*db_get)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
-  bool (*db_cursor_to_key)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
-  bool (*db_del)(BMCTX *ctx, const IWKV_val *key, bool sync);
-  bool (*db_read_seq)(BMCTX *ctx, bool reverse);
+  char     *param_benchmarks;
+  void     (*val_free)(void *ptr);
+  void     (*env_setup)(void);
+  void     * (*db_open)(BMCTX *ctx);
+  bool     (*db_close)(BMCTX *ctx);
+  bool     (*db_put)(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync);
+  bool     (*db_get)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
+  bool     (*db_cursor_to_key)(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found);
+  bool     (*db_del)(BMCTX *ctx, const IWKV_val *key, bool sync);
+  bool     (*db_read_seq)(BMCTX *ctx, bool reverse);
   uint64_t (*db_size_bytes)(BMCTX *ctx);
-} bm = {0};
+} bm = { 0 };
 
 struct _BMCTX {
-  bool success;
-  bool freshdb;
-  bool logdbsize;
-  char *name;
-  int num;
-  int value_size;
+  bool     success;
+  bool     freshdb;
+  bool     logdbsize;
+  char     *name;
+  int      num;
+  int      value_size;
   uint64_t start_ms;
   uint64_t end_ms;
-  void *db;
-  void *extra;
+  void     *db;
+  void     *extra;
   bench_method *method;
   int rnd_data_pos;
 };
@@ -162,24 +162,24 @@ static bool _bm_init(int argc, char *argv[]) {
   }
   bm.argc = argc;
   bm.argv = argv;
-  bm.param_num = 2000000; // 2M records
+  bm.param_num = 2000000;  // 2M records
   bm.param_num_reads = -1; // Same as param_num
   bm.param_value_size = 400;
-  bm.param_benchmarks =  "fillrandom2,"
-                         "readrandom,"
-                         "deleterandom,"
-                         "fillseq2,"
-                         "readrandom,"
-                         "deleteseq,"
-                         "fillseq,"
-                         "overwrite,"
-                         "readrandom,"
-                         "readseq,"
-                         "readreverse,"
-                         "readhot,"
-                         "readmissing,"
-                         "deleteseq,"
-                         "fill100K";
+  bm.param_benchmarks = "fillrandom2,"
+                        "readrandom,"
+                        "deleterandom,"
+                        "fillseq2,"
+                        "readrandom,"
+                        "deleteseq,"
+                        "fillseq,"
+                        "overwrite,"
+                        "readrandom,"
+                        "readseq,"
+                        "readreverse,"
+                        "readhot,"
+                        "readmissing,"
+                        "deleteseq,"
+                        "fill100K";
 #ifndef NDEBUG
   fprintf(stderr, "WARNING: Assertions are enabled, benchmarks can be slow\n");
 #endif
@@ -319,9 +319,7 @@ static void _bm_run(BMCTX *ctx) {
   ctx->end_ms = llv;
 }
 
-
 #define FILLKEY() snprintf(key.data, sizeof(kbuf), bm.ksz == 16 ? "%016d" : bm.ksz == 192 ? "%0192d" : "%01024d", k)
-
 
 static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
   char kbuf[1025];
@@ -339,7 +337,7 @@ static bool _do_write(BMCTX *ctx, bool seq, bool sync, bool rvlen) {
     FILLKEY();
 
     key.size = strlen(key.data);
-    val.data = (void *) _bmctx_rndbuf_nextptr(ctx, value_size);
+    val.data = (void*) _bmctx_rndbuf_nextptr(ctx, value_size);
     val.size = value_size;
     if (!bm.db_put(ctx, &key, &val, sync)) {
       return false;
@@ -457,84 +455,118 @@ static bool _do_seek_random(BMCTX *ctx) {
 }
 
 static bool _bm_fillseq(BMCTX *ctx) {
-  if (!ctx->freshdb) return false;
+  if (!ctx->freshdb) {
+    return false;
+  }
   return _do_write(ctx, true, false, false);
 }
 
 static bool _bm_fillseq2(BMCTX *ctx) {
-  if (!ctx->freshdb) return false;
+  if (!ctx->freshdb) {
+    return false;
+  }
   return _do_write(ctx, true, false, true);
 }
 
 static bool _bm_fillrandom(BMCTX *ctx) {
-  if (!ctx->freshdb) return false;
+  if (!ctx->freshdb) {
+    return false;
+  }
   return _do_write(ctx, false, false, false);
 }
 
 static bool _bm_fillrandom2(BMCTX *ctx) {
-  if (!ctx->freshdb) return false;
+  if (!ctx->freshdb) {
+    return false;
+  }
   return _do_write(ctx, false, false, true);
 }
 
 static bool _bm_overwrite(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_write(ctx, false, false, false);
 }
 
 static bool _bm_fillsync(BMCTX *ctx) {
-  if (!ctx->freshdb) return false;
+  if (!ctx->freshdb) {
+    return false;
+  }
   ctx->num /= 100;
-  if (ctx->num < 1) ctx->num = 1;
+  if (ctx->num < 1) {
+    ctx->num = 1;
+  }
   fprintf(stderr, "\tfillsync num records: %d\n", ctx->num);
   return _do_write(ctx, false, true, false);
 }
 
 static bool _bm_fill100K(BMCTX *ctx) {
-  if (!ctx->freshdb) return false;
+  if (!ctx->freshdb) {
+    return false;
+  }
   ctx->num /= 100;
-  if (ctx->num < 1) ctx->num = 1;
+  if (ctx->num < 1) {
+    ctx->num = 1;
+  }
   fprintf(stderr, "\tfill100K num records: %d\n", ctx->num);
   ctx->value_size = 100 * 1000;
   return _do_write(ctx, false, false, false);
 }
 
 static bool _bm_deleteseq(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_delete(ctx, false, true);
 }
 
 static bool _bm_deleterandom(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_delete(ctx, false, false);
 }
 
 static bool _bm_readseq(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_read_seq(ctx);
 }
 
 static bool _bm_readreverse(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_read_reverse(ctx);
 }
 
 static bool _bm_readrandom(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_read_random(ctx);
 }
 
 static bool _bm_readmissing(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_read_missing(ctx);
 }
 
 static bool _bm_readhot(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_read_hot(ctx);
 }
 
 static bool _bm_seekrandom(BMCTX *ctx) {
-  if (ctx->freshdb) return false;
+  if (ctx->freshdb) {
+    return false;
+  }
   return _do_seek_random(ctx);
 }
 
@@ -612,7 +644,7 @@ static bool bm_bench_run(int argc, char *argv[]) {
   char bname[100];
   bool bmres = true;
   while (bmres) {
-    if (*ptr == ',' || *ptr == '\0' || c >= 99) {
+    if ((*ptr == ',') || (*ptr == '\0') || (c >= 99)) {
       bname[c] = '\0';
       BMCTX *ctx = _bmctx_create(bname);
       c = 0;
@@ -630,7 +662,7 @@ static bool bm_bench_run(int argc, char *argv[]) {
         }
         _bmctx_dispose(ctx);
       }
-      if (*ptr == '\0' || !bmres) {
+      if ((*ptr == '\0') || !bmres) {
         break;
       }
     } else if (!isspace(*ptr)) {

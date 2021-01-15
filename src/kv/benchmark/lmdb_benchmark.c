@@ -8,7 +8,7 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 #define E(expr_, ret_) \
   if ((rc = (expr_)) != MDB_SUCCESS) { \
     fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, mdb_strerror(rc)); \
-    return ret_;\
+    return ret_; \
   }
 
 #define B(expr_) E(expr_, 0)
@@ -45,7 +45,7 @@ static void *db_open(BMCTX *ctx) {
   const char *path = bm.param_db ? bm.param_db : DEFAULT_DB;
   if (ctx->freshdb) { // completely remove db folder
     rc = unlink(path);
-    if (rc && errno != ENOENT) {
+    if (rc && (errno != ENOENT)) {
       E(errno, 0);
     }
   }
@@ -173,7 +173,8 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
     rc = 0;
   } else if (!rc) {
     *found = true;
-    val->data = malloc(mval.mv_size);;
+    val->data = malloc(mval.mv_size);
+    ;
     memcpy(val->data, mval.mv_data, mval.mv_size);
   }
   mdb_cursor_close(cur);
@@ -183,7 +184,9 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
 }
 
 int main(int argc, char **argv) {
-  if (argc < 1) return -1;
+  if (argc < 1) {
+    return -1;
+  }
   g_program = argv[0];
   bm.env_setup = env_setup;
   bm.db_size_bytes = db_size_bytes;

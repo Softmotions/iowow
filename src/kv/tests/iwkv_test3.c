@@ -14,19 +14,19 @@ typedef struct VN {
 } VN;
 
 typedef struct CTX {
-  VN *vn;
+  VN  *vn;
   int vnsz;
-  pthread_cond_t cond;
+  pthread_cond_t  cond;
   pthread_mutex_t mtx;
-  int readynum;
+  int       readynum;
   const int thrnum;
-  IWDB db;
+  IWDB      db;
 } CTX;
 
 typedef struct TASK {
-  CTX *ctx;
-  int start;
-  int cnt;
+  CTX       *ctx;
+  int       start;
+  int       cnt;
   pthread_t thr;
 } TASK;
 
@@ -82,10 +82,10 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   TASK *tasks = calloc(thrnum, sizeof(*tasks));
   VN *arr = calloc(nrecs, sizeof(*arr));
   CTX ctx = {
-    .vn = arr,
-    .vnsz = nrecs,
-    .mtx = PTHREAD_MUTEX_INITIALIZER,
-    .cond = PTHREAD_COND_INITIALIZER,
+    .vn     = arr,
+    .vnsz   = nrecs,
+    .mtx    = PTHREAD_MUTEX_INITIALIZER,
+    .cond   = PTHREAD_COND_INITIALIZER,
     .thrnum = thrnum
   };
   for (int i = 0; i < nrecs; ++i) {
@@ -107,10 +107,10 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   }
 
   IWKV_OPTS opts = {
-    .path = "iwkv_test3_1.db",
-    .oflags = IWKV_TRUNC,
-    .wal = {
-      .enabled = wal,
+    .path                   = "iwkv_test3_1.db",
+    .oflags                 = IWKV_TRUNC,
+    .wal                    = {
+      .enabled              = wal,
       .checkpoint_buffer_sz = 1024 * 1024
     }
   };
@@ -174,7 +174,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test3", init_suite, clean_suite);
@@ -185,10 +187,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "iwkv_test3_1", iwkv_test3_1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test3_2", iwkv_test3_2))
-    ) {
+  if ((NULL == CU_add_test(pSuite, "iwkv_test3_1", iwkv_test3_1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test3_2", iwkv_test3_2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

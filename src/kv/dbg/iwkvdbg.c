@@ -38,7 +38,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
 iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   assert(sb && sb->addr);
   uint32_t lkl = 0;
-  char lkbuf[PREFIX_KEY_LEN_V1 + 1] = {0};
+  char lkbuf[PREFIX_KEY_LEN_V1 + 1] = { 0 };
   uint8_t *mm, *vbuf, *kbuf;
   uint32_t klen, vlen;
   IWFS_FSM *fsm = &sb->db->iwkv->fsm;
@@ -59,7 +59,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   } else {
     memcpy(&lkl, mm + sb->addr + SOFF_LKL_U1, 1);
     lkl = IW_ITOHL(lkl);
-    if (lx->db->iwkv->fmt_version > 1)  {
+    if (lx->db->iwkv->fmt_version > 1) {
       memcpy(lkbuf, mm + sb->addr + SOFF_LK_V2, lkl);
     } else {
       memcpy(lkbuf, mm + sb->addr + SOFF_LK_V1, lkl);
@@ -106,7 +106,7 @@ void iwkvd_db(FILE *f, IWDB db, int flags, int plvl) {
   assert(db);
   SBLK *sb, *tail;
   IWLCTX lx = {
-    .db = db,
+    .db   = db,
     .nlvl = -1
   };
   iwrc rc = _sblk_at(&lx, db->addr, 0, &sb);
@@ -149,5 +149,3 @@ void iwkvd_db(FILE *f, IWDB db, int flags, int plvl) {
   }
   fflush(f);
 }
-
-

@@ -8,16 +8,16 @@
 #include <assert.h>
 
 #define MIN_BUCKETS 64
-#define STEPS 4
+#define STEPS       4
 
 typedef struct {
-  void *key;
-  void *val;
+  void     *key;
+  void     *val;
   uint32_t hash;
 } entry_t;
 
 typedef struct {
-  entry_t *entries;
+  entry_t  *entries;
   uint32_t used;
   uint32_t total;
 } bucket_t;
@@ -27,13 +27,12 @@ typedef struct _IWHMAP {
   uint32_t buckets_mask;
   bucket_t *buckets;
 
-  int (*cmp_fn)(const void *, const void *);
-  uint32_t (*hash_key_fn)(const void *);
-  void (*kv_free_fn)(void *, void *);
+  int (*cmp_fn)(const void*, const void*);
+  uint32_t (*hash_key_fn)(const void*);
+  void (*kv_free_fn)(void*, void*);
 
   bool int_key_as_pointer_value;
 } hmap_t;
-
 
 static void _noop_kv_free(void *key, void *val) {
 }
@@ -106,9 +105,10 @@ IW_INLINE uint32_t _hash_buf_key(const void *key) {
   return murmur3(key, strlen(key));
 }
 
-IWHMAP *iwhmap_create(int (*cmp_fn)(const void *, const void *),
-                      uint32_t (*hash_key_fn)(const void *),
-                      void (*kv_free_fn)(void *, void *)) {
+IWHMAP *iwhmap_create(
+  int (*cmp_fn)(const void*, const void*),
+  uint32_t (*hash_key_fn)(const void*),
+  void (*kv_free_fn)(void*, void*)) {
 
   if (!hash_key_fn) {
     return 0;
@@ -138,7 +138,7 @@ IWHMAP *iwhmap_create(int (*cmp_fn)(const void *, const void *),
   return hm;
 }
 
-IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void *, void *)) {
+IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void*, void*)) {
   hmap_t *hm = iwhmap_create(_int64_cmp, _hash_int64_key, kv_free_fn);
   if (hm) {
 #ifdef IW_64
@@ -148,7 +148,7 @@ IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void *, void *)) {
   return hm;
 }
 
-IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void *, void *)) {
+IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void*, void*)) {
   hmap_t *hm = iwhmap_create(_int32_cmp, _hash_int32_key, kv_free_fn);
   if (hm) {
     hm->int_key_as_pointer_value = true;
@@ -156,15 +156,15 @@ IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void *, void *)) {
   return hm;
 }
 
-IWHMAP *iwhmap_create_str(void (*kv_free_fn)(void *, void *)) {
-  return iwhmap_create((int (*)(const void *, const void *)) strcmp, _hash_buf_key, kv_free_fn);
+IWHMAP *iwhmap_create_str(void (*kv_free_fn)(void*, void*)) {
+  return iwhmap_create((int (*)(const void*, const void*))strcmp, _hash_buf_key, kv_free_fn);
 }
 
 static entry_t *_entry_find(IWHMAP *hm, const void *key, uint32_t hash) {
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
   entry_t *entry = bucket->entries;
   for (entry_t *end = entry + bucket->used; entry < end; ++entry) {
-    if (hash == entry->hash && hm->cmp_fn(key, entry->key) == 0) {
+    if ((hash == entry->hash) && (hm->cmp_fn(key, entry->key) == 0)) {
       return entry;
     }
   }
@@ -191,7 +191,7 @@ static entry_t *_entry_add(IWHMAP *hm, void *key, uint32_t hash) {
   entry = bucket->entries;
   for (entry_t *end = entry + bucket->used; entry < end; ++entry) {
     // NOLINTNEXTLINE (clang-analyzer-core.UndefinedBinaryOperatorResult)
-    if (hash == entry->hash && hm->cmp_fn(key, entry->key) == 0) {
+    if ((hash == entry->hash) && (hm->cmp_fn(key, entry->key) == 0)) {
       return entry;
     }
   }
@@ -224,7 +224,7 @@ static void _rehash(hmap_t *hm, uint32_t num_buckets) {
   for (bucket = hm->buckets; bucket < bucket_end; ++bucket) {
     entry_t *entry_old = bucket->entries;
     entry_t *entry_old_end = entry_old + bucket->used;
-    for (; entry_old < entry_old_end; ++entry_old) {
+    for ( ; entry_old < entry_old_end; ++entry_old) {
       entry_t *entry_new = _entry_add(&hm_copy, entry_old->key, entry_old->hash);
       if (!entry_new) {
         goto fail;
@@ -300,7 +300,7 @@ void iwhmap_remove(IWHMAP *hm, const void *key) {
   --bucket->used;
   --hm->count;
 
-  if (hm->buckets_mask > MIN_BUCKETS - 1 && hm->count < hm->buckets_mask / 2) {
+  if ((hm->buckets_mask > MIN_BUCKETS - 1) && (hm->count < hm->buckets_mask / 2)) {
     _rehash(hm, _n_buckets(hm) / 2);
   } else {
     uint32_t steps_used = bucket->used / STEPS;
@@ -310,7 +310,7 @@ void iwhmap_remove(IWHMAP *hm, const void *key) {
       entry_t *entries_new = realloc(bucket->entries, (steps_used + 1) * STEPS * sizeof(entries_new[0]));
       if (entries_new) {
         bucket->entries = entries_new;
-        bucket->total = (steps_used  + 1) * STEPS;
+        bucket->total = (steps_used + 1) * STEPS;
       }
     }
   }

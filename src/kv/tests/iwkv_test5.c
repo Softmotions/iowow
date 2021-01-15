@@ -27,11 +27,11 @@ static void iwkv_test5_2() {
   iwrc rc;
   IWKV iwkv;
   IWDB db;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV_cursor cur1;
   IWKV_OPTS opts = {
-    .path = "iwkv_test5_2.db",
+    .path   = "iwkv_test5_2.db",
     .oflags = IWKV_TRUNC
   };
 
@@ -107,13 +107,13 @@ static void iwkv_test5_2() {
 
 static void iwkv_test5_1(void) {
   iwrc rc;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV iwkv;
   IWDB db;
   IWKV_cursor cur1, cur2;
   IWKV_OPTS opts = {
-    .path = "iwkv_test5_1.db",
+    .path   = "iwkv_test5_1.db",
     .oflags = IWKV_TRUNC
   };
   rc = iwkv_open(&opts, &iwkv);
@@ -211,16 +211,16 @@ static void iwkv_test5_1(void) {
 
   rc = iwkv_cursor_get(cur1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_FALSE(strncmp((char *)key.data, "025kkk", strlen("025kkk")));
-  CU_ASSERT_FALSE(strncmp((char *)val.data, "025val", strlen("025val")));
+  CU_ASSERT_FALSE(strncmp((char*) key.data, "025kkk", strlen("025kkk")));
+  CU_ASSERT_FALSE(strncmp((char*) val.data, "025val", strlen("025val")));
   iwkv_kv_dispose(&key, &val);
 
   rc = iwkv_cursor_to(cur1, IWKV_CURSOR_NEXT);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_get(cur1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_FALSE(strncmp((char *)key.data, "023kkk", strlen("023kkk")));
-  CU_ASSERT_FALSE(strncmp((char *)val.data, "023val", strlen("023val")));
+  CU_ASSERT_FALSE(strncmp((char*) key.data, "023kkk", strlen("023kkk")));
+  CU_ASSERT_FALSE(strncmp((char*) val.data, "023val", strlen("023val")));
   iwkv_kv_dispose(&key, &val);
 
   rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV);
@@ -229,16 +229,16 @@ static void iwkv_test5_1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_get(cur1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_FALSE(strncmp((char *)key.data, "026kkk", strlen("026kkk")));
-  CU_ASSERT_FALSE(strncmp((char *)val.data, "026val", strlen("026val")));
+  CU_ASSERT_FALSE(strncmp((char*) key.data, "026kkk", strlen("026kkk")));
+  CU_ASSERT_FALSE(strncmp((char*) val.data, "026val", strlen("026val")));
   iwkv_kv_dispose(&key, &val);
 
   rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_get(cur1, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_FALSE(strncmp((char *)key.data, "027kkk", strlen("027kkk")));
-  CU_ASSERT_FALSE(strncmp((char *)val.data, "027val", strlen("027val")));
+  CU_ASSERT_FALSE(strncmp((char*) key.data, "027kkk", strlen("027kkk")));
+  CU_ASSERT_FALSE(strncmp((char*) val.data, "027val", strlen("027val")));
   iwkv_kv_dispose(&key, &val);
 
   CU_ASSERT_EQUAL(cur1->cnpos, 17);
@@ -251,12 +251,13 @@ static void iwkv_test5_1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-
 int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test5", init_suite, clean_suite);
@@ -267,11 +268,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "iwkv_test5_1", iwkv_test5_1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test5_2", iwkv_test5_2))
-
-  )  {
+  if ((NULL == CU_add_test(pSuite, "iwkv_test5_1", iwkv_test5_1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test5_2", iwkv_test5_2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

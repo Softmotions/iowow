@@ -27,7 +27,7 @@ static void *db_open(BMCTX *ctx) {
     return 0; // db is not closed properly
   }
   bool wal_enabled = false;
-  for (int i = 0; i <  bm.argc; ++i) {
+  for (int i = 0; i < bm.argc; ++i) {
     if (!strcmp(bm.argv[i], "-w")) {
       wal_enabled = true;
     }
@@ -151,7 +151,7 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
   if (rc) {
     *found = true;
   }
-  if (!rc && kcdbecode(bmdb->db) != KCENOREC) {
+  if (!rc && (kcdbecode(bmdb->db) != KCENOREC)) {
     fprintf(stderr, "db_cursor_to_key: %s\n", kcdbemsg(bmdb->db));
     kccurdel(cur);
     return false;
@@ -161,9 +161,10 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
   return true;
 }
 
-
 int main(int argc, char **argv) {
-  if (argc < 1) return -1;
+  if (argc < 1) {
+    return -1;
+  }
   g_program = argv[0];
   bm.env_setup = env_setup;
   bm.db_size_bytes = db_size_bytes;

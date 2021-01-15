@@ -32,12 +32,12 @@ int clean_suite(void) {
 static void iwkv_test8_1() {
   IWKV iwkv;
   IWDB db;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path = "iwkv_test8_1.db",
-    .oflags = IWKV_TRUNC,
-    .wal = {
+    .path      = "iwkv_test8_1.db",
+    .oflags    = IWKV_TRUNC,
+    .wal       = {
       .enabled = true
     }
   };
@@ -66,7 +66,9 @@ static void iwkv_test8_1() {
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_online_backup(iwkv, &ts, "iwkv_test8_1_bkp.db");
-  if (rc) iwlog_ecode_error3(rc);
+  if (rc) {
+    iwlog_ecode_error3(rc);
+  }
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_close(&iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -97,16 +99,16 @@ static void iwkv_test8_1() {
 typedef struct T82 {
   pthread_t t;
   pthread_barrier_t barrier;
-  pthread_cond_t cond;
-  pthread_mutex_t mtx;
+  pthread_cond_t    cond;
+  pthread_mutex_t   mtx;
   IWKV iwkv;
   IWKV iwkvcheck;
 } T82;
 
 static void *t82(void *ctx_) {
   T82 *ctx = ctx_;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
 
   iwrc rc = iwkv_open(&(IWKV_OPTS) {
     .path = "iwkv_test8_2_check.db",
@@ -122,7 +124,7 @@ static void *t82(void *ctx_) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   int i = 0;
-  for (; i < 500000; ++i) {
+  for ( ; i < 500000; ++i) {
     snprintf(kbuf, KBUFSZ, "%dkey", i);
     key.data = kbuf;
     key.size = strlen(key.data);
@@ -143,7 +145,7 @@ static void *t82(void *ctx_) {
   pthread_barrier_wait(&ctx->barrier);
 
   int c = i + 10000;
-  for (; i < c; ++i) {
+  for ( ; i < c; ++i) {
 
     if (i == c - 9800) { // Force checkpoint during online-backup
       rc = iwal_test_checkpoint(ctx->iwkv);
@@ -174,14 +176,14 @@ static void *t82(void *ctx_) {
 
 static void iwkv_test8_2() {
   IWKV_OPTS opts = {
-    .path = "iwkv_test8_2.db",
-    .oflags = IWKV_TRUNC,
-    .wal = {
+    .path      = "iwkv_test8_2.db",
+    .oflags    = IWKV_TRUNC,
+    .wal       = {
       .enabled = true
     }
   };
 
-  T82 ctx = {0};
+  T82 ctx = { 0 };
   iwrc rc = iwkv_open(&opts, &ctx.iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -267,7 +269,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test8", init_suite, clean_suite);
@@ -278,10 +282,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "iwkv_test8_1", iwkv_test8_1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test8_2", iwkv_test8_2))
-    ) {
+  if ((NULL == CU_add_test(pSuite, "iwkv_test8_1", iwkv_test8_1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test8_2", iwkv_test8_2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

@@ -33,7 +33,7 @@
 #include "basedefs.h"
 
 #define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
+#define STR(x)        STR_HELPER(x)
 
 #include <stddef.h>
 #include <stdint.h>
@@ -56,7 +56,7 @@
 #error Unknown CPU bits
 #endif
 
-#define IOWOW_VERSION "@iowow_VERSION@"
+#define IOWOW_VERSION       "@iowow_VERSION@"
 #define IOWOW_VERSION_MAJOR @iowow_VERSION_MAJOR@
 #define IOWOW_VERSION_MINOR @iowow_VERSION_MINOR@
 #define IOWOW_VERSION_PATCH @iowow_VERSION_PATCH@

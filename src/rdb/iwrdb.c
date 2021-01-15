@@ -14,13 +14,13 @@
 
 struct _IWRDB {
   HANDLE fh;
-  iwrdb_oflags_t oflags;
+  iwrdb_oflags_t   oflags;
   pthread_rwlock_t *cwl;
-  char *path;
+  char    *path;
   uint8_t *buf;
-  size_t bufsz;
-  off_t bp;
-  off_t end;
+  size_t  bufsz;
+  off_t   bp;
+  off_t   end;
 };
 
 IW_INLINE iwrc _wlock(IWRDB db) {
@@ -91,13 +91,13 @@ static iwrc _append_lw(IWRDB db, const void *data, int len, uint64_t *oref) {
   iwrc rc = 0;
   *oref = 0;
 
-  if (db->bufsz && db->bp + len > db->bufsz) {
+  if (db->bufsz && (db->bp + len > db->bufsz)) {
     rc = _flush_lw(db);
     if (rc) {
       return rc;
     }
   }
-  if (!db->bufsz || db->bp + len > db->bufsz) {
+  if (!db->bufsz || (db->bp + len > db->bufsz)) {
     *oref = db->end + 1;
     rc = iwp_write(db->fh, data, len);
     RCRET(rc);
@@ -108,7 +108,7 @@ static iwrc _append_lw(IWRDB db, const void *data, int len, uint64_t *oref) {
     db->bp += len;
     assert(db->bp <= db->bufsz);
   }
-  if (db->bufsz && db->bp == db->bufsz) {
+  if (db->bufsz && (db->bp == db->bufsz)) {
     return _flush_lw(db);
   }
   return rc;
@@ -200,7 +200,9 @@ iwrc iwrdb_close(IWRDB *rdb) {
 iwrc iwrdb_append(IWRDB db, const void *data, int len, uint64_t *oref) {
   _ENSURE_OPEN(db);
   iwrc rc = _wlock(db);
-  if (rc) return rc;
+  if (rc) {
+    return rc;
+  }
   rc = _append_lw(db, data, len, oref);
   IWRC(_unlock(db), rc);
   return rc;
@@ -211,15 +213,17 @@ iwrc iwrdb_patch(IWRDB db, uint64_t ref, off_t skip, const void *data, int len) 
   size_t sz;
   ssize_t sz2;
   ssize_t tw = len;
-  uint8_t *rp = (uint8_t *) data;
+  uint8_t *rp = (uint8_t*) data;
   ssize_t off = ref - 1 + skip;
 
   _ENSURE_OPEN(db);
-  if (!ref || off < 0 || skip < 0) {
+  if (!ref || (off < 0) || (skip < 0)) {
     return IW_ERROR_INVALID_ARGS;
   }
   rc = _wlock(db);
-  if (rc) return rc;
+  if (rc) {
+    return rc;
+  }
   if (off + len > db->end + db->bp) {
     rc = IW_ERROR_OUT_OF_BOUNDS;
     goto finish;
@@ -251,11 +255,13 @@ iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len, size_t *
 
   *sp = 0;
   _ENSURE_OPEN(db);
-  if (!ref || skip < 0 || len < 0) {
+  if (!ref || (skip < 0) || (len < 0)) {
     return IW_ERROR_INVALID_ARGS;
   }
   rc = _rlock(db);
-  if (rc) return rc;
+  if (rc) {
+    return rc;
+  }
   if (off + len > db->end + db->bp) {
     off_t l = db->end + db->bp - off;
     if (l < 0) {
@@ -271,7 +277,7 @@ iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len, size_t *
     wp += sz;
     off += sz;
   }
-  if (tr > 0 && db->bp > 0) {
+  if ((tr > 0) && (db->bp > 0)) {
     sz = off - db->end;
     memcpy(wp, db->buf + sz, tr);
   }

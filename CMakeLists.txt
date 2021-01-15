@@ -121,8 +121,9 @@ if(CPACK_GENERATORS)
             "\\\\.workspace$"
             "\\\\.iml$"
             "\\\\.mk$"
-            "\\\\.astylerc$"
             "\\\\.editorconfig$"
+            "\\\\.astylerc$"
+            "uncrustify.cfg$"
             "/Makefile$"
     )
     set(PROJECT_ARCH "${CMAKE_SYSTEM_PROCESSOR}")

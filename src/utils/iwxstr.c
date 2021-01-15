@@ -12,15 +12,19 @@
 #endif
 
 struct _IWXSTR {
-  char *ptr;      /**< Data buffer */
+  char   *ptr;    /**< Data buffer */
   size_t size;    /**< Actual data size */
   size_t asize;   /**< Allocated buffer size */
 };
 
 IWXSTR *iwxstr_new2(size_t siz) {
-  if (!siz) siz = IWXSTR_AUNIT;
+  if (!siz) {
+    siz = IWXSTR_AUNIT;
+  }
   IWXSTR *xstr = malloc(sizeof(*xstr));
-  if (!xstr) return 0;
+  if (!xstr) {
+    return 0;
+  }
   xstr->ptr = malloc(siz);
   if (!xstr->ptr) {
     free(xstr);
@@ -37,7 +41,9 @@ IWXSTR *iwxstr_new(void) {
 }
 
 void iwxstr_destroy(IWXSTR *xstr) {
-  if (!xstr) return;
+  if (!xstr) {
+    return;
+  }
   free(xstr->ptr);
   free(xstr);
 }
@@ -132,7 +138,7 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
       int lnum = 0;
       ++format;
       while (strchr("0123456789 .+-hlLzI", *format) && *format && cblen < sizeof(cbuf) - 1) {
-        if (*format == 'l' || *format == 'L') {
+        if ((*format == 'l') || (*format == 'L')) {
           lnum++;
         }
         cbuf[cblen++] = *(format++);
@@ -143,8 +149,10 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
       char *tmp, tbuf[128];
       switch (*format) {
         case 's':
-          tmp = va_arg(ap, char *);
-          if (!tmp) tmp = "(null)";
+          tmp = va_arg(ap, char*);
+          if (!tmp) {
+            tmp = "(null)";
+          }
           rc = iwxstr_cat(xstr, tmp, strlen(tmp));
           break;
         case 'd':
@@ -181,7 +189,7 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
           } else {
             tlen = snprintf(tbuf, sizeof(tbuf), cbuf, va_arg(ap, double));
           }
-          if (tlen < 0 || tlen >= sizeof(tbuf)) {
+          if ((tlen < 0) || (tlen >= sizeof(tbuf))) {
             tbuf[sizeof(tbuf) - 1] = '*';
             tlen = sizeof(tbuf);
           }
@@ -204,7 +212,7 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
 iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
-  iwrc rc  = iwxstr_vaprintf(xstr, format, ap);
+  iwrc rc = iwxstr_vaprintf(xstr, format, ap);
   va_end(ap);
   return rc;
 }
@@ -216,4 +224,3 @@ char *iwxstr_ptr(IWXSTR *xstr) {
 size_t iwxstr_size(IWXSTR *xstr) {
   return xstr->size;
 }
-

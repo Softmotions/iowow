@@ -48,8 +48,8 @@ typedef enum {
 
 #pragma pack(push, 1)
 typedef struct WBSEP {
-  uint8_t id;
-  uint8_t pad[3];
+  uint8_t  id;
+  uint8_t  pad[3];
   uint32_t crc;
   uint32_t len;
 } WBSEP;
@@ -60,39 +60,39 @@ typedef struct WBRESET {
 } WBRESET;
 
 typedef struct WBSET {
-  uint8_t id;
-  uint8_t pad[3];
+  uint8_t  id;
+  uint8_t  pad[3];
   uint32_t val;
-  off_t off;
-  off_t len;
+  off_t    off;
+  off_t    len;
 } WBSET;
 
 typedef struct WBCOPY {
   uint8_t id;
   uint8_t pad[3];
-  off_t off;
-  off_t len;
-  off_t noff;
+  off_t   off;
+  off_t   len;
+  off_t   noff;
 } WBCOPY;
 
 typedef struct WBWRITE {
-  uint8_t id;
-  uint8_t pad[3];
+  uint8_t  id;
+  uint8_t  pad[3];
   uint32_t crc;
   uint32_t len;
-  off_t off;
+  off_t    off;
 } WBWRITE;
 
 typedef struct WBRESIZE {
   uint8_t id;
   uint8_t pad[3];
-  off_t osize;
-  off_t nsize;
+  off_t   osize;
+  off_t   nsize;
 } WBRESIZE;
 
 typedef struct WBFIXPOINT {
-  uint8_t id;
-  uint8_t pad[3];
+  uint8_t  id;
+  uint8_t  pad[3];
   uint64_t ts;
 } WBFIXPOINT;
 #pragma pack(pop)

@@ -40,11 +40,11 @@
 #include <sys/time.h>
 
 #ifndef CLOCK_REALTIME
-#define CLOCK_REALTIME              0
+#define CLOCK_REALTIME 0
 #endif
 
 #ifndef CLOCK_MONOTONIC
-#define CLOCK_MONOTONIC             1
+#define CLOCK_MONOTONIC 1
 #endif
 
 #define IWCPU_SSE     0x1
@@ -69,20 +69,20 @@ extern unsigned int iwcpuflags;
  */
 typedef enum {
   _IWP_ERROR_FS_START = (IW_ERROR_START + 2000UL),
-  _IWP_ERROR_FS_END
+  _IWP_ERROR_FS_END,
 } iwp_ecode;
 
 /** File locking mode acquired by process opened this file. */
 typedef uint8_t iwp_lockmode;
 /** Do not acquire lock on file. */
-#define IWP_NOLOCK  ((iwp_lockmode) 0x00U)
+#define IWP_NOLOCK ((iwp_lockmode) 0x00U)
 /** Acquire read lock on file. */
-#define IWP_RLOCK   ((iwp_lockmode) 0x01U)
+#define IWP_RLOCK ((iwp_lockmode) 0x01U)
 /** Acquire write lock on file. */
-#define IWP_WLOCK   ((iwp_lockmode) 0x02U)
+#define IWP_WLOCK ((iwp_lockmode) 0x02U)
 /** Do not block current thread if file have been locked by another process.
  *  In this case error will be raised. */
-#define IWP_NBLOCK  ((iwp_lockmode) 0x04U)
+#define IWP_NBLOCK ((iwp_lockmode) 0x04U)
 
 /**
  * @enum iwp_file_type
@@ -92,19 +92,19 @@ typedef enum {
   IWP_TYPE_FILE, /**< Ordinary file. */
   IWP_TYPE_DIR,  /**< Directory. */
   IWP_LINK,      /**< Symlink. */
-  IWP_OTHER      /**< Other file types, eg soc, block, pipe.. */
+  IWP_OTHER,     /**< Other file types, eg soc, block, pipe.. */
 } iwp_file_type;
 
 typedef enum {
   IWP_SEEK_SET = 1,
   IWP_SEEK_CUR,
-  IWP_SEEK_END
+  IWP_SEEK_END,
 } iwp_seek_origin;
 
 /**
  * Portable version of `int clock_gettime(clockid_t clk_id, struct timespec *tp)`
  */
-IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec* t);
+IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t);
 
 /**
  * @brief Get current time in milliseconds.
@@ -118,10 +118,10 @@ IW_EXPORT iwrc iwp_current_time_ms(uint64_t *time, bool monotonic);
  * @brief File info.
  */
 typedef struct IWP_FILE_STAT {
-  uint64_t size;       /**< File size. */
-  uint64_t atime;      /**< Time of last access. */
-  uint64_t ctime;      /**< Time of last status change. */
-  uint64_t mtime;      /**< Time of last modification. */
+  uint64_t      size;  /**< File size. */
+  uint64_t      atime; /**< Time of last access. */
+  uint64_t      ctime; /**< Time of last status change. */
+  uint64_t      mtime; /**< Time of last modification. */
   iwp_file_type ftype; /**< File type. */
 } IWP_FILE_STAT;
 
@@ -192,14 +192,16 @@ IW_EXPORT iwrc iwp_read(HANDLE fh, void *buf, size_t count, size_t *sp);
 IW_EXPORT iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos);
 
 /**
-  * @brief Copy data within a file
-  * @param off Data offset
-  * @param siz Data size
-  * @param noff New data offset
-  */
-IW_EXPORT iwrc iwp_copy_bytes(HANDLE fh,
-                              off_t off, size_t siz,
-                              off_t noff);
+ * @brief Copy data within a file
+ * @param off Data offset
+ * @param siz Data size
+ * @param noff New data offset
+ */
+IW_EXPORT iwrc iwp_copy_bytes(
+  HANDLE fh,
+  off_t off, size_t siz,
+  off_t noff);
+
 /**
  * @brief Get system page size.
  */
@@ -282,6 +284,6 @@ IW_EXPORT size_t iwp_tmpdir(char *out, size_t len);
  * to release path buffer.
  * @return Zero on error.
  */
-IW_EXPORT char* iwp_allocate_tmpfile_path(const char *prefix);
+IW_EXPORT char *iwp_allocate_tmpfile_path(const char *prefix);
 
 #endif

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define CHUNK_SIZE 64
+#define CHUNK_SIZE    64
 #define TOTAL_LEN_LEN 8
 
 /*
@@ -29,8 +29,8 @@ struct buffer_state {
   const uint8_t *p;
   size_t len;
   size_t total_len;
-  int single_one_delivered; /* bool */
-  int total_len_delivered; /* bool */
+  int    single_one_delivered; /* bool */
+  int    total_len_delivered;  /* bool */
 };
 
 IW_INLINE uint32_t right_rot(uint32_t value, unsigned int count) {
@@ -91,7 +91,7 @@ static int calc_chunk(uint8_t chunk[CHUNK_SIZE], struct buffer_state *state) {
     chunk += left;
 
     /* Storing of len * 8 as a big endian 64-bit without overflow. */
-    chunk[7] = (uint8_t)(len << 3);
+    chunk[7] = (uint8_t) (len << 3);
     len >>= 5;
     for (i = 6; i >= 0; i--) {
       chunk[i] = (uint8_t) len;
@@ -116,7 +116,8 @@ static int calc_chunk(uint8_t chunk[CHUNK_SIZE], struct buffer_state *state) {
 void iwsha256(const void *input, size_t len, uint8_t hash_out[32]) {
   /*
    * Note 1: All integers (expect indexes) are 32-bit unsigned integers and addition is calculated modulo 2^32.
-   * Note 2: For each round, there is one round constant k[i] and one entry in the message schedule array w[i], 0 = i = 63
+   * Note 2: For each round, there is one round constant k[i] and one entry in the message schedule array w[i], 0 = i =
+   *63
    * Note 3: The compression function uses 8 working variables, a through h
    * Note 4: Big-endian convention is used when expressing the constants in this pseudocode,
    *     and when parsing message block data from bytes to words, for example,
@@ -168,13 +169,15 @@ void iwsha256(const void *input, size_t len, uint8_t hash_out[32]) {
 
       for (j = 0; j < 16; j++) {
         if (i == 0) {
-          w[j] = (uint32_t) p[0] << 24 | (uint32_t) p[1] << 16 |
-                 (uint32_t) p[2] << 8 | (uint32_t) p[3];
+          w[j] = (uint32_t) p[0] << 24 | (uint32_t) p[1] << 16
+                 | (uint32_t) p[2] << 8 | (uint32_t) p[3];
           p += 4;
         } else {
           /* Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array: */
-          const uint32_t s0 = right_rot(w[(j + 1) & 0xf], 7) ^ right_rot(w[(j + 1) & 0xf], 18) ^ (w[(j + 1) & 0xf] >> 3);
-          const uint32_t s1 = right_rot(w[(j + 14) & 0xf], 17) ^ right_rot(w[(j + 14) & 0xf], 19) ^ (w[(j + 14) & 0xf] >> 10);
+          const uint32_t s0
+            = right_rot(w[(j + 1) & 0xf], 7) ^ right_rot(w[(j + 1) & 0xf], 18) ^ (w[(j + 1) & 0xf] >> 3);
+          const uint32_t s1
+            = right_rot(w[(j + 14) & 0xf], 17) ^ right_rot(w[(j + 14) & 0xf], 19) ^ (w[(j + 14) & 0xf] >> 10);
           w[j] = w[j] + s0 + w[(j + 9) & 0xf] + s1;
         }
         const uint32_t s1 = right_rot(ah[4], 6) ^ right_rot(ah[4], 11) ^ right_rot(ah[4], 25);
@@ -203,9 +206,9 @@ void iwsha256(const void *input, size_t len, uint8_t hash_out[32]) {
 
   /* Produce the final hash value (big-endian): */
   for (i = 0, j = 0; i < 8; i++) {
-    hash_out[j++] = (uint8_t)(h[i] >> 24);
-    hash_out[j++] = (uint8_t)(h[i] >> 16);
-    hash_out[j++] = (uint8_t)(h[i] >> 8);
+    hash_out[j++] = (uint8_t) (h[i] >> 24);
+    hash_out[j++] = (uint8_t) (h[i] >> 16);
+    hash_out[j++] = (uint8_t) (h[i] >> 8);
     hash_out[j++] = (uint8_t) h[i];
   }
 }

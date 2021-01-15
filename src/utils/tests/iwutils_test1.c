@@ -12,7 +12,7 @@ int clean_suite(void) {
   return 0;
 }
 
-static const char  *_replace_mapper1(const char *key, void *op) {
+static const char *_replace_mapper1(const char *key, void *op) {
   if (!strcmp(key, "{}")) {
     return "Mother";
   } else if (!strcmp(key, "you")) {
@@ -27,7 +27,7 @@ static const char  *_replace_mapper1(const char *key, void *op) {
 void test_iwu_replace_into(void) {
   IWXSTR *res = 0;
   const char *data = "What you said about my {}?";
-  const char *keys[] = {"{}", "$", "?", "you", "my"};
+  const char *keys[] = { "{}", "$", "?", "you", "my" };
   iwrc rc = iwu_replace(&res, data, strlen(data), keys, 5, _replace_mapper1, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
@@ -36,14 +36,13 @@ void test_iwu_replace_into(void) {
   iwxstr_destroy(res);
 }
 
-
 void test_iwpool_split_string() {
   IWPOOL *pool = iwpool_create(128);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
   char **res = iwpool_split_string(pool, " foo , bar:baz,,z,", ",:", true);
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
   int i = 0;
-  for (; res[i]; ++i) {
+  for ( ; res[i]; ++i) {
     switch (i) {
       case 0:
         CU_ASSERT_STRING_EQUAL(res[i], "foo");
@@ -67,7 +66,7 @@ void test_iwpool_split_string() {
   res = iwpool_split_string(pool, " foo , bar:baz,,z,", ",:", false);
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
   i = 0;
-  for (; res[i]; ++i) {
+  for ( ; res[i]; ++i) {
     switch (i) {
       case 0:
         CU_ASSERT_STRING_EQUAL(res[i], " foo ");
@@ -91,7 +90,7 @@ void test_iwpool_split_string() {
   res = iwpool_split_string(pool, " foo ", ",", false);
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
   i = 0;
-  for (; res[i]; ++i) {
+  for ( ; res[i]; ++i) {
     switch (i) {
       case 0:
         CU_ASSERT_STRING_EQUAL(res[i], " foo ");
@@ -104,7 +103,7 @@ void test_iwpool_split_string() {
   res = iwpool_printf_split(pool, ",", true, "%s,%s", "foo", "bar");
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
   i = 0;
-  for (; res[i]; ++i) {
+  for ( ; res[i]; ++i) {
     switch (i) {
       case 0:
         CU_ASSERT_STRING_EQUAL(res[i], "foo");
@@ -120,7 +119,6 @@ void test_iwpool_split_string() {
   iwpool_destroy(pool);
 }
 
-
 void test_iwpool_printf() {
   IWPOOL *pool = iwpool_create(128);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
@@ -134,8 +132,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry())
+  if (CUE_SUCCESS != CU_initialize_registry()) {
     return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwutils_test1", init_suite, clean_suite);
@@ -146,11 +145,9 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "test_iwu_replace_into", test_iwu_replace_into)) ||
-    (NULL == CU_add_test(pSuite, "test_iwpool_split_string", test_iwpool_split_string)) ||
-    (NULL == CU_add_test(pSuite, "test_iwpool_printf", test_iwpool_printf))
-  ) {
+  if ((NULL == CU_add_test(pSuite, "test_iwu_replace_into", test_iwu_replace_into))
+      || (NULL == CU_add_test(pSuite, "test_iwpool_split_string", test_iwpool_split_string))
+      || (NULL == CU_add_test(pSuite, "test_iwpool_printf", test_iwpool_printf))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

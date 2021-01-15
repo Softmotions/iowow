@@ -3,7 +3,6 @@
 #include <CUnit/Basic.h>
 #include "iwarr.h"
 
-
 int init_suite(void) {
   return iw_init();
 }
@@ -21,7 +20,7 @@ static int icmp(const void *v1, const void *v2) {
 
 void test_iwarr1(void) {
 #define DSIZE 22
-  int data[DSIZE + 1] = {0};
+  int data[DSIZE + 1] = { 0 };
   int nc = 0;
   off_t idx;
   for (int i = 0; nc < DSIZE / 2; i += 2, nc++) {
@@ -43,8 +42,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry())
+  if (CUE_SUCCESS != CU_initialize_registry()) {
     return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwarr_test1", init_suite, clean_suite);

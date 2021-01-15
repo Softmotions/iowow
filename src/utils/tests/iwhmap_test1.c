@@ -29,10 +29,10 @@ static void test_murmur_hash(void) {
     char *input = str;                                              \
     uint32_t hash[4];                                               \
     char buf[33];                                                   \
-    murmur3_##arch##_##nbytes(input, strlen(input), (seed), hash);  \
-    hex##nbytes(hash, buf);                                         \
+    murmur3_ ## arch ## _ ## nbytes(input, strlen(input), (seed), hash);  \
+    hex ## nbytes(hash, buf);                                         \
     CU_ASSERT_STRING_EQUAL(buf, expected)                           \
-  }
+}
 
   TESTHASH(x86, 32, 1234, "Hello, world!", "faf6cdb3");
   TESTHASH(x86, 32, 4321, "Hello, world!", "bf505788");
@@ -96,8 +96,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry())
+  if (CUE_SUCCESS != CU_initialize_registry()) {
     return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwhmap_test1", init_suite, clean_suite);
@@ -108,10 +109,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "test_murmur_hash", test_murmur_hash))
-    || (NULL == CU_add_test(pSuite, "test_basic_crud_str", test_basic_crud_str))
-  ) {
+  if ((NULL == CU_add_test(pSuite, "test_murmur_hash", test_murmur_hash))
+      || (NULL == CU_add_test(pSuite, "test_basic_crud_str", test_basic_crud_str))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

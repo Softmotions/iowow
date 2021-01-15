@@ -13,14 +13,14 @@
 
 extern atomic_uint_fast64_t g_trigger;
 
-#define BKP_STARTED           0x1 /**< Backup started */
-#define BKP_WAL_CLEANUP       0x2 /**< Do checkpoint and truncate WAL file */
-#define BKP_MAIN_COPY         0x3 /**< Copy main database file */
-#define BKP_WAL_COPY1         0x4 /**< Copy most of WAL file content */
-#define BKP_WAL_COPY2         0x5 /**< Copy rest of WAL file in exclusive locked mode */
+#define BKP_STARTED     0x1       /**< Backup started */
+#define BKP_WAL_CLEANUP 0x2       /**< Do checkpoint and truncate WAL file */
+#define BKP_MAIN_COPY   0x3       /**< Copy main database file */
+#define BKP_WAL_COPY1   0x4       /**< Copy most of WAL file content */
+#define BKP_WAL_COPY2   0x5       /**< Copy rest of WAL file in exclusive locked mode */
 
 typedef struct IWAL {
-  IWDLSNR lsnr;
+  IWDLSNR     lsnr;
   atomic_bool applying;             /**< WAL applying */
   atomic_bool open;                 /**< Is WAL in use */
   atomic_bool force_cp;             /**< Next checkpoint scheduled */
@@ -28,32 +28,32 @@ typedef struct IWAL {
   bool force_sp;                    /**< Next savepoint scheduled */
   bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
   iwkv_openflags oflags;            /**< File open flags */
-  atomic_int bkp_stage;             /**< Online backup stage */
-  size_t wal_buffer_sz;             /**< WAL file intermediate buffer size. */
-  size_t checkpoint_buffer_sz;      /**< Checkpoint buffer size in bytes. */
+  atomic_int     bkp_stage;         /**< Online backup stage */
+  size_t   wal_buffer_sz;           /**< WAL file intermediate buffer size. */
+  size_t   checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. */
   uint32_t bufpos;                  /**< Current position in buffer */
   uint32_t bufsz;                   /**< Size of buffer */
-  HANDLE fh;                        /**< File handle */
-  uint8_t *buf;                     /**< File buffer */
-  char *path;                       /**< WAL file path */
+  HANDLE   fh;                      /**< File handle */
+  uint8_t  *buf;                    /**< File buffer */
+  char     *path;                   /**< WAL file path */
   pthread_mutex_t *mtxp;            /**< Global WAL mutex */
-  pthread_cond_t *cpt_condp;        /**< Checkpoint thread cond variable */
-  pthread_t *cptp;                  /**< Checkpoint thread */
-  iwrc(*wal_lock_interceptor)(bool, void *);
+  pthread_cond_t  *cpt_condp;       /**< Checkpoint thread cond variable */
+  pthread_t       *cptp;            /**< Checkpoint thread */
+  iwrc (*wal_lock_interceptor)(bool, void*);
   /**< Optional function called
        - before acquiring
        - after releasing
        exclusive database lock by WAL checkpoint thread.
        In the case of `before lock` first argument will be set to true */
-  void *wal_lock_interceptor_opaque;/**< Opaque data for `wal_lock_interceptor` */
-  uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds */
-  uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds */
-  atomic_size_t mbytes;             /**< Estimated size of modifed private mmaped memory bytes */
-  off_t rollforward_offset;         /**< Rollforward offset during online backup */
-  uint64_t checkpoint_ts;           /**< Last checkpoint timestamp milliseconds */
-  pthread_mutex_t mtx;              /**< Global WAL mutex */
-  pthread_cond_t cpt_cond;          /**< Checkpoint thread cond variable */
-  pthread_t cpt;                    /**< Checkpoint thread */
+  void     *wal_lock_interceptor_opaque; /**< Opaque data for `wal_lock_interceptor` */
+  uint32_t savepoint_timeout_sec;        /**< Savepoint timeout seconds */
+  uint32_t checkpoint_timeout_sec;       /**< Checkpoint timeout seconds */
+  atomic_size_t mbytes;                  /**< Estimated size of modifed private mmaped memory bytes */
+  off_t    rollforward_offset;           /**< Rollforward offset during online backup */
+  uint64_t checkpoint_ts;                /**< Last checkpoint timestamp milliseconds */
+  pthread_mutex_t mtx;                   /**< Global WAL mutex */
+  pthread_cond_t  cpt_cond;              /**< Checkpoint thread cond variable */
+  pthread_t       cpt;                   /**< Checkpoint thread */
   IWKV iwkv;
 } IWAL;
 
@@ -139,7 +139,7 @@ static iwrc _flush_wl(IWAL *wal, bool sync) {
   if (wal->bufpos) {
     uint32_t crc = wal->check_cp_crc ? iwu_crc32(wal->buf, wal->bufpos, 0) : 0;
     WBSEP sep = {
-      .id = WOP_SEP,
+      .id  = WOP_SEP,
       .crc = crc,
       .len = wal->bufpos
     };
@@ -199,7 +199,7 @@ IW_INLINE iwrc _write_op(IWAL *wal, const void *op, off_t oplen, const uint8_t *
 }
 
 iwrc iwal_sync(IWKV iwkv) {
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  IWAL *wal = (IWAL*) iwkv->dlsnr;
   iwrc rc = _lock(wal);
   RCRET(rc);
   rc = _flush_wl(wal, true);
@@ -212,7 +212,7 @@ static iwrc _onopen(struct IWDLSNR *self, const char *path, int mode) {
 }
 
 static iwrc _onclosing(struct IWDLSNR *self) {
-  IWAL *wal = (IWAL *) self;
+  IWAL *wal = (IWAL*) self;
 #ifdef IW_TESTS
   uint64_t tv = g_trigger;
   if (tv & IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE) {
@@ -226,29 +226,29 @@ static iwrc _onclosing(struct IWDLSNR *self) {
 }
 
 static iwrc _onset(struct IWDLSNR *self, off_t off, uint8_t val, off_t len, int flags) {
-  IWAL *wal = (IWAL *) self;
+  IWAL *wal = (IWAL*) self;
   if (wal->applying) {
     return 0;
   }
   WBSET wb = {
-    .id = WOP_SET,
+    .id  = WOP_SET,
     .val = val,
     .off = off,
     .len = len
   };
   wal->mbytes += len;
-  return _write_op((IWAL *) self, &wb, sizeof(wb), 0, 0);
+  return _write_op((IWAL*) self, &wb, sizeof(wb), 0, 0);
 }
 
 static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int flags) {
-  IWAL *wal = (IWAL *) self;
+  IWAL *wal = (IWAL*) self;
   if (wal->applying) {
     return 0;
   }
   WBCOPY wb = {
-    .id = WOP_COPY,
-    .off = off,
-    .len = len,
+    .id   = WOP_COPY,
+    .off  = off,
+    .len  = len,
     .noff = noff
   };
   wal->mbytes += len;
@@ -256,14 +256,14 @@ static iwrc _oncopy(struct IWDLSNR *self, off_t off, off_t len, off_t noff, int 
 }
 
 static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len, int flags) {
-  assert(len <= (size_t)(-1));
-  IWAL *wal = (IWAL *) self;
+  assert(len <= (size_t) (-1));
+  IWAL *wal = (IWAL*) self;
   if (wal->applying) {
     return 0;
   }
   WBWRITE wb = {
-    .id = WOP_WRITE,
-    .crc = wal->check_cp_crc ? iwu_crc32(buf, len, 0) : 0,
+    .id  = WOP_WRITE,
+    .crc = wal->check_cp_crc ? iwu_crc32(buf,len,  0) : 0,
     .len = len,
     .off = off
   };
@@ -272,14 +272,14 @@ static iwrc _onwrite(struct IWDLSNR *self, off_t off, const void *buf, off_t len
 }
 
 static iwrc _onresize(struct IWDLSNR *self, off_t osize, off_t nsize, int flags, bool *handled) {
-  IWAL *wal = (IWAL *) self;
+  IWAL *wal = (IWAL*) self;
   if (wal->applying) {
     *handled = false;
     return 0;
   }
   *handled = true;
   WBRESIZE wb = {
-    .id = WOP_RESIZE,
+    .id    = WOP_RESIZE,
     .osize = osize,
     .nsize = nsize
   };
@@ -294,7 +294,7 @@ finish:
 }
 
 static iwrc _onsynced(struct IWDLSNR *self, int flags) {
-  IWAL *wal = (IWAL *) self;
+  IWAL *wal = (IWAL*) self;
   if (wal->applying) {
     return 0;
   }
@@ -314,7 +314,7 @@ static void _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t
     uint8_t opid;
     off_t avail = fsz - (rp - wmm);
     memcpy(&opid, rp, 1);
-    if (i == 0 && opid != WOP_SEP) {
+    if ((i == 0) && (opid != WOP_SEP)) {
       return;
     }
     switch (opid) {
@@ -424,7 +424,7 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
     rc = IWKV_ERROR_CORRUPTED_WAL_FILE; \
     iwlog_ecode_error2(rc, msg_); \
     goto finish; \
-  } while(0);
+} while (0);
 
   if (recover_mode) {
     off_t rpos; // reset point
@@ -432,7 +432,7 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
     if (!fpos) {
       goto finish;
     }
-    if (rpos > 0 && recover_mode == 1) {
+    if ((rpos > 0) && (recover_mode == 1)) {
       // Recover from last known reset point
       if (fpos < rpos) {
         goto finish;
@@ -458,17 +458,21 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
     uint8_t opid;
     off_t avail = fsz - (rp - wmm);
     memcpy(&opid, rp, 1);
-    if (i == 0 && opid != WOP_SEP) {
+    if ((i == 0) && (opid != WOP_SEP)) {
       rc = IWKV_ERROR_CORRUPTED_WAL_FILE;
       goto finish;
     }
     switch (opid) {
       case WOP_SEP: {
         WBSEP wb;
-        if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
+        if (avail < sizeof(wb)) {
+          _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
+        }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (wb.len > avail) _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
+        if (wb.len > avail) {
+          _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
+        }
         if (ccrc && wb.crc) {
           uint32_t crc = iwu_crc32(rp, wb.len, 0);
           if (crc != wb.crc) {
@@ -479,7 +483,9 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
       }
       case WOP_SET: {
         WBSET wb;
-        if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBSET)");
+        if (avail < sizeof(wb)) {
+          _WAL_CORRUPTED("Premature end of WAL (WBSET)");
+        }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
         rc = extf->probe_mmap_unsafe(extf, 0, &mm, &sp);
@@ -489,7 +495,9 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
       }
       case WOP_COPY: {
         WBCOPY wb;
-        if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBCOPY)");
+        if (avail < sizeof(wb)) {
+          _WAL_CORRUPTED("Premature end of WAL (WBCOPY)");
+        }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
         rc = extf->probe_mmap_unsafe(extf, 0, &mm, &sp);
@@ -499,10 +507,14 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
       }
       case WOP_WRITE: {
         WBWRITE wb;
-        if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
+        if (avail < sizeof(wb)) {
+          _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
+        }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (avail < wb.len) _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
+        if (avail < wb.len) {
+          _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
+        }
         if (ccrc && wb.crc) {
           uint32_t crc = iwu_crc32(rp, wb.len, 0);
           if (crc != wb.crc) {
@@ -517,7 +529,9 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
       }
       case WOP_RESIZE: {
         WBRESIZE wb;
-        if (avail < sizeof(wb)) _WAL_CORRUPTED("Premature end of WAL (WBRESIZE)");
+        if (avail < sizeof(wb)) {
+          _WAL_CORRUPTED("Premature end of WAL (WBRESIZE)");
+        }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
         rc = extf->truncate_unsafe(extf, wb.nsize);
@@ -556,7 +570,7 @@ finish:
   IWRC(extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
   if (!rc) {
     int stage = wal->bkp_stage;
-    if (stage == 0 || stage == BKP_WAL_CLEANUP) {
+    if ((stage == 0) || (stage == BKP_WAL_CLEANUP)) {
       rc = _truncate_wl(wal);
     } else {
       // Don't truncate WAL during online backup.
@@ -662,7 +676,7 @@ iwrc iwal_test_checkpoint(IWKV iwkv) {
   if (!iwkv->dlsnr) {
     return IWKV_ERROR_WAL_MODE_REQUIRED;
   }
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  IWAL *wal = (IWAL*) iwkv->dlsnr;
   iwrc rc = _excl_lock(wal);
   RCRET(rc);
   rc = _checkpoint_exl(wal, 0, false);
@@ -675,7 +689,7 @@ iwrc iwal_test_checkpoint(IWKV iwkv) {
 //--------------------------------------- Public API
 
 WUR iwrc iwal_poke_checkpoint(IWKV iwkv, bool force) {
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  IWAL *wal = (IWAL*) iwkv->dlsnr;
   if (!wal || !(force || _need_checkpoint(wal))) {
     return 0;
   }
@@ -700,7 +714,7 @@ WUR iwrc iwal_poke_checkpoint(IWKV iwkv, bool force) {
 }
 
 iwrc iwal_poke_savepoint(IWKV iwkv) {
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  IWAL *wal = (IWAL*) iwkv->dlsnr;
   if (!wal) {
     return 0;
   }
@@ -742,7 +756,7 @@ iwrc _savepoint_exl(IWAL *wal, uint64_t *tsp, bool sync) {
 }
 
 bool iwal_synched(IWKV iwkv) {
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  IWAL *wal = (IWAL*) iwkv->dlsnr;
   if (!wal) {
     return false;
   }
@@ -750,7 +764,7 @@ bool iwal_synched(IWKV iwkv) {
 }
 
 iwrc iwal_savepoint_exl(IWKV iwkv, bool sync) {
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  IWAL *wal = (IWAL*) iwkv->dlsnr;
   if (!wal) {
     return 0;
   }
@@ -758,7 +772,7 @@ iwrc iwal_savepoint_exl(IWKV iwkv, bool sync) {
 }
 
 void iwal_shutdown(IWKV iwkv) {
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  IWAL *wal = (IWAL*) iwkv->dlsnr;
   if (!wal) {
     return;
   }
@@ -813,7 +827,7 @@ static void *_cpt_worker_fn(void *op) {
     tp.tv_sec += 1; // one sec tick
     tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);
     rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
-    if (rci && rci != ETIMEDOUT) {
+    if (rci && (rci != ETIMEDOUT)) {
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
       _unlock(wal);
       break;
@@ -867,7 +881,7 @@ iwrc iwal_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file) {
   if (!target_file) {
     return IW_ERROR_INVALID_ARGS;
   }
-  IWAL *wal = (IWAL *) iwkv->dlsnr;
+  IWAL *wal = (IWAL*) iwkv->dlsnr;
   if (!wal) {
     return IWKV_ERROR_WAL_MODE_REQUIRED;
   }
@@ -905,7 +919,7 @@ iwrc iwal_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file) {
   RCGO(rc, finish);
 
   // Copy main database file
-  IWFS_FSM_STATE fstate = {0};
+  IWFS_FSM_STATE fstate = { 0 };
   rc = iwkv->fsm.state(&iwkv->fsm, &fstate);
   RCGO(rc, finish);
   do {
@@ -983,8 +997,8 @@ finish:
 }
 
 iwrc _init_cpt(IWAL *wal) {
-  if (wal->savepoint_timeout_sec == UINT32_MAX
-      && wal->checkpoint_timeout_sec == UINT32_MAX) {
+  if ((wal->savepoint_timeout_sec == UINT32_MAX)
+      && (wal->checkpoint_timeout_sec == UINT32_MAX)) {
     // do not start checkpoint thread
     return 0;
   }
@@ -1062,23 +1076,23 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
   dlsnr->onwrite = _onwrite;
   dlsnr->onresize = _onresize;
   dlsnr->onsynced = _onsynced;
-  iwkv->dlsnr = (IWDLSNR *) wal;
+  iwkv->dlsnr = (IWDLSNR*) wal;
 
-  wal->wal_buffer_sz =
-    opts->wal.wal_buffer_sz > 0 ?
-    opts->wal.wal_buffer_sz :
+  wal->wal_buffer_sz
+    = opts->wal.wal_buffer_sz > 0
+      ? opts->wal.wal_buffer_sz :
 #if defined __ANDROID__ || defined TARGET_OS_IPHONE
-    2 * 1024 * 1024; // 2M
+      2 * 1024 * 1024; // 2M
 #else
-    8 * 1024 * 1024; // 8M
+      8 * 1024 * 1024; // 8M
 #endif
   if (wal->wal_buffer_sz < 4096) {
     wal->wal_buffer_sz = 4096;
   }
 
   wal->checkpoint_buffer_sz
-    = opts->wal.checkpoint_buffer_sz > 0 ?
-      opts->wal.checkpoint_buffer_sz :
+    = opts->wal.checkpoint_buffer_sz > 0
+      ? opts->wal.checkpoint_buffer_sz :
 #if defined __ANDROID__ || defined TARGET_OS_IPHONE
       64ULL * 1024 * 1024; // 64M
 #else
@@ -1089,8 +1103,8 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
   }
 
   wal->savepoint_timeout_sec
-    = opts->wal.savepoint_timeout_sec > 0 ?
-      opts->wal.savepoint_timeout_sec : 10; // 10 sec
+    = opts->wal.savepoint_timeout_sec > 0
+      ? opts->wal.savepoint_timeout_sec : 10; // 10 sec
 
   wal->checkpoint_timeout_sec
     = opts->wal.checkpoint_timeout_sec > 0 ?

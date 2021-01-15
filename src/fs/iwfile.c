@@ -41,7 +41,7 @@
 typedef struct IWFS_FILE_IMPL {
   HANDLE fh;               /**< File handle. */
   iwfs_openstatus ostatus; /**< File open status. */
-  IWFS_FILE_OPTS opts;     /**< File open options. */
+  IWFS_FILE_OPTS  opts;    /**< File open options. */
 } IWF;
 
 static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp) {
@@ -86,7 +86,7 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
   }
   IWRC(iwp_closefh(impl->fh), rc);
   if (opts->path) {
-    free((char *) opts->path);
+    free((char*) opts->path);
     opts->path = 0;
   }
   free(f->impl);
@@ -184,8 +184,8 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
 
   if (opts->dlsnr) {
     IWDLSNR *l = opts->dlsnr;
-    if (!l->onopen || !l->onclosing || !l->oncopy || !l->onresize ||
-        !l->onset || !l->onsynced || !l->onwrite) {
+    if (!l->onopen || !l->onclosing || !l->oncopy || !l->onresize
+        || !l->onset || !l->onsynced || !l->onwrite) {
       iwlog_ecode_error2(IW_ERROR_INVALID_ARGS, "Invalid 'opts->dlsnr' specified");
       return IW_ERROR_INVALID_ARGS;
     }
@@ -297,7 +297,7 @@ finish:
   if (rc) {
     impl->ostatus = IWFS_OPEN_FAIL;
     if (opts->path) {
-      free((char *) opts->path);
+      free((char*) opts->path);
     }
     f->impl = 0;
     free(impl);

@@ -12,7 +12,7 @@
 #include "utils/kbtree.h"
 
 #define NRECS 10000
-#define RECSZ (10*1024)
+#define RECSZ (10 * 1024)
 
 #define UNLINK() \
   unlink("test_fsm_stress.data"); \
@@ -20,13 +20,13 @@
   unlink("test_fsm_stress2.fsm")
 
 typedef struct SREC {
-  int id;
+  int   id;
   off_t addr;
   off_t rsz;
   off_t alc_addr;
   off_t alc_len;
-  bool freed;
-  bool reallocated;
+  bool  freed;
+  bool  reallocated;
 } SREC;
 
 #define _srec_cmp(r1, r2) ((r1).id - (r2).id)
@@ -34,7 +34,7 @@ typedef struct SREC {
 KBTREE_INIT(rt, SREC, _srec_cmp)
 
 FILE *fstress1;
-kbtree_t(rt) *rt;
+kbtree_t(rt) * rt;
 
 int init_suite(void) {
   UNLINK();
@@ -48,7 +48,7 @@ int init_suite(void) {
   rc = iwp_current_time_ms(&ts, false);
   RCRET(rc);
   ts = IW_SWAB64(ts);
-  ts >>= 32;  
+  ts >>= 32;
   iwu_rand_seed(ts);
 
   printf("Generating stress data file: test_fsm_stress1.data, random seed: %" PRIu64, ts);
@@ -65,9 +65,9 @@ int init_suite(void) {
     buf[j] = '\0';
     fprintf(fstress1, "%08d:%s\n", i, buf);
     SREC rec = {
-      .id = i,
-      .addr = addr,
-      .rsz = rsz,
+      .id    = i,
+      .addr  = addr,
+      .rsz   = rsz,
       .freed = false
     };
     addr += (8 + 1 + rsz + 1);
@@ -90,16 +90,16 @@ int clean_suite(void) {
 void test_stress(char *path, int bpow, bool mmap_all) {
   IWFS_FSM fsm;
   IWFS_FSM_OPTS opts = {
-    .exfile = {
-      .file = {
-        .path = path,
+    .exfile    = {
+      .file    = {
+        .path  = path,
         .omode = IWFS_OTRUNC
       }
     },
-    .hdrlen = 62,
-    .bpow = bpow,
-    .oflags = IWFSM_STRICT,
-    .mmap_all = mmap_all
+    .hdrlen    = 62,
+    .bpow      = bpow,
+    .oflags    = IWFSM_STRICT,
+    .mmap_all  = mmap_all
   };
   iwrc rc = iwfs_fsmfile_open(&fsm, &opts);
   CU_ASSERT_FALSE_FATAL(rc);
@@ -109,10 +109,10 @@ void test_stress(char *path, int bpow, bool mmap_all) {
   char *buf = malloc(2 * RECSZ + 1);
   for (int i = 0; i < NRECS; ++i) {
     size_t sp;
-    SREC k = {.id = i};
+    SREC k = { .id = i };
     iwfs_fsm_aflags aflags = IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_OVERALLOCATE;
     uint32_t rop = iwu_rand_u32();
-    if (i > 0 && (!(rop % 3) || !(rop % 5))) {
+    if ((i > 0) && (!(rop % 3) || !(rop % 5))) {
       k.id = iwu_rand_range(i);
       SREC *pr = kb_getp(rt, rt, &k);
       CU_ASSERT_PTR_NOT_NULL_FATAL(pr);
@@ -184,7 +184,7 @@ void test_stress(char *path, int bpow, bool mmap_all) {
   char *buf2 = malloc(2 * RECSZ + 1);
   for (int i = 0; i < NRECS; ++i) {
     size_t sp;
-    SREC k = {.id = i};
+    SREC k = { .id = i };
     SREC *r = kb_getp(rt, rt, &k);
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
     if (r->freed) {
@@ -234,8 +234,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry())
+  if (CUE_SUCCESS != CU_initialize_registry()) {
     return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwfs_test3", init_suite, clean_suite);
@@ -246,10 +247,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (
-      (NULL == CU_add_test(pSuite, "test_stress1", test_stress1)) ||
-      (NULL == CU_add_test(pSuite, "test_stress2", test_stress2))
-     ) {
+  if ((NULL == CU_add_test(pSuite, "test_stress1", test_stress1))
+      || (NULL == CU_add_test(pSuite, "test_stress2", test_stress2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

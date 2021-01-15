@@ -57,16 +57,32 @@ static unsigned int x86_simd(void) {
   __cpuid(cpuid, 1);
   eax = cpuid[0], ebx = cpuid[1], ecx = cpuid[2], edx = cpuid[3];
 # else
-  __asm volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(1));
+  __asm volatile ("cpuid" : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx) : "a" (1));
 # endif
-  if (edx >> 25 & 1) flag |= IWCPU_SSE;
-  if (edx >> 26 & 1) flag |= IWCPU_SSE2;
-  if (ecx >> 0 & 1) flag |= IWCPU_SSE3;
-  if (ecx >> 19 & 1) flag |= IWCPU_SSE4_1;
-  if (ecx >> 20 & 1) flag |= IWCPU_SSE4_2;
-  if (ecx >> 28 & 1) flag |= IWCPU_AVX;
-  if (ebx >> 5 & 1) flag |= IWCPU_AVX2;
-  if (ebx >> 16 & 1) flag |= IWCPU_AVX512F;
+  if (edx >> 25 & 1) {
+    flag |= IWCPU_SSE;
+  }
+  if (edx >> 26 & 1) {
+    flag |= IWCPU_SSE2;
+  }
+  if (ecx >> 0 & 1) {
+    flag |= IWCPU_SSE3;
+  }
+  if (ecx >> 19 & 1) {
+    flag |= IWCPU_SSE4_1;
+  }
+  if (ecx >> 20 & 1) {
+    flag |= IWCPU_SSE4_2;
+  }
+  if (ecx >> 28 & 1) {
+    flag |= IWCPU_AVX;
+  }
+  if (ebx >> 5 & 1) {
+    flag |= IWCPU_AVX2;
+  }
+  if (ebx >> 16 & 1) {
+    flag |= IWCPU_AVX512F;
+  }
   return flag;
 #else
   return 0;
@@ -82,7 +98,7 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
   iwrc rc = 0;
   off_t pos = 0;
   uint8_t buf[4096];
-  if (overlap && noff > off) {
+  if (overlap && (noff > off)) {
     // todo resolve it!!
     return IW_ERROR_OVERFLOW;
   }
@@ -119,9 +135,13 @@ char *iwp_allocate_tmpfile_path(const char *prefix) {
   size_t plen = prefix ? strlen(prefix) : 0;
   char tmpdir[PATH_MAX + 1];
   size_t tlen = iwp_tmpdir(tmpdir, sizeof(tmpdir));
-  if (!tlen) return 0;
+  if (!tlen) {
+    return 0;
+  }
   char *res = malloc(tlen + sizeof(IW_PATH_STR) - 1 + plen + IW_UUID_STR_LEN + 1 /*NULL*/);
-  if (!res) return 0;
+  if (!res) {
+    return 0;
+  }
   char *wp = res;
   memcpy(wp, tmpdir, tlen);
   wp += tlen;
@@ -169,9 +189,9 @@ iwrc iwp_mkdirs(const char *path) {
     }
   }
   #if (defined(_WIN32) || defined(__WIN32__))
-    if (_mkdir(_path) != 0) {
+  if (_mkdir(_path) != 0) {
   #else
-    if (mkdir(_path, S_IRWXU) != 0) {
+  if (mkdir(_path, S_IRWXU) != 0) {
   #endif
     if (errno != EEXIST) {
       return iwrc_set_errno(IW_ERROR_ERRNO, errno);

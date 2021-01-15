@@ -3,8 +3,8 @@
 #include <string.h>
 
 union _uuid {
-  uint8_t   byte[16];
-  uint32_t  rnd[4];
+  uint8_t  byte[16];
+  uint32_t rnd[4];
 };
 
 // [a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
@@ -14,7 +14,7 @@ IW_INLINE bool _is_uuid_char(char ch) {
 }
 
 bool iwu_uuid_valid(const char *uuid) {
-  if (!uuid || strlen(uuid) != IW_UUID_STR_LEN) {
+  if (!uuid || (strlen(uuid) != IW_UUID_STR_LEN)) {
     return false;
   }
   for (int i = 0; i < 8; ++i) {

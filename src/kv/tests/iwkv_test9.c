@@ -15,7 +15,7 @@ int clean_suite() {
 
 static void iwkv_test9_1() {
   IWKV_OPTS opts = {
-    .path = "iwkv_test9_1.db",
+    .path   = "iwkv_test9_1.db",
     .oflags = IWKV_TRUNC
   };
   IWKV kv = NULL;
@@ -30,7 +30,7 @@ static void iwkv_test9_1() {
     IWKV_val ikey, ival;
     ikey.data = ip1;
     ikey.size = 4;
-    ival.data = (void *)"";
+    ival.data = (void*) "";
     ival.size = 0;
     iwkv_opflags opflags = IWKV_NO_OVERWRITE;
     iwrc rc = iwkv_put(db, &ikey, &ival, opflags);
@@ -42,22 +42,22 @@ static void iwkv_test9_1() {
     IWKV_val ikey, ival;
     ikey.data = ip2;
     ikey.size = 4;
-    ival.data = (void *)"";
+    ival.data = (void*) "";
     ival.size = 0;
     iwkv_opflags opflags = IWKV_NO_OVERWRITE;
     iwrc rc = iwkv_put(db, &ikey, &ival, opflags);
     CU_ASSERT_EQUAL(rc, 0);
   }
   iwkv_close(&kv);
-
 }
-
 
 int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test9", init_suite, clean_suite);
@@ -69,8 +69,7 @@ int main() {
 
   /* Add the tests to the suite */
   if (
-    (NULL == CU_add_test(pSuite, "iwkv_test9_1", iwkv_test9_1))
-  )  {
+    (NULL == CU_add_test(pSuite, "iwkv_test9_1", iwkv_test9_1))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

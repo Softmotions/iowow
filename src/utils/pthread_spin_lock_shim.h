@@ -17,7 +17,7 @@ typedef int pthread_spinlock_t;
 #endif
 
 static inline int pthread_spin_init(pthread_spinlock_t *lock, int pshared) {
-  __asm__ __volatile__("" ::: "memory");
+  __asm__ __volatile__ ("" ::: "memory");
   *lock = 0;
   return 0;
 }
@@ -46,8 +46,9 @@ static inline int pthread_spin_trylock(pthread_spinlock_t *lock) {
 }
 
 static inline int pthread_spin_unlock(pthread_spinlock_t *lock) {
-  __asm__ __volatile__("" ::: "memory");
+  __asm__ __volatile__ ("" ::: "memory");
   *lock = 0;
   return 0;
 }
+
 #endif

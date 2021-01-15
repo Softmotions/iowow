@@ -71,33 +71,33 @@ IW_EXTERN_C_START
 /** File open mode */
 typedef uint8_t iwfs_omode;
 /** Open file as a reader.*/
-#define IWFS_OREAD    ((iwfs_omode) 0x01U)
+#define IWFS_OREAD ((iwfs_omode) 0x01U)
 /** Open file as a writer. */
-#define IWFS_OWRITE   ((iwfs_omode) 0x02U)
+#define IWFS_OWRITE ((iwfs_omode) 0x02U)
 /** If file is missing it will be created on open. */
-#define IWFS_OCREATE  ((iwfs_omode) 0x04U)
+#define IWFS_OCREATE ((iwfs_omode) 0x04U)
 /** Truncate file on open. */
-#define IWFS_OTRUNC   ((iwfs_omode) 0x08U)
+#define IWFS_OTRUNC ((iwfs_omode) 0x08U)
 /** Unlink(delete) file on close */
-#define IWFS_OUNLINK  ((iwfs_omode) 0x10U)
+#define IWFS_OUNLINK ((iwfs_omode) 0x10U)
 /** Temp file will be created, in this case specified file name will act as temp file name prefix */
-#define IWFS_OTMP     ((iwfs_omode) 0x20U)
+#define IWFS_OTMP ((iwfs_omode) 0x20U)
 
 /**  Status of an open file operation */
 typedef uint8_t iwfs_openstatus;
 /** Open failed. */
 #define IWFS_OPEN_FAIL ((iwfs_openstatus) 0x00U)
 /** Open success, new file've been created. */
-#define IWFS_OPEN_NEW  ((iwfs_openstatus) 0x01U)
+#define IWFS_OPEN_NEW ((iwfs_openstatus) 0x01U)
 /** Open success, existing file've been opened. */
-#define IWFS_OPEN_EXISTING  ((iwfs_openstatus) 0x02U)
+#define IWFS_OPEN_EXISTING ((iwfs_openstatus) 0x02U)
 
 /** Sync file data options */
 typedef uint8_t iwfs_sync_flags;
-#define IWFS_SYNCDEFAULT  ((iwfs_sync_flags) 0x00U)
-#define IWFS_FDATASYNC    ((iwfs_sync_flags) 0x01U)
+#define IWFS_SYNCDEFAULT ((iwfs_sync_flags) 0x00U)
+#define IWFS_FDATASYNC   ((iwfs_sync_flags) 0x01U)
 
-#define IWFS_DEFAULT_OMODE (IWFS_OCREATE)
+#define IWFS_DEFAULT_OMODE    (IWFS_OCREATE)
 #define IWFS_DEFAULT_LOCKMODE (IWP_NOLOCK)
 #define IWFS_DEFAULT_FILEMODE                    \
   00666 /**< Default permission of created files */
@@ -107,12 +107,12 @@ typedef uint8_t iwfs_sync_flags;
  * @see iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts)
  */
 typedef struct {
-  const char *path;       /**< Required file path. */
-  iwfs_omode omode;       /**< File open mode. */
+  const char   *path;     /**< Required file path. */
+  iwfs_omode   omode;     /**< File open mode. */
   iwp_lockmode lock_mode; /**< File locking mode. */
   /**< Specifies the permissions to use in case a new file is created,
        `int open(const char *pathname, int flags, mode_t mode)` */
-  int filemode;
+  int     filemode;
   IWDLSNR *dlsnr;         /**< Optional data listener */
 } IWFS_FILE_OPTS;
 
@@ -123,7 +123,7 @@ typedef struct {
 typedef struct {
   int is_open;             /**< `1` if file in open state */
   iwfs_openstatus ostatus; /**< File open status. */
-  IWFS_FILE_OPTS opts;     /**< File open options. */
+  IWFS_FILE_OPTS  opts;    /**< File open options. */
   HANDLE fh;               /**< File handle */
 } IWFS_FILE_STATE;
 
@@ -144,7 +144,7 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually written
    * @return `0` on success or error code.
    */
-  iwrc(*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
+  iwrc (*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
 
   /**
    * @brief Read @a siz bytes into @a buf at the specified offset @a off
@@ -156,20 +156,20 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually read.
    * @return `0` on success or error code.
    */
-  iwrc(*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp);
+  iwrc (*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp);
 
   /**
    * @brief Closes this file.
    * @return `0` on success or error code.
    */
-  iwrc(*close)(struct IWFS_FILE *f);
+  iwrc (*close)(struct IWFS_FILE *f);
 
   /**
    * @brief Sync file data with fs.
    * @param f `struct IWFS_FILE` pointer.
    * @param opts File sync options.
    */
-  iwrc(*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
+  iwrc (*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
 
   /**
    * @brief Return current file state.
@@ -179,7 +179,7 @@ typedef struct IWFS_FILE {
    *
    * @see struct IWFS_FILE_STATE
    */
-  iwrc(*state)(struct IWFS_FILE *f, IWFS_FILE_STATE *state);
+  iwrc (*state)(struct IWFS_FILE *f, IWFS_FILE_STATE *state);
 
   /**
    * @brief Copy data within a file
@@ -188,8 +188,7 @@ typedef struct IWFS_FILE {
    * @param siz Data size
    * @param noff New data offset
    */
-  iwrc(*copy)(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff);
-
+  iwrc (*copy)(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff);
 } IWFS_FILE;
 
 /**

@@ -1,30 +1,30 @@
 /*
-Copyright (c) 2011, Willem-Hendrik Thiart
-Copyright (c) 2012-2021 Softmotions Ltd <info@softmotions.com>
-All rights reserved.
+   Copyright (c) 2011, Willem-Hendrik Thiart
+   Copyright (c) 2012-2021 Softmotions Ltd <info@softmotions.com>
+   All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright
       notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
+ * Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    * The names of its contributors may not be used to endorse or promote
+ * The names of its contributors may not be used to endorse or promote
       products derived from this software without specific prior written
       permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL WILLEM-HENDRIK THIART BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+   DISCLAIMED. IN NO EVENT SHALL WILLEM-HENDRIK THIART BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include "iwstree.h"
 #include "iwlog.h"
@@ -35,17 +35,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 
 typedef struct tree_node_s {
-  struct tree_node_s  *left;
-  struct tree_node_s  *right;
+  struct tree_node_s *left;
+  struct tree_node_s *right;
   void *key;
   void *value;
 } tree_node_t;
 
 
 struct tree_iter_s {
-  IWSTREE *st;        /**< Owner tree */
-  int spos;           /**< Position of top element stack */
-  int slen;           /**< Max number of elements in stack */
+  IWSTREE *st;         /**< Owner tree */
+  int     spos;        /**< Position of top element stack */
+  int     slen;        /**< Max number of elements in stack */
   tree_node_t **stack; /**< Bottom of iterator stack */
 };
 
@@ -54,14 +54,14 @@ int iwstree_str_cmp(const void *o1, const void *o2) {
 }
 
 int iwstree_uint64_cmp(const void *o1, const void *o2) {
-  uint64_t v1 = *(uint64_t *) o1;
-  uint64_t v2 = *(uint64_t *) o2;
+  uint64_t v1 = *(uint64_t*) o1;
+  uint64_t v2 = *(uint64_t*) o2;
   return v1 > v2 ? 1 : v1 < v2 ? -1 : 0;
 }
 
 int iwstree_int64_cmp(const void *o1, const void *o2) {
-  int64_t v1 = *(int64_t *) o1;
-  int64_t v2 = *(int64_t *) o2;
+  int64_t v1 = *(int64_t*) o1;
+  int64_t v2 = *(int64_t*) o2;
   return v1 > v2 ? 1 : v1 < v2 ? -1 : 0;
 }
 
@@ -69,8 +69,9 @@ static int _cmp_default(const void *k1, const void *k2) {
   return k1 < k2 ? -1 : k1 > k2 ? 1 : 0;
 }
 
-IWSTREE *iwstree_create(int (*cmp)(const void *, const void *),
-                        void (*kvfree)(void *, void *)) {
+IWSTREE *iwstree_create(
+  int (*cmp)(const void*, const void*),
+  void (*kvfree)(void*, void*)) {
   IWSTREE *st;
   st = malloc(sizeof(IWSTREE));
   if (!st) {
@@ -142,12 +143,12 @@ static void _rotate_left(tree_node_t **pa) {
  * bring this value to the top
  * */
 static tree_node_t *_splay(
-  IWSTREE *st,
-  int update_if_not_found,
+  IWSTREE     *st,
+  int         update_if_not_found,
   tree_node_t **gpa,
   tree_node_t **pa,
   tree_node_t **child,
-  const void *key) {
+  const void  *key) {
 
   int cmp;
   tree_node_t *next;
@@ -194,22 +195,22 @@ static tree_node_t *_splay(
   assert(gpa);
 
   /* zig zig left */
-  if ((*pa)->left == next && (*gpa)->left == *pa) {
+  if (((*pa)->left == next) && ((*gpa)->left == *pa)) {
     _rotate_right(pa);
     _rotate_right(gpa);
   }
   /* zig zig right */
-  else if ((*pa)->right == next && (*gpa)->right == *pa) {
+  else if (((*pa)->right == next) && ((*gpa)->right == *pa)) {
     _rotate_left(pa);
     _rotate_left(gpa);
   }
   /* zig zag right */
-  else if ((*pa)->right == next && (*gpa)->left == *pa) {
+  else if (((*pa)->right == next) && ((*gpa)->left == *pa)) {
     _rotate_left(pa);
     _rotate_right(gpa);
   }
   /* zig zag left */
-  else if ((*pa)->left == next && (*gpa)->right == *pa) {
+  else if (((*pa)->left == next) && ((*gpa)->right == *pa)) {
     _rotate_right(pa);
     _rotate_left(gpa);
   }
@@ -237,8 +238,8 @@ void *iwstree_remove(IWSTREE *st, const void *key) {
   } else {
     tmp = root->right;
     st->root = root->left;
-    _splay(st, 1, 0, 0, (tree_node_t **) &st->root, key);
-    ((tree_node_t *) st->root)->right = tmp;
+    _splay(st, 1, 0, 0, (tree_node_t**) &st->root, key);
+    ((tree_node_t*) st->root)->right = tmp;
   }
   st->count--;
   assert(root != st->root);
@@ -250,7 +251,7 @@ void *iwstree_remove(IWSTREE *st, const void *key) {
  * get this item referred to by key. Slap it as root.
  */
 void *iwstree_get(IWSTREE *st, const void *key) {
-  tree_node_t *node = _splay(st, 0, 0, 0, (tree_node_t **) &st->root, key);
+  tree_node_t *node = _splay(st, 0, 0, 0, (tree_node_t**) &st->root, key);
   return node ? node->value : 0;
 }
 
@@ -259,7 +260,7 @@ int iwstree_count(IWSTREE *st) {
 }
 
 void *iwstree_peek(IWSTREE *st) {
-  return st->root ? ((tree_node_t *) st->root)->value : 0;
+  return st->root ? ((tree_node_t*) st->root)->value : 0;
 }
 
 static iwrc _iwstree_put(IWSTREE *st, void *key, void *value, bool overwrite) {
@@ -273,8 +274,8 @@ static iwrc _iwstree_put(IWSTREE *st, void *key, void *value, bool overwrite) {
     st->count++;
     return 0;
   }
-  n = _splay(st, 1, 0, 0, (tree_node_t **) &st->root, key);
-  cmp = st->cmp(((tree_node_t *) st->root)->key, key);
+  n = _splay(st, 1, 0, 0, (tree_node_t**) &st->root, key);
+  cmp = st->cmp(((tree_node_t*) st->root)->key, key);
   if (cmp != 0) {
     n = _init_node(key, value);
     if (!n) {
@@ -333,7 +334,7 @@ iwrc iwstree_visit(IWSTREE *st, IWSTREE_VISITOR visitor, void *op) {
 
 #define _ITER_STACK_AUNIT 32
 
-static iwrc _iter_push(IWSTREE_ITER *iter, tree_node_t *n)  {
+static iwrc _iter_push(IWSTREE_ITER *iter, tree_node_t *n) {
   if (iter->spos + 1 > iter->slen) {
     void *np = realloc(iter->stack, (iter->slen + _ITER_STACK_AUNIT) * sizeof(*iter->stack));
     if (!np) {

@@ -54,7 +54,7 @@ void iwlog_test1() {
 }
 
 void iwlog_test2() {
-  IWLOG_DEFAULT_OPTS opts = {0};
+  IWLOG_DEFAULT_OPTS opts = { 0 };
   int rv = 0;
   size_t sz;
   char fname[] = "iwlog_test1_XXXXXX";
@@ -106,8 +106,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry())
+  if (CUE_SUCCESS != CU_initialize_registry()) {
     return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwlog_test1", init_suite, clean_suite);
@@ -118,8 +119,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1)) ||
-      (NULL == CU_add_test(pSuite, "iwlog_test2", iwlog_test2))) {
+  if ((NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1))
+      || (NULL == CU_add_test(pSuite, "iwlog_test2", iwlog_test2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

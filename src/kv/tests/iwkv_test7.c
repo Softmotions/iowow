@@ -27,11 +27,11 @@ static void iwkv_test7_1_impl(int direction) {
   iwrc rc;
   IWKV iwkv;
   IWDB db;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path = direction > 0 ? "iwkv_test7_2_fwd.db" : "iwkv_test7_2_back.db",
-    .oflags = IWKV_TRUNC,
+    .path        = direction > 0 ? "iwkv_test7_2_fwd.db" : "iwkv_test7_2_back.db",
+    .oflags      = IWKV_TRUNC,
     .random_seed = g_seed
   };
   rc = iwkv_open(&opts, &iwkv);
@@ -71,20 +71,22 @@ static void iwkv_test7_1_impl(int direction) {
 static void iwkv_test7_1() {
   iwkv_test7_1_impl(1);
   iwkv_test7_1_impl(-1);
-  IWP_FILE_STAT fwd_s = {0};
-  IWP_FILE_STAT back_s = {0};
+  IWP_FILE_STAT fwd_s = { 0 };
+  IWP_FILE_STAT back_s = { 0 };
   iwrc rc = iwp_fstat("iwkv_test7_2_fwd.db", &fwd_s);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwp_fstat("iwkv_test7_2_back.db", &back_s);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_TRUE((double)fwd_s.size / back_s.size < 1.1);
+  CU_ASSERT_TRUE((double) fwd_s.size / back_s.size < 1.1);
 }
 
 int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test7", init_suite, clean_suite);
@@ -96,8 +98,7 @@ int main() {
 
   /* Add the tests to the suite */
   if (
-    (NULL == CU_add_test(pSuite, "iwkv_test7_1", iwkv_test7_1))
-  ) {
+    (NULL == CU_add_test(pSuite, "iwkv_test7_1", iwkv_test7_1))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

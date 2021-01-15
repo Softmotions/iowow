@@ -37,11 +37,11 @@ struct _IWHMAP;
 typedef struct _IWHMAP IWHMAP;
 
 typedef struct {
-  IWHMAP *hm;
+  IWHMAP     *hm;
   const void *key;
   const void *val;
-  uint32_t bucket;
-  int32_t entry;
+  uint32_t   bucket;
+  int32_t    entry;
 } IWHMAP_ITER;
 
 /**
@@ -52,15 +52,16 @@ typedef struct {
  */
 IW_EXPORT void iwhmap_kv_free(void *key, void *val);
 
-IW_EXPORT IWHMAP *iwhmap_create(int (*cmp_fn)(const void *, const void *),
-                                uint32_t (*hash_key_fn)(const void *),
-                                void (*kv_free_fn)(void *, void *));
+IW_EXPORT IWHMAP *iwhmap_create(
+  int (*cmp_fn)(const void*, const void*),
+  uint32_t (*hash_key_fn)(const void*),
+  void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void *, void *));
+IW_EXPORT IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void *, void *));
+IW_EXPORT IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP *iwhmap_create_str(void (*kv_free_fn)(void *, void *));
+IW_EXPORT IWHMAP *iwhmap_create_str(void (*kv_free_fn)(void*, void*));
 
 IW_EXPORT iwrc iwhmap_put(IWHMAP *hm, void *key, void *val);
 

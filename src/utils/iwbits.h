@@ -113,9 +113,9 @@ IW_INLINE uint8_t iwbits_find_last_sbit64(uint64_t x) {
  */
 IW_INLINE uint64_t iwbits_reverse_64(uint64_t x) {
   uint64_t t;
-  x = (x << 32) | (x >> 32);             /* Swap register halves. */
-  x = (x & 0x0001ffff0001ffffLL) << 15 | /* Rotate left */
-      (x & 0xfffe0000fffe0000LL) >> 17;  /* 15. */
+  x = (x << 32) | (x >> 32);              /* Swap register halves. */
+  x = (x & 0x0001ffff0001ffffLL) << 15    /* Rotate left */
+      | (x & 0xfffe0000fffe0000LL) >> 17; /* 15. */
   t = (x ^ (x >> 10)) & 0x003f801f003f801fLL;
   x = (t | (t << 10)) ^ x;
   t = (x ^ (x >> 4)) & 0x0e0384210e038421LL;

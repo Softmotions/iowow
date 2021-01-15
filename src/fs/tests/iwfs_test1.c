@@ -41,7 +41,6 @@
   unlink("test_mmap1.dat"); \
   unlink("test_fibo_inc.dat")
 
-
 int init_suite() {
   int rc = iw_init();
   UNLINK();
@@ -59,12 +58,12 @@ void iwfs_exfile_test1() {
 
   const char *path = "iwfs_exfile_test1.dat";
   IWFS_EXT_OPTS opts = {
-    .file = {
-      .path = path,
+    .file        = {
+      .path      = path,
       .lock_mode = IWP_WLOCK,
-      .omode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
+      .omode     = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
     },
-    .use_locks = 1
+    .use_locks   = 1
   };
   IWRC(iwfs_exfile_open(&ef, &opts), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -126,8 +125,8 @@ void iwfs_exfile_test1_2() {
   IWFS_EXT f;
   const char *path = "exfile_test1_2-"; // Temp file prefix
   IWFS_EXT_OPTS opts = {
-    .file = {
-      .path = path,
+    .file    = {
+      .path  = path,
       .omode = IWFS_OTMP | IWFS_OUNLINK
     }
   };
@@ -159,17 +158,17 @@ void test_fibo_inc(void) {
   const char *path = "test_fibo_inc.dat";
   IWFS_EXT ef;
   IWFS_EXT_OPTS opts = {
-    .file = {
-      .path = path,
+    .file        = {
+      .path      = path,
       .lock_mode = IWP_WLOCK,
-      .omode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
+      .omode     = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
     },
-    .use_locks = 0,
-    .rspolicy = iw_exfile_szpolicy_fibo
+    .use_locks   = 0,
+    .rspolicy    = iw_exfile_szpolicy_fibo
   };
   iwrc rc = 0;
   size_t sp;
-  uint64_t wd = (uint64_t)(-1);
+  uint64_t wd = (uint64_t) (-1);
 
   IWRC(iwfs_exfile_open(&ef, &opts), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -220,7 +219,7 @@ void test_mmap1(void) {
 
   const char *path = "test_mmap1.dat";
   IWFS_EXT ef;
-  IWFS_EXT_OPTS opts = {.file = {.path = path, .omode = IWFS_OTRUNC}, .use_locks = 0};
+  IWFS_EXT_OPTS opts = { .file = { .path = path, .omode = IWFS_OTRUNC }, .use_locks = 0 };
 
   for (int i = 0; i < dsize; ++i) {
     data[i] = iwu_rand_range(256);
@@ -344,7 +343,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwfs_test1", init_suite, clean_suite);
@@ -355,10 +356,10 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwfs_exfile_test1", iwfs_exfile_test1)) ||
-      (NULL == CU_add_test(pSuite, "iwfs_exfile_test1_2", iwfs_exfile_test1_2)) ||
-      (NULL == CU_add_test(pSuite, "test_fibo_inc", test_fibo_inc)) ||
-      (NULL == CU_add_test(pSuite, "test_mmap1", test_mmap1))) {
+  if ((NULL == CU_add_test(pSuite, "iwfs_exfile_test1", iwfs_exfile_test1))
+      || (NULL == CU_add_test(pSuite, "iwfs_exfile_test1_2", iwfs_exfile_test1_2))
+      || (NULL == CU_add_test(pSuite, "test_fibo_inc", test_fibo_inc))
+      || (NULL == CU_add_test(pSuite, "test_mmap1", test_mmap1))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

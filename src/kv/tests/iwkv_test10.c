@@ -18,13 +18,12 @@ int clean_suite(void) {
   return 0;
 }
 
-
 static void iwkv_test10_1_impl(int fmt_version) {
   IWKV iwkv;
   IWKV_OPTS opts = {
-    .path = fmt_version > 1 ? "iwkv_test10_1_v2.db" : "iwkv_test10_1_v1.db",
-    .oflags = IWKV_TRUNC,
-    .wal = {
+    .path      = fmt_version > 1 ? "iwkv_test10_1_v2.db" : "iwkv_test10_1_v1.db",
+    .oflags    = IWKV_TRUNC,
+    .wal       = {
       .enabled = true
     }
   };
@@ -119,7 +118,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test8", init_suite, clean_suite);
@@ -130,10 +131,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "iwkv_test10_1_v1", iwkv_test10_1_v1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test10_1_v2", iwkv_test10_1_v2))
-  ) {
+  if ((NULL == CU_add_test(pSuite, "iwkv_test10_1_v1", iwkv_test10_1_v1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test10_1_v2", iwkv_test10_1_v2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

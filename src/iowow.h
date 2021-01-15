@@ -37,7 +37,7 @@ IW_EXTERN_C_START
  */
 IW_EXPORT WUR iwrc iw_init(void);
 
-IW_EXPORT const char* iowow_version_full(void);
+IW_EXPORT const char *iowow_version_full(void);
 
 IW_EXPORT unsigned int iowow_version_major(void);
 

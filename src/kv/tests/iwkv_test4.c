@@ -7,7 +7,7 @@
 
 uint32_t g_seed;
 uint32_t g_rnd_data_pos;
-#define RND_DATA_SZ (10*1048576)
+#define RND_DATA_SZ (10 * 1048576)
 char RND_DATA[RND_DATA_SZ];
 
 static void *rndbuf_next(uint32_t len) {
@@ -17,7 +17,7 @@ static void *rndbuf_next(uint32_t len) {
   }
   const char *ret = RND_DATA + g_rnd_data_pos;
   g_rnd_data_pos += len;
-  return (void *) ret;
+  return (void*) ret;
 }
 
 int init_suite(void) {
@@ -45,15 +45,15 @@ static void iwkv_test4_4(void) {
   char *path = "iwkv_test4_4.db";
   IWKV iwkv;
   IWDB db1;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path = path,
-    .oflags = IWKV_TRUNC,
-    .random_seed = g_seed,
-    .wal = {
-      .enabled = true,
-      .savepoint_timeout_sec = 2,
+    .path                     = path,
+    .oflags                   = IWKV_TRUNC,
+    .random_seed              = g_seed,
+    .wal                      = {
+      .enabled                = true,
+      .savepoint_timeout_sec  = 2,
       .checkpoint_timeout_sec = 300
     }
   };
@@ -83,17 +83,17 @@ static void iwkv_test4_3_impl(int fmt_version) {
   char *path = "iwkv_test4_3.db";
   IWKV iwkv;
   IWDB db1;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path = path,
-    .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
-    .random_seed = g_seed,
-    .fmt_version = fmt_version,
-    .wal = {
-      .enabled = true,
+    .path                      = path,
+    .oflags                    = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
+    .random_seed               = g_seed,
+    .fmt_version               = fmt_version,
+    .wal                       = {
+      .enabled                 = true,
       .check_crc_on_checkpoint = true,
-      .savepoint_timeout_sec = UINT32_MAX
+      .savepoint_timeout_sec   = UINT32_MAX
     }
   };
   iwrc rc = iwkv_open(&opts, &iwkv);
@@ -183,18 +183,18 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
   if (walpath) {
     unlink(walpath);
   }
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path = path,
-    .oflags = IWKV_TRUNC,
-    .random_seed = g_seed,
-    .wal = {
-      .enabled = (walpath != NULL),
+    .path                      = path,
+    .oflags                    = IWKV_TRUNC,
+    .random_seed               = g_seed,
+    .wal                       = {
+      .enabled                 = (walpath != NULL),
       .check_crc_on_checkpoint = true,
-      .savepoint_timeout_sec = UINT32_MAX,
-      .wal_buffer_sz = 64 * 1024,
-      .checkpoint_buffer_sz = 32 * 1024 * 1024
+      .savepoint_timeout_sec   = UINT32_MAX,
+      .wal_buffer_sz           = 64 * 1024,
+      .checkpoint_buffer_sz    = 32 * 1024 * 1024
     }
   };
   rc = iwkv_open(&opts, &iwkv);
@@ -237,20 +237,20 @@ static void iwkv_test4_2(void) {
   fclose(iw2);
 }
 
-static void iwkv_test1_impl(char *path, const char *walpath)  {
+static void iwkv_test1_impl(char *path, const char *walpath) {
   iwrc rc;
   IWKV iwkv;
   IWDB db1, db2;
   if (walpath) {
     unlink(walpath);
   }
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path = path,
-    .oflags = IWKV_TRUNC,
-    .wal = {
-      .enabled = (walpath != NULL),
+    .path                    = path,
+    .oflags                  = IWKV_TRUNC,
+    .wal                     = {
+      .enabled               = (walpath != NULL),
       .savepoint_timeout_sec = UINT32_MAX
     }
   };
@@ -313,7 +313,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test4", init_suite, clean_suite);
@@ -323,13 +325,11 @@ int main() {
     return CU_get_error();
   }
   /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "iwkv_test4_1", iwkv_test4_1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test4_2", iwkv_test4_2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test4_3_v1", iwkv_test4_3_v1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test4_3_v2", iwkv_test4_3_v2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test4_4", iwkv_test4_4))
-  )  {
+  if ((NULL == CU_add_test(pSuite, "iwkv_test4_1", iwkv_test4_1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test4_2", iwkv_test4_2))
+      || (NULL == CU_add_test(pSuite, "iwkv_test4_3_v1", iwkv_test4_3_v1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test4_3_v2", iwkv_test4_3_v2))
+      || (NULL == CU_add_test(pSuite, "iwkv_test4_4", iwkv_test4_4))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

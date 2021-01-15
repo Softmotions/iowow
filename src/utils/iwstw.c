@@ -12,14 +12,14 @@ struct _TASK {
 };
 
 struct _IWSTW {
-  struct _TASK *head;
-  struct _TASK *tail;
-  pthread_mutex_t mtx;
+  struct _TASK      *head;
+  struct _TASK      *tail;
+  pthread_mutex_t   mtx;
   pthread_barrier_t brr;
-  pthread_cond_t cond;
+  pthread_cond_t    cond;
   pthread_t thr;
-  int cnt;
-  int queue_limit;
+  int       cnt;
+  int       queue_limit;
   volatile bool shutdown;
 };
 
@@ -121,7 +121,7 @@ iwrc iwstw_schedule(IWSTW stw, iwstw_task_f fn, void *arg) {
     pthread_mutex_unlock(&stw->mtx);
     goto finish;
   }
-  if (stw->queue_limit && stw->cnt + 1 > stw->queue_limit) {
+  if (stw->queue_limit && (stw->cnt + 1 > stw->queue_limit)) {
     rc = IW_ERROR_OVERFLOW;
     pthread_mutex_unlock(&stw->mtx);
     goto finish;
@@ -178,5 +178,4 @@ finish:
     *stwp_out = stw;
   }
   return 0;
-
 }

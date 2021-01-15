@@ -22,12 +22,13 @@ IW_EXTERN_C_START
  * @param skipeq If true and `eptr` is found in array it will not be inserted and method will return -1
  * @return Index of inserted element
  */
-IW_EXPORT off_t iwarr_sorted_insert(void *restrict els,
-                                    size_t nels,
-                                    size_t elsize,
-                                    void *restrict eptr,
-                                    int (*cmp)(const void *, const void *),
-                                    bool skipeq);
+IW_EXPORT off_t iwarr_sorted_insert(
+  void* restrict els,
+  size_t nels,
+  size_t elsize,
+  void* restrict eptr,
+  int (*cmp)(const void*, const void*),
+  bool skipeq);
 
 /**
  * @brief Remove element from a sorteed array.
@@ -40,34 +41,37 @@ IW_EXPORT off_t iwarr_sorted_insert(void *restrict els,
  * @param cmp Elements comparison function
  * @return Index of removed element or -1
  */
-IW_EXPORT off_t iwarr_sorted_remove(void *restrict els,
-                                    size_t nels,
-                                    size_t elsize,
-                                    void *restrict eptr,
-                                    int (*cmp)(const void *, const void *));
+IW_EXPORT off_t iwarr_sorted_remove(
+  void* restrict els,
+  size_t nels,
+  size_t elsize,
+  void* restrict eptr,
+  int (*cmp)(const void*, const void*));
 
 
-IW_EXPORT off_t iwarr_sorted_find(void *restrict els,
-                                  size_t nels,
-                                  size_t elsize,
-                                  void *restrict eptr,
-                                  int (*cmp)(const void *, const void *));
+IW_EXPORT off_t iwarr_sorted_find(
+  void* restrict els,
+  size_t nels,
+  size_t elsize,
+  void* restrict eptr,
+  int (*cmp)(const void*, const void*));
 
 
-IW_EXPORT off_t iwarr_sorted_find2(void *restrict els,
-                                   size_t nels,
-                                   size_t elsize,
-                                   void *restrict eptr,
-                                   void *op,
-                                   bool *found,
-                                   iwrc(*cmp)(const void *, const void *, void *, int *res));
+IW_EXPORT off_t iwarr_sorted_find2(
+  void* restrict els,
+  size_t nels,
+  size_t elsize,
+  void* restrict eptr,
+  void *op,
+  bool *found,
+  iwrc (*cmp)(const void*, const void*, void*, int *res));
 
 ///////////////////////////////////////////////////////////////////////////
 //                     Fixed sized item list                             //
 ///////////////////////////////////////////////////////////////////////////
 
 typedef struct {
-  char *array;    /**< Continuous units array */
+  char   *array;  /**< Continuous units array */
   size_t usize;   /**< Unit size */
   size_t num;     /**< Number of elements in units array */
   size_t anum;    /**< Actual number of allocated units */
@@ -90,7 +94,7 @@ IW_EXPORT iwrc iwulist_init(IWULIST *list, size_t initial_length, size_t unit_si
  * @param unit_size      Unit size
  * @return Zero if memory allocation failed `errno` will be set respectively
  */
-IW_EXPORT IWULIST *iwulist_create(size_t initial_length, size_t unit_size);\
+IW_EXPORT IWULIST *iwulist_create(size_t initial_length, size_t unit_size); \
 
 /**
  * @brief Cleanup units list.
@@ -186,15 +190,15 @@ IW_EXPORT iwrc iwulist_shift(IWULIST *list);
 ///////////////////////////////////////////////////////////////////////////
 
 typedef struct {
-  char *val;
+  char   *val;
   size_t size;
 } IWLISTITEM;
 
 typedef struct {
   IWLISTITEM *array;
-  size_t anum;      /**< Number of elements allocated */
-  size_t start;     /**< Index of first element */
-  size_t num;       /**< Actual number of elements */
+  size_t     anum;  /**< Number of elements allocated */
+  size_t     start; /**< Index of first element */
+  size_t     num;   /**< Actual number of elements */
 } IWLIST;
 
 /**
@@ -283,7 +287,7 @@ IW_EXPORT iwrc iwlist_insert(IWLIST *list, size_t index, const void *data, size_
 /**
  * @brief Set/overwrite element at given position.
  */
-IW_EXPORT iwrc iwlist_set(IWLIST *list, size_t index, const  void *data, size_t data_size);
+IW_EXPORT iwrc iwlist_set(IWLIST *list, size_t index, const void *data, size_t data_size);
 
 /**
  * @brief Remove element at given index.

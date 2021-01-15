@@ -4,9 +4,8 @@
 #include "iwcfg.h"
 #include <CUnit/Basic.h>
 
-#define RND_DATA_SZ (10*1048576)
+#define RND_DATA_SZ (10 * 1048576)
 char RND_DATA[RND_DATA_SZ];
-
 
 int init_suite(void) {
   iwrc rc = iwkv_init();
@@ -19,7 +18,7 @@ int clean_suite(void) {
 
 static void iwkv_test2_1(void) {
   IWKV_OPTS opts = {
-    .path = "iwkv_test2_1.db",
+    .path   = "iwkv_test2_1.db",
     .oflags = IWKV_TRUNC
   };
   const uint64_t numrec = 1000000; // 1M
@@ -60,7 +59,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test2", init_suite, clean_suite);
@@ -71,8 +72,7 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test2_1", iwkv_test2_1))
-    ) {
+  if ((NULL == CU_add_test(pSuite, "iwkv_test2_1", iwkv_test2_1))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

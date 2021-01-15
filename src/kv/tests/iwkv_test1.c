@@ -34,7 +34,6 @@ int clean_suite() {
   return 0;
 }
 
-
 // Test5 staff
 struct Test5DUP1 {
   bool _mv;
@@ -68,13 +67,13 @@ static void iwkv_test3_impl(int fmt_version) {
   CU_ASSERT_PTR_NOT_NULL(f);
 
   iwrc rc;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV iwkv;
   IWDB db1;
   IWKV_OPTS opts = {
-    .path = "iwkv_test1_3.db",
-    .oflags = IWKV_TRUNC,
+    .path        = "iwkv_test1_3.db",
+    .oflags      = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
 
@@ -137,13 +136,13 @@ static void iwkv_test2_impl(int fmt_version) {
   CU_ASSERT_PTR_NOT_NULL(f);
 
   iwrc rc;
-  IWKV_val key = {0};
-  IWKV_val val = {0};
+  IWKV_val key = { 0 };
+  IWKV_val val = { 0 };
   IWKV iwkv;
   IWDB db1;
   IWKV_OPTS opts = {
-    .path = "iwkv_test1_2.db",
-    .oflags = IWKV_TRUNC,
+    .path        = "iwkv_test1_2.db",
+    .oflags      = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
 
@@ -263,17 +262,17 @@ static void iwkv_test1_impl(int fmt_version) {
   size_t vsize;
 
   IWKV_OPTS opts = {
-    .path = "iwkv_test1.db",
-    .oflags = IWKV_TRUNC,
+    .path        = "iwkv_test1.db",
+    .oflags      = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   // Test open/close
   IWKV iwkv;
   IWDB db1, db2, db3;
   iwrc rc;
-  IWKV_val key = {.data = "foo"};
+  IWKV_val key = { .data = "foo" };
   key.size = strlen(key.data);
-  IWKV_val val = {.data = "bar"};
+  IWKV_val val = { .data = "bar" };
   val.size = strlen(val.data);
 
   rc = iwkv_open(&opts, &iwkv);
@@ -500,8 +499,8 @@ static void iwkv_test1_impl(int fmt_version) {
   rc = iwkv_cursor_to(cur1, IWKV_CURSOR_PREV);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  int i  = 0;
-  do  {
+  int i = 0;
+  do {
     IWKV_val key;
     IWKV_val val;
     iwrc rc2 = iwkv_cursor_get(cur1, &key, &val);
@@ -691,8 +690,8 @@ static void iwkv_test1_v2() {
 
 static void iwkv_test8_impl(int fmt_version) {
   IWKV_OPTS opts = {
-    .path = "iwkv_test1_8.db",
-    .oflags = IWKV_TRUNC,
+    .path        = "iwkv_test1_8.db",
+    .oflags      = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   IWKV iwkv;
@@ -783,8 +782,8 @@ static void iwkv_test8_v2() {
 
 static void iwkv_test7_impl(int fmt_version) {
   IWKV_OPTS opts = {
-    .path = "iwkv_test1_7.db",
-    .oflags = IWKV_TRUNC,
+    .path        = "iwkv_test1_7.db",
+    .oflags      = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   IWKV iwkv;
@@ -829,18 +828,18 @@ static void iwkv_test7_impl(int fmt_version) {
 }
 
 static void iwkv_test7_v1() {
-  iwkv_test7_impl(1) ;
+  iwkv_test7_impl(1);
 }
 
 static void iwkv_test7_v2() {
-  iwkv_test7_impl(2) ;
+  iwkv_test7_impl(2);
 }
 
 static void iwkv_test6_impl(int fmt_version) {
   IWKV_OPTS opts = {
-    .path = "iwkv_test1_6.db",
-    .oflags = IWKV_TRUNC,
-    .fmt_version =  fmt_version
+    .path        = "iwkv_test1_6.db",
+    .oflags      = IWKV_TRUNC,
+    .fmt_version = fmt_version
   };
   const int vbsiz = 1000 * 1000;
   // Test open/close
@@ -897,7 +896,9 @@ int main() {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
+  if (CUE_SUCCESS != CU_initialize_registry()) {
+    return CU_get_error();
+  }
 
   /* Add a suite to the registry */
   pSuite = CU_add_suite("iwkv_test1", init_suite, clean_suite);
@@ -908,25 +909,23 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "iwkv_test1_v1", iwkv_test1_v1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test1_v2", iwkv_test1_v2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test2_v1", iwkv_test2_v1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test2_v2", iwkv_test2_v2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test3_v1", iwkv_test3_v1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test3_v2", iwkv_test3_v2)) ||
+  if ((NULL == CU_add_test(pSuite, "iwkv_test1_v1", iwkv_test1_v1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test1_v2", iwkv_test1_v2))
+      || (NULL == CU_add_test(pSuite, "iwkv_test2_v1", iwkv_test2_v1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test2_v2", iwkv_test2_v2))
+      || (NULL == CU_add_test(pSuite, "iwkv_test3_v1", iwkv_test3_v1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test3_v2", iwkv_test3_v2)) ||
 
-    //-    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
-    //-    (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
+      //-    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
+      //-    (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
 
-    (NULL == CU_add_test(pSuite, "iwkv_test6_v1", iwkv_test6_v1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test6_v2", iwkv_test6_v2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test7_v1", iwkv_test7_v1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test7_v2", iwkv_test7_v2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test8_v1", iwkv_test8_v1)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test8_v2", iwkv_test8_v2)) ||
-    (NULL == CU_add_test(pSuite, "iwkv_test9", iwkv_test9))
-  )  {
+      (NULL == CU_add_test(pSuite, "iwkv_test6_v1", iwkv_test6_v1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test6_v2", iwkv_test6_v2))
+      || (NULL == CU_add_test(pSuite, "iwkv_test7_v1", iwkv_test7_v1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test7_v2", iwkv_test7_v2))
+      || (NULL == CU_add_test(pSuite, "iwkv_test8_v1", iwkv_test8_v1))
+      || (NULL == CU_add_test(pSuite, "iwkv_test8_v2", iwkv_test8_v2))
+      || (NULL == CU_add_test(pSuite, "iwkv_test9", iwkv_test9))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

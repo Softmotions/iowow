@@ -11,18 +11,18 @@
 
 /** Atomic heap unit */
 typedef struct IWPOOL_UNIT {
-  void               *heap;
+  void *heap;
   struct IWPOOL_UNIT *next;
 } IWPOOL_UNIT;
 
 /** Memory pool */
 struct _IWPOOL {
-  size_t       usiz;      /**< Used size */
-  size_t       asiz;      /**< Allocated size */
-  char        *heap;      /**< Current pool heap ptr */
-  IWPOOL_UNIT *unit;      /**< Current heap unit */
-  void        *user_data; /**< Associated user data */
-  void (*user_data_free_fn)(void *);       /**< User data dispose function */
+  size_t usiz;                      /**< Used size */
+  size_t asiz;                      /**< Allocated size */
+  char   *heap;                     /**< Current pool heap ptr */
+  IWPOOL_UNIT *unit;                /**< Current heap unit */
+  void *user_data;                  /**< Associated user data */
+  void (*user_data_free_fn)(void*); /**< User data dispose function */
 };
 
 IWPOOL *iwpool_create(size_t siz) {
@@ -65,7 +65,7 @@ IWPOOL *iwpool_create_empty(void) {
 }
 
 IW_INLINE int iwpool_extend(IWPOOL *pool, size_t siz) {
-  IWPOOL_UNIT *nunit =  malloc(sizeof(*nunit));
+  IWPOOL_UNIT *nunit = malloc(sizeof(*nunit));
   if (!nunit) {
     return 0;
   }
@@ -156,27 +156,34 @@ char *iwpool_printf(IWPOOL *pool, const char *format, ...) {
   return res;
 }
 
-char **iwpool_split_string(IWPOOL *pool, const char *haystack, const char *split_chars,
-                           bool ignore_whitespace) {
+char **iwpool_split_string(
+  IWPOOL *pool, const char *haystack, const char *split_chars,
+  bool ignore_whitespace) {
 
   size_t hsz = strlen(haystack);
-  char **ret = iwpool_alloc((hsz + 1) * sizeof(char *), pool);
-  if (!ret) return 0;
+  char **ret = iwpool_alloc((hsz + 1) * sizeof(char*), pool);
+  if (!ret) {
+    return 0;
+  }
   const char *sp = haystack;
   const char *ep = sp;
   int j = 0;
   for (int i = 0; *ep; ++i, ++ep) {
     const char ch = haystack[i];
     const char *sch = strchr(split_chars, ch);
-    if (ep >= sp && (sch || *(ep + 1) == '\0')) {
-      if (!sch && *(ep + 1) == '\0') ++ep;
+    if ((ep >= sp) && (sch || (*(ep + 1) == '\0'))) {
+      if (!sch && (*(ep + 1) == '\0')) {
+        ++ep;
+      }
       if (ignore_whitespace) {
         while (isspace(*sp)) ++sp;
         while (isspace(*(ep - 1))) --ep;
       }
       if (ep >= sp) {
         char *s = iwpool_alloc(ep - sp + 1, pool);
-        if (!s) return 0;
+        if (!s) {
+          return 0;
+        }
         memcpy(s, sp, ep - sp);
         s[ep - sp] = '\0';
         ret[j++] = s;
@@ -189,9 +196,10 @@ char **iwpool_split_string(IWPOOL *pool, const char *haystack, const char *split
   return ret;
 }
 
-char **iwpool_printf_split(IWPOOL *pool,
-                           const char *split_chars, bool ignore_whitespace,
-                           const char *format, ...) {
+char **iwpool_printf_split(
+  IWPOOL *pool,
+  const char *split_chars, bool ignore_whitespace,
+  const char *format, ...) {
 
   va_list ap;
   va_start(ap, format);
@@ -213,7 +221,7 @@ void iwpool_free_fn(void *pool) {
   iwpool_destroy(pool);
 }
 
-void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void *)) {
+void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void*)) {
   if (pool->user_data_free_fn) {
     pool->user_data_free_fn(pool->user_data);
   }

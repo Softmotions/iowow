@@ -68,8 +68,8 @@ static bool db_close(BMCTX *ctx) {
 
 static bool db_put(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sync) {
   BM_BDB *bmdb = ctx->db;
-  DBT bkey = {.data = key->data, .size = key->size};
-  DBT bval = {.data = val->data, .size = val->size};
+  DBT bkey = { .data = key->data, .size = key->size };
+  DBT bval = { .data = val->data, .size = val->size };
   int ret = bmdb->dbp->put(bmdb->dbp, 0, &bkey, &bval, 0);
   if (ret) {
     fprintf(stderr, "db_put: %s\n", db_strerror(ret));
@@ -87,8 +87,8 @@ static bool db_put(BMCTX *ctx, const IWKV_val *key, const IWKV_val *val, bool sy
 
 static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
   BM_BDB *bmdb = ctx->db;
-  DBT bkey = {.data = key->data, .size = key->size};
-  DBT bval = {.flags =  DB_DBT_MALLOC};
+  DBT bkey = { .data = key->data, .size = key->size };
+  DBT bval = { .flags = DB_DBT_MALLOC };
   int ret = bmdb->dbp->get(bmdb->dbp, 0, &bkey, &bval, 0);
   val->data = bval.data;
   val->size = bval.size;
@@ -104,10 +104,9 @@ static bool db_get(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) 
   return ret == 0;
 }
 
-
 static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync) {
   BM_BDB *bmdb = ctx->db;
-  DBT bkey = {.data = key->data, .size = key->size};
+  DBT bkey = { .data = key->data, .size = key->size };
   int ret = bmdb->dbp->del(bmdb->dbp, 0, &bkey, 0);
   if (ret == DB_NOTFOUND) {
     ret = 0;
@@ -128,8 +127,8 @@ static bool db_del(BMCTX *ctx, const IWKV_val *key, bool sync) {
 static bool db_read_seq(BMCTX *ctx, bool reverse) {
   BM_BDB *bmdb = ctx->db;
   DBC *curp;
-  DBT bkey = {.flags =  DB_DBT_MALLOC};
-  DBT bval = {.flags =  DB_DBT_MALLOC};
+  DBT bkey = { .flags = DB_DBT_MALLOC };
+  DBT bval = { .flags = DB_DBT_MALLOC };
   int ret = bmdb->dbp->cursor(bmdb->dbp, 0, &curp, 0);
   if (ret) {
     fprintf(stderr, "db_read_seq: %s\n", db_strerror(ret));
@@ -139,8 +138,12 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
   if (ret == DB_NOTFOUND) {
     ret = 0;
   }
-  if (bkey.data) free(bkey.data);
-  if (bval.data) free(bval.data);
+  if (bkey.data) {
+    free(bkey.data);
+  }
+  if (bval.data) {
+    free(bval.data);
+  }
 
   for (int i = 0; i < bm.param_num - 1 && !ret; ++i) {
     bkey.data = 0;
@@ -152,8 +155,12 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
     } else if (ret) {
       fprintf(stderr, "db_read_seq: %s\n", db_strerror(ret));
     }
-    if (bkey.data) free(bkey.data);
-    if (bval.data) free(bval.data);
+    if (bkey.data) {
+      free(bkey.data);
+    }
+    if (bval.data) {
+      free(bval.data);
+    }
   }
 
   curp->close(curp);
@@ -163,8 +170,8 @@ static bool db_read_seq(BMCTX *ctx, bool reverse) {
 static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, bool *found) {
   BM_BDB *bmdb = ctx->db;
   DBC *curp;
-  DBT bkey = {.data = key->data, .size = key->size};
-  DBT bval = {.flags =  DB_DBT_MALLOC};
+  DBT bkey = { .data = key->data, .size = key->size };
+  DBT bval = { .flags = DB_DBT_MALLOC };
   int ret = bmdb->dbp->cursor(bmdb->dbp, 0, &curp, 0);
   if (ret) {
     fprintf(stderr, "db_cursor_to_key: %s\n", db_strerror(ret));
@@ -187,7 +194,9 @@ static bool db_cursor_to_key(BMCTX *ctx, const IWKV_val *key, IWKV_val *val, boo
 }
 
 int main(int argc, char **argv) {
-  if (argc < 1) return -1;
+  if (argc < 1) {
+    return -1;
+  }
   g_program = argv[0];
   bm.env_setup = env_setup;
   bm.db_size_bytes = db_size_bytes;

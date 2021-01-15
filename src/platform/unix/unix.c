@@ -47,7 +47,6 @@
 
 #define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000ULL) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6))
 
-
 IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
 #if (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED < 101200)
   struct timeval now;
@@ -55,7 +54,7 @@ IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
-  t->tv_sec  = now.tv_sec;
+  t->tv_sec = now.tv_sec;
   t->tv_nsec = now.tv_usec * 1000ULL;
 #else
   int rci = clock_gettime(clock_id, t);
@@ -84,7 +83,7 @@ iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
 static iwrc _iwp_fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
   assert(fs);
   iwrc rc = 0;
-  struct stat st = {0};
+  struct stat st = { 0 };
   memset(fs, 0, sizeof(*fs));
   if (path) {
     if (stat(path, &st)) {
@@ -127,7 +126,7 @@ iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode) {
   if (lmode == IWP_NOLOCK) {
     return 0;
   }
-  struct flock lock = {.l_type = (lmode & IWP_WLOCK) ? F_WRLCK : F_RDLCK, .l_whence = SEEK_SET};
+  struct flock lock = { .l_type = (lmode & IWP_WLOCK) ? F_WRLCK : F_RDLCK, .l_whence = SEEK_SET };
   while (fcntl(fh, (lmode & IWP_NBLOCK) ? F_SETLK : F_SETLKW, &lock) == -1) {
     if (errno != EINTR) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
@@ -140,7 +139,7 @@ iwrc iwp_unlock(HANDLE fh) {
   if (INVALIDHANDLE(fh)) {
     return IW_ERROR_INVALID_HANDLE;
   }
-  struct flock lock = {.l_type = F_UNLCK, .l_whence = SEEK_SET};
+  struct flock lock = { .l_type = F_UNLCK, .l_whence = SEEK_SET };
   while (fcntl(fh, F_SETLKW, &lock) == -1) {
     if (errno != EINTR) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
@@ -296,9 +295,9 @@ iwrc iwp_fallocate(HANDLE fh, off_t len) {
   return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
 #else
   fstore_t fstore = {
-    .fst_flags = F_ALLOCATECONTIG,
+    .fst_flags   = F_ALLOCATECONTIG,
     .fst_posmode = F_PEOFPOSMODE,
-    .fst_length = len
+    .fst_length  = len
   };
   fcntl(fh, F_PREALLOCATE, &fstore);
   int rci = ftruncate(fh, len);
@@ -354,7 +353,7 @@ iwrc iwp_exec_path(char *opath) {
 
 uint16_t iwp_num_cpu_cores() {
   long res = sysconf(_SC_NPROCESSORS_ONLN);
-  return (uint16_t)(res > 0 ? res : 1);
+  return (uint16_t) (res > 0 ? res : 1);
 }
 
 iwrc iwp_fsync(HANDLE fh) {

@@ -26,4 +26,3 @@ IW_EXPORT iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len
 
 IW_EXTERN_C_END
 #endif
-

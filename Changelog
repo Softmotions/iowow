@@ -1,5 +1,6 @@
 iowow (1.4.11) UNRELEASED; urgency=medium
 
+  * Project code reformatted using uncrustify
   * Added handy ZGO definition (basedefs.h)
   * Updated copyright headers
   * Fixed build errors on macOS

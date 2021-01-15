@@ -10,34 +10,34 @@
 
 static struct data_s {
   const char *club;
-  uint8_t     points;
+  uint8_t    points;
 } _points[] = {
 
-  { "Aston Villa",              25  },
-  { "Manchester City",          57  },
-  { "Arsenal",                  40  },
-  { "Everton",                  37  },
-  { "West Ham United",          27  },
-  { "Tottenham Hotspur",        41  },
-  { "Wolverhampton Wanderers",  43  },
-  { "Norwich City",             21  },
-  { "Leicester City",           53  },
-  { "Manchester United",        45  },
-  { "Newcastle United",         35  },
-  { "Brighton & Hove Albion",   29  },
-  { "AFC Bournemouth",          27  },
-  { "Crystal Palace",           39  },
-  { "Sheffield United",         43  },
-  { "Burnley",                  39  },
-  { "Southampton",              34  },
-  { "Watford",                  27  },
-  { "Chelsea",                  48  },
-  { "Liverpool",                82  },
+  { "Aston Villa",             25 },
+  { "Manchester City",         57 },
+  { "Arsenal",                 40 },
+  { "Everton",                 37 },
+  { "West Ham United",         27 },
+  { "Tottenham Hotspur",       41 },
+  { "Wolverhampton Wanderers", 43 },
+  { "Norwich City",            21 },
+  { "Leicester City",          53 },
+  { "Manchester United",       45 },
+  { "Newcastle United",        35 },
+  { "Brighton & Hove Albion",  29 },
+  { "AFC Bournemouth",         27 },
+  { "Crystal Palace",          39 },
+  { "Sheffield United",        43 },
+  { "Burnley",                 39 },
+  { "Southampton",             34 },
+  { "Watford",                 27 },
+  { "Chelsea",                 48 },
+  { "Liverpool",               82 },
 };
 
 static iwrc run(void) {
   IWKV_OPTS opts = {
-    .path = "cursor1.db",
+    .path   = "cursor1.db",
     .oflags = IWKV_TRUNC // Cleanup database before open
   };
   IWKV iwkv;
@@ -51,7 +51,7 @@ static iwrc run(void) {
 
   for (int i = 0; i < sizeof(_points) / sizeof(_points[0]); ++i) {
     struct data_s *n = &_points[i];
-    IWKV_val key = { .data = (void *) n->club, .size = strlen(n->club) };
+    IWKV_val key = { .data = (void*) n->club, .size = strlen(n->club) };
     IWKV_val val = { .data = &n->points, .size = sizeof(n->points) };
     RCC(rc, finish, iwkv_put(db, &key, &val, 0));
   }
@@ -62,8 +62,8 @@ static iwrc run(void) {
     IWKV_val key, val;
     RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
     fprintf(stdout, "%.*s: %u\n",
-            (int) key.size, (char *) key.data,
-            *(uint8_t *) val.data);
+            (int) key.size, (char*) key.data,
+            *(uint8_t*) val.data);
     iwkv_kv_dispose(&key, &val);
   }
   rc = 0;
@@ -75,8 +75,8 @@ static iwrc run(void) {
     IWKV_val key, val;
     RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
     fprintf(stdout, "%.*s: %u\n",
-            (int) key.size, (char *) key.data,
-            *(uint8_t *) val.data);
+            (int) key.size, (char*) key.data,
+            *(uint8_t*) val.data);
     iwkv_kv_dispose(&key, &val);
   }
   rc = 0;
@@ -85,13 +85,13 @@ static iwrc run(void) {
   // Select all keys greater or equal than: Manchester United
   {
     fprintf(stdout, "\n>>>> Records GE: %s\n", _points[9].club);
-    IWKV_val key = { .data = (void *) _points[9].club, .size = strlen(_points[9].club) }, val;
+    IWKV_val key = { .data = (void*) _points[9].club, .size = strlen(_points[9].club) }, val;
     RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
     do {
       RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
       fprintf(stdout, "%.*s: %u\n",
-              (int) key.size, (char *) key.data,
-              *(uint8_t *) val.data);
+              (int) key.size, (char*) key.data,
+              *(uint8_t*) val.data);
       iwkv_kv_dispose(&key, &val);
     } while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) == 0);
     rc = 0;

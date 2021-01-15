@@ -40,7 +40,7 @@
 #include <time.h>
 #include <limits.h>
 
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || ! _GNU_SOURCE
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || !_GNU_SOURCE
 #include <libgen.h>
 #elif defined(_WIN32)
 #include <libiberty/libiberty.h>
@@ -54,9 +54,10 @@
 #include <android/log.h>
 #endif // __ANDROID__
 
-static iwrc _default_logfn(FILE *out, locale_t locale, iwlog_lvl lvl, iwrc ecode, int errno_code, int werror_code,
-                           const char *file, int line, uint64_t ts, void *opts, const char *fmt,
-                           va_list argp);
+static iwrc _default_logfn(
+  FILE *out, locale_t locale, iwlog_lvl lvl, iwrc ecode, int errno_code, int werror_code,
+  const char *file, int line, uint64_t ts, void *opts, const char *fmt,
+  va_list argp);
 
 static const char *_ecode_explained(locale_t locale, uint32_t ecode);
 static const char *_default_ecodefn(locale_t locale, uint32_t ecode);
@@ -66,7 +67,7 @@ static pthread_mutex_t _mtx = PTHREAD_MUTEX_INITIALIZER;
 static IWLOG_FN _current_logfn = _default_logfn;
 static void *_current_logfn_options = 0;
 #define _IWLOG_MAX_ECODE_FUN 256
-static IWLOG_ECODE_FN _ecode_functions[_IWLOG_MAX_ECODE_FUN] = {0};
+static IWLOG_ECODE_FN _ecode_functions[_IWLOG_MAX_ECODE_FUN] = { 0 };
 
 iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, ...) {
   va_list argp;
@@ -112,7 +113,7 @@ iwrc iwlog_va(FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line, 
 }
 
 #define _IWLOG_ERRNO_RC_MASK 0x01U
-#define _IWLOG_WERR_EC_MASK 0x02U
+#define _IWLOG_WERR_EC_MASK  0x02U
 
 iwrc iwrc_set_errno(iwrc rc, int errno_code) {
   if (!errno_code) {
@@ -132,7 +133,7 @@ uint32_t iwrc_strip_errno(iwrc *rc) {
     return 0;
   }
   *rc = rcv & 0x00000000ffffffffULL;
-  return (uint32_t)(rcv >> 32) & 0x3fffffffU;
+  return (uint32_t) (rcv >> 32) & 0x3fffffffU;
 }
 
 #ifdef _WIN32
@@ -155,8 +156,9 @@ uint32_t iwrc_strip_werror(iwrc *rc) {
     return 0;
   }
   *rc = rcv & 0x00000000ffffffffULL;
-  return (uint32_t)(rcv >> 32) & 0x3fffffffU;
+  return (uint32_t) (rcv >> 32) & 0x3fffffffU;
 }
+
 #endif
 
 void iwrc_strip_code(iwrc *rc) {
@@ -289,23 +291,24 @@ static const char *_default_ecodefn(locale_t locale, uint32_t ecode) {
   return 0;
 }
 
-static iwrc _default_logfn(FILE *out,
-                           locale_t locale,
-                           iwlog_lvl lvl,
-                           iwrc ecode,
-                           int errno_code,
-                           int werror_code,
-                           const char *file,
-                           int line,
-                           uint64_t ts,
-                           void *opts,
-                           const char *fmt,
-                           va_list argp) {
+static iwrc _default_logfn(
+  FILE       *out,
+  locale_t   locale,
+  iwlog_lvl  lvl,
+  iwrc       ecode,
+  int        errno_code,
+  int        werror_code,
+  const char *file,
+  int        line,
+  uint64_t   ts,
+  void       *opts,
+  const char *fmt,
+  va_list    argp) {
 #define TBUF_SZ 96
 #define EBUF_SZ 128
 
   iwrc rc = 0;
-  IWLOG_DEFAULT_OPTS myopts = {0};
+  IWLOG_DEFAULT_OPTS myopts = { 0 };
 
 #ifndef IW_ANDROID_LOG
   time_t ts_sec = ((long double) ts / 1000);
@@ -329,7 +332,8 @@ static iwrc _default_logfn(FILE *out,
     if (!rci) {
       errno_msg = ebuf;
     }
-#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE)
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || ((_POSIX_C_SOURCE >= 200112L \
+                                                                              || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
     int rci = strerror_r(errno_code, ebuf, EBUF_SZ);
     if (!rci) {
       errno_msg = ebuf;
@@ -356,7 +360,7 @@ static iwrc _default_logfn(FILE *out,
 #endif
 
   if (opts) {
-    myopts = *(IWLOG_DEFAULT_OPTS *) opts;
+    myopts = *(IWLOG_DEFAULT_OPTS*) opts;
     if (myopts.out) {
       out = myopts.out;
     }
@@ -371,7 +375,7 @@ static iwrc _default_logfn(FILE *out,
     tbuf[0] = '\0';
   } else if (TBUF_SZ - sz > 4) {  // .000 suffix
     tbuf[sz] = '.';
-    sz2 = snprintf((char *) tbuf + sz + 1, 4, "%03d", (int)(ts % 1000));
+    sz2 = snprintf((char*) tbuf + sz + 1, 4, "%03d", (int) (ts % 1000));
     if (sz2 > 3) {
       tbuf[sz] = '\0';
     }
@@ -420,7 +424,7 @@ static iwrc _default_logfn(FILE *out,
   if (ecode) {
     ecode_msg = _ecode_explained(locale, ecode);
   }
-  if (file && line > 0) {
+  if (file && (line > 0)) {
     size_t len = strlen(file);
     if (len < sizeof(fnamebuf)) {
       memcpy(fnameptr, file, len);
@@ -444,7 +448,7 @@ static iwrc _default_logfn(FILE *out,
 #ifndef IW_ANDROID_LOG
 
   if (ecode || errno_code || werror_code) {
-    if (fname && line > 0) {
+    if (fname && (line > 0)) {
       fprintf(out, "%s %s %s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", tbuf, cat, fname, line, ecode, errno_code,
               werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
               (werror_msg ? werror_msg : "")); // -V547
@@ -453,7 +457,7 @@ static iwrc _default_logfn(FILE *out,
               (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : "")); // -V547
     }
   } else {
-    if (fname && line > 0) {
+    if (fname && (line > 0)) {
       fprintf(out, "%s %s %s:%d: ", tbuf, cat, fname, line);
     } else {
       fprintf(out, "%s %s: ", tbuf, cat);
@@ -468,7 +472,7 @@ static iwrc _default_logfn(FILE *out,
 #else
 
   if (ecode || errno_code || werror_code) {
-    if (fname && line > 0) {
+    if (fname && (line > 0)) {
       __android_log_print(alp, "IWLOG", "%s:%d %" PRIu64 "|%d|%d|%s|%s|%s: ", fname, line, ecode, errno_code,
                           werror_code, (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""),
                           (werror_msg ? werror_msg : ""));
@@ -477,7 +481,7 @@ static iwrc _default_logfn(FILE *out,
                           (ecode_msg ? ecode_msg : ""), (errno_msg ? errno_msg : ""), (werror_msg ? werror_msg : ""));
     }
   } else {
-    if (fname && line > 0) {
+    if (fname && (line > 0)) {
       __android_log_print(alp, "IWLOG", "%s:%d: ", fname, line);
     }
   }

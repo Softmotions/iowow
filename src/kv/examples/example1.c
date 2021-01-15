@@ -4,7 +4,7 @@
 
 int main() {
   IWKV_OPTS opts = {
-    .path = "example1.db",
+    .path   = "example1.db",
     .oflags = IWKV_TRUNC // Cleanup database before open
   };
   IWKV iwkv;
@@ -30,8 +30,8 @@ int main() {
   val.size = strlen(val.data);
 
   fprintf(stdout, "put: %.*s => %.*s\n",
-          (int) key.size, (char *) key.data,
-          (int) val.size, (char *) val.data);
+          (int) key.size, (char*) key.data,
+          (int) val.size, (char*) val.data);
 
   rc = iwkv_put(mydb, &key, &val, 0);
   if (rc) {
@@ -48,8 +48,8 @@ int main() {
   }
 
   fprintf(stdout, "get: %.*s => %.*s\n",
-          (int) key.size, (char *) key.data,
-          (int) val.size, (char *) val.data);
+          (int) key.size, (char*) key.data,
+          (int) val.size, (char*) val.data);
 
   iwkv_val_dispose(&val);
   iwkv_close(&iwkv);
