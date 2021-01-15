@@ -909,23 +909,23 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test1_v1", iwkv_test1_v1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test1_v2", iwkv_test1_v2))
-      || (NULL == CU_add_test(pSuite, "iwkv_test2_v1", iwkv_test2_v1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test2_v2", iwkv_test2_v2))
-      || (NULL == CU_add_test(pSuite, "iwkv_test3_v1", iwkv_test3_v1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test3_v2", iwkv_test3_v2)) ||
+  if (  (NULL == CU_add_test(pSuite, "iwkv_test1_v1", iwkv_test1_v1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test1_v2", iwkv_test1_v2))
+     || (NULL == CU_add_test(pSuite, "iwkv_test2_v1", iwkv_test2_v1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test2_v2", iwkv_test2_v2))
+     || (NULL == CU_add_test(pSuite, "iwkv_test3_v1", iwkv_test3_v1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test3_v2", iwkv_test3_v2)) ||
 
-      //-    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
-      //-    (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
+        //-    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
+        //-    (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
 
-      (NULL == CU_add_test(pSuite, "iwkv_test6_v1", iwkv_test6_v1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test6_v2", iwkv_test6_v2))
-      || (NULL == CU_add_test(pSuite, "iwkv_test7_v1", iwkv_test7_v1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test7_v2", iwkv_test7_v2))
-      || (NULL == CU_add_test(pSuite, "iwkv_test8_v1", iwkv_test8_v1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test8_v2", iwkv_test8_v2))
-      || (NULL == CU_add_test(pSuite, "iwkv_test9", iwkv_test9))) {
+        (NULL == CU_add_test(pSuite, "iwkv_test6_v1", iwkv_test6_v1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test6_v2", iwkv_test6_v2))
+     || (NULL == CU_add_test(pSuite, "iwkv_test7_v1", iwkv_test7_v1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test7_v2", iwkv_test7_v2))
+     || (NULL == CU_add_test(pSuite, "iwkv_test8_v1", iwkv_test8_v1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test8_v2", iwkv_test8_v2))
+     || (NULL == CU_add_test(pSuite, "iwkv_test9", iwkv_test9))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

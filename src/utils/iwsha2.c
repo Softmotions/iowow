@@ -117,7 +117,7 @@ void iwsha256(const void *input, size_t len, uint8_t hash_out[32]) {
   /*
    * Note 1: All integers (expect indexes) are 32-bit unsigned integers and addition is calculated modulo 2^32.
    * Note 2: For each round, there is one round constant k[i] and one entry in the message schedule array w[i], 0 = i =
-   *63
+   * 63
    * Note 3: The compression function uses 8 working variables, a through h
    * Note 4: Big-endian convention is used when expressing the constants in this pseudocode,
    *     and when parsing message block data from bytes to words, for example,

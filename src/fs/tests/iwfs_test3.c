@@ -247,8 +247,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "test_stress1", test_stress1))
-      || (NULL == CU_add_test(pSuite, "test_stress2", test_stress2))) {
+  if (  (NULL == CU_add_test(pSuite, "test_stress1", test_stress1))
+     || (NULL == CU_add_test(pSuite, "test_stress2", test_stress2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

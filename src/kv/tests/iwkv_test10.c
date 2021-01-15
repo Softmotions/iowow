@@ -131,8 +131,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test10_1_v1", iwkv_test10_1_v1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test10_1_v2", iwkv_test10_1_v2))) {
+  if (  (NULL == CU_add_test(pSuite, "iwkv_test10_1_v1", iwkv_test10_1_v1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test10_1_v2", iwkv_test10_1_v2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

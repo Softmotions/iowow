@@ -325,11 +325,11 @@ int main() {
     return CU_get_error();
   }
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwkv_test4_1", iwkv_test4_1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test4_2", iwkv_test4_2))
-      || (NULL == CU_add_test(pSuite, "iwkv_test4_3_v1", iwkv_test4_3_v1))
-      || (NULL == CU_add_test(pSuite, "iwkv_test4_3_v2", iwkv_test4_3_v2))
-      || (NULL == CU_add_test(pSuite, "iwkv_test4_4", iwkv_test4_4))) {
+  if (  (NULL == CU_add_test(pSuite, "iwkv_test4_1", iwkv_test4_1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test4_2", iwkv_test4_2))
+     || (NULL == CU_add_test(pSuite, "iwkv_test4_3_v1", iwkv_test4_3_v1))
+     || (NULL == CU_add_test(pSuite, "iwkv_test4_3_v2", iwkv_test4_3_v2))
+     || (NULL == CU_add_test(pSuite, "iwkv_test4_4", iwkv_test4_4))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

@@ -159,8 +159,8 @@ IW_INLINE iwrc _fsm_bmptr(FSM *impl, uint64_t **bmptr) {
  *        and @a length values.
  */
 IW_INLINE WUR iwrc _fsm_init_fbk(FSMBK *bk, uint64_t offset_blk, uint64_t len_blk) {
-  if ((offset_blk > ((uint32_t) -1))
-      || (len_blk > ((uint32_t) -1))) {
+  if (  (offset_blk > ((uint32_t) -1))
+     || (len_blk > ((uint32_t) -1))) {
     return IW_ERROR_OVERFLOW;
   }
   bk->off = (uint32_t) offset_blk;
@@ -1130,8 +1130,9 @@ start:
         double_t d = ((double_t) impl->crzsum / (double_t) impl->crznum)        /*avg*/
                      - (nlength - length_blk);                                  /*rest blk size*/
         double_t s = ((double_t) impl->crzvar / (double_t) impl->crznum) * 6.0; /* blk size dispersion * 6 */
-        if ((s > 1) && (d > 0) && (d * d > s)) {                                /* its better to attach rest of block to
-                                                                                   the record */
+        if ((s > 1) && (d > 0) && (d * d > s)) {
+          /* its better to attach rest of block to
+             the record */
           *olength_blk = nlength;
         } else {
           _fsm_put_fbk(impl, (*offset_blk + length_blk), (nlength - length_blk));
@@ -1702,9 +1703,9 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
   }
   rc = _fsm_ctrl_wlock(impl);
   RCRET(rc);
-  if (IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow))
-      || IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, (impl->bmoff >> impl->bpow),
-                           (impl->bmoff >> impl->bpow) + (impl->bmlen >> impl->bpow))) {
+  if (  IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow))
+     || IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, (impl->bmoff >> impl->bpow),
+                          (impl->bmoff >> impl->bpow) + (impl->bmlen >> impl->bpow))) {
     // Deny deallocations in header or free-space bitmap itself
     IWRC(_fsm_ctrl_unlock(impl), rc);
     return IWFS_ERROR_FSM_SEGMENTATION;
@@ -1723,9 +1724,9 @@ static iwrc _fsm_check_allocation_status(struct IWFS_FSM *f, off_t addr, off_t l
   RCRET(rc);
   off_t offset_blk = (uint64_t) addr >> impl->bpow;
   off_t length_blk = (uint64_t) len >> impl->bpow;
-  if (IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow))
-      || IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, (impl->bmoff >> impl->bpow),
-                           (impl->bmoff >> impl->bpow) + (impl->bmlen >> impl->bpow))) {
+  if (  IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, 0, (impl->hdrlen >> impl->bpow))
+     || IW_RANGES_OVERLAP(offset_blk, offset_blk + length_blk, (impl->bmoff >> impl->bpow),
+                          (impl->bmoff >> impl->bpow) + (impl->bmlen >> impl->bpow))) {
     IWRC(_fsm_ctrl_unlock(impl), rc);
     return IWFS_ERROR_FSM_SEGMENTATION;
   }

@@ -184,8 +184,8 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
 
   if (opts->dlsnr) {
     IWDLSNR *l = opts->dlsnr;
-    if (!l->onopen || !l->onclosing || !l->oncopy || !l->onresize
-        || !l->onset || !l->onsynced || !l->onwrite) {
+    if (  !l->onopen || !l->onclosing || !l->oncopy || !l->onresize
+       || !l->onset || !l->onsynced || !l->onwrite) {
       iwlog_ecode_error2(IW_ERROR_INVALID_ARGS, "Invalid 'opts->dlsnr' specified");
       return IW_ERROR_INVALID_ARGS;
     }

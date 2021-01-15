@@ -332,8 +332,8 @@ static iwrc _default_logfn(
     if (!rci) {
       errno_msg = ebuf;
     }
-#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || ((_POSIX_C_SOURCE >= 200112L \
-                                                                              || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || ((  _POSIX_C_SOURCE >= 200112L \
+                                                                             || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
     int rci = strerror_r(errno_code, ebuf, EBUF_SZ);
     if (!rci) {
       errno_msg = ebuf;

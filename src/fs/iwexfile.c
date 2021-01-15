@@ -272,9 +272,9 @@ static iwrc _exfile_sync(struct IWFS_EXT *f, iwfs_sync_flags flags) {
   int mflags = MS_SYNC;
   MMAPSLOT *s = impl->mmslots;
   while (s) {
-    if (s->mmap && (s->mmap != MAP_FAILED)
-        && !(s->mmopts & IWFS_MMAP_PRIVATE)
-        && (msync(s->mmap, s->len, mflags) == -1)) {
+    if (  s->mmap && (s->mmap != MAP_FAILED)
+       && !(s->mmopts & IWFS_MMAP_PRIVATE)
+       && (msync(s->mmap, s->len, mflags) == -1)) {
       rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
     s = s->next;
@@ -701,8 +701,8 @@ static iwrc _exfile_sync_mmap_lr(struct IWFS_EXT *f, off_t off, iwfs_sync_flags 
         break;
       }
       if (s->mmap && (s->mmap != MAP_FAILED)) {
-        if (!(s->mmopts & IWFS_MMAP_PRIVATE)
-            && (msync(s->mmap, s->len, mflags) == -1)) {
+        if (  !(s->mmopts & IWFS_MMAP_PRIVATE)
+           && (msync(s->mmap, s->len, mflags) == -1)) {
           rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
         }
         break;

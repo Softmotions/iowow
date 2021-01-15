@@ -109,8 +109,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "test_murmur_hash", test_murmur_hash))
-      || (NULL == CU_add_test(pSuite, "test_basic_crud_str", test_basic_crud_str))) {
+  if (  (NULL == CU_add_test(pSuite, "test_murmur_hash", test_murmur_hash))
+     || (NULL == CU_add_test(pSuite, "test_basic_crud_str", test_basic_crud_str))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

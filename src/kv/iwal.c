@@ -997,8 +997,8 @@ finish:
 }
 
 iwrc _init_cpt(IWAL *wal) {
-  if ((wal->savepoint_timeout_sec == UINT32_MAX)
-      && (wal->checkpoint_timeout_sec == UINT32_MAX)) {
+  if (  (wal->savepoint_timeout_sec == UINT32_MAX)
+     && (wal->checkpoint_timeout_sec == UINT32_MAX)) {
     // do not start checkpoint thread
     return 0;
   }

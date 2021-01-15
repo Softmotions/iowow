@@ -145,9 +145,9 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "test_iwu_replace_into", test_iwu_replace_into))
-      || (NULL == CU_add_test(pSuite, "test_iwpool_split_string", test_iwpool_split_string))
-      || (NULL == CU_add_test(pSuite, "test_iwpool_printf", test_iwpool_printf))) {
+  if (  (NULL == CU_add_test(pSuite, "test_iwu_replace_into", test_iwu_replace_into))
+     || (NULL == CU_add_test(pSuite, "test_iwpool_split_string", test_iwpool_split_string))
+     || (NULL == CU_add_test(pSuite, "test_iwpool_printf", test_iwpool_printf))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

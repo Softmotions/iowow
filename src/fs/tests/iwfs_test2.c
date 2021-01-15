@@ -759,14 +759,14 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "test_fsm_bitmap", test_fsm_bitmap))
-      || (NULL == CU_add_test(pSuite, "test_fsm_open_close", test_fsm_open_close))
-      || (NULL == CU_add_test(pSuite, "test_fsm_uniform_alloc", test_fsm_uniform_alloc))
-      || (NULL == CU_add_test(pSuite, "test_fsm_uniform_alloc_mmap_all", test_fsm_uniform_alloc_mmap_all))
-      || (NULL == CU_add_test(pSuite, "test_block_allocation1", test_block_allocation1))
-      || (NULL == CU_add_test(pSuite, "test_block_allocation1_mmap_all", test_block_allocation1_mmap_all))
-      || (NULL == CU_add_test(pSuite, "test_block_allocation2", test_block_allocation2))
-      || (NULL == CU_add_test(pSuite, "test_block_allocation2_mmap_all", test_block_allocation2_mmap_all))) {
+  if (  (NULL == CU_add_test(pSuite, "test_fsm_bitmap", test_fsm_bitmap))
+     || (NULL == CU_add_test(pSuite, "test_fsm_open_close", test_fsm_open_close))
+     || (NULL == CU_add_test(pSuite, "test_fsm_uniform_alloc", test_fsm_uniform_alloc))
+     || (NULL == CU_add_test(pSuite, "test_fsm_uniform_alloc_mmap_all", test_fsm_uniform_alloc_mmap_all))
+     || (NULL == CU_add_test(pSuite, "test_block_allocation1", test_block_allocation1))
+     || (NULL == CU_add_test(pSuite, "test_block_allocation1_mmap_all", test_block_allocation1_mmap_all))
+     || (NULL == CU_add_test(pSuite, "test_block_allocation2", test_block_allocation2))
+     || (NULL == CU_add_test(pSuite, "test_block_allocation2_mmap_all", test_block_allocation2_mmap_all))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

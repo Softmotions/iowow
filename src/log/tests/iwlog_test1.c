@@ -119,8 +119,8 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1))
-      || (NULL == CU_add_test(pSuite, "iwlog_test2", iwlog_test2))) {
+  if (  (NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1))
+     || (NULL == CU_add_test(pSuite, "iwlog_test2", iwlog_test2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

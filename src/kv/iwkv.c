@@ -2143,9 +2143,9 @@ WUR iwrc _lx_sblk_cmp_key(IWLCTX *lx, SBLK *sblk, int *resp) {
   if (dbflg & IWDB_COMPOUND_KEYS) {
     ksize += IW_VNUMSIZE(key->compound);
   }
-  if ((sblk->flags & SBLK_FULL_LKEY)
-      || (ksize < lkl)
-      || (dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
+  if (  (sblk->flags & SBLK_FULL_LKEY)
+     || (ksize < lkl)
+     || (dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
     res = _cmp_keys(dbflg, sblk->lk, lkl, key);
   } else {
     res = _cmp_keys_prefix(dbflg, sblk->lk, lkl, key);
@@ -2468,9 +2468,9 @@ static WUR iwrc _lx_addkv(IWLCTX *lx) {
     fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
   }
-  uadd = (!found
-          && sblk->pnum > KVBLK_IDXNUM - 1 && idx > KVBLK_IDXNUM - 1
-          && lx->upper && lx->upper->pnum < KVBLK_IDXNUM);
+  uadd = (  !found
+         && sblk->pnum > KVBLK_IDXNUM - 1 && idx > KVBLK_IDXNUM - 1
+         && lx->upper && lx->upper->pnum < KVBLK_IDXNUM);
   if (uadd) {
     rc = _sblk_loadkvblk_mm(lx, lx->upper, mm);
     if (rc) {
@@ -4079,8 +4079,8 @@ iwrc iwkv_cursor_open(
   IWKV_cursor    *curptr,
   IWKV_cursor_op op,
   const IWKV_val *key) {
-  if (!db || !db->iwkv || !curptr
-      || (key && (op < IWKV_CURSOR_EQ) ) || (op < IWKV_CURSOR_BEFORE_FIRST) ) {
+  if (  !db || !db->iwkv || !curptr
+     || (key && (op < IWKV_CURSOR_EQ) ) || (op < IWKV_CURSOR_BEFORE_FIRST) ) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc;

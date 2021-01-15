@@ -356,10 +356,10 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "iwfs_exfile_test1", iwfs_exfile_test1))
-      || (NULL == CU_add_test(pSuite, "iwfs_exfile_test1_2", iwfs_exfile_test1_2))
-      || (NULL == CU_add_test(pSuite, "test_fibo_inc", test_fibo_inc))
-      || (NULL == CU_add_test(pSuite, "test_mmap1", test_mmap1))) {
+  if (  (NULL == CU_add_test(pSuite, "iwfs_exfile_test1", iwfs_exfile_test1))
+     || (NULL == CU_add_test(pSuite, "iwfs_exfile_test1_2", iwfs_exfile_test1_2))
+     || (NULL == CU_add_test(pSuite, "test_fibo_inc", test_fibo_inc))
+     || (NULL == CU_add_test(pSuite, "test_mmap1", test_mmap1))) {
     CU_cleanup_registry();
     return CU_get_error();
   }
