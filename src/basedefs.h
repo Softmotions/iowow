@@ -98,6 +98,11 @@ typedef int HANDLE;
 #define IW_LINE_SEP "\n"
 #endif
 
+#define ZGO(label__, val__)           \
+  ({ __typeof__(val__) v__ = (val__); \
+    if (!v__) goto label__;          \
+    v__; })
+
 #ifdef __GNUC__
 #define RCGO(rc__, label__) if (__builtin_expect((!!(rc__)), 0)) goto label__
 #else
