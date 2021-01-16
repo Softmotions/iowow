@@ -1,7 +1,8 @@
 iowow (1.4.11) UNRELEASED; urgency=medium
 
-  * Project code reformatted using uncrustify
+  * Added handy ZRET definition (basedefs.h)
   * Added handy ZGO definition (basedefs.h)
+  * Project code reformatted using uncrustify
   * Updated copyright headers
   * Fixed build errors on macOS
   * Removed dependency on glibc specific features
