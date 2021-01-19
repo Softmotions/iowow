@@ -16,7 +16,7 @@
 
 struct user_s {
   uint32_t id;
-  char     *name;
+  char    *name;
 };
 
 struct chat_root_s {

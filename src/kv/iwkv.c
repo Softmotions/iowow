@@ -1110,7 +1110,7 @@ static WUR iwrc _kvblk_addkv(
   const IWKV_val *key,
   const IWKV_val *val,
   uint8_t        *oidx,
-  bool           raw_key) {
+  bool            raw_key) {
   *oidx = 0;
 
   iwrc rc = 0;
@@ -1870,10 +1870,10 @@ static WUR iwrc _sblk_insert_pi_mm(
 
 static WUR iwrc _sblk_addkv2(
   SBLK           *sblk,
-  int8_t         idx,
+  int8_t          idx,
   const IWKV_val *key,
   const IWKV_val *val,
-  bool           raw_key) {
+  bool            raw_key) {
   assert(sblk && key && key->size && key->data && val && idx >= 0 && sblk->kvblk);
 
   uint8_t kvidx;
@@ -4075,9 +4075,9 @@ IW_INLINE iwrc _cursor_close_lw(IWKV_cursor cur) {
 }
 
 iwrc iwkv_cursor_open(
-  IWDB           db,
+  IWDB            db,
   IWKV_cursor    *curptr,
-  IWKV_cursor_op op,
+  IWKV_cursor_op  op,
   const IWKV_val *key) {
   if (  !db || !db->iwkv || !curptr
      || (key && (op < IWKV_CURSOR_EQ) ) || (op < IWKV_CURSOR_BEFORE_FIRST) ) {
@@ -4199,8 +4199,8 @@ iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key)
 
 iwrc iwkv_cursor_get(
   IWKV_cursor cur,
-  IWKV_val    *okey,                   /* Nullable */
-  IWKV_val    *oval) {                 /* Nullable */
+  IWKV_val   *okey,                    /* Nullable */
+  IWKV_val   *oval) {                  /* Nullable */
   int rci;
   iwrc rc = 0;
   if (!cur || !cur->lx.db) {

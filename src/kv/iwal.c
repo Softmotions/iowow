@@ -34,8 +34,8 @@ typedef struct IWAL {
   uint32_t bufpos;                  /**< Current position in buffer */
   uint32_t bufsz;                   /**< Size of buffer */
   HANDLE   fh;                      /**< File handle */
-  uint8_t  *buf;                    /**< File buffer */
-  char     *path;                   /**< WAL file path */
+  uint8_t *buf;                     /**< File buffer */
+  char    *path;                    /**< WAL file path */
   pthread_mutex_t *mtxp;            /**< Global WAL mutex */
   pthread_cond_t  *cpt_condp;       /**< Checkpoint thread cond variable */
   pthread_t       *cptp;            /**< Checkpoint thread */
@@ -45,7 +45,7 @@ typedef struct IWAL {
        - after releasing
        exclusive database lock by WAL checkpoint thread.
        In the case of `before lock` first argument will be set to true */
-  void     *wal_lock_interceptor_opaque; /**< Opaque data for `wal_lock_interceptor` */
+  void    *wal_lock_interceptor_opaque;  /**< Opaque data for `wal_lock_interceptor` */
   uint32_t savepoint_timeout_sec;        /**< Savepoint timeout seconds */
   uint32_t checkpoint_timeout_sec;       /**< Checkpoint timeout seconds */
   atomic_size_t mbytes;                  /**< Estimated size of modifed private mmaped memory bytes */

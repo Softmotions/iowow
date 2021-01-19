@@ -35,7 +35,7 @@
 IW_EXTERN_C_START
 
 struct _IWSTW;
-typedef struct _IWSTW *IWSTW;
+typedef struct _IWSTW*IWSTW;
 
 /**
  * @brief Task to execute

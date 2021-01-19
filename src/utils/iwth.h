@@ -68,7 +68,7 @@ IW_EXPORT int pthread_barrierattr_getpshared(
   int* restrict                         pshared);
 IW_EXPORT int pthread_barrierattr_setpshared(
   pthread_barrierattr_t *attr,
-  int                   pshared);
+  int                    pshared);
 
 IW_EXPORT int pthread_barrier_init(
   pthread_barrier_t* restrict           barrier,

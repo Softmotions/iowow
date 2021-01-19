@@ -255,13 +255,13 @@ uint32_t iwu_x31_u32_hash(const char *s) {
 }
 
 iwrc iwu_replace(
-  IWXSTR             **result,
-  const char         *data,
+  IWXSTR           **result,
+  const char        *data,
   int                datalen,
-  const char         *keys[],
+  const char        *keys[],
   int                keysz,
   iwu_replace_mapper mapper,
-  void               *mapper_op) {
+  void              *mapper_op) {
 
   if (!result || !data || !keys || !mapper) {
     return IW_ERROR_INVALID_ARGS;

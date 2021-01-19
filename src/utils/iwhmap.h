@@ -40,8 +40,8 @@ typedef struct {
   IWHMAP     *hm;
   const void *key;
   const void *val;
-  uint32_t   bucket;
-  int32_t    entry;
+  uint32_t    bucket;
+  int32_t     entry;
 } IWHMAP_ITER;
 
 /**

@@ -108,8 +108,8 @@ typedef uint32_t dbid_t;
 
 /* Key/Value pair stored in `KVBLK` */
 typedef struct KV {
-  size_t  keysz;
-  size_t  valsz;
+  size_t   keysz;
+  size_t   valsz;
   uint8_t *key;
   uint8_t *val;
 } KV;
@@ -193,11 +193,11 @@ static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
 
 /** Tallest SBLK nodes cache */
 typedef struct DBCACHE {
-  size_t  asize;                /**< Size of allocated cache buffer */
-  size_t  num;                  /**< Actual number of nodes */
-  size_t  nsize;                /**< Cached node size */
-  uint8_t lvl;                  /**< Lowes cached level */
-  bool    open;                 /**< Is cache open */
+  size_t   asize;               /**< Size of allocated cache buffer */
+  size_t   num;                 /**< Actual number of nodes */
+  size_t   nsize;               /**< Cached node size */
+  uint8_t  lvl;                 /**< Lowes cached level */
+  bool     open;                /**< Is cache open */
   DBCNODE *nodes;               /**< Sorted nodes array */
 } DBCACHE;
 
@@ -218,7 +218,7 @@ struct _IWDB {
   struct _IWKV_cursor *cursors;       /**< Active (currently in-use) database cursors */
   struct _IWDB *next;                 /**< Next IWDB meta */
   struct _IWDB *prev;                 /**< Prev IWDB meta */
-  dbid_t       id;                    /**< Database ID */
+  dbid_t id;                          /**< Database ID */
   volatile int32_t wk_count;          /**< Number of active database workers */
   blkn_t       meta_blk;              /**< Database meta block number */
   blkn_t       meta_blkn;             /**< Database meta length (number of blocks) */
@@ -239,7 +239,7 @@ typedef struct SBLK {
   blkn_t       p0;            /**< Prev node, if IWDB it is the last node */
   blkn_t       n[SLEVELS];    /**< Next nodes */
   // !SBH
-  KVBLK   *kvblk;                /**< Associated KVBLK */
+  KVBLK  *kvblk;                 /**< Associated KVBLK */
   blkn_t  kvblkn;                /**< Associated KVBLK block number */
   int8_t  pnum;                  /**< Number of active kv indexes in `SBLK::pi` */
   uint8_t lkl;                   /**< Lower key length within a buffer */
@@ -254,9 +254,9 @@ KHASH_MAP_INIT_INT(DBS, IWDB)
 struct _IWKV {
   IWFS_FSM fsm;                          /**< FSM pool */
   pthread_rwlock_t rwl;                  /**< API RW lock */
-  iwrc    fatalrc;                       /**< Fatal error occuried, no farther operations can be performed */
-  IWDB    first_db;                      /**< First database in chain */
-  IWDB    last_db;                       /**< Last database in chain */
+  iwrc     fatalrc;                      /**< Fatal error occuried, no farther operations can be performed */
+  IWDB     first_db;                     /**< First database in chain */
+  IWDB     last_db;                      /**< Last database in chain */
   IWDLSNR *dlsnr;                        /**< WAL data events listener */
   khash_t(DBS) * dbs;                    /**< Database id -> IWDB mapping */
   iwkv_openflags  oflags;                /**< Open flags */
@@ -274,9 +274,9 @@ typedef struct IWLCTX {
   IWDB db;
   const IWKV_val *key;        /**< Search key */
   IWKV_val       *val;        /**< Update value */
-  SBLK  *lower;               /**< Next to upper bound block */
-  SBLK  *upper;               /**< Upper bound block */
-  SBLK  *nb;                  /**< New block */
+  SBLK *lower;                /**< Next to upper bound block */
+  SBLK *upper;                /**< Upper bound block */
+  SBLK *nb;                   /**< New block */
   off_t destroy_addr;         /**< Block to destroy address */
   off_t upper_addr;           /**< Upper block address used in `_lx_del_lr()` */
 #ifndef NDEBUG
@@ -290,9 +290,9 @@ typedef struct IWLCTX {
   int8_t       nlvl;          /**< Level of new inserted/deleted `SBLK` node. -1 if no new node inserted/deleted */
   int8_t       cache_reload;  /**< If true dbcache should be refreshed after operation */
   IWKV_PUT_HANDLER ph;        /**< Optional put handler */
-  void     *phop;             /**< Put handler opaque data */
-  SBLK     *plower[SLEVELS];  /**< Pinned lower nodes per level */
-  SBLK     *pupper[SLEVELS];  /**< Pinned upper nodes per level */
+  void    *phop;              /**< Put handler opaque data */
+  SBLK    *plower[SLEVELS];   /**< Pinned lower nodes per level */
+  SBLK    *pupper[SLEVELS];   /**< Pinned upper nodes per level */
   IWKV_val ekey;
   SBLK     dblk;              /**< First database block */
   SBLK     saa[AANUM];        /**< `SBLK` allocation area */

@@ -44,9 +44,9 @@ typedef struct {
 
 typedef struct _IWSTREE_ITER {
   IWSTREE *st;        /**< Owner tree */
-  int     spos;       /**< Position of top element stack */
-  int     slen;       /**< Max number of elements in stack */
-  void    **stack;    /**< Bottom of iterator stack */
+  int      spos;      /**< Position of top element stack */
+  int      slen;      /**< Max number of elements in stack */
+  void   **stack;     /**< Bottom of iterator stack */
 } IWSTREE_ITER;
 
 typedef bool (*IWSTREE_VISITOR)(void *key, void *val, void *op, iwrc *rcp);

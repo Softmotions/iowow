@@ -17,7 +17,7 @@ static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
 typedef struct BM_LEVELDB {
   MDB_env *env;
-  MDB_dbi dbi;
+  MDB_dbi  dbi;
 } BM_LMDB;
 
 static void env_setup() {

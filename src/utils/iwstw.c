@@ -12,8 +12,8 @@ struct _TASK {
 };
 
 struct _IWSTW {
-  struct _TASK      *head;
-  struct _TASK      *tail;
+  struct _TASK     *head;
+  struct _TASK     *tail;
   pthread_mutex_t   mtx;
   pthread_barrier_t brr;
   pthread_cond_t    cond;

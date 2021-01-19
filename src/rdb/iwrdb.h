@@ -10,7 +10,7 @@ IW_EXTERN_C_START
 typedef uint8_t iwrdb_oflags_t;
 #define IWRDB_NOLOCKS ((iwrdb_oflags_t) 0x01U)
 
-typedef struct _IWRDB *IWRDB;
+typedef struct _IWRDB*IWRDB;
 
 IW_EXPORT iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *db);
 
