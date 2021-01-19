@@ -48,10 +48,13 @@ typedef struct {
 
 /** Additional options for `_fsm_set_bit_status_lw` routine */
 typedef uint8_t fsm_bmopts_t;
+
 /** No options. */
 #define FSM_BM_NONE ((fsm_bmopts_t) 0x00U)
+
 /** Do not modify bitmap. */
 #define FSM_BM_DRY_RUN ((fsm_bmopts_t) 0x01U)
+
 /** Perform strict checking of bitmap consistency */
 #define FSM_BM_STRICT ((fsm_bmopts_t) 0x02U)
 
@@ -284,6 +287,7 @@ static iwrc _fsm_set_bit_status_lw(
   const uint64_t     length_bits_,
   const int          bit_status,
   const fsm_bmopts_t opts) {
+
   iwrc rc;
   size_t sp;
   uint8_t *mm;

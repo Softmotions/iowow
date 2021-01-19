@@ -11,7 +11,7 @@
       "type": "cppdbg",
       "request": "launch",
       "cwd": "${workspaceFolder}/build",
-      "program": "${command:cmake.launchTargetPath}",kk
+      "program": "${command:cmake.launchTargetPath}",
       "stopAtEntry": false,
       "environment": [],
       "externalConsole": false,
