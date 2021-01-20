@@ -63,13 +63,13 @@ int clean_suite(void) {
 uint64_t iwfs_fsmdbg_number_of_free_areas(IWFS_FSM *f);
 uint64_t iwfs_fsmdbg_find_next_set_bit(
   const uint64_t *addr,
-  uint64_t       offset_bit,
-  uint64_t       max_offset_bit,
+  uint64_t        offset_bit,
+  uint64_t        max_offset_bit,
   int            *found);
 uint64_t iwfs_fsmdbg_find_prev_set_bit(
   const uint64_t *addr,
-  uint64_t       offset_bit,
-  uint64_t       min_offset_bit,
+  uint64_t        offset_bit,
+  uint64_t        min_offset_bit,
   int            *found);
 void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
 iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d);
@@ -402,12 +402,12 @@ typedef struct FSMREC {
 } FSMREC;
 
 typedef struct {
-  int      maxrecs;
-  int      avgrecsz;
+  int       maxrecs;
+  int       avgrecsz;
   IWFS_FSM *fsm;
   volatile int numrecs;
-  FSMREC       *reclist;
-  FSMREC       *head;
+  FSMREC      *reclist;
+  FSMREC      *head;
   int blkpow;
 } FSMRECTASK;
 

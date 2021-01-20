@@ -11,20 +11,20 @@
 #define STEPS       4
 
 typedef struct {
-  void     *key;
-  void     *val;
+  void    *key;
+  void    *val;
   uint32_t hash;
 } entry_t;
 
 typedef struct {
-  entry_t  *entries;
+  entry_t *entries;
   uint32_t used;
   uint32_t total;
 } bucket_t;
 
 typedef struct _IWHMAP {
-  uint32_t count;
-  uint32_t buckets_mask;
+  uint32_t  count;
+  uint32_t  buckets_mask;
   bucket_t *buckets;
 
   int (*cmp_fn)(const void*, const void*);

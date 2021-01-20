@@ -71,7 +71,7 @@ IW_EXPORT off_t iwarr_sorted_find2(
 ///////////////////////////////////////////////////////////////////////////
 
 typedef struct {
-  char   *array;  /**< Continuous units array */
+  char  *array;   /**< Continuous units array */
   size_t usize;   /**< Unit size */
   size_t num;     /**< Number of elements in units array */
   size_t anum;    /**< Actual number of allocated units */
@@ -190,15 +190,15 @@ IW_EXPORT iwrc iwulist_shift(IWULIST *list);
 ///////////////////////////////////////////////////////////////////////////
 
 typedef struct {
-  char   *val;
+  char  *val;
   size_t size;
 } IWLISTITEM;
 
 typedef struct {
   IWLISTITEM *array;
-  size_t     anum;  /**< Number of elements allocated */
-  size_t     start; /**< Index of first element */
-  size_t     num;   /**< Actual number of elements */
+  size_t      anum;  /**< Number of elements allocated */
+  size_t      start; /**< Index of first element */
+  size_t      num;   /**< Actual number of elements */
 } IWLIST;
 
 /**

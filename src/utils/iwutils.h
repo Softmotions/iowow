@@ -396,13 +396,13 @@ typedef const char* (*iwu_replace_mapper)(const char *key, void *op);
  * @param mapper_op Replacement mapper opaque data
  */
 IW_EXPORT iwrc iwu_replace(
-  IWXSTR             **result,
-  const char         *data,
+  IWXSTR           **result,
+  const char        *data,
   int                datalen,
-  const char         *keys[],
+  const char        *keys[],
   int                keysz,
   iwu_replace_mapper mapper,
-  void               *mapper_op);
+  void              *mapper_op);
 
 IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 

@@ -24,7 +24,7 @@ int pthread_barrierattr_getpshared(
 
 int pthread_barrierattr_setpshared(
   pthread_barrierattr_t *attr __unused,
-  int                   pshared) {
+  int                    pshared) {
   if (pshared != PTHREAD_PROCESS_PRIVATE) {
     errno = EINVAL;
     return -1;

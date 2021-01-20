@@ -39,7 +39,7 @@
 struct MMAPSLOT;
 typedef struct IWFS_EXT_IMPL {
   IWFS_FILE file;            /**< Underlying file */
-  IWDLSNR   *dlsnr;          /**< Data events listener */
+  IWDLSNR  *dlsnr;           /**< Data events listener */
   pthread_rwlock_t *rwlock;  /**< Thread RW lock */
   struct MMAPSLOT  *mmslots; /**< Memory mapping slots */
   void *rspolicy_ctx;        /**< Custom opaque data for policy functions */
@@ -58,8 +58,8 @@ typedef struct MMAPSLOT {
   size_t len;    /**< Actual size of memory mapped region. */
   size_t maxlen; /**< Maximum length of memory mapped region */
   iwfs_ext_mmap_opts_t mmopts;
-  struct MMAPSLOT      *prev; /**< Previous mmap slot. */
-  struct MMAPSLOT      *next; /**< Next mmap slot. */
+  struct MMAPSLOT     *prev;  /**< Previous mmap slot. */
+  struct MMAPSLOT     *next;  /**< Next mmap slot. */
   uint8_t *mmap;              /**< Pointer to a mmaped address space
                                    in the case if file data is memory mapped. */
 } MMAPSLOT;

@@ -12,7 +12,7 @@
 #endif
 
 struct _IWXSTR {
-  char   *ptr;    /**< Data buffer */
+  char  *ptr;     /**< Data buffer */
   size_t size;    /**< Actual data size */
   size_t asize;   /**< Allocated buffer size */
 };

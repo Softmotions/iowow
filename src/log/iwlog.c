@@ -293,17 +293,17 @@ static const char *_default_ecodefn(locale_t locale, uint32_t ecode) {
 
 static iwrc _default_logfn(
   FILE       *out,
-  locale_t   locale,
-  iwlog_lvl  lvl,
-  iwrc       ecode,
-  int        errno_code,
-  int        werror_code,
+  locale_t    locale,
+  iwlog_lvl   lvl,
+  iwrc        ecode,
+  int         errno_code,
+  int         werror_code,
   const char *file,
-  int        line,
-  uint64_t   ts,
+  int         line,
+  uint64_t    ts,
   void       *opts,
   const char *fmt,
-  va_list    argp) {
+  va_list     argp) {
 #define TBUF_SZ 96
 #define EBUF_SZ 128
 

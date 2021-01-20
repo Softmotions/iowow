@@ -107,12 +107,12 @@ typedef uint8_t iwfs_sync_flags;
  * @see iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts)
  */
 typedef struct {
-  const char   *path;     /**< Required file path. */
+  const char  *path;      /**< Required file path. */
   iwfs_omode   omode;     /**< File open mode. */
   iwp_lockmode lock_mode; /**< File locking mode. */
   /**< Specifies the permissions to use in case a new file is created,
        `int open(const char *pathname, int flags, mode_t mode)` */
-  int     filemode;
+  int      filemode;
   IWDLSNR *dlsnr;         /**< Optional data listener */
 } IWFS_FILE_OPTS;
 

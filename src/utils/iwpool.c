@@ -17,12 +17,12 @@ typedef struct IWPOOL_UNIT {
 
 /** Memory pool */
 struct _IWPOOL {
-  size_t usiz;                      /**< Used size */
-  size_t asiz;                      /**< Allocated size */
-  char   *heap;                     /**< Current pool heap ptr */
-  IWPOOL_UNIT *unit;                /**< Current heap unit */
-  void *user_data;                  /**< Associated user data */
-  void (*user_data_free_fn)(void*); /**< User data dispose function */
+  size_t usiz;                       /**< Used size */
+  size_t asiz;                       /**< Allocated size */
+  char  *heap;                       /**< Current pool heap ptr */
+  IWPOOL_UNIT *unit;                 /**< Current heap unit */
+  void *user_data;                   /**< Associated user data */
+  void  (*user_data_free_fn)(void*); /**< User data dispose function */
 };
 
 IWPOOL *iwpool_create(size_t siz) {

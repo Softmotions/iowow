@@ -10,7 +10,7 @@
 
 static struct data_s {
   const char *club;
-  uint8_t    points;
+  uint8_t     points;
 } _points[] = {
 
   { "Aston Villa",             25 },

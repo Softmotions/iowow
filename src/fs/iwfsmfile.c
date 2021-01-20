@@ -48,10 +48,13 @@ typedef struct {
 
 /** Additional options for `_fsm_set_bit_status_lw` routine */
 typedef uint8_t fsm_bmopts_t;
+
 /** No options. */
 #define FSM_BM_NONE ((fsm_bmopts_t) 0x00U)
+
 /** Do not modify bitmap. */
 #define FSM_BM_DRY_RUN ((fsm_bmopts_t) 0x01U)
+
 /** Perform strict checking of bitmap consistency */
 #define FSM_BM_STRICT ((fsm_bmopts_t) 0x02U)
 
@@ -81,15 +84,15 @@ IW_INLINE int _fsm_cmp_ptr(const FSMBK *a, const FSMBK *b);
 KBTREE_INIT(fsm, FSMBK, _fsm_cmp)
 
 struct IWFS_FSM_IMPL {
-  IWFS_EXT pool;                  /**< Underlying rwl file. */
-  uint64_t bmlen;                 /**< Free-space bitmap block length in bytes. */
-  uint64_t bmoff;                 /**< Free-space bitmap block offset in bytes. */
-  uint64_t lfbkoff;               /**< Offset in blocks of free block chunk with the largest offset. */
-  uint64_t lfbklen;               /**< Length in blocks of free block chunk with the largest offset. */
-  uint64_t crzsum;                /**< Cumulative sum all allocated blocks */
-  uint64_t crzvar;                /**< Record sizes standard variance (deviation^2 * N) */
-  uint32_t hdrlen;                /**< Length of custom file header */
-  uint32_t crznum;                /**< Number of all allocated continuous areas acquired by `allocate` */
+  IWFS_EXT  pool;                 /**< Underlying rwl file. */
+  uint64_t  bmlen;                /**< Free-space bitmap block length in bytes. */
+  uint64_t  bmoff;                /**< Free-space bitmap block offset in bytes. */
+  uint64_t  lfbkoff;              /**< Offset in blocks of free block chunk with the largest offset. */
+  uint64_t  lfbklen;              /**< Length in blocks of free block chunk with the largest offset. */
+  uint64_t  crzsum;               /**< Cumulative sum all allocated blocks */
+  uint64_t  crzvar;               /**< Record sizes standard variance (deviation^2 * N) */
+  uint32_t  hdrlen;               /**< Length of custom file header */
+  uint32_t  crznum;               /**< Number of all allocated continuous areas acquired by `allocate` */
   IWFS_FSM *f;                    /**< Self reference. */
   IWDLSNR  *dlsnr;                /**< Data events listener */
   kbtree_t(fsm) * fsm;            /**< Free-space tree */
@@ -242,7 +245,7 @@ IW_INLINE iwrc _fsm_put_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk)
  * @return `0` if matching block is not found.
  */
 IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(
-  FSM             *impl,
+  FSM            *impl,
   uint64_t        offset_blk,
   uint64_t        length_blk,
   iwfs_fsm_aflags opts) {
@@ -279,11 +282,12 @@ IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(
  * @param opts        Operation options
  */
 static iwrc _fsm_set_bit_status_lw(
-  FSM                *impl,
+  FSM               *impl,
   const uint64_t     offset_bits,
   const uint64_t     length_bits_,
   const int          bit_status,
   const fsm_bmopts_t opts) {
+
   iwrc rc;
   size_t sp;
   uint8_t *mm;
@@ -432,10 +436,10 @@ static iwrc _fsm_set_bit_status_lw(
  *  @param opts Allocation options.
  */
 static iwrc _fsm_blk_allocate_aligned_lw(
-  FSM                   *impl,
+  FSM                  *impl,
   const uint64_t        length_blk,
-  uint64_t              *offset_blk,
-  uint64_t              *olength_blk,
+  uint64_t             *offset_blk,
+  uint64_t             *olength_blk,
   const uint64_t        max_offset_blk,
   const iwfs_fsm_aflags opts) {
   FSMBK *nk;
@@ -642,10 +646,10 @@ static iwrc _fsm_write_meta_lw(FSM *impl) {
  *        starting from the specified offset bit (INCLUDED).
  */
 static uint64_t _fsm_find_next_set_bit(
-  const uint64_t    *addr,
+  const uint64_t   *addr,
   register uint64_t offset_bit,
   const uint64_t    max_offset_bit,
-  int               *found) {
+  int              *found) {
   *found = 0;
   register uint64_t bit, size;
   register const uint64_t *p = addr + offset_bit / 64;
@@ -742,10 +746,10 @@ static uint64_t _fsm_find_next_set_bit(
  *        starting from the specified offset_bit (EXCLUDED).
  */
 static uint64_t _fsm_find_prev_set_bit(
-  const uint64_t    *addr,
+  const uint64_t   *addr,
   register uint64_t offset_bit,
   const uint64_t    min_offset_bit,
-  int               *found) {
+  int              *found) {
   register const uint64_t *p;
   register uint64_t tmp, bit, size;
   *found = 0;
@@ -841,7 +845,7 @@ static uint64_t _fsm_find_prev_set_bit(
  * @param length_blk Range size in blocks.
  */
 static iwrc _fsm_blk_deallocate_lw(
-  FSM            *impl,
+  FSM           *impl,
   const uint64_t offset_blk,
   const uint64_t length_blk) {
   iwrc rc;
@@ -1084,10 +1088,10 @@ static iwrc _fsm_resize_fsm_bitmap_lw(FSM *impl, uint64_t size) {
  * @param opts
  */
 static iwrc _fsm_blk_allocate_lw(
-  FSM             *impl,
+  FSM            *impl,
   uint64_t        length_blk,
-  uint64_t        *offset_blk,
-  uint64_t        *olength_blk,
+  uint64_t       *offset_blk,
+  uint64_t       *olength_blk,
   iwfs_fsm_aflags opts) {
   iwrc rc;
   FSMBK *nk;

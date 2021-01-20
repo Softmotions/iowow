@@ -14,7 +14,7 @@ typedef struct VN {
 } VN;
 
 typedef struct CTX {
-  VN  *vn;
+  VN *vn;
   int vnsz;
   pthread_cond_t  cond;
   pthread_mutex_t mtx;
@@ -24,7 +24,7 @@ typedef struct CTX {
 } CTX;
 
 typedef struct TASK {
-  CTX       *ctx;
+  CTX      *ctx;
   int       start;
   int       cnt;
   pthread_t thr;

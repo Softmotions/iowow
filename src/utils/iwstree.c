@@ -44,8 +44,8 @@ typedef struct tree_node_s {
 
 struct tree_iter_s {
   IWSTREE *st;         /**< Owner tree */
-  int     spos;        /**< Position of top element stack */
-  int     slen;        /**< Max number of elements in stack */
+  int      spos;       /**< Position of top element stack */
+  int      slen;       /**< Max number of elements in stack */
   tree_node_t **stack; /**< Bottom of iterator stack */
 };
 
@@ -143,12 +143,12 @@ static void _rotate_left(tree_node_t **pa) {
  * bring this value to the top
  * */
 static tree_node_t *_splay(
-  IWSTREE     *st,
-  int         update_if_not_found,
+  IWSTREE      *st,
+  int           update_if_not_found,
   tree_node_t **gpa,
   tree_node_t **pa,
   tree_node_t **child,
-  const void  *key) {
+  const void   *key) {
 
   int cmp;
   tree_node_t *next;

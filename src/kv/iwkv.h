@@ -132,10 +132,10 @@ typedef uint8_t iwkv_opflags;
 #define IWKV_VAL_INCREMENT ((iwkv_opflags) 0x10U)
 
 struct _IWKV;
-typedef struct _IWKV *IWKV;
+typedef struct _IWKV*IWKV;
 
 struct _IWDB;
-typedef struct _IWDB *IWDB;
+typedef struct _IWDB*IWDB;
 
 /**
  * @brief Write ahead log (WAL) options.
@@ -161,7 +161,7 @@ typedef struct IWKV_WAL_OPTS {
  */
 typedef struct IWKV_OPTS {
   const char *path;                 /**< Path to database file */
-  uint32_t   random_seed;           /**< Random seed used for iwu random generator */
+  uint32_t    random_seed;          /**< Random seed used for iwu random generator */
   /**
    * Database storage format version.
    * Leave it as zero for the latest supported format.
@@ -177,7 +177,7 @@ typedef struct IWKV_OPTS {
  * @brief Data container for key/value.
  */
 typedef struct IWKV_val {
-  void   *data;          /**< Data buffer */
+  void  *data;           /**< Data buffer */
   size_t size;           /**< Data buffer size */
   /** Extra key part used for key comparison.
    *  If set to non zero and database is created with `IWDB_COMPOUND_KEYS` mode
@@ -191,7 +191,7 @@ typedef struct IWKV_val {
  * @brief Cursor opaque handler.
  */
 struct _IWKV_cursor;
-typedef struct _IWKV_cursor *IWKV_cursor;
+typedef struct _IWKV_cursor*IWKV_cursor;
 
 /**
  * @brief Database cursor operations and position flags.
@@ -409,9 +409,9 @@ IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
  * @param key Optional key argument, required to point cursor to the given key.
  */
 IW_EXPORT WUR iwrc iwkv_cursor_open(
-  IWDB           db,
+  IWDB            db,
   IWKV_cursor    *cur,
-  IWKV_cursor_op op,
+  IWKV_cursor_op  op,
   const IWKV_val *key);
 
 /**

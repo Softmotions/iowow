@@ -14,13 +14,13 @@
 
 struct _IWRDB {
   HANDLE fh;
-  iwrdb_oflags_t   oflags;
+  iwrdb_oflags_t    oflags;
   pthread_rwlock_t *cwl;
   char    *path;
   uint8_t *buf;
-  size_t  bufsz;
-  off_t   bp;
-  off_t   end;
+  size_t   bufsz;
+  off_t    bp;
+  off_t    end;
 };
 
 IW_INLINE iwrc _wlock(IWRDB db) {
