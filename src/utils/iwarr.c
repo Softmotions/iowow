@@ -520,6 +520,17 @@ void *iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
   return list->array[index].val;
 }
 
+void *iwlist_at2(IWLIST *list, size_t index, size_t *osize) {
+  if (index >= list->num) {
+    return 0;
+  }
+  index += list->start;
+  if (osize) {
+    *osize = list->array[index].size;
+  }
+  return list->array[index].val;
+}
+
 iwrc iwlist_push(IWLIST *list, const void *data, size_t data_size) {
   size_t index = list->start + list->num;
   if (index >= list->anum) {

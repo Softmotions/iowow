@@ -242,14 +242,23 @@ IW_EXPORT size_t iwlist_length(IWLIST *list);
 IW_EXPORT IWLIST *iwlist_clone(IWLIST *list);
 
 /**
- * @brief Get element at specified index
+ * @brief Get element at specified index.
  *
  * @param index Element index
- * @param [out] osize Optional size of returned element
+ * @param [out] osize Optional size of returned element data in bytes
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if index is invalid
- * @return IW_EXPORT* iwlist_at
+ * @return Elements data buffer
  */
 IW_EXPORT void *iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
+
+
+/**
+ * @brief Get element at specified index.
+ * @param index Element index
+ * @param [out] osize Optional size of returned element data in bytes
+ * @return Elements data buffer or zero if element is not found
+ */
+IW_EXPORT void *iwlist_at2(IWLIST *list, size_t index, size_t *osize);
 
 /**
  * @brief Add element to end of list.
