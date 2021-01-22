@@ -54,6 +54,8 @@ IW_EXPORT void iwxstr_pop(IWXSTR *xstr, size_t pop_size);
 
 IW_EXPORT char *iwxstr_ptr(IWXSTR *xstr);
 
+IW_EXPORT iwrc iwxstr_ensure_size(IWXSTR *xstr, size_t size);
+
 IW_EXPORT size_t iwxstr_size(IWXSTR *xstr);
 
 IW_EXPORT void iwxstr_clear(IWXSTR *xstr);

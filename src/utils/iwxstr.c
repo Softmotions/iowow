@@ -74,6 +74,24 @@ iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size) {
   return IW_OK;
 }
 
+iwrc iwxstr_ensure_size(IWXSTR *xstr, size_t size) {
+  size_t nsize = xstr->size + size + 1;
+  if (xstr->asize < nsize) {
+    while (xstr->asize < nsize) {
+      xstr->asize <<= 1;
+      if (xstr->asize < nsize) {
+        xstr->asize = nsize;
+      }
+    }
+    char *ptr = realloc(xstr->ptr, xstr->asize);
+    if (!ptr) {
+      return IW_ERROR_ERRNO;
+    }
+    xstr->ptr = ptr;
+  }
+  return IW_OK;
+}
+
 iwrc iwxstr_cat2(IWXSTR *xstr, const char *buf) {
   return buf ? iwxstr_cat(xstr, buf, strlen(buf)) : 0;
 }
