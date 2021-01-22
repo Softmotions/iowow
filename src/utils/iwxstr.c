@@ -48,6 +48,13 @@ void iwxstr_destroy(IWXSTR *xstr) {
   free(xstr);
 }
 
+void iwxstr_destroy_keep_ptr(IWXSTR *xstr) {
+  if (!xstr) {
+    return;
+  }
+  free(xstr);
+}
+
 void iwxstr_clear(IWXSTR *xstr) {
   assert(xstr);
   xstr->size = 0;

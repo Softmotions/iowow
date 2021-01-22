@@ -1,6 +1,6 @@
 iowow (1.4.11) UNRELEASED; urgency=medium
 
-  * Added iwxstr_set_size() (iwxstr.h)
+  * Added iwxstr_set_size(), iwxstr_destroy_keep_ptr() (iwxstr.h)
   * Added iwlist_at2() (iwarr.h)
   * Added handy ZRET definition (basedefs.h)
   * Added handy ZGO definition (basedefs.h)
