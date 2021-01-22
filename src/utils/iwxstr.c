@@ -74,8 +74,8 @@ iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size) {
   return IW_OK;
 }
 
-iwrc iwxstr_ensure_size(IWXSTR *xstr, size_t size) {
-  size_t nsize = xstr->size + size + 1;
+iwrc iwxstr_set_size(IWXSTR *xstr, size_t size) {
+  size_t nsize = size + 1;
   if (xstr->asize < nsize) {
     while (xstr->asize < nsize) {
       xstr->asize <<= 1;
@@ -89,6 +89,7 @@ iwrc iwxstr_ensure_size(IWXSTR *xstr, size_t size) {
     }
     xstr->ptr = ptr;
   }
+  xstr->size = size;
   return IW_OK;
 }
 
