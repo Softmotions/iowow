@@ -97,6 +97,7 @@ typedef enum {
   IW_ERROR_INVALID_ARGS,          /**< Invalid function arguments. */
   IW_ERROR_OVERFLOW,              /**< Overflow. */
   IW_ERROR_INVALID_VALUE,         /**< Invalid value. */
+  IW_ERROR_UNEXPECTED_RESPONSE,   /**< Unexpected response (IW_ERROR_UNEXPECTED_RESPONSE) */
 } iw_ecode;
 
 /**
@@ -312,23 +313,23 @@ IW_EXPORT iwrc iwlog_va(
 #define iwlog_ecode_error3(IW_ecode) \
   iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, "")
 
-#define IWRC(IW_act, IW_rc)                                  \
-  {                                                          \
-    iwrc __iwrc = (IW_act);                                  \
-    if (__iwrc) {                                            \
-      if (!(IW_rc))                                          \
-      (IW_rc) = __iwrc;                                    \
-      else                                                   \
-      iwlog2(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, ""); \
-    }                                                        \
-  }
-
-#define IWRC2(IW_act, IW_lvl)                                 \
+#define IWRC(IW_act, IW_rc)                                   \
   {                                                           \
     iwrc __iwrc = (IW_act);                                   \
     if (__iwrc) {                                             \
-      iwlog2(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+      if (!(IW_rc))                                           \
+      (IW_rc) = __iwrc;                                       \
+      else                                                    \
+      iwlog2(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, "");    \
     }                                                         \
+  }
+
+#define IWRC2(IW_act, IW_lvl)                                   \
+  {                                                             \
+    iwrc __iwrc = (IW_act);                                     \
+    if (__iwrc) {                                               \
+      iwlog2(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+    }                                                           \
   }
 
 #define IWRC3(IW_act, IW_rc, IW_lvl)                            \
@@ -336,7 +337,7 @@ IW_EXPORT iwrc iwlog_va(
     iwrc __iwrc = (IW_act);                                     \
     if (__iwrc) {                                               \
       if (!(IW_rc))                                             \
-      (IW_rc) = __iwrc;                                       \
+      (IW_rc) = __iwrc;                                         \
       else                                                      \
       iwlog2(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
     }                                                           \
