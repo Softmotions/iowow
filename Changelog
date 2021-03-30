@@ -1,5 +1,6 @@
 iowow (1.4.11) UNRELEASED; urgency=medium
 
+  * Set O_CLOEXEC flag on all file open() calls
   * Added IW_ERROR_UNEXPECTED_RESPONSE error code (iwlog.h)
   * Added iwxstr_set_size(), iwxstr_destroy_keep_ptr() (iwxstr.h)
   * Added iwlist_at2() (iwarr.h)

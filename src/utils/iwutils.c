@@ -225,7 +225,7 @@ char *iwu_file_read_as_buf(const char *path) {
   if (stat(path, &st) == -1) {
     return 0;
   }
-  int fd = open(path, O_RDONLY);
+  int fd = open(path, O_RDONLY | O_CLOEXEC);
   if (fd == -1) {
     return 0;
   }

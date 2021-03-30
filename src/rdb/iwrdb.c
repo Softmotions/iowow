@@ -121,7 +121,7 @@ iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *od
   *odb = 0;
 
 #ifndef _WIN32
-  HANDLE fh = open(path, O_CREAT | O_RDWR, IWFS_DEFAULT_FILEMODE);
+  HANDLE fh = open(path, O_CREAT | O_RDWR | O_CLOEXEC, IWFS_DEFAULT_FILEMODE);
   if (INVALIDHANDLE(fh)) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }

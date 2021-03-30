@@ -1134,7 +1134,7 @@ iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool 
   // Now open WAL file
 
 #ifndef _WIN32
-  HANDLE fh = open(wal->path, O_CREAT | O_RDWR, IWFS_DEFAULT_FILEMODE);
+  HANDLE fh = open(wal->path, O_CREAT | O_RDWR | O_CLOEXEC, IWFS_DEFAULT_FILEMODE);
   if (INVALIDHANDLE(fh)) {
     rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     goto finish;

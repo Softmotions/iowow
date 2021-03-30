@@ -241,7 +241,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
     impl->ostatus = IWFS_OPEN_NEW;
   }
   rc = 0;
-  mode = O_RDONLY;
+  mode = O_RDONLY | O_CLOEXEC;
   if (omode & IWFS_OWRITE) {
     mode = O_RDWR;
     if (omode & IWFS_OCREATE) {
@@ -270,7 +270,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
       wcmode = CREATE_ALWAYS;
     } else if (omode & IWFS_OCREATE) {
       wcmode = OPEN_ALWAYS;
-    }
+
   }
   DWORD smode = FILE_SHARE_READ | FILE_SHARE_WRITE;
   DWORD flags = FILE_ATTRIBUTE_NORMAL;
