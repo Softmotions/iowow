@@ -100,7 +100,7 @@ void iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
   *stwp = 0;
 }
 
-int iwstr_queue_size(IWSTW stw) {
+int iwstw_queue_size(IWSTW stw) {
   int res = 0;
   pthread_mutex_lock(&stw->mtx);
   res = stw->cnt;
