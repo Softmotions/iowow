@@ -152,6 +152,51 @@ finish:
   return rc; // NOLINT (clang-analyzer-unix.Malloc)
 }
 
+iwrc iwstw_schedule_empty_only(IWSTW stw, iwstw_task_f fn, void *arg, bool *out_scheduled) {
+  if (!stw || !fn) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  *out_scheduled = false;
+  iwrc rc = 0;
+  struct _TASK *task = malloc(sizeof(*task));
+  RCA(task, finish);
+  *task = (struct _TASK) {
+    .fn = fn,
+    .arg = arg
+  };
+  int rci = pthread_mutex_lock(&stw->mtx);
+  if (rci) {
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, errno);
+    goto finish;
+  }
+  if (stw->shutdown) {
+    rc = IW_ERROR_INVALID_STATE;
+    pthread_mutex_unlock(&stw->mtx);
+    goto finish;
+  }
+  if (stw->queue_limit && (stw->cnt + 1 > stw->queue_limit)) {
+    rc = IW_ERROR_OVERFLOW;
+    pthread_mutex_unlock(&stw->mtx);
+    goto finish;
+  }
+  if (stw->head) {
+    pthread_mutex_unlock(&stw->mtx);
+    goto finish;
+  }
+  *out_scheduled = true;
+  stw->head = task;
+  stw->tail = task;
+  ++stw->cnt;
+  pthread_cond_broadcast(&stw->cond);
+  pthread_mutex_unlock(&stw->mtx);
+
+finish:
+  if (rc) {
+    free(task);
+  }
+  return rc; // NOLINT (clang-analyzer-unix.Malloc)
+}
+
 iwrc iwstw_start(int queue_limit, IWSTW *stwp_out) {
   struct _IWSTW *stw = malloc(sizeof(*stw));
   if (!stw) {

@@ -72,6 +72,11 @@ IW_EXPORT void iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
 IW_EXPORT iwrc iwstw_schedule(IWSTW stw, iwstw_task_f task, void *task_arg);
 
 /**
+ * @brief Schedule task only if task queue is empty.
+ */
+IW_EXPORT iwrc iwstw_schedule_empty_only(IWSTW stw, iwstw_task_f task, void *task_arg, bool *out_scheduled);
+
+/**
  * @brief Returns size of tasks queue.
  */
 IW_EXPORT int iwstw_queue_size(IWSTW stw);

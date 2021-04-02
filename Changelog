@@ -1,5 +1,6 @@
 iowow (1.4.11) UNRELEASED; urgency=medium
 
+  * Added iwstw_schedule_empty_only() (iwstw.h)
   * Added iwstw_queue_size() (iwstw.h)
   * Set O_CLOEXEC flag on all file open() calls
   * Added IW_ERROR_UNEXPECTED_RESPONSE error code (iwlog.h)
