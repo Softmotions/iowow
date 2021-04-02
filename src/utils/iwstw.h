@@ -71,5 +71,10 @@ IW_EXPORT void iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
  */
 IW_EXPORT iwrc iwstw_schedule(IWSTW stw, iwstw_task_f task, void *task_arg);
 
+/**
+ * @brief Returns size of tasks queue.
+ */
+IW_EXPORT int iwstr_queue_size(IWSTW stw);
+
 IW_EXTERN_C_END
 #endif
