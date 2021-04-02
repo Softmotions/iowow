@@ -174,11 +174,6 @@ iwrc iwstw_schedule_empty_only(IWSTW stw, iwstw_task_f fn, void *arg, bool *out_
     pthread_mutex_unlock(&stw->mtx);
     goto finish;
   }
-  if (stw->queue_limit && (stw->cnt + 1 > stw->queue_limit)) {
-    rc = IW_ERROR_OVERFLOW;
-    pthread_mutex_unlock(&stw->mtx);
-    goto finish;
-  }
   if (stw->head) {
     pthread_mutex_unlock(&stw->mtx);
     goto finish;
