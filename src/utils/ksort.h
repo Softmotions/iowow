@@ -78,7 +78,7 @@ typedef struct {
 #define KSORT_SWAP(type_t, a, b) { register type_t t=(a); (a)=(b); (b)=t; }
 
 #define KSORT_INIT(name, type_t, __sort_lt)								\
-	void ks_mergesort_##name(size_t n, type_t array[], type_t temp[])	\
+	void ks_mergesort_##name(size_t n, type_t array[], type_t temp[], void *op)	\
 	{																	\
 		type_t *a2[2], *a, *b;											\
 		int curr, shift;												\
@@ -92,7 +92,7 @@ typedef struct {
 				for (i = a; i < eb; i += 2) {							\
 					if (i == eb - 1) *p++ = *i;							\
 					else {												\
-						if (__sort_lt(*(i+1), *i)) {					\
+						if (__sort_lt(*(i+1), *i, op)) {					\
 							*p++ = *(i+1); *p++ = *i;					\
 						} else {										\
 							*p++ = *i; *p++ = *(i+1);					\
@@ -111,7 +111,7 @@ typedef struct {
 					}													\
 					j = a + i; k = a + i + step; p = b + i;				\
 					while (j < ea && k < eb) {							\
-						if (__sort_lt(*k, *j)) *p++ = *k++;				\
+						if (__sort_lt(*k, *j, op)) *p++ = *k++;				\
 						else *p++ = *j++;								\
 					}													\
 					while (j < ea) *p++ = *j++;							\
@@ -126,40 +126,40 @@ typedef struct {
 		}																\
 		if (temp == 0) free(a2[1]);										\
 	}																	\
-	void ks_heapadjust_##name(size_t i, size_t n, type_t l[])			\
+	void ks_heapadjust_##name(size_t i, size_t n, type_t l[], void *op)			\
 	{																	\
 		size_t k = i;													\
 		type_t tmp = l[i];												\
 		while ((k = (k << 1) + 1) < n) {								\
-			if (k != n - 1 && __sort_lt(l[k], l[k+1])) ++k;				\
-			if (__sort_lt(l[k], tmp)) break;							\
+			if (k != n - 1 && __sort_lt(l[k], l[k+1], op)) ++k;				\
+			if (__sort_lt(l[k], tmp, op)) break;							\
 			l[i] = l[k]; i = k;											\
 		}																\
 		l[i] = tmp;														\
 	}																	\
-	void ks_heapmake_##name(size_t lsize, type_t l[])					\
+	void ks_heapmake_##name(size_t lsize, type_t l[], void *op)					\
 	{																	\
 		size_t i;														\
 		for (i = (lsize >> 1) - 1; i != (size_t)(-1); --i)				\
-			ks_heapadjust_##name(i, lsize, l);							\
+			ks_heapadjust_##name(i, lsize, l, op);							\
 	}																	\
-	void ks_heapsort_##name(size_t lsize, type_t l[])					\
+	void ks_heapsort_##name(size_t lsize, type_t l[], void *op)					\
 	{																	\
 		size_t i;														\
 		for (i = lsize - 1; i > 0; --i) {								\
 			type_t tmp;													\
-			tmp = *l; *l = l[i]; l[i] = tmp; ks_heapadjust_##name(0, i, l); \
+			tmp = *l; *l = l[i]; l[i] = tmp; ks_heapadjust_##name(0, i, l, op); \
 		}																\
 	}																	\
-	static inline void __ks_insertsort_##name(type_t *s, type_t *t)			\
+	static inline void __ks_insertsort_##name(type_t *s, type_t *t, void *op)			\
 	{																	\
 		type_t *i, *j, swap_tmp;										\
 		for (i = s + 1; i < t; ++i)										\
-			for (j = i; j > s && __sort_lt(*j, *(j-1)); --j) {			\
+			for (j = i; j > s && __sort_lt(*j, *(j-1), op); --j) {			\
 				swap_tmp = *j; *j = *(j-1); *(j-1) = swap_tmp;			\
 			}															\
 	}																	\
-	void ks_combsort_##name(size_t n, type_t a[])						\
+	void ks_combsort_##name(size_t n, type_t a[], void *op)						\
 	{																	\
 		const double shrink_factor = 1.2473309501039786540366528676643; \
 		int do_swap;													\
@@ -173,15 +173,15 @@ typedef struct {
 			do_swap = 0;												\
 			for (i = a; i < a + n - gap; ++i) {							\
 				j = i + gap;											\
-				if (__sort_lt(*j, *i)) {								\
+				if (__sort_lt(*j, *i, op)) {								\
 					tmp = *i; *i = *j; *j = tmp;						\
 					do_swap = 1;										\
 				}														\
 			}															\
 		} while (do_swap || gap > 2);									\
-		if (gap != 1) __ks_insertsort_##name(a, a + n);					\
+		if (gap != 1) __ks_insertsort_##name(a, a + n, op);					\
 	}																	\
-	void ks_introsort_##name(size_t n, type_t a[])						\
+	void ks_introsort_##name(size_t n, type_t a[], void *op)						\
 	{																	\
 		int d;															\
 		ks_isort_stack_t *top, *stack;									\
@@ -190,7 +190,7 @@ typedef struct {
 																		\
 		if (n < 1) return;												\
 		else if (n == 2) {												\
-			if (__sort_lt(a[1], a[0])) { swap_tmp = a[0]; a[0] = a[1]; a[1] = swap_tmp; } \
+			if (__sort_lt(a[1], a[0], op)) { swap_tmp = a[0]; a[0] = a[1]; a[1] = swap_tmp; } \
 			return;														\
 		}																\
 		for (d = 2; 1ul<<d < n; ++d);									\
@@ -199,19 +199,19 @@ typedef struct {
 		while (1) {														\
 			if (s < t) {												\
 				if (--d == 0) {											\
-					ks_combsort_##name(t - s + 1, s);					\
+					ks_combsort_##name(t - s + 1, s, op);					\
 					t = s;												\
 					continue;											\
 				}														\
 				i = s; j = t; k = i + ((j-i)>>1) + 1;					\
-				if (__sort_lt(*k, *i)) {								\
-					if (__sort_lt(*k, *j)) k = j;						\
-				} else k = __sort_lt(*j, *i)? i : j;					\
+				if (__sort_lt(*k, *i, op)) {								\
+					if (__sort_lt(*k, *j, op)) k = j;						\
+				} else k = __sort_lt(*j, *i, op) ? i : j;					\
 				rp = *k;												\
 				if (k != t) { swap_tmp = *k; *k = *t; *t = swap_tmp; }	\
 				for (;;) {												\
-					do ++i; while (__sort_lt(*i, rp));					\
-					do --j; while (i <= j && __sort_lt(rp, *j));		\
+					do ++i; while (__sort_lt(*i, rp, op));					\
+					do --j; while (i <= j && __sort_lt(rp, *j, op));		\
 					if (j <= i) break;									\
 					swap_tmp = *i; *i = *j; *j = swap_tmp;				\
 				}														\
@@ -226,7 +226,7 @@ typedef struct {
 			} else {													\
 				if (top == stack) {										\
 					free(stack);										\
-					__ks_insertsort_##name(a, a+n);						\
+					__ks_insertsort_##name(a, a+n, op);						\
 					return;												\
 				} else { --top; s = (type_t*)top->left; t = (type_t*)top->right; d = top->depth; } \
 			}															\
@@ -234,25 +234,25 @@ typedef struct {
 	}																	\
 	/* This function is adapted from: http://ndevilla.free.fr/median/ */ \
 	/* 0 <= kk < n */													\
-	type_t ks_ksmall_##name(size_t n, type_t arr[], size_t kk)			\
+	type_t ks_ksmall_##name(size_t n, type_t arr[], size_t kk, void *op)			\
 	{																	\
 		type_t *low, *high, *k, *ll, *hh, *mid;							\
 		low = arr; high = arr + n - 1; k = arr + kk;					\
 		for (;;) {														\
 			if (high <= low) return *k;									\
 			if (high == low + 1) {										\
-				if (__sort_lt(*high, *low)) KSORT_SWAP(type_t, *low, *high); \
+				if (__sort_lt(*high, *low, op)) KSORT_SWAP(type_t, *low, *high); \
 				return *k;												\
 			}															\
 			mid = low + (high - low) / 2;								\
-			if (__sort_lt(*high, *mid)) KSORT_SWAP(type_t, *mid, *high); \
-			if (__sort_lt(*high, *low)) KSORT_SWAP(type_t, *low, *high); \
-			if (__sort_lt(*low, *mid)) KSORT_SWAP(type_t, *mid, *low);	\
+			if (__sort_lt(*high, *mid, op)) KSORT_SWAP(type_t, *mid, *high); \
+			if (__sort_lt(*high, *low, op)) KSORT_SWAP(type_t, *low, *high); \
+			if (__sort_lt(*low, *mid, op)) KSORT_SWAP(type_t, *mid, *low);	\
 			KSORT_SWAP(type_t, *mid, *(low+1));							\
 			ll = low + 1; hh = high;									\
 			for (;;) {													\
-				do ++ll; while (__sort_lt(*ll, *low));					\
-				do --hh; while (__sort_lt(*low, *hh));					\
+				do ++ll; while (__sort_lt(*ll, *low, op));					\
+				do --hh; while (__sort_lt(*low, *hh, op));					\
 				if (hh < ll) break;										\
 				KSORT_SWAP(type_t, *ll, *hh);							\
 			}															\
@@ -282,21 +282,76 @@ typedef struct {
 		} \
 	}
 
-#define ks_mergesort(name, n, a, t) ks_mergesort_##name(n, a, t)
-#define ks_introsort(name, n, a) ks_introsort_##name(n, a)
-#define ks_combsort(name, n, a) ks_combsort_##name(n, a)
-#define ks_heapsort(name, n, a) ks_heapsort_##name(n, a)
-#define ks_heapmake(name, n, a) ks_heapmake_##name(n, a)
-#define ks_heapadjust(name, i, n, a) ks_heapadjust_##name(i, n, a)
-#define ks_ksmall(name, n, a, k) ks_ksmall_##name(n, a, k)
+#define ks_mergesort(name, n, a, t, o) ks_mergesort_##name(n, a, t, o)
+#define ks_introsort(name, n, a, o) ks_introsort_##name(n, a, o)
+#define ks_combsort(name, n, a, o) ks_combsort_##name(n, a, o)
+#define ks_heapsort(name, n, a, o) ks_heapsort_##name(n, a, o)
+#define ks_heapmake(name, n, a, o) ks_heapmake_##name(n, a, o)
+#define ks_heapadjust(name, i, n, a, o) ks_heapadjust_##name(i, n, a, o)
+#define ks_ksmall(name, n, a, k, o) ks_ksmall_##name(n, a, k, o)
 #define ks_shuffle(name, n, a) ks_shuffle_##name(n, a)
 
-#define ks_lt_generic(a, b) ((a) < (b))
-#define ks_lt_str(a, b) (strcmp((a), (b)) < 0)
+#define ks_lt_generic(a, b, o) ((a) < (b))
+#define ks_lt_str(a, b, o) (strcmp((a), (b)) < 0)
 
 typedef const char *ksstr_t;
 
 #define KSORT_INIT_GENERIC(type_t) KSORT_INIT(type_t, type_t, ks_lt_generic)
 #define KSORT_INIT_STR KSORT_INIT(str, ksstr_t, ks_lt_str)
+
+#define RS_MIN_SIZE 64
+#define RS_MAX_BITS 8
+
+#define KRADIX_SORT_INIT(name, rstype_t, rskey, sizeof_key) \
+	typedef struct { \
+		rstype_t *b, *e; \
+	} rsbucket_##name##_t; \
+	void rs_insertsort_##name(rstype_t *beg, rstype_t *end) \
+	{ \
+		rstype_t *i; \
+		for (i = beg + 1; i < end; ++i) \
+			if (rskey(*i) < rskey(*(i - 1))) { \
+				rstype_t *j, tmp = *i; \
+				for (j = i; j > beg && rskey(tmp) < rskey(*(j-1)); --j) \
+					*j = *(j - 1); \
+				*j = tmp; \
+			} \
+	} \
+	void rs_sort_##name(rstype_t *beg, rstype_t *end, int n_bits, int s) \
+	{ \
+		rstype_t *i; \
+		int size = 1<<n_bits, m = size - 1; \
+		rsbucket_##name##_t *k, b[1<<RS_MAX_BITS], *be = b + size; \
+		assert(n_bits <= RS_MAX_BITS); \
+		for (k = b; k != be; ++k) k->b = k->e = beg; \
+		for (i = beg; i != end; ++i) ++b[rskey(*i)>>s&m].e; \
+		for (k = b + 1; k != be; ++k) \
+			k->e += (k-1)->e - beg, k->b = (k-1)->e; \
+		for (k = b; k != be;) { \
+			if (k->b != k->e) { \
+				rsbucket_##name##_t *l; \
+				if ((l = b + (rskey(*k->b)>>s&m)) != k) { \
+					rstype_t tmp = *k->b, swap; \
+					do { \
+						swap = tmp; tmp = *l->b; *l->b++ = swap; \
+						l = b + (rskey(tmp)>>s&m); \
+					} while (l != k); \
+					*k->b++ = tmp; \
+				} else ++k->b; \
+			} else ++k; \
+		} \
+		for (b->b = beg, k = b + 1; k != be; ++k) k->b = (k-1)->e; \
+		if (s) { \
+			s = s > n_bits? s - n_bits : 0; \
+			for (k = b; k != be; ++k) \
+				if (k->e - k->b > RS_MIN_SIZE) rs_sort_##name(k->b, k->e, n_bits, s); \
+				else if (k->e - k->b > 1) rs_insertsort_##name(k->b, k->e); \
+		} \
+	} \
+	void radix_sort_##name(rstype_t *beg, rstype_t *end) \
+	{ \
+		if (end - beg <= RS_MIN_SIZE) rs_insertsort_##name(beg, end); \
+		else rs_sort_##name(beg, end, RS_MAX_BITS, (sizeof_key - 1) * RS_MAX_BITS); \
+	}
 
 #endif

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "iwlog.h"
+#include "sort_r.h"
 
 off_t iwarr_sorted_insert(
   void* restrict els,
@@ -414,6 +415,10 @@ iwrc iwulist_unshift(IWULIST *list, const void *data) {
   return 0;
 }
 
+void iwulist_sort(IWULIST *list, int (*compar)(const void*, const void*, void*), void *op) {
+  qsort_r(list->array + list->start, list->num, list->usize, compar, op);
+}
+
 ///////////////////////////////////////////////////////////////////////////
 //                      Array list implementation                        //
 ///////////////////////////////////////////////////////////////////////////
@@ -665,4 +670,9 @@ void *iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
   memmove(list->array + index, list->array + index + 1,
           sizeof(list->array[0]) * (list->start + list->num - index));
   return rv;
+}
+
+void iwlist_sort(IWLIST *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*), void *op) {
+  qsort_r(list->array + list->start, list->num, sizeof(list->array[0]),
+          (int (*)(const void*, const void*, void*)) compar, op);
 }

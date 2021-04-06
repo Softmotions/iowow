@@ -24,6 +24,7 @@ include(CheckIncludeFile)
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
 include(TestBigEndian)
+include(TestQsortR)
 
 if (OWNER_PROJECT_NAME)
   set(IW_PUBLIC_HEADER_DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${OWNER_PROJECT_NAME}/${PROJECT_NAME})
@@ -38,6 +39,10 @@ endif()
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 if (IS_BIG_ENDIAN EQUAL 1)
   add_definitions(-DIW_BIGENDIAN)
+endif()
+
+if (HAVE_QSORT_R)
+  add_definitions(-DIW_HAVE_QSORT_R)
 endif()
 
 if(CMAKE_SIZEOF_VOID_P MATCHES 8)

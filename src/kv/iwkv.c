@@ -970,7 +970,7 @@ static WUR iwrc _kvblk_sync_mm(KVBLK *kb, uint8_t *mm) {
   return rc;
 }
 
-#define _kvblk_sort_kv_lt(v1, v2) \
+#define _kvblk_sort_kv_lt(v1, v2, o) \
   (((v1).off > 0 ? (v1).off : -1UL) < ((v2).off > 0 ? (v2).off : -1UL))
 
 // -V:KSORT_INIT:522, 756, 769
@@ -990,7 +990,7 @@ static WUR iwrc _kvblk_compact_mm(KVBLK *kb, uint8_t *mm) {
   off_t blkend = kb->addr + (1ULL << kb->szpow);
   uint8_t *wp = mm + blkend;
   memcpy(tidx, kb->pidx, sizeof(tidx));
-  ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp);
+  ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp, 0);
 
   coff = 0;
   for (i = 0; i < KVBLK_IDXNUM && tidx[i].off; ++i) {
@@ -1287,7 +1287,7 @@ static WUR iwrc _kvblk_updatev(
     KVP tidx_tmp[KVBLK_IDXNUM];
     off_t koff = kb->pidx[pidx].off;
     memcpy(tidx, kb->pidx, KVBLK_IDXNUM * sizeof(kb->pidx[0]));
-    ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp);
+    ks_mergesort_kvblk(KVBLK_IDXNUM, tidx, tidx_tmp, 0);
     kb->flags |= KVBLK_DURTY;
     if (!ukey) { // we need a key
       ukey = &skey;

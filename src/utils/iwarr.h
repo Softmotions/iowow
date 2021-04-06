@@ -185,6 +185,15 @@ IW_EXPORT iwrc iwulist_unshift(IWULIST *list, const void *data);
  */
 IW_EXPORT iwrc iwulist_shift(IWULIST *list);
 
+/**
+ * @brief Sorts list using given `compar` function.
+ *
+ * @param list IWULIST
+ * @param compar Elements comparator accepts user data as last argument
+ * @param op User data
+ */
+IW_EXPORT void iwulist_sort(IWULIST *list, int (*compar)(const void*, const void*, void*), void *op);
+
 ///////////////////////////////////////////////////////////////////////////
 //                    Array list implementation                          //
 ///////////////////////////////////////////////////////////////////////////
@@ -251,7 +260,6 @@ IW_EXPORT IWLIST *iwlist_clone(IWLIST *list);
  */
 IW_EXPORT void *iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
 
-
 /**
  * @brief Get element at specified index.
  * @param index Element index
@@ -304,6 +312,15 @@ IW_EXPORT iwrc iwlist_set(IWLIST *list, size_t index, const void *data, size_t d
  * @param osize Optional size of removed element
  */
 IW_EXPORT void *iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
+
+/**
+ * @brief Sorts list using given `compar` function.
+ *
+ * @param list IWLIST
+ * @param compar Elements comparator accepts user data as last argument
+ * @param op User data
+ */
+IW_EXPORT void iwlist_sort(IWLIST *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*), void *op);
 
 IW_EXTERN_C_END
 #endif
