@@ -144,6 +144,10 @@ typedef int HANDLE;
 #define RCRET(rc__) if (rc__) return (rc__)
 #endif
 
+#define RCR(expr__) \
+  ({iwrc rc__ = (expr__); RCRET(rc__); rc__;})
+
+
 #ifdef __GNUC__
 #define RCBREAK(rc__) if (__builtin_expect((!!(rc__)), 0)) break
 #else
