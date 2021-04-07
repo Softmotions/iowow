@@ -145,7 +145,7 @@ typedef int HANDLE;
 #endif
 
 #define RCR(expr__) \
-  ({iwrc rc__ = (expr__); RCRET(rc__); rc__;})
+  ({iwrc rc__ = (expr__); RCRET(rc__); 0;})
 
 
 #ifdef __GNUC__
