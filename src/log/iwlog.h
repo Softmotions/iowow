@@ -98,6 +98,7 @@ typedef enum {
   IW_ERROR_OVERFLOW,              /**< Overflow. */
   IW_ERROR_INVALID_VALUE,         /**< Invalid value. */
   IW_ERROR_UNEXPECTED_RESPONSE,   /**< Unexpected response (IW_ERROR_UNEXPECTED_RESPONSE) */
+  IW_ERROR_NOT_ALLOWED            /**< Action is not allowed. (IW_ERROR_NOT_ALLOWED) */
 } iw_ecode;
 
 /**

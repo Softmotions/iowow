@@ -285,7 +285,9 @@ static const char *_default_ecodefn(locale_t locale, uint32_t ecode) {
     case IW_ERROR_INVALID_VALUE:
       return " Invalid value. (IW_ERROR_INVALID_VALUE)";
     case IW_ERROR_UNEXPECTED_RESPONSE:
-      return "Unexpected response (IW_ERROR_UNEXPECTED_RESPONSE)";
+      return "Unexpected response. (IW_ERROR_UNEXPECTED_RESPONSE)";
+    case IW_ERROR_NOT_ALLOWED:
+      return "Action is not allowed. (IW_ERROR_NOT_ALLOWED)";
     case IW_OK:
     default:
       return 0;
