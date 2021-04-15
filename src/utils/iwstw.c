@@ -1,6 +1,7 @@
 #include "iwstw.h"
 #include "iwth.h"
 #include "iwlog.h"
+
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
@@ -12,21 +13,19 @@ struct _TASK {
 };
 
 struct _IWSTW {
-  struct _TASK     *head;
-  struct _TASK     *tail;
-  pthread_mutex_t   mtx;
-  pthread_barrier_t brr;
-  pthread_cond_t    cond;
-  pthread_t thr;
-  int       cnt;
-  int       queue_limit;
+  struct _TASK   *head;
+  struct _TASK   *tail;
+  pthread_mutex_t mtx;
+  pthread_cond_t  cond;
+  pthread_t       thr;
+  int cnt;
+  int queue_limit;
   volatile bool shutdown;
 };
 
-void *worker_fn(void *op) {
+static void *_worker_fn(void *op) {
   struct _IWSTW *stw = op;
   assert(stw);
-  pthread_barrier_wait(&stw->brr);
 
   while (true) {
     void *arg;
@@ -59,6 +58,10 @@ void *worker_fn(void *op) {
       break;
     }
     pthread_cond_wait(&stw->cond, &stw->mtx);
+    if (stw->shutdown) {
+      pthread_mutex_unlock(&stw->mtx);
+      break;
+    }
     pthread_mutex_unlock(&stw->mtx);
   }
   return 0;
@@ -88,12 +91,7 @@ void iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
   stw->shutdown = true;
   pthread_cond_broadcast(&stw->cond);
   pthread_mutex_unlock(&stw->mtx);
-  int rci = pthread_join(stw->thr, 0);
-  if (rci) {
-    iwrc rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
-    iwlog_ecode_error3(rc);
-  }
-  pthread_barrier_destroy(&stw->brr);
+  pthread_join(stw->thr, 0);
   pthread_cond_destroy(&stw->cond);
   pthread_mutex_destroy(&stw->mtx);
   free(stw);
@@ -153,7 +151,7 @@ finish:
 }
 
 iwrc iwstw_schedule_empty_only(IWSTW stw, iwstw_task_f fn, void *arg, bool *out_scheduled) {
-  if (!stw || !fn) {
+  if (!stw || !fn || !out_scheduled) {
     return IW_ERROR_INVALID_ARGS;
   }
   *out_scheduled = false;
@@ -192,10 +190,13 @@ finish:
   return rc; // NOLINT (clang-analyzer-unix.Malloc)
 }
 
-iwrc iwstw_start(int queue_limit, IWSTW *stwp_out) {
+iwrc iwstw_start(int queue_limit, IWSTW *out_stw) {
+  if (queue_limit < 0 || !out_stw) {
+    return IW_ERROR_INVALID_ARGS;
+  }
   struct _IWSTW *stw = malloc(sizeof(*stw));
   if (!stw) {
-    *stwp_out = 0;
+    *out_stw = 0;
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
   int rci;
@@ -205,25 +206,18 @@ iwrc iwstw_start(int queue_limit, IWSTW *stwp_out) {
     .mtx = PTHREAD_MUTEX_INITIALIZER,
     .cond = PTHREAD_COND_INITIALIZER
   };
-  rci = pthread_barrier_init(&stw->brr, 0, 2);
+  rci = pthread_create(&stw->thr, 0, _worker_fn, stw);
   if (rci) {
     rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, errno);
     goto finish;
   }
-  rci = pthread_create(&stw->thr, 0, worker_fn, stw);
-  if (rci) {
-    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, errno);
-    pthread_barrier_destroy(&stw->brr);
-    goto finish;
-  }
-  pthread_barrier_wait(&stw->brr);
 
 finish:
   if (rc) {
-    *stwp_out = 0;
+    *out_stw = 0;
     free(stw);
   } else {
-    *stwp_out = stw;
+    *out_stw = stw;
   }
   return 0;
 }

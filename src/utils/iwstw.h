@@ -43,13 +43,13 @@ typedef struct _IWSTW*IWSTW;
 typedef void (*iwstw_task_f)(void *arg);
 
 /**
- * @brief Start single thread worker.
+ * @brief Starts single thread worker.
  *        Function will block until start of worker thread.
  *
  * @param queue_limit Max length of pending tasks queue. Unlimited if zero.
  * @param[out] stwp_out Pointer to worker handler to be initialized.
  */
-IW_EXPORT iwrc iwstw_start(int queue_limit, IWSTW *stwp_out);
+IW_EXPORT iwrc iwstw_start(int queue_limit, IWSTW *out_stw);
 
 /**
  * @brief Shutdowns worker and disposes all resources.
