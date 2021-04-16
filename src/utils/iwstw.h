@@ -54,11 +54,11 @@ IW_EXPORT iwrc iwstw_start(int queue_limit, IWSTW *out_stw);
 /**
  * @brief Shutdowns worker and disposes all resources.
  *        Function will wait until current task completes or
- *        wait for all pednding tasks if `wait_for_all` is set to `true`.
+ *        wait for all enqueued tasks if `wait_for_all` is set to `true`.
  *        No new tasks will be accepted during `iwstw_shutdown` call.
  *
  * @param stw Pointer to worker handler which should be destroyed.
- * @param wait_for_all If true worker will wait for all pending tasks before shutdown.
+ * @param wait_for_all If true worker will wait for completion of all enqueued tasks before shutdown.
  */
 IW_EXPORT void iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
 

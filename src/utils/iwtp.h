@@ -42,11 +42,39 @@ typedef struct _IWTP*IWTP;
  */
 typedef void (*iwtp_task_f)(void *arg);
 
+/**
+ * @brief Creates a new thread pool instance.
+ * @param num_threads Number of threads in the pool, accepted values in range `[1-1024]`
+ * @param queue_limit Maximum number of tasks in queue. Zero for unlimited queue.
+ * @param [out] out_tp Holder for thread pool instance.
+ */
 IW_EXPORT iwrc iwtp_create(int num_threads, int queue_limit, IWTP *out_tp);
 
+/**
+ * @brief Submits new task into thread pool.
+ * @note `IW_ERROR_INVALID_STATE` if called after `iwtp_shutdown()`.
+ * @note `IW_ERROR_OVERFLOW` if size of tasks queue reached `queue_limit`.
+ * @param tp Pool instance
+ * @param task Task function
+ * @param task_arg Argument for task function
+ */
 IW_EXPORT iwrc iwtp_schedule(IWTP tp, iwtp_task_f task, void *task_arg);
 
+/**
+ * @brief Shutdowns thread pool and disposes all nresources.
+ * @note Function will wait until current task completes or
+ * wait for all enqueued tasks if `wait_for_all` is set to `true`.
+ * No new tasks will be accepted during `iwstw_shutdown` call.
+
+ * @param tpp Pointer to pool which should be disposed.
+ * @param wait_for_all If true worker will wait for completion of all enqueued tasks before shutdown.
+ */
 IW_EXPORT void iwtp_shutdown(IWTP *tpp, bool wait_for_all);
+
+/**
+ * @brief Returns size of tasks queue.
+ */
+IW_EXPORT int iwtp_queue_size(IWTP tp);
 
 IW_EXTERN_C_END
 #endif

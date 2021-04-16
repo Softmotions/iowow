@@ -174,3 +174,11 @@ void iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
   free(tp);
   *tpp = 0;
 }
+
+int iwtp_queue_size(IWTP tp) {
+  int res = 0;
+  pthread_mutex_lock(&tp->mtx);
+  res = tp->cnt;
+  pthread_mutex_unlock(&tp->mtx);
+  return res;
+}
