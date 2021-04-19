@@ -1,5 +1,6 @@
 iowow (1.4.11) UNRELEASED; urgency=medium
 
+  * Fixed typo (qsort_r => sort_r) (iwarr.c)
   * Added simple threads pool implementation (iwtp.h)
   * Added IW_ERROR_NOT_ALLOWED error code (iwlog.h)
   * Added RCR() error checking macro (basedefs.h)

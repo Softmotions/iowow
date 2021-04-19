@@ -416,7 +416,7 @@ iwrc iwulist_unshift(IWULIST *list, const void *data) {
 }
 
 void iwulist_sort(IWULIST *list, int (*compar)(const void*, const void*, void*), void *op) {
-  qsort_r(list->array + list->start * list->usize, list->num, list->usize, compar, op);
+  sort_r(list->array + list->start * list->usize, list->num, list->usize, compar, op);
 }
 
 ///////////////////////////////////////////////////////////////////////////
