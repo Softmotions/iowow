@@ -673,6 +673,6 @@ void *iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
 }
 
 void iwlist_sort(IWLIST *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*), void *op) {
-  qsort_r(list->array + list->start, list->num, sizeof(list->array[0]),
-          (int (*)(const void*, const void*, void*)) compar, op);
+  sort_r(list->array + list->start, list->num, sizeof(list->array[0]),
+         (int (*)(const void*, const void*, void*)) compar, op);
 }
