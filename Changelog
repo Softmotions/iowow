@@ -1,4 +1,4 @@
-iowow (1.4.11) UNRELEASED; urgency=medium
+iowow (1.4.11) testing; urgency=medium
 
   * Fixed typo (qsort_r => sort_r) (iwarr.c)
   * Added simple threads pool implementation (iwtp.h)
@@ -19,7 +19,7 @@ iowow (1.4.11) UNRELEASED; urgency=medium
   * Removed dependency on glibc specific features
   * Added new iwxstr_pop() (iwxstr.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 23 Dec 2020 11:20:38 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 10 May 2021 16:43:52 +0700
 
 iowow (1.4.10) testing; urgency=medium
 
