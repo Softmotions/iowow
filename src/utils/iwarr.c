@@ -301,7 +301,7 @@ iwrc iwulist_pop(IWULIST *list) {
   size_t num = list->num - 1;
   if ((list->anum > IWULIST_ALLOC_UNIT) && (list->anum >= num * 2)) {
     if (list->start) {
-      memcpy(list->array, list->array + list->start * list->usize, num * list->usize);
+      memmove(list->array, list->array + list->start * list->usize, num * list->usize);
       list->start = 0;
     }
     size_t anum = num > IWULIST_ALLOC_UNIT ? num : IWULIST_ALLOC_UNIT;
@@ -324,7 +324,7 @@ iwrc iwulist_shift(IWULIST *list) {
   size_t start = list->start + 1;
   if ((list->anum > IWULIST_ALLOC_UNIT) && (list->anum >= num * 2)) {
     if (start) {
-      memcpy(list->array, list->array + start * list->usize, num * list->usize);
+      memmove(list->array, list->array + start * list->usize, num * list->usize);
       start = 0;
     }
     size_t anum = num > IWULIST_ALLOC_UNIT ? num : IWULIST_ALLOC_UNIT;
@@ -381,7 +381,7 @@ iwrc iwulist_remove(IWULIST *list, size_t index) {
           (list->start + list->num - index) * list->usize);
   if ((list->anum > IWULIST_ALLOC_UNIT) && (list->anum >= list->num * 2)) {
     if (list->start) {
-      memcpy(list->array, list->array + list->start * list->usize, list->num * list->usize);
+      memmove(list->array, list->array + list->start * list->usize, list->num * list->usize);
       list->start = 0;
     }
     size_t anum = list->num > IWULIST_ALLOC_UNIT ? list->num : IWULIST_ALLOC_UNIT;

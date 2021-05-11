@@ -1,3 +1,9 @@
+iowow (1.4.12) UNRELEASED; urgency=medium
+
+  * `memcpy` replaced by `memmove` for overlaping cases (iwarr.c)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Tue, 11 May 2021 21:56:54 +0700
+
 iowow (1.4.11) testing; urgency=medium
 
   * Fixed typo (qsort_r => sort_r) (iwarr.c)
