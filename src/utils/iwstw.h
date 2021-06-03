@@ -43,13 +43,14 @@ typedef struct _IWSTW*IWSTW;
 typedef void (*iwstw_task_f)(void *arg);
 
 /**
- * @brief Starts single thread worker.
+ * @brief Starts a single thread worker.
  *        Function will block until start of worker thread.
  *
  * @param queue_limit Max length of pending tasks queue. Unlimited if zero.
+ *  @param queue_blocking If true iwstw_schedule will block when queue reached its limit.
  * @param[out] stwp_out Pointer to worker handler to be initialized.
  */
-IW_EXPORT iwrc iwstw_start(int queue_limit, IWSTW *out_stw);
+IW_EXPORT iwrc iwstw_start(int queue_limit, bool queue_blocking, IWSTW *out_stw);
 
 /**
  * @brief Shutdowns worker and disposes all resources.
@@ -66,7 +67,9 @@ IW_EXPORT void iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
  * @brief Schedule task for execution.
  *        Task will be added to pending tasks queue.
  *
- * @note If tasks queue is reached its length limit `IW_ERROR_OVERFLOW` will be returned.
+ * @note If tasks queue is reached its length limit
+ *        current thread will be blocked if `queue_blocking` is true
+ *        or `IW_ERROR_OVERFLOW` will be returned.
  * @note If worker is in process of stopping `IW_ERROR_INVALID_STATE` will be returned.
  */
 IW_EXPORT iwrc iwstw_schedule(IWSTW stw, iwstw_task_f task, void *task_arg);

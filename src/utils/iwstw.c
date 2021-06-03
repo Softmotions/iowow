@@ -17,9 +17,12 @@ struct _IWSTW {
   struct _TASK   *tail;
   pthread_mutex_t mtx;
   pthread_cond_t  cond;
+  pthread_cond_t  cond_queue;
   pthread_t       thr;
-  int cnt;
-  int queue_limit;
+  int  cnt;
+  int  queue_limit;
+  bool queue_blocking;
+  bool queue_blocked;
   volatile bool shutdown;
 };
 
@@ -51,11 +54,18 @@ static void *_worker_fn(void *op) {
 
     pthread_mutex_lock(&stw->mtx);
     if (stw->head) {
+      if (stw->queue_blocked && stw->cnt < stw->queue_limit) {
+        stw->queue_blocked = false;
+        pthread_cond_broadcast(&stw->cond_queue);
+      }
       pthread_mutex_unlock(&stw->mtx);
       continue;
     } else if (stw->shutdown) {
       pthread_mutex_unlock(&stw->mtx);
       break;
+    } else if (stw->queue_blocked && stw->cnt < stw->queue_limit) {
+      stw->queue_blocked = false;
+      pthread_cond_broadcast(&stw->cond_queue);
     }
     pthread_cond_wait(&stw->cond, &stw->mtx);
     if (stw->shutdown) {
@@ -90,6 +100,9 @@ void iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
   }
   stw->shutdown = true;
   pthread_cond_broadcast(&stw->cond);
+  if (stw->queue_blocking) {
+    pthread_cond_broadcast(&stw->cond_queue);
+  }
   pthread_mutex_unlock(&stw->mtx);
   pthread_join(stw->thr, 0);
   pthread_cond_destroy(&stw->cond);
@@ -127,11 +140,23 @@ iwrc iwstw_schedule(IWSTW stw, iwstw_task_f fn, void *arg) {
     pthread_mutex_unlock(&stw->mtx);
     goto finish;
   }
-  if (stw->queue_limit && (stw->cnt + 1 > stw->queue_limit)) {
-    rc = IW_ERROR_OVERFLOW;
-    pthread_mutex_unlock(&stw->mtx);
-    goto finish;
+
+  while (stw->queue_limit && (stw->cnt + 1 > stw->queue_limit)) {
+    if (stw->queue_blocking) {
+      if (stw->shutdown) {
+        rc = IW_ERROR_INVALID_STATE;
+        pthread_mutex_unlock(&stw->mtx);
+        goto finish;
+      }
+      stw->queue_blocked = true;
+      pthread_cond_wait(&stw->cond_queue, &stw->mtx);
+    } else {
+      rc = IW_ERROR_OVERFLOW;
+      pthread_mutex_unlock(&stw->mtx);
+      goto finish;
+    }
   }
+
   if (stw->tail) {
     stw->tail->next = task;
     stw->tail = task;
@@ -190,7 +215,7 @@ finish:
   return rc; // NOLINT (clang-analyzer-unix.Malloc)
 }
 
-iwrc iwstw_start(int queue_limit, IWSTW *out_stw) {
+iwrc iwstw_start(int queue_limit, bool queue_blocking, IWSTW *out_stw) {
   if (queue_limit < 0 || !out_stw) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -204,7 +229,9 @@ iwrc iwstw_start(int queue_limit, IWSTW *out_stw) {
   *stw = (struct _IWSTW) {
     .queue_limit = queue_limit,
     .mtx = PTHREAD_MUTEX_INITIALIZER,
-    .cond = PTHREAD_COND_INITIALIZER
+    .cond = PTHREAD_COND_INITIALIZER,
+    .cond_queue = PTHREAD_COND_INITIALIZER,
+    .queue_blocking = queue_blocking
   };
   rci = pthread_create(&stw->thr, 0, _worker_fn, stw);
   if (rci) {

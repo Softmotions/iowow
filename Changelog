@@ -1,5 +1,7 @@
 iowow (1.4.12) UNRELEASED; urgency=medium
 
+  * Added `queue_blocking` argument `iwstw_start()` (iwstw.h)
+  * Minor changes in iwlog.h api
   * `memcpy` replaced by `memmove` for overlaping cases (iwarr.c)
 
  -- Anton Adamansky <adamansky@gmail.com>  Tue, 11 May 2021 21:56:54 +0700
