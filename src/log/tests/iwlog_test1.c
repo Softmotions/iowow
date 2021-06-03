@@ -66,7 +66,7 @@ void iwlog_test2() {
   fprintf(stderr, "Redirecting log to: %s" IW_LINE_SEP, fname);
 
   opts.out = out;
-  iwlog_set_logfn_opts(&opts);
+  iwlog_set_logfn(0, &opts);
 
   iwlog_info2("7fa79c75beac413d83f35ffb6bf571b9");
   iwlog_error("7e94f7214af64513b30ab4df3f62714a%s", "C");

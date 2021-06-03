@@ -25,7 +25,6 @@
  * SOFTWARE.
  *************************************************************************************************/
 
-
 #include "iwcfg.h"
 #include "iwp.h"
 #include "iwlog.h"
@@ -62,7 +61,6 @@ static iwrc _default_logfn(
 static const char *_ecode_explained(locale_t locale, uint32_t ecode);
 static const char *_default_ecodefn(locale_t locale, uint32_t ecode);
 
-static IWLOG_FN _current_logfn;
 static pthread_mutex_t _mtx = PTHREAD_MUTEX_INITIALIZER;
 static IWLOG_FN _current_logfn = _default_logfn;
 static void *_current_logfn_options = 0;
@@ -100,10 +98,8 @@ iwrc iwlog_va(FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line, 
   iwrc rc = iwp_current_time_ms(&ts, false);
   RCRET(rc);
 
-  pthread_mutex_lock(&_mtx);
   IWLOG_FN logfn = _current_logfn;
   void *opts = _current_logfn_options;
-  pthread_mutex_unlock(&_mtx);
 
   rc = logfn(out, locale, lvl, ecode, errno_code, werror_code, file, line, ts, opts, fmt, argp);
   if (rc) {
@@ -165,28 +161,17 @@ void iwrc_strip_code(iwrc *rc) {
   *rc = *rc & 0x00000000ffffffffULL;
 }
 
-void iwlog_set_logfn(IWLOG_FN fp) {
-  pthread_mutex_lock(&_mtx);
+void iwlog_set_logfn(IWLOG_FN fp, void *opts) {
   if (!fp) {
     _current_logfn = _default_logfn;
   } else {
     _current_logfn = fp;
   }
-  pthread_mutex_unlock(&_mtx);
+  _current_logfn_options = opts;
 }
 
 IWLOG_FN iwlog_get_logfn(void) {
-  IWLOG_FN res;
-  pthread_mutex_lock(&_mtx);
-  res = _current_logfn;
-  pthread_mutex_unlock(&_mtx);
-  return res;
-}
-
-void iwlog_set_logfn_opts(void *opts) {
-  pthread_mutex_lock(&_mtx);
-  _current_logfn_options = opts;
-  pthread_mutex_unlock(&_mtx);
+  return _current_logfn;
 }
 
 const char *iwlog_ecode_explained(iwrc ecode) {
@@ -308,11 +293,11 @@ static iwrc _default_logfn(
   void       *opts,
   const char *fmt,
   va_list     argp) {
+
 #define TBUF_SZ 96
 #define EBUF_SZ 128
 
   iwrc rc = 0;
-  IWLOG_DEFAULT_OPTS myopts = { 0 };
 
 #ifndef IW_ANDROID_LOG
   time_t ts_sec = ((long double) ts / 1000);
@@ -329,8 +314,14 @@ static iwrc _default_logfn(
   char *fnameptr = fnamebuf;
   char *fname = 0;
 
-  if (errno_code) {
+  if (opts) {
+    out = ((IWLOG_DEFAULT_OPTS*) opts)->out;
+    if (!out) {
+      goto finish;
+    }
+  }
 
+  if (errno_code) {
 #if defined(_WIN32)
     int rci = strerror_s(ebuf, EBUF_SZ, errno_code);
     if (!rci) {
@@ -363,12 +354,6 @@ static iwrc _default_logfn(
   }
 #endif
 
-  if (opts) {
-    myopts = *(IWLOG_DEFAULT_OPTS*) opts;
-    if (myopts.out) {
-      out = myopts.out;
-    }
-  }
 
 #ifndef IW_ANDROID_LOG
   // cppcheck-suppress portability

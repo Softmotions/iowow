@@ -98,7 +98,7 @@ typedef enum {
   IW_ERROR_OVERFLOW,              /**< Overflow. */
   IW_ERROR_INVALID_VALUE,         /**< Invalid value. */
   IW_ERROR_UNEXPECTED_RESPONSE,   /**< Unexpected response (IW_ERROR_UNEXPECTED_RESPONSE) */
-  IW_ERROR_NOT_ALLOWED            /**< Action is not allowed. (IW_ERROR_NOT_ALLOWED) */
+  IW_ERROR_NOT_ALLOWED,           /**< Action is not allowed. (IW_ERROR_NOT_ALLOWED) */
 } iw_ecode;
 
 /**
@@ -200,21 +200,13 @@ IW_EXPORT void iwrc_strip_code(iwrc *rc);
  * @param fp Logging function pointer.
  * @return Not zero if error occured.
  */
-IW_EXPORT void iwlog_set_logfn(IWLOG_FN fp);
+IW_EXPORT void iwlog_set_logfn(IWLOG_FN fp, void *opts);
 
 /**
  * @brief Get a default logging function.
+ *
  */
 IW_EXPORT IWLOG_FN iwlog_get_logfn(void);
-
-/**
- * @brief Set opaque options structure for the
- *        current logging function implementation.
- * @param opts
- * @see `IWLOG_DEFAULT_OPTS`
- * @see `IWLOG_FN`
- */
-IW_EXPORT void iwlog_set_logfn_opts(void *opts);
 
 /**
  * @brief Returns string representation of a given error code.
