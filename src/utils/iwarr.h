@@ -94,7 +94,7 @@ IW_EXPORT iwrc iwulist_init(IWULIST *list, size_t initial_length, size_t unit_si
  * @param unit_size      Unit size
  * @return Zero if memory allocation failed `errno` will be set respectively
  */
-IW_EXPORT IWULIST *iwulist_create(size_t initial_length, size_t unit_size); \
+IW_EXPORT IWULIST* iwulist_create(size_t initial_length, size_t unit_size);
 
 /**
  * @brief Cleanup units list.
@@ -125,7 +125,7 @@ IW_EXPORT size_t iwulist_length(IWULIST *list);
 /**
  * @brief Clones a given list.
  */
-IW_EXPORT IWULIST *iwulist_clone(IWULIST *list);
+IW_EXPORT IWULIST* iwulist_clone(IWULIST *list);
 
 /**
  * @brief Gets pinter to element at given `index`
@@ -133,9 +133,9 @@ IW_EXPORT IWULIST *iwulist_clone(IWULIST *list);
  * @param index Index of element
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if index is invalid
  */
-IW_EXPORT void *iwulist_at(IWULIST *list, size_t index, iwrc *orc);
+IW_EXPORT void* iwulist_at(IWULIST *list, size_t index, iwrc *orc);
 
-IW_EXPORT void *iwulist_at2(IWULIST *list, size_t index);
+IW_EXPORT void* iwulist_at2(IWULIST *list, size_t index);
 
 /**
  * @brief Inserts new element at given index.
@@ -225,7 +225,7 @@ IW_EXPORT iwrc iwlist_init(IWLIST *list, size_t anum);
  * @param anum Number of elements to allocate or zero to use defaults
  * @return Zero if allocation failed, `errno` will be set.
  */
-IW_EXPORT IWLIST *iwlist_create(size_t anum);
+IW_EXPORT IWLIST* iwlist_create(size_t anum);
 
 /**
  * @brief Destroys a given list object.
@@ -248,7 +248,7 @@ IW_EXPORT size_t iwlist_length(IWLIST *list);
  * @brief Clone a given list.
  * @return Zero if allocation failed, `errno` will be set.
  */
-IW_EXPORT IWLIST *iwlist_clone(IWLIST *list);
+IW_EXPORT IWLIST* iwlist_clone(IWLIST *list);
 
 /**
  * @brief Get element at specified index.
@@ -258,7 +258,7 @@ IW_EXPORT IWLIST *iwlist_clone(IWLIST *list);
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if index is invalid
  * @return Elements data buffer
  */
-IW_EXPORT void *iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
 
 /**
  * @brief Get element at specified index.
@@ -266,7 +266,7 @@ IW_EXPORT void *iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
  * @param [out] osize Optional size of returned element data in bytes
  * @return Elements data buffer or zero if element is not found
  */
-IW_EXPORT void *iwlist_at2(IWLIST *list, size_t index, size_t *osize);
+IW_EXPORT void* iwlist_at2(IWLIST *list, size_t index, size_t *osize);
 
 /**
  * @brief Add element to end of list.
@@ -280,7 +280,7 @@ IW_EXPORT iwrc iwlist_push(IWLIST *list, const void *data, size_t data_size);
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if list is empty
  * @return IW_EXPORT* iwlist_pop
  */
-IW_EXPORT void *iwlist_pop(IWLIST *list, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_pop(IWLIST *list, size_t *osize, iwrc *orc);
 
 /**
  * @brief Add element to start of list
@@ -294,7 +294,7 @@ IW_EXPORT iwrc iwlist_unshift(IWLIST *list, const void *data, size_t data_size);
  * @param orc Set to `IW_ERROR_OUT_OF_BOUNDS` if list is empty
  * @return IW_EXPORT* iwlist_shift
  */
-IW_EXPORT void *iwlist_shift(IWLIST *list, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_shift(IWLIST *list, size_t *osize, iwrc *orc);
 
 /**
  * @brief Inserts element at given position.
@@ -311,7 +311,7 @@ IW_EXPORT iwrc iwlist_set(IWLIST *list, size_t index, const void *data, size_t d
  *
  * @param osize Optional size of removed element
  */
-IW_EXPORT void *iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
 
 /**
  * @brief Sorts list using given `compar` function.
