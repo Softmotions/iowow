@@ -36,7 +36,7 @@ IW_EXTERN_C_START
 
 typedef struct {
   ssize_t pos;
-  size_t  size;
+  size_t  len;
   size_t  usize;
   char   *buf;
 } IWRB;
@@ -46,11 +46,11 @@ typedef struct {
   size_t      pos;
 } IWRB_ITER;
 
-IW_EXPORT IWRB* iwrb_create(size_t unit_size, size_t size);
+IW_EXPORT IWRB* iwrb_create(size_t usize, size_t len);
 
 IW_EXPORT void iwrb_destroy(IWRB *rb);
 
-IW_EXPORT IWRB* iwrb_wrap(void *buf, size_t buf_len, size_t unit_size);
+IW_EXPORT IWRB* iwrb_wrap(void *buf, size_t len, size_t usize);
 
 IW_EXPORT void iwrb_put(IWRB *rb, void *buf);
 
@@ -58,7 +58,7 @@ IW_EXPORT void* iwrb_peek(const IWRB *rb);
 
 IW_EXPORT void iwrb_iter_init(const IWRB *rb, IWRB_ITER *iter);
 
-IW_EXPORT void* iwrc_iter_next(IWRB_ITER *iter);
+IW_EXPORT void* iwrb_iter_prev(IWRB_ITER *iter);
 
 IW_EXTERN_C_END
 #endif
