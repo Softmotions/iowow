@@ -44,17 +44,24 @@ typedef struct {
 typedef struct {
   const IWRB *rb;
   size_t      pos;
+  ssize_t     ipos;
 } IWRB_ITER;
 
 IW_EXPORT IWRB* iwrb_create(size_t usize, size_t len);
 
-IW_EXPORT void iwrb_destroy(IWRB *rb);
+IW_EXPORT void iwrb_clear(IWRB *rb);
+
+IW_EXPORT void iwrb_destroy(IWRB **rbp);
 
 IW_EXPORT IWRB* iwrb_wrap(void *buf, size_t len, size_t usize);
 
 IW_EXPORT void iwrb_put(IWRB *rb, void *buf);
 
+IW_EXPORT void iwrb_back(IWRB *rb);
+
 IW_EXPORT void* iwrb_peek(const IWRB *rb);
+
+IW_EXPORT size_t iwrb_num_cached(const IWRB *rb);
 
 IW_EXPORT void iwrb_iter_init(const IWRB *rb, IWRB_ITER *iter);
 

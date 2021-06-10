@@ -798,7 +798,7 @@ void iwal_shutdown(IWKV iwkv) {
   }
 }
 
-static void *_cpt_worker_fn(void *op) {
+static void* _cpt_worker_fn(void *op) {
   int rci;
   iwrc rc = 0;
   IWAL *wal = op;

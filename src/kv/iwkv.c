@@ -1167,7 +1167,7 @@ start:
     off_t olen = nlen;
 
     uint8_t npow = kb->szpow;
-    while ((1ULL << ++npow) < nsz) ;
+    while ((1ULL << ++npow) < nsz);
 
     rc = fsm->allocate(fsm, (1ULL << npow), &naddr, &nlen, IWKV_FSM_ALLOC_FLAGS);
     RCGO(rc, finish);
@@ -3225,7 +3225,7 @@ finish:
 
 //--------------------------  PUBLIC API
 
-static const char *_kv_ecodefn(locale_t locale, uint32_t ecode) {
+static const char* _kv_ecodefn(locale_t locale, uint32_t ecode) {
   if (!((ecode > _IWKV_ERROR_START) && (ecode < _IWKV_ERROR_END))) {
     return 0;
   }
