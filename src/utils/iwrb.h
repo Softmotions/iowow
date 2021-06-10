@@ -55,7 +55,7 @@ IW_EXPORT void iwrb_destroy(IWRB **rbp);
 
 IW_EXPORT IWRB* iwrb_wrap(void *buf, size_t len, size_t usize);
 
-IW_EXPORT void iwrb_put(IWRB *rb, void *buf);
+IW_EXPORT void iwrb_put(IWRB *rb, const void *buf);
 
 IW_EXPORT void iwrb_back(IWRB *rb);
 
