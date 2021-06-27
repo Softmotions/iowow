@@ -48,7 +48,7 @@
 
 /* a and b must not be equal! */
 static _SORT_R_INLINE void sort_r_swap(
-  char* __restrict a, char* __restrict b,
+  char* restrict a, char* restrict b,
   size_t w) {
   char tmp, *end = a + w;
   for ( ; a < end; a++, b++) {
@@ -62,7 +62,7 @@ static _SORT_R_INLINE void sort_r_swap(
 
 /* __restrict is same as restrict but better support on old machines */
 static _SORT_R_INLINE int sort_r_cmpswap(
-  char* __restrict a,
+  char* restrict a,
   char* __restrict b, size_t w,
   int (*compar)(const void *_a,
                 const void *_b,
