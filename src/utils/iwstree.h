@@ -58,7 +58,7 @@ typedef bool (*IWSTREE_VISITOR)(void *key, void *val, void *op, iwrc *rcp);
  * @param kvfree Optional `(key, value)` free function
  * @return IWSTREE* or NULL if memory allocation failed
  */
-IW_EXPORT IWSTREE *iwstree_create(
+IW_EXPORT IW_ALLOC IWSTREE *iwstree_create(
   int (*cmp)(const void*, const void*),
   void (*kvfree)(void*, void*)
   );

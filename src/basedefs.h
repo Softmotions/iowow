@@ -35,7 +35,7 @@
 
 #ifdef __cplusplus
 #define IW_EXTERN_C_START extern "C" {
-#define IW_EXTERN_C_END }
+#define IW_EXTERN_C_END   }
 #else
 #define IW_EXTERN_C_START
 #define IW_EXTERN_C_END
@@ -68,13 +68,15 @@
 #define IW_SOFT_INLINE static inline
 
 #if __GNUC__ >= 4
-#define WUR __attribute__((__warn_unused_result__))
+#define WUR    __attribute__((__warn_unused_result__))
+#define IW_ALLOC __attribute__((malloc)) __attribute__((warn_unused_result))
 #else
 #define WUR
+#define IW_ALLOC
 #endif
 
 #define IW_ARR_STATIC static
-#define IW_ARR_CONST const
+#define IW_ARR_CONST  const
 
 #ifdef _WIN32
 #include <windows.h>
@@ -100,13 +102,13 @@ typedef int HANDLE;
 
 #define ZGO(label__, val__)           \
   ({ __typeof__(val__) v__ = (val__); \
-    if (!v__) goto label__;           \
-    v__; })
+     if (!v__) goto label__;           \
+     v__; })
 
 #define ZRET(ret__, val__)            \
   ({ __typeof__(val__) v__ = (val__); \
-    if (!v__) return ret__;           \
-    v__; })
+     if (!v__) return ret__;           \
+     v__; })
 
 #ifdef __GNUC__
 #define RCGO(rc__, label__) if (__builtin_expect((!!(rc__)), 0)) goto label__
@@ -120,16 +122,16 @@ typedef int HANDLE;
     goto label__;                           \
   }
 
-#define RCHECK(rc__, label__,  expr__) \
+#define RCHECK(rc__, label__, expr__) \
   rc__ = expr__;                       \
   RCGO(rc__, label__)
 
-#define RCC(rc__, label__,  expr__) RCHECK(rc__, label__, expr__)
+#define RCC(rc__, label__, expr__) RCHECK(rc__, label__, expr__)
 
 #ifndef RCGA
 #define RCGA(v__, label__)                        \
   if (!(v__)) {                                   \
-    rc =  iwrc_set_errno(IW_ERROR_ALLOC, errno);  \
+    rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);  \
     goto label__;                                 \
   }
 #endif
@@ -145,8 +147,7 @@ typedef int HANDLE;
 #endif
 
 #define RCR(expr__) \
-  ({iwrc rc__ = (expr__); RCRET(rc__); 0;})
-
+  ({ iwrc rc__ = (expr__); RCRET(rc__); 0; })
 
 #ifdef __GNUC__
 #define RCBREAK(rc__) if (__builtin_expect((!!(rc__)), 0)) break

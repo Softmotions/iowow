@@ -47,13 +47,13 @@ typedef struct _IWPOOL IWPOOL;
  * @param siz Initial memory buffer size. Can be zero.
  * @return Pointer to the new pool or `zero` if allocation is failed.
  */
-IW_EXPORT IWPOOL *iwpool_create(size_t siz);
+IW_EXPORT IW_ALLOC IWPOOL *iwpool_create(size_t siz);
 
 /**
  * @brief Create empty pool with no preallocated buffer.
  * @return Pointer to the new pool or `zero` if allocation is failed.
  */
-IW_EXPORT IWPOOL *iwpool_create_empty(void);
+IW_EXPORT IW_ALLOC IWPOOL *iwpool_create_empty(void);
 
 /**
  * @brief Allocates buffer of specified size.

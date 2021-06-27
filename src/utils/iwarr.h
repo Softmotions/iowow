@@ -94,7 +94,7 @@ IW_EXPORT iwrc iwulist_init(IWULIST *list, size_t initial_length, size_t unit_si
  * @param unit_size      Unit size
  * @return Zero if memory allocation failed `errno` will be set respectively
  */
-IW_EXPORT IWULIST* iwulist_create(size_t initial_length, size_t unit_size);
+IW_EXPORT IW_ALLOC IWULIST* iwulist_create(size_t initial_length, size_t unit_size);
 
 /**
  * @brief Cleanup units list.
@@ -125,7 +125,7 @@ IW_EXPORT size_t iwulist_length(IWULIST *list);
 /**
  * @brief Clones a given list.
  */
-IW_EXPORT IWULIST* iwulist_clone(IWULIST *list);
+IW_EXPORT IW_ALLOC IWULIST* iwulist_clone(IWULIST *list);
 
 /**
  * @brief Gets pinter to element at given `index`
@@ -225,7 +225,7 @@ IW_EXPORT iwrc iwlist_init(IWLIST *list, size_t anum);
  * @param anum Number of elements to allocate or zero to use defaults
  * @return Zero if allocation failed, `errno` will be set.
  */
-IW_EXPORT IWLIST* iwlist_create(size_t anum);
+IW_EXPORT IW_ALLOC IWLIST* iwlist_create(size_t anum);
 
 /**
  * @brief Destroys a given list object.
@@ -248,7 +248,7 @@ IW_EXPORT size_t iwlist_length(IWLIST *list);
  * @brief Clone a given list.
  * @return Zero if allocation failed, `errno` will be set.
  */
-IW_EXPORT IWLIST* iwlist_clone(IWLIST *list);
+IW_EXPORT IW_ALLOC IWLIST* iwlist_clone(IWLIST *list);
 
 /**
  * @brief Get element at specified index.

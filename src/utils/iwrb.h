@@ -47,7 +47,7 @@ typedef struct {
   ssize_t     ipos;
 } IWRB_ITER;
 
-IW_EXPORT IWRB* iwrb_create(size_t usize, size_t len);
+IW_EXPORT IW_ALLOC IWRB* iwrb_create(size_t usize, size_t len);
 
 IW_EXPORT void iwrb_clear(IWRB *rb);
 
