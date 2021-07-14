@@ -392,7 +392,7 @@ typedef const char* (*iwu_replace_mapper)(const char *key, void *op);
  * @param datalen Length of data buffer
  * @param keys   Array of keys to search
  * @param keysz  Number of elements in keys array.
-*                Genative for NULL terminated arrays.
+*                Negative for NULL terminated arrays.
  * @param mapper Replacement mapper
  * @param mapper_op Replacement mapper opaque data
  */
