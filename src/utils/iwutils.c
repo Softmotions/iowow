@@ -267,6 +267,10 @@ iwrc iwu_replace(
     return IW_ERROR_INVALID_ARGS;
   }
 
+  if (keysz < 0) {
+    for (keysz = 0; keys[keysz] != 0; ++keysz);
+  }
+
   iwrc rc = 0;
   if ((datalen < 1) || (keysz < 1)) {
     *result = iwxstr_new2(datalen < 1 ? 1 : datalen);
