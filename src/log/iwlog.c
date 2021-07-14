@@ -58,8 +58,8 @@ static iwrc _default_logfn(
   const char *file, int line, uint64_t ts, void *opts, const char *fmt,
   va_list argp);
 
-static const char *_ecode_explained(locale_t locale, uint32_t ecode);
-static const char *_default_ecodefn(locale_t locale, uint32_t ecode);
+static const char* _ecode_explained(locale_t locale, uint32_t ecode);
+static const char* _default_ecodefn(locale_t locale, uint32_t ecode);
 
 static pthread_mutex_t _mtx = PTHREAD_MUTEX_INITIALIZER;
 static IWLOG_FN _current_logfn = _default_logfn;
@@ -174,7 +174,7 @@ IWLOG_FN iwlog_get_logfn(void) {
   return _current_logfn;
 }
 
-const char *iwlog_ecode_explained(iwrc ecode) {
+const char* iwlog_ecode_explained(iwrc ecode) {
   iwrc_strip_errno(&ecode);
   const char *res;
   pthread_mutex_lock(&_mtx);
@@ -212,7 +212,7 @@ iwrc iwlog_init(void) {
 
 // Assumed:
 //   1. `_mtx` is locked.
-static const char *_ecode_explained(locale_t locale, uint32_t ecode) {
+static const char* _ecode_explained(locale_t locale, uint32_t ecode) {
   const char *ret = 0;
   for (int i = 0; i < _IWLOG_MAX_ECODE_FUN; ++i) {
     if (_ecode_functions[i] == 0) {
@@ -227,7 +227,7 @@ static const char *_ecode_explained(locale_t locale, uint32_t ecode) {
   return ret;
 }
 
-static const char *_default_ecodefn(locale_t locale, uint32_t ecode) {
+static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
   switch (ecode) {
     case IW_ERROR_FAIL:
       return "Unspecified error. (IW_ERROR_FAIL)";
@@ -273,6 +273,8 @@ static const char *_default_ecodefn(locale_t locale, uint32_t ecode) {
       return "Unexpected response. (IW_ERROR_UNEXPECTED_RESPONSE)";
     case IW_ERROR_NOT_ALLOWED:
       return "Action is not allowed. (IW_ERROR_NOT_ALLOWED)";
+    case IW_ERROR_UNSUPPORTED:
+      return "Unsupported opration. (IW_ERROR_UNSUPPORTED)";
     case IW_OK:
     default:
       return 0;
