@@ -1,5 +1,6 @@
 iowow (1.4.12) UNRELEASED; urgency=medium
 
+  * Added IW_ERROR_UNSUPPORTED error code
   * Added  IW_ALLOC __attribute__((malloc)) optimization
   * Added ring buffer implementation (iwrb.h)
   * Added `queue_blocking` argument `iwstw_start()` (iwstw.h)
