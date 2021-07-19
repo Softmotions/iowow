@@ -1,4 +1,4 @@
-iowow (1.4.12) UNRELEASED; urgency=medium
+iowow (1.4.12) testing; urgency=medium
 
   * Added IW_ERROR_UNSUPPORTED error code
   * Added  IW_ALLOC __attribute__((malloc)) optimization
@@ -7,7 +7,7 @@ iowow (1.4.12) UNRELEASED; urgency=medium
   * Minor changes in iwlog.h api
   * `memcpy` replaced by `memmove` for overlaping cases (iwarr.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 11 May 2021 21:56:54 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 19 Jul 2021 10:09:05 +0700
 
 iowow (1.4.11) testing; urgency=medium
 
