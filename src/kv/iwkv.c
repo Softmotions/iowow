@@ -1643,11 +1643,17 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
     rp += 4;
     memcpy(sblk->pi, rp, KVBLK_IDXNUM);
     rp += KVBLK_IDXNUM;
+
+#ifdef IW_BIGENDIAN
     for (int i = 0; i <= sblk->lvl; ++i) {
       memcpy(&sblk->n[i], rp, 4);
       sblk->n[i] = IW_ITOHL(sblk->n[i]);
       rp += 4;
     }
+#else
+   memcpy(sblk->n, rp, 4 * (sblk->lvl + 1));
+   rp += 4 * (sblk->lvl + 1);
+#endif
     if (db->iwkv->fmt_version > 1) {
       rp = mm + addr + SOFF_BPOS_U1_V2;
       memcpy(&sblk->bpos, rp++, 1);
@@ -1731,9 +1737,16 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       IW_WRITELV(wp, lv, sblk->kvblkn);
       memcpy(wp, sblk->pi, KVBLK_IDXNUM);
       wp = mm + sblk->addr + SOFF_N0_U4;
+
+#ifdef IW_BIGENDIAN
       for (int i = 0; i <= sblk->lvl; ++i) {
         IW_WRITELV(wp, lv, sblk->n[i]);
       }
+#else
+      memcpy(wp, sblk->n,  4 * (sblk->lvl + 1));
+      wp += 4 * (sblk->lvl + 1);
+#endif
+
       if (lx->db->iwkv->fmt_version > 1) {
         wp = mm + sblk->addr + SOFF_BPOS_U1_V2;
         memcpy(wp++, &sblk->bpos, 1);
@@ -4080,7 +4093,7 @@ iwrc iwkv_cursor_open(
   IWKV_cursor_op  op,
   const IWKV_val *key) {
   if (  !db || !db->iwkv || !curptr
-     || (key && (op < IWKV_CURSOR_EQ) ) || (op < IWKV_CURSOR_BEFORE_FIRST) ) {
+     || (key && (op < IWKV_CURSOR_EQ)) || (op < IWKV_CURSOR_BEFORE_FIRST)) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc;
