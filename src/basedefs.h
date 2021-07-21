@@ -41,6 +41,13 @@
 #define IW_EXTERN_C_END
 #endif
 
+#define IW_XSTR(s) IW_STR(s)
+#define IW_STR(s)  #s
+
+#define IW_MAX(X__, Y__) ({ __typeof__(X__) x = (X__);  __typeof__(Y__) y = (Y__); x < y ? y : x; })
+#define IW_MIN(X__, Y__) ({ __typeof__(X__) x = (X__);  __typeof__(Y__) y = (Y__); x < y ? x : y; })
+
+
 #if (defined(_WIN32) || defined(_WIN64))
 #if (defined(IW_NODLL) || defined(IW_STATIC))
 #define IW_EXPORT

@@ -1,3 +1,9 @@
+iowow (1.4.13) UNRELEASED; urgency=medium
+
+  *Added IW_MIN, IW_MAX, IW_XSTR defines
+
+ -- Anton Adamansky <adamansky@gmail.com>  Wed, 21 Jul 2021 11:36:58 +0700
+
 iowow (1.4.12) testing; urgency=medium
 
   * Added IW_ERROR_UNSUPPORTED error code
