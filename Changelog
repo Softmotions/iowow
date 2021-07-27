@@ -1,5 +1,6 @@
 iowow (1.4.13) UNRELEASED; urgency=medium
 
+  * Added RCENO define (basedefs.h)
   * Thread poll, single thread worker fixes
   * Added IW_MIN, IW_MAX, IW_XSTR defines
 

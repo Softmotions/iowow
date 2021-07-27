@@ -147,6 +147,14 @@ typedef int HANDLE;
 #define RCA(v__, label__) RCGA(v__, label__)
 #endif
 
+#ifndef RCENO
+#define RCENO(v__, label__)                       \
+  if ((v__) < 0) {                                \
+    rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);   \
+    goto label__;                                 \
+  }
+#endif
+
 #ifdef __GNUC__
 #define RCRET(rc__) if (__builtin_expect((!!(rc__)), 0)) return (rc__)
 #else
