@@ -40,8 +40,8 @@ static void *_worker_fn(void *op) {
       fn = h->fn;
       arg = h->arg;
       stw->head = h->next;
-      if (stw->tail == h) {
-        stw->tail = stw->head;
+      if (stw->head == 0) {
+        stw->tail = 0;
       }
       --stw->cnt;
       free(h);
@@ -68,10 +68,6 @@ static void *_worker_fn(void *op) {
       pthread_cond_broadcast(&stw->cond_queue);
     }
     pthread_cond_wait(&stw->cond, &stw->mtx);
-    if (stw->shutdown) {
-      pthread_mutex_unlock(&stw->mtx);
-      break;
-    }
     pthread_mutex_unlock(&stw->mtx);
   }
   return 0;
