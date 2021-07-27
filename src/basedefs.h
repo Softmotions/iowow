@@ -147,6 +147,10 @@ typedef int HANDLE;
 #define RCA(v__, label__) RCGA(v__, label__)
 #endif
 
+#ifndef RCB
+#define RCB(label__, v__) RCGA(v__, label__)
+#endif
+
 #ifndef RCN
 #define RCN(label__, v__)                       \
   if ((v__) < 0) {                                \
