@@ -148,7 +148,7 @@ typedef int HANDLE;
 #endif
 
 #ifndef RCN
-#define RCN(v__, label__)                       \
+#define RCN(label__, v__)                       \
   if ((v__) < 0) {                                \
     rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);   \
     goto label__;                                 \
