@@ -47,10 +47,10 @@ typedef void (*iwstw_task_f)(void *arg);
  *        Function will block until start of worker thread.
  *
  * @param queue_limit Max length of pending tasks queue. Unlimited if zero.
- *  @param queue_blocking If true iwstw_schedule will block when queue reached its limit.
+ * @param queue_blocking If true iwstw_schedule will block when queue reached its limit.
  * @param[out] stwp_out Pointer to worker handler to be initialized.
  */
-IW_EXPORT iwrc iwstw_start(int queue_limit, bool queue_blocking, IWSTW *out_stw);
+IW_EXPORT iwrc iwstw_start(const char *thread_name, int queue_limit, bool queue_blocking, IWSTW *out_stw);
 
 /**
  * @brief Shutdowns worker and disposes all resources.
@@ -61,7 +61,7 @@ IW_EXPORT iwrc iwstw_start(int queue_limit, bool queue_blocking, IWSTW *out_stw)
  * @param stw Pointer to worker handler which should be destroyed.
  * @param wait_for_all If true worker will wait for completion of all enqueued tasks before shutdown.
  */
-IW_EXPORT void iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
+IW_EXPORT iwrc iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
 
 /**
  * @brief Schedule task for execution.

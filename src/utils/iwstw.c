@@ -1,10 +1,12 @@
 #include "iwstw.h"
 #include "iwth.h"
 #include "iwlog.h"
+#include "iwp.h"
 
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
+#include <string.h>
 
 struct _TASK {
   iwstw_task_f fn;
@@ -13,8 +15,9 @@ struct _TASK {
 };
 
 struct _IWSTW {
-  struct _TASK   *head;
-  struct _TASK   *tail;
+  struct _TASK *head;
+  struct _TASK *tail;
+  char *thread_name;
   pthread_mutex_t mtx;
   pthread_cond_t  cond;
   pthread_cond_t  cond_queue;
@@ -26,9 +29,13 @@ struct _IWSTW {
   volatile bool shutdown;
 };
 
-static void *_worker_fn(void *op) {
+static void* _worker_fn(void *op) {
   struct _IWSTW *stw = op;
   assert(stw);
+
+  if (stw->thread_name) {
+    iwp_set_current_thread_name(stw->thread_name);
+  }
 
   while (true) {
     void *arg;
@@ -73,15 +80,20 @@ static void *_worker_fn(void *op) {
   return 0;
 }
 
-void iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
+iwrc iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
   if (!stwp || !*stwp) {
-    return;
+    return 0;
   }
   IWSTW stw = *stwp;
   pthread_mutex_lock(&stw->mtx);
   if (stw->shutdown) {
     pthread_mutex_unlock(&stw->mtx);
-    return;
+    return 0;
+  }
+  pthread_t st = pthread_self();
+  if (stw->thr == pthread_self()) {
+    iwlog_error("iwstw | Thread iwstw_shutdown() from self thread: %lu", (unsigned long) st);
+    return IW_ERROR_ASSERTION;
   }
   if (!wait_for_all) {
     struct _TASK *t = stw->head;
@@ -103,8 +115,11 @@ void iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
   pthread_join(stw->thr, 0);
   pthread_cond_destroy(&stw->cond);
   pthread_mutex_destroy(&stw->mtx);
+
+  free(stw->thread_name);
   free(stw);
   *stwp = 0;
+  return 0;
 }
 
 int iwstw_queue_size(IWSTW stw) {
@@ -211,8 +226,11 @@ finish:
   return rc; // NOLINT (clang-analyzer-unix.Malloc)
 }
 
-iwrc iwstw_start(int queue_limit, bool queue_blocking, IWSTW *out_stw) {
+iwrc iwstw_start(const char *thread_name, int queue_limit, bool queue_blocking, IWSTW *out_stw) {
   if (queue_limit < 0 || !out_stw) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  if (thread_name && strlen(thread_name) > 15) {
     return IW_ERROR_INVALID_ARGS;
   }
   struct _IWSTW *stw = malloc(sizeof(*stw));
@@ -229,6 +247,10 @@ iwrc iwstw_start(int queue_limit, bool queue_blocking, IWSTW *out_stw) {
     .cond_queue = PTHREAD_COND_INITIALIZER,
     .queue_blocking = queue_blocking
   };
+  if (thread_name) {
+    stw->thread_name = strdup(thread_name);
+  }
+
   rci = pthread_create(&stw->thr, 0, _worker_fn, stw);
   if (rci) {
     rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, errno);
@@ -238,6 +260,7 @@ iwrc iwstw_start(int queue_limit, bool queue_blocking, IWSTW *out_stw) {
 finish:
   if (rc) {
     *out_stw = 0;
+    free(stw->thread_name);
     free(stw);
   } else {
     *out_stw = stw;

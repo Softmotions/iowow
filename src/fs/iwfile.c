@@ -33,6 +33,11 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <unistd.h>
+
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+
 #ifdef _WIN32
 #include <libiberty/libiberty.h>
 #define strndup xstrndup
@@ -270,7 +275,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
       wcmode = CREATE_ALWAYS;
     } else if (omode & IWFS_OCREATE) {
       wcmode = OPEN_ALWAYS;
-
+    }
   }
   DWORD smode = FILE_SHARE_READ | FILE_SHARE_WRITE;
   DWORD flags = FILE_ATTRIBUTE_NORMAL;

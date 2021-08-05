@@ -1,5 +1,6 @@
 #include "iwtp.h"
 #include "iwth.h"
+#include "iwp.h"
 #include "iwlog.h"
 
 #include <stdlib.h>
@@ -19,9 +20,10 @@ struct _IWTP {
   pthread_mutex_t mtx;
   pthread_cond_t  cond;
   pthread_t      *threads;
-  int num_threads;
-  int queue_limit;
-  int cnt;
+  char *thread_name_prefix;
+  int   num_threads;
+  int   queue_limit;
+  int   cnt;
   volatile bool shutdown;
 };
 
@@ -71,9 +73,21 @@ finish:
   return rc;
 }
 
-static void *_worker_fn(void *op) {
+static void* _worker_fn(void *op) {
   struct _IWTP *tp = op;
   assert(tp);
+
+  if (tp->thread_name_prefix) {
+    pthread_t st = pthread_self();
+    for (int i = 0; i < tp->num_threads; ++i) {
+      if (tp->threads[i] == st) {
+        char nbuf[strlen(tp->thread_name_prefix) + 16];
+        snprintf(nbuf, sizeof(nbuf), "%s%d", tp->thread_name_prefix, i);
+        iwp_set_current_thread_name(nbuf);
+        break;
+      }
+    }
+  }
 
   while (true) {
     void *arg;
@@ -111,10 +125,14 @@ static void *_worker_fn(void *op) {
   return 0;
 }
 
-iwrc iwtp_create(int num_threads, int queue_limit, IWTP *out_tp) {
+iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit, IWTP *out_tp) {
   if (num_threads < 1 || num_threads > 1023 || queue_limit < 0 || !out_tp) {
     return IW_ERROR_INVALID_ARGS;
   }
+  if (thread_name_prefix && strlen(thread_name_prefix) > 15) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+
   struct _IWTP *tp = malloc(sizeof(*tp) + sizeof(pthread_t) * num_threads);
   if (!tp) {
     *out_tp = 0;
@@ -126,6 +144,9 @@ iwrc iwtp_create(int num_threads, int queue_limit, IWTP *out_tp) {
     .mtx = PTHREAD_MUTEX_INITIALIZER,
     .cond = PTHREAD_COND_INITIALIZER
   };
+  if (thread_name_prefix) {
+    tp->thread_name_prefix = strdup(thread_name_prefix);
+  }
   tp->threads = (void*) ((char*) tp + sizeof(*tp));
   memset(tp->threads, 0, sizeof(pthread_t) * num_threads);
   while (num_threads--) {
@@ -135,15 +156,24 @@ iwrc iwtp_create(int num_threads, int queue_limit, IWTP *out_tp) {
   return 0;
 }
 
-void iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
+iwrc iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
   if (!tpp || !*tpp) {
-    return;
+    return 0;
   }
   IWTP tp = *tpp;
   pthread_mutex_lock(&tp->mtx);
   if (tp->shutdown) {
     pthread_mutex_unlock(&tp->mtx);
-    return;
+    return 0;
+  }
+  tp->shutdown = true;
+  pthread_t st = pthread_self();
+  for (int i = 0; i < tp->num_threads; ++i) {
+    if (tp->threads[i] == st) {
+      pthread_mutex_unlock(&tp->mtx);
+      iwlog_error("iwtp | Thread iwtp_shutdown() from one of pool thread: %lu", (unsigned long) st);
+      return IW_ERROR_ASSERTION;
+    }
   }
   if (!wait_for_all) {
     struct _TASK *t = tp->head;
@@ -156,7 +186,6 @@ void iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
     tp->tail = 0;
     tp->cnt = 0;
   }
-  tp->shutdown = true;
   pthread_cond_broadcast(&tp->cond);
   pthread_mutex_unlock(&tp->mtx);
 
@@ -167,8 +196,10 @@ void iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
   }
   pthread_cond_destroy(&tp->cond);
   pthread_mutex_destroy(&tp->mtx);
+  free(tp->thread_name_prefix);
   free(tp);
   *tpp = 0;
+  return 0;
 }
 
 int iwtp_queue_size(IWTP tp) {

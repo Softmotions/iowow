@@ -7,6 +7,10 @@
 #include "win32/mman/mman.h"
 #else
 
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+
 #include <sys/mman.h>
 
 #endif

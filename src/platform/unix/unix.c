@@ -37,7 +37,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <ftw.h>
+#include <pthread.h>
 
+#if defined(__linux__)
+#include <sys/prctl.h>
+#elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
+#include <pthread_np.h>
+#endif
 
 #ifdef __APPLE__
 #define st_atim st_atimespec
@@ -159,90 +165,73 @@ iwrc iwp_closefh(HANDLE fh) {
 }
 
 iwrc iwp_pread(HANDLE fh, off_t off, void *buf, size_t siz, size_t *sp) {
-  if (INVALIDHANDLE(fh)) {
-    return IW_ERROR_INVALID_HANDLE;
-  }
-  if (!buf || !sp) {
-    return IW_ERROR_INVALID_ARGS;
-  }
-  ssize_t rs;
+  ssize_t rci;
+
 again:
-  rs = pread(fh, buf, siz, off);
-  if (rs == -1) {
+  rci = pread(fh, buf, siz, off);
+  if (rci < 0) {
+    *sp = 0;
     if (errno == EINTR) {
       goto again;
+    } else if (errno == EWOULDBLOCK || errno == IW_ERROR_AGAIN) {
+      return IW_ERROR_AGAIN;
     }
-    *sp = 0;
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-  } else {
-    *sp = rs;
-    return 0;
   }
+  *sp = rci;
+  return 0;
 }
 
 iwrc iwp_read(HANDLE fh, void *buf, size_t count, size_t *sp) {
-  if (INVALIDHANDLE(fh)) {
-    return IW_ERROR_INVALID_HANDLE;
-  }
-  if (!buf || !sp) {
-    return IW_ERROR_INVALID_ARGS;
-  }
   ssize_t rs;
+
 again:
   rs = read(fh, buf, count);
-  if (rs == -1) {
+  if (rs < 0) {
+    *sp = 0;
     if (errno == EINTR) {
       goto again;
+    } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
+      return IW_ERROR_AGAIN;
     }
-    *sp = 0;
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-  } else {
-    *sp = rs;
-    return 0;
   }
+  *sp = rs;
+  return 0;
 }
 
 iwrc iwp_pwrite(HANDLE fh, off_t off, const void *buf, size_t siz, size_t *sp) {
-  if (INVALIDHANDLE(fh)) {
-    return IW_ERROR_INVALID_HANDLE;
-  }
-  if (!buf || !sp) {
-    return IW_ERROR_INVALID_ARGS;
-  }
   ssize_t ws;
+
 again:
   ws = pwrite(fh, buf, siz, off);
-  if (ws == -1) {
+  if (ws < 0) {
+    *sp = 0;
     if (errno == EINTR) {
       goto again;
+    } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      return IW_ERROR_AGAIN;
     }
-    *sp = 0;
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-  } else {
-    *sp = ws;
-    return 0;
   }
+  *sp = ws;
+  return 0;
 }
 
 iwrc iwp_write(HANDLE fh, const void *buf, size_t size) {
-  if (INVALIDHANDLE(fh)) {
-    return IW_ERROR_INVALID_HANDLE;
-  }
   const char *rp = buf;
   do {
     ssize_t wb = write(fh, rp, size);
-    switch (wb) {
-      case -1:
-        if (errno == EINTR) {
-          continue;
-        }
-        return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-      case 0:
-        break;
-      default:
-        rp += wb;
-        size -= wb;
-        break;
+    if (wb < 0) {
+      if (errno == EINTR) {
+        continue;
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        return IW_ERROR_AGAIN;
+      }
+      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    } else {
+      rp += wb;
+      size -= wb;
     }
   } while (size > 0);
   return 0;
@@ -380,6 +369,28 @@ size_t iwp_tmpdir(char *out, size_t len) {
   size_t nw = MIN(len, tlen);
   memcpy(out, tdir, nw);
   return nw;
+}
+
+void iwp_set_current_thread_name(const char *name) {
+
+#if (defined(__APPLE__) && defined(__MACH__)) || defined(__linux__)
+  // On linux and OS X the name may not be longer than 16 bytes, including
+  // the null terminator. Truncate the name to 15 characters.
+  char buf[16];
+  strncpy(buf, name, sizeof(buf) - 1);
+  buf[sizeof(buf) - 1] = '\0';
+  name = buf;
+#endif
+
+#if defined(__linux__)
+  prctl(PR_SET_NAME, name);
+#elif defined(__NetBSD__)
+  rv = pthread_setname_np(pthread_self(), "%s", (void*) name);
+#elif defined(__APPLE__)
+  pthread_setname_np(name);
+#else
+  pthread_setname_np(pthread_self(), name);
+#endif
 }
 
 static iwrc _iwp_init_impl() {

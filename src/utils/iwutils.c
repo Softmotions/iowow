@@ -38,6 +38,10 @@
 #include <string.h>
 #include "mt19937ar.h"
 
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+
 #define IWU_RAND_MAX 0xffffffff
 
 iwrc iwu_init(void) {

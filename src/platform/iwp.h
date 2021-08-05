@@ -284,6 +284,12 @@ IW_EXPORT size_t iwp_tmpdir(char *out, size_t len);
  * to release path buffer.
  * @return Zero on error.
  */
-IW_EXPORT char *iwp_allocate_tmpfile_path(const char *prefix);
+IW_EXPORT char* iwp_allocate_tmpfile_path(const char *prefix);
+
+/**
+ * Set name of the current thread. On some platforms
+ * thread name canot be longer than 16 bytes including zero terminator.
+ */
+IW_EXPORT void iwp_set_current_thread_name(const char *name);
 
 #endif

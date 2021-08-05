@@ -95,7 +95,8 @@ void iwlog_test2() {
                                 "status set. (IW_ERROR_ERRNO)|"));
   CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERRNO Message"));
   CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERROR iwlog_test1.c:"));
-  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "70004|0|0|Resource is readonly. (IW_ERROR_READONLY)|"));
+
+  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "70005|0|0|Resource is readonly. (IW_ERROR_READONLY)|"));
   CU_ASSERT_PTR_NOT_NULL(strstr(buf, "c94645c3b107433497ef295b1c00dcff12"));
 
   fclose(out);

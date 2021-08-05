@@ -7,6 +7,10 @@
 #include <fcntl.h>
 #include <pthread.h>
 
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+
 #include "iwcfg.h"
 
 #define _ENSURE_OPEN(db_) \

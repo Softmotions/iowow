@@ -3,6 +3,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pthread.h>
+
 #include "iwcfg.h"
 
 #define _NANOSECONDS_PER_TICK   100ULL
@@ -302,6 +304,10 @@ iwrc iwp_lseek(HANDLE fh, off_t offset, iwp_seek_origin origin, off_t *pos) {
     *pos = noff.QuadPart;
   }
   return 0;
+}
+
+void iwp_set_current_thread_name(const char *name) {
+  pthread_setname_np(pthread_self(), name);
 }
 
 size_t iwp_tmpdir(char *out, size_t len) {

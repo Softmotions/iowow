@@ -81,6 +81,7 @@ typedef enum {
   IW_ERROR_FAIL = IW_ERROR_START, /**< Unspecified error. */
   IW_ERROR_ERRNO,                 /**< Error with expected errno status set. */
   IW_ERROR_IO_ERRNO,              /**< IO error with expected errno status set. */
+  IW_ERROR_AGAIN,
   IW_ERROR_NOT_EXISTS,            /**< Resource is not exists. */
   IW_ERROR_READONLY,              /**< Resource is readonly. */
   IW_ERROR_ALREADY_OPENED,        /**< Resource is already opened. */

@@ -48,7 +48,7 @@ typedef void (*iwtp_task_f)(void *arg);
  * @param queue_limit Maximum number of tasks in queue. Zero for unlimited queue.
  * @param [out] out_tp Holder for thread pool instance.
  */
-IW_EXPORT iwrc iwtp_create(int num_threads, int queue_limit, IWTP *out_tp);
+IW_EXPORT iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit, IWTP *out_tp);
 
 /**
  * @brief Submits new task into thread pool.
@@ -69,7 +69,7 @@ IW_EXPORT iwrc iwtp_schedule(IWTP tp, iwtp_task_f task, void *task_arg);
  * @param tpp Pointer to pool which should be disposed.
  * @param wait_for_all If true worker will wait for completion of all enqueued tasks before shutdown.
  */
-IW_EXPORT void iwtp_shutdown(IWTP *tpp, bool wait_for_all);
+IW_EXPORT iwrc iwtp_shutdown(IWTP *tpp, bool wait_for_all);
 
 /**
  * @brief Returns size of tasks queue.
