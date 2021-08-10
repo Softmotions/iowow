@@ -68,6 +68,7 @@ void iwxstr_destroy_keep_ptr(IWXSTR *xstr) {
 void iwxstr_clear(IWXSTR *xstr) {
   assert(xstr);
   xstr->size = 0;
+  xstr->ptr[0] = '\0';
 }
 
 iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size) {
