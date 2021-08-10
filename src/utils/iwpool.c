@@ -131,6 +131,16 @@ char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp) {
   return iwpool_strndup(pool, str, strlen(str), rcp);
 }
 
+char *iwpool_strdup2(IWPOOL *pool, const char *str) {
+  iwrc rc;
+  return iwpool_strndup(pool, str, strlen(str), &rc);
+}
+
+char *iwpool_strndup2(IWPOOL *pool, const char *str, size_t len) {
+  iwrc rc;
+  return iwpool_strndup(pool, str, len, &rc);
+}
+
 IW_INLINE int _iwpool_printf_estimate_size(const char *format, va_list ap) {
   char buf[1];
   return vsnprintf(buf, sizeof(buf), format, ap) + 1;
