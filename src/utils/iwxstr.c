@@ -32,6 +32,8 @@ IWXSTR* iwxstr_new2(size_t siz) {
     free(xstr);
     return 0;
   }
+  xstr->user_data = 0;
+  xstr->user_data_free_fn = 0;
   xstr->size = 0;
   xstr->asize = siz;
   xstr->ptr[0] = '\0';
