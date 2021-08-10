@@ -265,6 +265,8 @@ void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn) (void*)) {
   if (xstr->user_data_free_fn) {
     xstr->user_data_free_fn(xstr->user_data);
   }
+  xstr->user_data = data;
+  xstr->user_data_free_fn = free_fn;
 }
 
 void* iwxstr_user_data_get(IWXSTR *xstr) {
