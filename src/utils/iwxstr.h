@@ -34,9 +34,9 @@ IW_EXTERN_C_START
 
 typedef struct _IWXSTR IWXSTR;
 
-IW_EXPORT IW_ALLOC IWXSTR *iwxstr_new(void);
+IW_EXPORT IW_ALLOC IWXSTR* iwxstr_new(void);
 
-IW_EXPORT IWXSTR *iwxstr_new2(size_t siz);
+IW_EXPORT IWXSTR* iwxstr_new2(size_t siz);
 
 IW_EXPORT void iwxstr_destroy(IWXSTR *xstr);
 
@@ -54,11 +54,17 @@ IW_EXPORT void iwxstr_shift(IWXSTR *xstr, size_t shift_size);
 
 IW_EXPORT void iwxstr_pop(IWXSTR *xstr, size_t pop_size);
 
-IW_EXPORT char *iwxstr_ptr(IWXSTR *xstr);
+IW_EXPORT char* iwxstr_ptr(IWXSTR *xstr);
 
 IW_EXPORT iwrc iwxstr_set_size(IWXSTR *xstr, size_t size);
 
 IW_EXPORT size_t iwxstr_size(IWXSTR *xstr);
+
+IW_EXPORT void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn) (void*));
+
+IW_EXPORT void* iwxstr_user_data_get(IWXSTR *xstr);
+
+IW_EXPORT void* iwxstr_user_data_detach(IWXSTR *xstr);
 
 IW_EXPORT void iwxstr_clear(IWXSTR *xstr);
 

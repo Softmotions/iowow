@@ -1,5 +1,6 @@
 iowow (1.4.13) UNRELEASED; urgency=medium
 
+  * Added user data store capability to iwxstr (iwxstr.h)
   * Added iwpool_strdup2(), iwpool_strndup2() (iwpool.h)
   * Added iwp_set_current_thread_name() (iwp.h)
   * Added RCENO define (basedefs.h)

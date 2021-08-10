@@ -47,13 +47,13 @@ typedef struct _IWPOOL IWPOOL;
  * @param siz Initial memory buffer size. Can be zero.
  * @return Pointer to the new pool or `zero` if allocation is failed.
  */
-IW_EXPORT IW_ALLOC IWPOOL *iwpool_create(size_t siz);
+IW_EXPORT IW_ALLOC IWPOOL* iwpool_create(size_t siz);
 
 /**
  * @brief Create empty pool with no preallocated buffer.
  * @return Pointer to the new pool or `zero` if allocation is failed.
  */
-IW_EXPORT IW_ALLOC IWPOOL *iwpool_create_empty(void);
+IW_EXPORT IW_ALLOC IWPOOL* iwpool_create_empty(void);
 
 /**
  * @brief Allocates buffer of specified size.
@@ -62,7 +62,7 @@ IW_EXPORT IW_ALLOC IWPOOL *iwpool_create_empty(void);
  * @param pool Pointer to memory pool.
  * @return Pointer to buffer or `zero` if allocation is failed.
  */
-IW_EXPORT void *iwpool_alloc(size_t siz, IWPOOL *pool);
+IW_EXPORT void* iwpool_alloc(size_t siz, IWPOOL *pool);
 
 /**
  * @brief Allocates zero initialized memory buffer
@@ -72,7 +72,7 @@ IW_EXPORT void *iwpool_alloc(size_t siz, IWPOOL *pool);
  * @param pool Pointer to memory pool.
  * @return Pointer to buffer or `zero` if allocation is failed.
  */
-IW_EXPORT void *iwpool_calloc(size_t siz, IWPOOL *pool);
+IW_EXPORT void* iwpool_calloc(size_t siz, IWPOOL *pool);
 
 /**
  * @brief Copy a given `str` of size `len` into memory pool.
@@ -83,7 +83,7 @@ IW_EXPORT void *iwpool_calloc(size_t siz, IWPOOL *pool);
  * @param rcp Pointer to status code holder.
  * @return Pointer to copied buffer or `zero` if operation failed.
  */
-IW_EXPORT char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp);
+IW_EXPORT char* iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *rcp);
 
 /**
  * @brief Copy a given zero terminated char buffer into memory pool.
@@ -93,11 +93,11 @@ IW_EXPORT char *iwpool_strndup(IWPOOL *pool, const char *str, size_t len, iwrc *
  * @param rcp Pointer to status code holder.
  * @return Pointer to copied buffer or `zero` if operation failed.
  */
-IW_EXPORT char *iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp);
+IW_EXPORT char* iwpool_strdup(IWPOOL *pool, const char *str, iwrc *rcp);
 
-IW_EXPORT char *iwpool_strdup2(IWPOOL *pool, const char *str);
+IW_EXPORT char* iwpool_strdup2(IWPOOL *pool, const char *str);
 
-IW_EXPORT char *iwpool_strndup2(IWPOOL *pool, const char *str, size_t len);
+IW_EXPORT char* iwpool_strndup2(IWPOOL *pool, const char *str, size_t len);
 
 /**
  * @brief Do `fprintf` into string allocated in this memory pool.
@@ -107,13 +107,13 @@ IW_EXPORT char *iwpool_strndup2(IWPOOL *pool, const char *str, size_t len);
  * @param ...
  * @return Pointer to resulted string of `zero` if operation is failed.
  */
-IW_EXPORT char *iwpool_printf(IWPOOL *pool, const char *format, ...);
+IW_EXPORT char* iwpool_printf(IWPOOL *pool, const char *format, ...);
 
-IW_EXPORT char **iwpool_split_string(
+IW_EXPORT char** iwpool_split_string(
   IWPOOL *pool, const char *haystack,
   const char *split_chars, bool ignore_whitespace);
 
-IW_EXPORT char **iwpool_printf_split(
+IW_EXPORT char** iwpool_printf_split(
   IWPOOL *pool,
   const char *split_chars, bool ignore_whitespace,
   const char *format, ...);
@@ -141,12 +141,12 @@ IW_EXPORT void iwpool_free_fn(void *pool);
  * @param data User data. Can be zero.
  * @param free_fn User data dispose function. Can be zero.
  */
-IW_EXPORT void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void*));
+IW_EXPORT void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn) (void*));
 
 /**
  * @brief Returns pointer to user data associated with this pool. Or zero.
  */
-IW_EXPORT void *iwpool_user_data_get(IWPOOL *pool);
+IW_EXPORT void* iwpool_user_data_get(IWPOOL *pool);
 
 /**
  * @brief Reset user data free function for current user data stored in pool.
@@ -154,7 +154,7 @@ IW_EXPORT void *iwpool_user_data_get(IWPOOL *pool);
  * @param pool Pointer to memory pool.
  * @return Pointer to current user data stored or zero,
  */
-IW_EXPORT void *iwpool_user_data_detach(IWPOOL *pool);
+IW_EXPORT void* iwpool_user_data_detach(IWPOOL *pool);
 
 /**
  * @brief Returns number of bytes allocated for this memory pool.

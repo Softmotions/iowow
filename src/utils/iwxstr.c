@@ -15,9 +15,11 @@ struct _IWXSTR {
   char  *ptr;     /**< Data buffer */
   size_t size;    /**< Actual data size */
   size_t asize;   /**< Allocated buffer size */
+  void   (*user_data_free_fn)(void*);
+  void  *user_data;
 };
 
-IWXSTR *iwxstr_new2(size_t siz) {
+IWXSTR* iwxstr_new2(size_t siz) {
   if (!siz) {
     siz = IWXSTR_AUNIT;
   }
@@ -36,13 +38,16 @@ IWXSTR *iwxstr_new2(size_t siz) {
   return xstr;
 }
 
-IWXSTR *iwxstr_new(void) {
+IWXSTR* iwxstr_new(void) {
   return iwxstr_new2(IWXSTR_AUNIT);
 }
 
 void iwxstr_destroy(IWXSTR *xstr) {
   if (!xstr) {
     return;
+  }
+  if (xstr->user_data_free_fn) {
+    xstr->user_data_free_fn(xstr->user_data);
   }
   free(xstr->ptr);
   free(xstr);
@@ -51,6 +56,9 @@ void iwxstr_destroy(IWXSTR *xstr) {
 void iwxstr_destroy_keep_ptr(IWXSTR *xstr) {
   if (!xstr) {
     return;
+  }
+  if (xstr->user_data_free_fn) {
+    xstr->user_data_free_fn(xstr->user_data);
   }
   free(xstr);
 }
@@ -243,10 +251,25 @@ iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) {
   return rc;
 }
 
-char *iwxstr_ptr(IWXSTR *xstr) {
+char* iwxstr_ptr(IWXSTR *xstr) {
   return xstr->ptr;
 }
 
 size_t iwxstr_size(IWXSTR *xstr) {
   return xstr->size;
+}
+
+void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn) (void*)) {
+  if (xstr->user_data_free_fn) {
+    xstr->user_data_free_fn(xstr->user_data);
+  }
+}
+
+void* iwxstr_user_data_get(IWXSTR *xstr) {
+  return xstr->user_data;
+}
+
+void* iwxstr_user_data_detach(IWXSTR *xstr) {
+  xstr->user_data_free_fn = 0;
+  return xstr->user_data;
 }
