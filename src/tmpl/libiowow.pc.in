@@ -8,4 +8,5 @@ Description: @PROJECT_DESCRIPTION_SUMMARY@
 URL: @PROJECT_WEBSITE@
 Version: @PROJECT_VERSION@
 Libs: -L${libdir} -l@PROJECT_NAME@
+Libs.private: -lm
 Cflags: -I${includedir}
