@@ -1,5 +1,6 @@
 iowow (1.4.13) UNRELEASED; urgency=medium
 
+  * Added `RCT()` checker for pthread routines (basedefs.h)
   * Added iwbin2hex() (iwconv.h)
   * iwxstr_clear() sets value of intgernal string buffer to zero (iwxstr.h)
   * Added user data store capability to iwxstr (iwxstr.h)

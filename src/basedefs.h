@@ -159,6 +159,14 @@ typedef int HANDLE;
   }
 #endif
 
+#ifndef RCT
+#define RCT(label__, val__)                                         \
+  ({ __typeof__(val__) v__ = (val__);                               \
+     if (!v__) rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, v__);  \
+     goto label__;                                                  \
+   })
+#endif
+
 #ifdef __GNUC__
 #define RCRET(rc__) if (__builtin_expect((!!(rc__)), 0)) return (rc__)
 #else
