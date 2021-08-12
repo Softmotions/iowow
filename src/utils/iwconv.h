@@ -47,7 +47,7 @@ IW_EXPORT int iwitoa(int64_t v, char *buf, int max);
  * Convert a given floating point number to string.
  * @note Exponent notation can be used during conversion
  */
-IW_EXPORT char *iwftoa(long double v, char buf[static IWFTOA_BUFSIZE]);
+IW_EXPORT char* iwftoa(long double v, char buf[static IWFTOA_BUFSIZE]);
 
 /**
  * Compare real(float) numbers encoded as decimal point string value.
@@ -56,6 +56,12 @@ IW_EXPORT char *iwftoa(long double v, char buf[static IWFTOA_BUFSIZE]);
 IW_EXPORT int iwafcmp(const char *aptr, int asiz, const char *bptr, int bsiz);
 
 IW_EXPORT size_t iwhex2bin(const char *hex, int hexlen, char *out, int max);
+
+IW_EXPORT char* iwbin2hex(
+  char* const                hex,
+  const size_t               hex_maxlen,
+  const unsigned char* const bin,
+  const size_t               bin_len);
 
 IW_EXTERN_C_END
 
