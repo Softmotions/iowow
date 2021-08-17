@@ -44,6 +44,18 @@ IWXSTR* iwxstr_new(void) {
   return iwxstr_new2(IWXSTR_AUNIT);
 }
 
+IWXSTR* iwxstr_wrap(const char *buf, size_t size) {
+  IWXSTR *xstr = iwxstr_new2(size + 1);
+  if (!xstr) {
+    return 0;
+  }
+  if (iwxstr_cat(xstr, buf, size)) {
+    iwxstr_destroy(xstr);
+    return 0;
+  }
+  return xstr;
+}
+
 void iwxstr_destroy(IWXSTR *xstr) {
   if (!xstr) {
     return;
