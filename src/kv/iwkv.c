@@ -604,7 +604,7 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
   };
   IWRC(_db_dispose_chain(&dctx), rc);
   if (meta_blk && meta_blkn) {
-    IWRC(fsm->deallocate(fsm, BLK2ADDR(db->meta_blk), BLK2ADDR(db->meta_blkn)), rc);
+    IWRC(fsm->deallocate(fsm, BLK2ADDR(meta_blk), BLK2ADDR(meta_blkn)), rc);
   }
   IWRC(fsm->deallocate(fsm, db_addr, DB_SZ), rc);
   return rc;
@@ -4117,13 +4117,13 @@ iwrc iwkv_cursor_open(
   }
   cur = *curptr;
   IWLCTX *lx = &cur->lx;
+  lx->db = db;
+  lx->nlvl = -1;
   if (key) {
     rc = _to_effective_key(db, key, &lx->ekey, lx->nbuf);
     RCGO(rc, finish);
     lx->key = &lx->ekey;
   }
-  lx->db = db;
-  lx->nlvl = -1;
   if (!db->cache.open) {
     rc = _dbcache_fill_lw(lx);
     RCGO(rc, finish);

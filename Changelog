@@ -1,5 +1,6 @@
 iowow (1.4.13) UNRELEASED; urgency=medium
 
+  * Fixed Heap UAF in iwkv_close after invoking iwkv_db_set_meta on a database (#41)
   * Added `iwxstr_wrap()` (iwxstr.h)
   * Added `RCT()` checker for pthread routines (basedefs.h)
   * Added iwbin2hex() (iwconv.h)
