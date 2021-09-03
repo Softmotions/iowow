@@ -1,4 +1,4 @@
-iowow (1.4.13) UNRELEASED; urgency=medium
+iowow (1.4.13) testing; urgency=medium
 
   * Fixed SEGV in iwkv_cursor_open with zero-length key and IWDB_VNUM64_KEYS (#42)
   * Fixed Heap UAF in iwkv_close after invoking iwkv_db_set_meta on a database (#41)
@@ -13,7 +13,7 @@ iowow (1.4.13) UNRELEASED; urgency=medium
   * Thread poll, single thread worker fixes
   * Added IW_MIN, IW_MAX, IW_XSTR defines
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 21 Jul 2021 11:36:58 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Fri, 03 Sep 2021 16:03:05 +0700
 
 iowow (1.4.12) testing; urgency=medium
 
