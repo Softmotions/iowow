@@ -1,3 +1,9 @@
+iowow (1.4.14) UNRELEASED; urgency=medium
+
+  * Added locale independed strtod: iwstrtod() (iwconv.h)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 21 Oct 2021 19:09:35 +0700
+
 iowow (1.4.13) testing; urgency=medium
 
   * Fixed SEGV in iwkv_cursor_open with zero-length key and IWDB_VNUM64_KEYS (#42)
