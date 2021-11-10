@@ -3266,7 +3266,7 @@ static const char* _kv_ecodefn(locale_t locale, uint32_t ecode) {
     case IWKV_ERROR_WAL_MODE_REQUIRED:
       return "Operation requires WAL enabled database. (IWKV_ERROR_WAL_MODE_REQUIRED)";
     case IWKV_ERROR_BACKUP_IN_PROGRESS:
-      return "ackup operation in progress. (IWKV_ERROR_BACKUP_IN_PROGRESS)";
+      return "Backup operation in progress. (IWKV_ERROR_BACKUP_IN_PROGRESS)";
     default:
       break;
   }
