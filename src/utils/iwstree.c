@@ -69,7 +69,7 @@ static int _cmp_default(const void *k1, const void *k2) {
   return k1 < k2 ? -1 : k1 > k2 ? 1 : 0;
 }
 
-IWSTREE *iwstree_create(
+IWSTREE* iwstree_create(
   int (*cmp)(const void*, const void*),
   void (*kvfree)(void*, void*)) {
   IWSTREE *st;
@@ -109,7 +109,7 @@ void iwstree_destroy(IWSTREE *st) {
   free(st);
 }
 
-static tree_node_t *_init_node(void *key, void *value) {
+static tree_node_t* _init_node(void *key, void *value) {
   tree_node_t *n;
   n = malloc(sizeof(tree_node_t));
   if (!n) {
@@ -142,7 +142,7 @@ static void _rotate_left(tree_node_t **pa) {
 /**
  * bring this value to the top
  * */
-static tree_node_t *_splay(
+static tree_node_t* _splay(
   IWSTREE      *st,
   int           update_if_not_found,
   tree_node_t **gpa,
@@ -221,7 +221,7 @@ int iwstree_is_empty(IWSTREE *st) {
   return st->root == 0;
 }
 
-void *iwstree_remove(IWSTREE *st, const void *key) {
+void* iwstree_remove(IWSTREE *st, const void *key) {
   tree_node_t *root, *tmp;
   void *val;
 
@@ -250,7 +250,7 @@ void *iwstree_remove(IWSTREE *st, const void *key) {
 /**
  * get this item referred to by key. Slap it as root.
  */
-void *iwstree_get(IWSTREE *st, const void *key) {
+void* iwstree_get(IWSTREE *st, const void *key) {
   tree_node_t *node = _splay(st, 0, 0, 0, (tree_node_t**) &st->root, key);
   return node ? node->value : 0;
 }
@@ -259,7 +259,7 @@ int iwstree_count(IWSTREE *st) {
   return st->count;
 }
 
-void *iwstree_peek(IWSTREE *st) {
+void* iwstree_peek(IWSTREE *st) {
   return st->root ? ((tree_node_t*) st->root)->value : 0;
 }
 
@@ -348,7 +348,7 @@ static iwrc _iter_push(IWSTREE_ITER *iter, tree_node_t *n) {
   return 0;
 }
 
-static tree_node_t *_iter_pop(IWSTREE_ITER *iter) {
+static tree_node_t* _iter_pop(IWSTREE_ITER *iter) {
   if (iter->spos < 1) {
     return 0;
   }

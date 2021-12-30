@@ -131,7 +131,7 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
   return rc;
 }
 
-char *iwp_allocate_tmpfile_path(const char *prefix) {
+char* iwp_allocate_tmpfile_path(const char *prefix) {
   size_t plen = prefix ? strlen(prefix) : 0;
   char tmpdir[PATH_MAX + 1];
   size_t tlen = iwp_tmpdir(tmpdir, sizeof(tmpdir));

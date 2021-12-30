@@ -1651,8 +1651,8 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
       rp += 4;
     }
 #else
-   memcpy(sblk->n, rp, 4 * (sblk->lvl + 1));
-   rp += 4 * (sblk->lvl + 1);
+    memcpy(sblk->n, rp, 4 * (sblk->lvl + 1));
+    rp += 4 * (sblk->lvl + 1);
 #endif
     if (db->iwkv->fmt_version > 1) {
       rp = mm + addr + SOFF_BPOS_U1_V2;
@@ -1743,7 +1743,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
         IW_WRITELV(wp, lv, sblk->n[i]);
       }
 #else
-      memcpy(wp, sblk->n,  4 * (sblk->lvl + 1));
+      memcpy(wp, sblk->n, 4 * (sblk->lvl + 1));
       wp += 4 * (sblk->lvl + 1);
 #endif
 

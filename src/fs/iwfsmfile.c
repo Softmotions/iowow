@@ -244,7 +244,7 @@ IW_INLINE iwrc _fsm_put_fbk(FSM *impl, uint64_t offset_blk, uint64_t length_blk)
  * @param opts Allocation opts
  * @return `0` if matching block is not found.
  */
-IW_INLINE FSMBK *_fsm_find_matching_fblock_lw(
+IW_INLINE FSMBK* _fsm_find_matching_fblock_lw(
   FSM            *impl,
   uint64_t        offset_blk,
   uint64_t        length_blk,
@@ -1911,7 +1911,7 @@ finish:
   return rc;
 }
 
-static const char *_fsmfile_ecodefn(locale_t locale, uint32_t ecode) {
+static const char* _fsmfile_ecodefn(locale_t locale, uint32_t ecode) {
   if (!((ecode > _IWFS_FSM_ERROR_START) && (ecode < _IWFS_FSM_ERROR_END))) {
     return 0;
   }
@@ -1993,7 +1993,7 @@ void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr) {
 #undef _fsm_traverse
 }
 
-const char *byte_to_binary(int x) {
+const char* byte_to_binary(int x) {
   static char b[9];
   b[0] = '\0';
   int z;

@@ -180,7 +180,7 @@ uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init) {
   return crc;
 }
 
-char *iwu_replace_char(char *data, char sch, char rch) {
+char* iwu_replace_char(char *data, char sch, char rch) {
   for (int i = 0; data[i]; ++i) {
     if (data[i] == sch) {
       data[i] = rch;
@@ -224,7 +224,7 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   return (c1 - c2);
 }
 
-char *iwu_file_read_as_buf(const char *path) {
+char* iwu_file_read_as_buf(const char *path) {
   struct stat st;
   if (stat(path, &st) == -1) {
     return 0;

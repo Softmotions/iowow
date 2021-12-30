@@ -141,7 +141,7 @@ IW_EXPORT void iwpool_free_fn(void *pool);
  * @param data User data. Can be zero.
  * @param free_fn User data dispose function. Can be zero.
  */
-IW_EXPORT void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn) (void*));
+IW_EXPORT void iwpool_user_data_set(IWPOOL *pool, void *data, void (*free_fn)(void*));
 
 /**
  * @brief Returns pointer to user data associated with this pool. Or zero.

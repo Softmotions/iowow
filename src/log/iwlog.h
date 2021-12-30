@@ -215,7 +215,7 @@ IW_EXPORT IWLOG_FN iwlog_get_logfn(void);
  * @param ecode Error code
  * @return
  */
-IW_EXPORT const char *iwlog_ecode_explained(iwrc ecode);
+IW_EXPORT const char* iwlog_ecode_explained(iwrc ecode);
 
 /**
  * @brief Register error code explanation function.

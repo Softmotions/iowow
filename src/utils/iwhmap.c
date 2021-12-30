@@ -105,7 +105,7 @@ IW_INLINE uint32_t _hash_buf_key(const void *key) {
   return murmur3(key, strlen(key));
 }
 
-IWHMAP *iwhmap_create(
+IWHMAP* iwhmap_create(
   int (*cmp_fn)(const void*, const void*),
   uint32_t (*hash_key_fn)(const void*),
   void (*kv_free_fn)(void*, void*)) {
@@ -138,7 +138,7 @@ IWHMAP *iwhmap_create(
   return hm;
 }
 
-IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void*, void*)) {
+IWHMAP* iwhmap_create_i64(void (*kv_free_fn)(void*, void*)) {
   hmap_t *hm = iwhmap_create(_int64_cmp, _hash_int64_key, kv_free_fn);
   if (hm) {
 #ifdef IW_64
@@ -148,7 +148,7 @@ IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void*, void*)) {
   return hm;
 }
 
-IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void*, void*)) {
+IWHMAP* iwhmap_create_i32(void (*kv_free_fn)(void*, void*)) {
   hmap_t *hm = iwhmap_create(_int32_cmp, _hash_int32_key, kv_free_fn);
   if (hm) {
     hm->int_key_as_pointer_value = true;
@@ -156,11 +156,11 @@ IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void*, void*)) {
   return hm;
 }
 
-IWHMAP *iwhmap_create_str(void (*kv_free_fn)(void*, void*)) {
-  return iwhmap_create((int (*)(const void*, const void*))strcmp, _hash_buf_key, kv_free_fn);
+IWHMAP* iwhmap_create_str(void (*kv_free_fn)(void*, void*)) {
+  return iwhmap_create((int (*)(const void*, const void*)) strcmp, _hash_buf_key, kv_free_fn);
 }
 
-static entry_t *_entry_find(IWHMAP *hm, const void *key, uint32_t hash) {
+static entry_t* _entry_find(IWHMAP *hm, const void *key, uint32_t hash) {
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
   entry_t *entry = bucket->entries;
   for (entry_t *end = entry + bucket->used; entry < end; ++entry) {
@@ -171,7 +171,7 @@ static entry_t *_entry_find(IWHMAP *hm, const void *key, uint32_t hash) {
   return 0;
 }
 
-static entry_t *_entry_add(IWHMAP *hm, void *key, uint32_t hash) {
+static entry_t* _entry_add(IWHMAP *hm, void *key, uint32_t hash) {
   entry_t *entry;
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
 
@@ -270,7 +270,7 @@ iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
   return 0;
 }
 
-void *iwhmap_get(IWHMAP *hm, const void *key) {
+void* iwhmap_get(IWHMAP *hm, const void *key) {
   uint32_t hash = hm->hash_key_fn(key);
   entry_t *entry = _entry_find(hm, key, hash);
   if (entry) {

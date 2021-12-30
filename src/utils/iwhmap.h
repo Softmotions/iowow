@@ -52,22 +52,22 @@ typedef struct {
  */
 IW_EXPORT void iwhmap_kv_free(void *key, void *val);
 
-IW_EXPORT IWHMAP *iwhmap_create(
+IW_EXPORT IWHMAP* iwhmap_create(
   int (*cmp_fn)(const void*, const void*),
   uint32_t (*hash_key_fn)(const void*),
   void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP *iwhmap_create_i64(void (*kv_free_fn)(void*, void*));
+IW_EXPORT IWHMAP* iwhmap_create_i64(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP *iwhmap_create_i32(void (*kv_free_fn)(void*, void*));
+IW_EXPORT IWHMAP* iwhmap_create_i32(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP *iwhmap_create_str(void (*kv_free_fn)(void*, void*));
+IW_EXPORT IWHMAP* iwhmap_create_str(void (*kv_free_fn)(void*, void*));
 
 IW_EXPORT iwrc iwhmap_put(IWHMAP *hm, void *key, void *val);
 
 IW_EXPORT void iwhmap_remove(IWHMAP *hm, const void *key);
 
-IW_EXPORT void *iwhmap_get(IWHMAP *hm, const void *key);
+IW_EXPORT void* iwhmap_get(IWHMAP *hm, const void *key);
 
 IW_EXPORT int iwhmap_count(IWHMAP *hm);
 

@@ -901,7 +901,7 @@ finish:
   return rc;
 }
 
-static const char *_exfile_ecodefn(locale_t locale, uint32_t ecode) {
+static const char* _exfile_ecodefn(locale_t locale, uint32_t ecode) {
   if (!((ecode > _IWFS_EXT_ERROR_START) && (ecode < _IWFS_EXT_ERROR_END))) {
     return 0;
   }

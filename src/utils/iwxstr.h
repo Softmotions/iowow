@@ -62,7 +62,7 @@ IW_EXPORT iwrc iwxstr_set_size(IWXSTR *xstr, size_t size);
 
 IW_EXPORT size_t iwxstr_size(IWXSTR *xstr);
 
-IW_EXPORT void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn) (void*));
+IW_EXPORT void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn)(void*));
 
 IW_EXPORT void* iwxstr_user_data_get(IWXSTR *xstr);
 
