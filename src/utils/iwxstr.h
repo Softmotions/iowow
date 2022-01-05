@@ -60,7 +60,15 @@ IW_EXPORT char* iwxstr_ptr(IWXSTR *xstr);
 
 IW_EXPORT iwrc iwxstr_set_size(IWXSTR *xstr, size_t size);
 
+/**
+ * Returns actual size of data stored in @a xstr buffer.
+ */
 IW_EXPORT size_t iwxstr_size(IWXSTR *xstr);
+
+/**
+ * @brief Returns allocated size of @a xstr buffer.
+ */
+IW_EXPORT size_t iwxstr_asize(IWXSTR *xstr);
 
 IW_EXPORT void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn)(void*));
 

@@ -1,5 +1,6 @@
 iowow (1.4.14) UNRELEASED; urgency=medium
 
+  * Added `size_t iwxstr_asize(IWXSTR*)` (iwxstr.h)
   * Added locale independed strtod: iwstrtod() (iwconv.h)
 
  -- Anton Adamansky <adamansky@gmail.com>  Thu, 21 Oct 2021 19:09:35 +0700

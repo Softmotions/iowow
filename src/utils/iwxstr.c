@@ -274,6 +274,10 @@ size_t iwxstr_size(IWXSTR *xstr) {
   return xstr->size;
 }
 
+size_t iwxstr_asize(IWXSTR *xstr) {
+  return xstr->asize;
+}
+
 void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn)(void*)) {
   if (xstr->user_data_free_fn) {
     xstr->user_data_free_fn(xstr->user_data);
