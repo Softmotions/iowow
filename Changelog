@@ -1,5 +1,6 @@
 iowow (1.4.14) UNRELEASED; urgency=medium
 
+  * Added lightweight regexp implementation (iwre.h)
   * Added `size_t iwxstr_asize(IWXSTR*)` (iwxstr.h)
   * Added locale independed strtod: iwstrtod() (iwconv.h)
 

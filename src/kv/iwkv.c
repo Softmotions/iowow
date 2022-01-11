@@ -26,7 +26,8 @@ atomic_uint_fast64_t g_trigger;
 
 IW_SOFT_INLINE iwrc _to_effective_key(
   struct _IWDB *db, const IWKV_val *key, IWKV_val *okey,
-  uint8_t nbuf[static IW_VNUMBUFSZ]) {
+  uint8_t nbuf[static IW_VNUMBUFSZ]
+  ) {
   static_assert(IW_VNUMBUFSZ >= sizeof(uint64_t), "IW_VNUMBUFSZ >= sizeof(uint64_t)");
   iwdb_flags_t dbflg = db->dbflg;
   // Keys compound will be processed at lower levels at `addkv` routines
@@ -705,7 +706,8 @@ IW_INLINE void _kvblk_create(IWLCTX *lx, off_t baddr, uint8_t kvbpow, KVBLK **ob
 IW_INLINE WUR iwrc _kvblk_key_peek(
   const KVBLK *kb,
   uint8_t idx, const uint8_t *mm, uint8_t **obuf,
-  uint32_t *olen) {
+  uint32_t *olen
+  ) {
   if (kb->pidx[idx].len) {
     uint32_t klen, step;
     const uint8_t *rp = mm + kb->addr + (1ULL << kb->szpow) - kb->pidx[idx].off;
@@ -1110,7 +1112,8 @@ static WUR iwrc _kvblk_addkv(
   const IWKV_val *key,
   const IWKV_val *val,
   uint8_t        *oidx,
-  bool            raw_key) {
+  bool            raw_key
+  ) {
   *oidx = 0;
 
   iwrc rc = 0;
@@ -1241,7 +1244,8 @@ static WUR iwrc _kvblk_updatev(
   KVBLK          *kb,
   uint8_t        *idxp,
   const IWKV_val *key,                              /* Nullable */
-  const IWKV_val *val) {
+  const IWKV_val *val
+  ) {
   assert(*idxp < KVBLK_IDXNUM);
   int32_t i;
   uint32_t len, nlen, sz;
@@ -1837,7 +1841,8 @@ static WUR iwrc _sblk_find_pi_mm(SBLK *sblk, IWLCTX *lx, const uint8_t *mm, bool
 
 static WUR iwrc _sblk_insert_pi_mm(
   SBLK *sblk, uint8_t nidx, IWLCTX *lx,
-  const uint8_t *mm, uint8_t *idxp) {
+  const uint8_t *mm, uint8_t *idxp
+  ) {
   assert(sblk->kvblk);
 
   uint8_t *k;
@@ -1886,7 +1891,8 @@ static WUR iwrc _sblk_addkv2(
   int8_t          idx,
   const IWKV_val *key,
   const IWKV_val *val,
-  bool            raw_key) {
+  bool            raw_key
+  ) {
   assert(sblk && key && key->size && key->data && val && idx >= 0 && sblk->kvblk);
 
   uint8_t kvidx;
@@ -2027,7 +2033,8 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx) {
 
 static WUR iwrc _sblk_updatekv(
   SBLK *sblk, int8_t idx,
-  const IWKV_val *key, const IWKV_val *val) {
+  const IWKV_val *key, const IWKV_val *val
+  ) {
   assert(sblk && sblk->kvblk && idx >= 0 && idx < sblk->pnum);
   IWDB db = sblk->db;
   KVBLK *kvblk = sblk->kvblk;
@@ -2812,7 +2819,6 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
   rv = _cmp_keys_prefix(dbflg, k1, kl1, &key2);
 
   if ((rv == 0) && !(dbflg & (IWDB_VNUM64_KEYS | IWDB_REALNUM_KEYS))) {
-
     if (!cn1->fullkey || !cn2->fullkey) {
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
       RCRET(rc);
@@ -2838,7 +2844,6 @@ static WUR iwrc _dbcache_cmp_nodes(const void *v1, const void *v2, void *op, int
 
       rv = _cmp_keys(dbflg, k1, kl1, &key2);
     } else if (dbflg & IWDB_COMPOUND_KEYS) {
-
       int64_t c1, c2 = key2.compound;
       IW_READVNUMBUF64(k1, c1, step);
       kl1 -= step;
@@ -3801,7 +3806,8 @@ iwrc iwkv_db_destroy(IWDB *dbp) {
 
 iwrc iwkv_puth(
   IWDB db, const IWKV_val *key, const IWKV_val *val,
-  iwkv_opflags opflags, IWKV_PUT_HANDLER ph, void *phop) {
+  iwkv_opflags opflags, IWKV_PUT_HANDLER ph, void *phop
+  ) {
   if (!db || !db->iwkv || !key || !key->size || !val) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -4091,7 +4097,8 @@ iwrc iwkv_cursor_open(
   IWDB            db,
   IWKV_cursor    *curptr,
   IWKV_cursor_op  op,
-  const IWKV_val *key) {
+  const IWKV_val *key
+  ) {
   if (  !db || !db->iwkv || !curptr
      || (key && (op < IWKV_CURSOR_EQ)) || (op < IWKV_CURSOR_BEFORE_FIRST)) {
     return IW_ERROR_INVALID_ARGS;
@@ -4213,7 +4220,8 @@ iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key)
 iwrc iwkv_cursor_get(
   IWKV_cursor cur,
   IWKV_val   *okey,                    /* Nullable */
-  IWKV_val   *oval) {                  /* Nullable */
+  IWKV_val   *oval
+  ) {                                  /* Nullable */
   int rci;
   iwrc rc = 0;
   if (!cur || !cur->lx.db) {
@@ -4411,7 +4419,8 @@ finish:
 
 IW_EXPORT iwrc iwkv_cursor_seth(
   IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags,
-  IWKV_PUT_HANDLER ph, void *phop) {
+  IWKV_PUT_HANDLER ph, void *phop
+  ) {
   int rci;
   iwrc rc = 0, irc = 0;
   if (!cur || !cur->lx.db) {
