@@ -1,6 +1,6 @@
 " Local vim rc
 
-if g:localvimrc_sourced_once
+if g:localvimrc_sourced_once || exists('g:build_dir')
   finish
 endif
 
