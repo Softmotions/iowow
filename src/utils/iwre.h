@@ -48,8 +48,8 @@ struct re {
   int   error_code;
   char *error_message;
   struct RE_Compiled code;
-  char **matches;
-  int    nmatches;
+  const char       **matches;
+  int nmatches;
 #ifdef RE_EXTRA_MEMBERS
   RE_MEMBERS
 #endif
@@ -66,7 +66,7 @@ struct re {
 #define RE_ERROR_ENGINE   -6
 
 IW_EXPORT IW_ALLOC struct re* iwre_new(const char *expression);
-IW_EXPORT int iwre_match(struct re *re, char *input);
+IW_EXPORT int iwre_match(struct re *re, const char *input);
 IW_EXPORT void iwre_release(struct re *re);
 IW_EXPORT void iwre_reset(struct re *re, const char *expression);
 IW_EXPORT void iwre_free(struct re *re);

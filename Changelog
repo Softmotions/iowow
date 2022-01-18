@@ -1,5 +1,7 @@
 iowow (1.4.14) UNRELEASED; urgency=medium
 
+  * Fixed iwre_match() function signatute allowing `const  char* input`
+  (iwre.h)
   * Added lightweight regexp implementation (iwre.h)
   * Added `size_t iwxstr_asize(IWXSTR*)` (iwxstr.h)
   * Added locale independed strtod: iwstrtod() (iwconv.h)

@@ -197,8 +197,8 @@ struct RE_Insn {
     RE_BitSet *c;
   };
   union {
-    RE_Insn *next;
-    char    *stamp;
+    RE_Insn    *next;
+    const char *stamp;
   };
 };
 
@@ -411,8 +411,9 @@ static RE_Compiled re_compile_sequence(struct re *re) {
     return re_new_Accept(re);
   }
   RE_Compiled head = re_compile_suffix(re);
-  while (*re->position && !strchr("|)}>", *re->position))
+  while (*re->position && !strchr("|)}>", *re->position)) {
     re_program_append(&head, re_compile_suffix(re));
+  }
   if (!*re->position) {
     re_program_append(&head, re_new_Accept(re));
   }
@@ -549,7 +550,7 @@ static RE_Compiled re_compile(struct re *re) {
 
 /* submatch recording */
 
-typedef re_array_of(char*) re_array_of_charp;
+typedef re_array_of(const char*) re_array_of_charp;
 
 struct RE_Submatches;
 typedef struct RE_Submatches RE_Submatches;
@@ -614,7 +615,10 @@ static inline RE_Thread re_thread(RE_Insn *pc, RE_Submatches *subs) {
   };
 }
 
-static void re_thread_schedule(struct re *re, RE_ThreadList *threads, RE_Insn *pc, char *sp, RE_Submatches *subs) {
+static void re_thread_schedule(
+  struct re *re, RE_ThreadList *threads, RE_Insn *pc, const char *sp,
+  RE_Submatches *subs
+  ) {
   if (pc->stamp == sp) {
     return;
   }
@@ -660,7 +664,7 @@ static void re_thread_schedule(struct re *re, RE_ThreadList *threads, RE_Insn *p
   threads->at[threads->size++] = re_thread(pc, re_submatches_link(subs));
 }
 
-static int re_program_run(struct re *re, char *input, char ***saved, int *nsaved) {
+static int re_program_run(struct re *re, const char *input, char const ***saved, int *nsaved) {
   int matched = RE_ERROR_NOMATCH;
   if (!re) {
     return matched;
@@ -669,7 +673,7 @@ static int re_program_run(struct re *re, char *input, char ***saved, int *nsaved
   RE_Submatches *submatches = 0;
   RE_ThreadList a = { 0, 0 }, b = { 0, 0 }, *here = &a, *next = &b;
 
-  char *sp = input;
+  const char *sp = input;
   re->position = 0;
 
   jmp_buf env;
@@ -687,8 +691,9 @@ static int re_program_run(struct re *re, char *input, char ***saved, int *nsaved
 
   {
     int i;
-    for (i = 0; i < re->code.size; ++i)
+    for (i = 0; i < re->code.size; ++i) {
       re->code.first[i].stamp = 0;
+    }
   }
 
   for (sp = input; here->size; ++sp) {
@@ -742,8 +747,9 @@ bailout:
 
   {
     int i;
-    for (i = 0; i < here->size; ++i)
+    for (i = 0; i < here->size; ++i) {
       re_submatches_unlink(re, here->at[i].submatches);
+    }
   }
 
   RE_FREE(re, a.at);
@@ -776,7 +782,7 @@ struct re* iwre_new(const char *expr) {
   return re;
 }
 
-int iwre_match(struct re *re, char *input) {
+int iwre_match(struct re *re, const char *input) {
   RE_FREE(re, re->matches);
   re->matches = 0;
   re->nmatches = 0;
@@ -874,7 +880,7 @@ static void re_escape_utf8(char **sp, unsigned int c) {
   if (c < 128) {
     *s++ = c;
   } else { /* this is good for up to 36 bits of c, which proves that Gordon Bell was right all along */
-    int n = re_log2floor((unsigned) c) / 6;
+    int n = re_log2floor(c) / 6;
     int m = 6 * n;
     *s++ = (0xff << (7 - n)) + (c >> m);
     while ((m -= 6) >= 0) *s++ = 0x80 + ((c >> m) & 0x3F);
