@@ -46,7 +46,7 @@
 
 #define IW_MAX(X__, Y__) ({ __typeof__(X__) x = (X__);  __typeof__(Y__) y = (Y__); x < y ? y : x; })
 #define IW_MIN(X__, Y__) ({ __typeof__(X__) x = (X__);  __typeof__(Y__) y = (Y__); x < y ? x : y; })
-
+#define IW_LLEN(L__) (sizeof(L__) - 1)
 
 #if (defined(_WIN32) || defined(_WIN64))
 #if (defined(IW_NODLL) || defined(IW_STATIC))
