@@ -1,6 +1,6 @@
 iowow (1.4.14) UNRELEASED; urgency=medium
 
-  * iwxstr_printf() now conforms to stdlib printf function (iwxstr.g)
+  * iwxstr_printf() now conforms to stdlib printf function (iwxstr.h)
   * Moved some useful defs from iwutil.h into basedefs.h
   * Fixed iwre_match() function signatute allowing `const  char* input`
   (iwre.h)
