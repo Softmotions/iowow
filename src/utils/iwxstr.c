@@ -5,6 +5,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <errno.h>
 
 // Default IWXSTR initial size
 #ifndef IWXSTR_AUNIT
@@ -177,83 +178,23 @@ void iwxstr_pop(IWXSTR *xstr, size_t pop_size) {
   xstr->ptr[xstr->size] = '\0';
 }
 
-static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list ap) {
+static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list va) {
   iwrc rc = 0;
-  while (*format) {
-    if (*format == '%') {
-      char cbuf[32];
-      cbuf[0] = '%';
-      size_t cblen = 1;
-      int lnum = 0;
-      ++format;
-      while (strchr("0123456789 .+-hlLzI", *format) && *format && cblen < sizeof(cbuf) - 1) {
-        if ((*format == 'l') || (*format == 'L')) {
-          lnum++;
-        }
-        cbuf[cblen++] = *(format++);
-      }
-      cbuf[cblen++] = *format;
-      cbuf[cblen] = '\0';
-      int tlen;
-      char *tmp, tbuf[128];
-      switch (*format) {
-        case 's':
-          tmp = va_arg(ap, char*);
-          if (!tmp) {
-            tmp = "(null)";
-          }
-          rc = iwxstr_cat(xstr, tmp, strlen(tmp));
-          break;
-        case 'd':
-          if (lnum >= 2) { // -V1037
-            tlen = sprintf(tbuf, cbuf, va_arg(ap, long long));
-          } else if (lnum >= 1) {
-            tlen = sprintf(tbuf, cbuf, va_arg(ap, long));
-          } else {
-            tlen = sprintf(tbuf, cbuf, va_arg(ap, int));
-          }
-          rc = iwxstr_cat(xstr, tbuf, (size_t) tlen);
-          break;
-        case 'o':
-        case 'u':
-        case 'x':
-        case 'X':
-        case 'c':
-          if (lnum >= 2) {
-            tlen = sprintf(tbuf, cbuf, va_arg(ap, unsigned long long));
-          } else if (lnum >= 1) {
-            tlen = sprintf(tbuf, cbuf, va_arg(ap, unsigned long));
-          } else {
-            tlen = sprintf(tbuf, cbuf, va_arg(ap, unsigned int));
-          }
-          rc = iwxstr_cat(xstr, tbuf, (size_t) tlen);
-          break;
-        case 'e':
-        case 'E':
-        case 'f':
-        case 'g':
-        case 'G':
-          if (lnum > 1) {
-            tlen = snprintf(tbuf, sizeof(tbuf), cbuf, va_arg(ap, long double));
-          } else {
-            tlen = snprintf(tbuf, sizeof(tbuf), cbuf, va_arg(ap, double));
-          }
-          if ((tlen < 0) || (tlen >= sizeof(tbuf))) {
-            tbuf[sizeof(tbuf) - 1] = '*';
-            tlen = sizeof(tbuf);
-          }
-          rc = iwxstr_cat(xstr, tbuf, (size_t) tlen);
-          break;
-        case '%':
-          rc = iwxstr_cat(xstr, "%", 1);
-          break;
-      }
-      RCBREAK(rc);
-    } else {
-      rc = iwxstr_cat(xstr, format, 1);
-      RCRET(rc);
-    }
-    format++;
+  char buf[1024];
+  va_list cva;
+  va_copy(cva, va);
+  char *wp = buf;
+  int len = vsnprintf(wp, sizeof(buf), format, va);
+  if (len >= sizeof(buf)) {
+    RCA(wp = malloc(len + 1), finish);
+    len = vsnprintf(wp, len + 1, format, cva);
+  }
+  rc = iwxstr_cat(xstr, wp, len);
+
+finish:
+  va_end(cva);
+  if (wp != buf) {
+    free(wp);
   }
   return rc;
 }
