@@ -119,7 +119,10 @@ foreach(HF IN ITEMS stdlib stddef stdint stdbool stdatomic unistd dirent)
     endif()
 endforeach(HF)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # Needed by Linux in order to use nftw() but fail to build on FreeBSD due to __BSD_VISIBLE define state.
 add_definitions(-D_XOPEN_SOURCE=700)
+endif()
 add_definitions(-D_DEFAULT_SOURCE)
 add_definitions(-D_LARGEFILE_SOURCE)
 add_definitions(-D_FILE_OFFSET_BITS=64)
