@@ -1,5 +1,7 @@
 iowow (1.4.14) UNRELEASED; urgency=medium
 
+  * Used ftruncate() instead of posix_fallocate() due to problems in ZFS
+(unix.c)
   * Enable XOPEN_SOURCE only for linux
   * Fixed incorrect selection of `strerror_r` for musl builds.
   * Set appropriate _XOPEN_SOURCE=700 level for `nftw` (unix.c)

@@ -279,19 +279,16 @@ iwrc iwp_ftruncate(HANDLE fh, off_t len) {
 }
 
 iwrc iwp_fallocate(HANDLE fh, off_t len) {
-#ifndef __APPLE__
-  int rci = posix_fallocate(fh, 0, len);
-  return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-#else
+#if defined(__APPLE__)
   fstore_t fstore = {
     .fst_flags   = F_ALLOCATECONTIG,
     .fst_posmode = F_PEOFPOSMODE,
     .fst_length  = len
   };
   fcntl(fh, F_PREALLOCATE, &fstore);
+#endif
   int rci = ftruncate(fh, len);
   return !rci ? 0 : iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-#endif
 }
 
 iwrc iwp_sleep(uint64_t ms) {
@@ -372,7 +369,6 @@ size_t iwp_tmpdir(char *out, size_t len) {
 }
 
 void iwp_set_current_thread_name(const char *name) {
-
 #if (defined(__APPLE__) && defined(__MACH__)) || defined(__linux__)
   // On linux and OS X the name may not be longer than 16 bytes, including
   // the null terminator. Truncate the name to 15 characters.
