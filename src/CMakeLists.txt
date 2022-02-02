@@ -119,7 +119,7 @@ foreach(HF IN ITEMS stdlib stddef stdint stdbool stdatomic unistd dirent)
     endif()
 endforeach(HF)
 
-add_definitions(-D_XOPEN_SOURCE=600)
+add_definitions(-D_XOPEN_SOURCE=700)
 add_definitions(-D_DEFAULT_SOURCE)
 add_definitions(-D_LARGEFILE_SOURCE)
 add_definitions(-D_FILE_OFFSET_BITS=64)
