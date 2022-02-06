@@ -294,10 +294,10 @@ static iwrc _default_logfn(
   uint64_t    ts,
   void       *opts,
   const char *fmt,
-  va_list     argp) {
-
+  va_list     argp
+  ) {
 #define TBUF_SZ 96
-#define EBUF_SZ 128
+#define EBUF_SZ 256
 
   iwrc rc = 0;
 
@@ -329,14 +329,13 @@ static iwrc _default_logfn(
     if (!rci) {
       errno_msg = ebuf;
     }
-#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || ((  _POSIX_C_SOURCE >= 200112L \
-                                                                             || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
+#elif defined(__GLIBC__) && defined(_GNU_SOURCE)
+    errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ); // NOLINT
+#else
     int rci = strerror_r(errno_code, ebuf, EBUF_SZ);
     if (!rci) {
       errno_msg = ebuf;
     }
-#else
-    errno_msg = strerror_r(errno_code, ebuf, EBUF_SZ); // NOLINT
 #endif
   }
 
