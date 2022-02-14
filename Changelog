@@ -1,6 +1,6 @@
-iowow (1.4.14) UNRELEASED; urgency=medium
+iowow (1.4.14) testing; urgency=medium
 
-  * Used ftruncate() instead of posix_fallocate() due to problems on ZFS (unix.c)
+  * Used ftruncate() instead of posix_fallocate() due to EINVAL on ZFS (unix.c)
   * Enable XOPEN_SOURCE only for linux
   * Fixed incorrect selection of `strerror_r` for musl builds.
   * Set appropriate _XOPEN_SOURCE=700 level for `nftw` (unix.c)
@@ -12,7 +12,7 @@ iowow (1.4.14) UNRELEASED; urgency=medium
   * Added `size_t iwxstr_asize(IWXSTR*)` (iwxstr.h)
   * Added locale independed strtod: iwstrtod() (iwconv.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 21 Oct 2021 19:09:35 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 14 Feb 2022 18:01:17 +0700
 
 iowow (1.4.13) testing; urgency=medium
 
