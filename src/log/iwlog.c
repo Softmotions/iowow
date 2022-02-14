@@ -423,7 +423,7 @@ static iwrc _default_logfn(
       fnameptr = strdup(file);
       RCA(fnameptr, finish);
     }
-#ifdef IW_HAVE_BASENAME_R
+#if defined(IW_HAVE_BASENAME_R) && defined(__FreeBSD__)
     fname = basename_r(file, fnameptr);
 #else
     fname = basename(fnameptr); // NOLINT
