@@ -111,6 +111,11 @@ if (HAVE_CLOCK_MONOTONIC)
   add_definitions(-DIW_HAVE_CLOCK_MONOTONIC)
 endif()
 
+check_symbol_exists(basename_r libgen.h HAVE_BASENAME_R)
+if (HAVE_BASENAME_R)
+  set_source_files_properties(log/iwlog.c PROPERTIES COMPILE_FLAGS -DIW_HAVE_BASENAME_R)
+endif()
+
 foreach(HF IN ITEMS stdlib stddef stdint stdbool stdatomic unistd dirent)
     string(TOUPPER "${HF}" UHF)
     check_include_file(${HF}.h "IW_HAVE_${UHF}")
@@ -215,7 +220,12 @@ file(GLOB PROJECT_GENERATED_HDRS ${PROJECT_GENERATED_DIR}/*.h)
 list(APPEND ALL_HDRS ${PROJECT_GENERATED_HDRS})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/libiowow.pc.in ${PROJECT_GENERATED_DIR}/libiowow.pc @ONLY)
-install(FILES ${PROJECT_GENERATED_DIR}/libiowow.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+  install(FILES ${PROJECT_GENERATED_DIR}/libiowow.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}data/pkgconfig)
+else()
+  install(FILES ${PROJECT_GENERATED_DIR}/libiowow.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
 
 foreach(MODULE IN LISTS MODULES)
     if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}/CMakeLists.txt)
