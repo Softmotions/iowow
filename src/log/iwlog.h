@@ -236,11 +236,11 @@ IW_EXPORT iwrc iwlog_register_ecodefn(IWLOG_ECODE_FN fp);
  */
 IW_EXPORT iwrc iwlog(
   iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-  const char *fmt, ...);
+  const char *fmt, ...) __attribute__((format(__printf__, 5, 6)));
 
 IW_EXPORT void iwlog2(
   iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-  const char *fmt, ...);
+  const char *fmt, ...) __attribute__((format(__printf__, 5, 6)));
 
 IW_EXPORT iwrc iwlog_va(
   FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line,

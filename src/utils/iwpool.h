@@ -107,7 +107,7 @@ IW_EXPORT char* iwpool_strndup2(IWPOOL *pool, const char *str, size_t len);
  * @param ...
  * @return Pointer to resulted string of `zero` if operation is failed.
  */
-IW_EXPORT char* iwpool_printf(IWPOOL *pool, const char *format, ...);
+IW_EXPORT char* iwpool_printf(IWPOOL *pool, const char *format, ...) __attribute__((format(__printf__, 2, 3)));
 
 IW_EXPORT char** iwpool_split_string(
   IWPOOL *pool, const char *haystack,
@@ -116,7 +116,7 @@ IW_EXPORT char** iwpool_split_string(
 IW_EXPORT char** iwpool_printf_split(
   IWPOOL *pool,
   const char *split_chars, bool ignore_whitespace,
-  const char *format, ...);
+  const char *format, ...) __attribute__((format(__printf__, 4, 5)));
 
 /**
  * @brief Destroys a given memory pool and frees its resources.

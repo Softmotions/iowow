@@ -1,3 +1,9 @@
+iowow (1.4.15) UNRELEASED; urgency=medium
+
+  * Added format checking __attribute__ to all printf like functions.
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 17 Feb 2022 17:33:20 +0700
+
 iowow (1.4.14) testing; urgency=medium
 
   * Used ftruncate() instead of posix_fallocate() due to EINVAL on ZFS (unix.c)

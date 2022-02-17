@@ -50,7 +50,7 @@ IW_EXPORT iwrc iwxstr_cat2(IWXSTR *xstr, const char *buf);
 
 IW_EXPORT iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size);
 
-IW_EXPORT iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...);
+IW_EXPORT iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) __attribute__((format(__printf__, 2, 3)));
 
 IW_EXPORT void iwxstr_shift(IWXSTR *xstr, size_t shift_size);
 
