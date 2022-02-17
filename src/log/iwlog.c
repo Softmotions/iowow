@@ -56,7 +56,7 @@
 static iwrc _default_logfn(
   FILE *out, locale_t locale, iwlog_lvl lvl, iwrc ecode, int errno_code, int werror_code,
   const char *file, int line, uint64_t ts, void *opts, const char *fmt,
-  va_list argp);
+  va_list argp, bool no_va);
 
 static const char* _ecode_explained(locale_t locale, uint32_t ecode);
 static const char* _default_ecodefn(locale_t locale, uint32_t ecode);
@@ -71,7 +71,7 @@ iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fm
   va_list argp;
   iwrc rc;
   va_start(argp, fmt);
-  rc = iwlog_va(stderr, lvl, ecode, file, line, fmt, argp);
+  rc = iwlog_va(stderr, lvl, ecode, file, line, fmt, argp, false);
   va_end(argp);
   return rc;
 }
@@ -79,11 +79,25 @@ iwrc iwlog(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fm
 void iwlog2(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, ...) {
   va_list argp;
   va_start(argp, fmt);
-  iwlog_va(stderr, lvl, ecode, file, line, fmt, argp);
+  iwlog_va(stderr, lvl, ecode, file, line, fmt, argp, false);
   va_end(argp);
 }
 
-iwrc iwlog_va(FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *fmt, va_list argp) {
+void iwlog3(iwlog_lvl lvl, iwrc ecode, const char *file, int line, const char *data) {
+  va_list argp = { 0 };
+  iwlog_va(stderr, lvl, ecode, file, line, data, argp, true);
+}
+
+iwrc iwlog_va(
+  FILE       *out,
+  iwlog_lvl   lvl,
+  iwrc        ecode,
+  const char *file,
+  int         line,
+  const char *fmt,
+  va_list     argp,
+  bool        no_va
+  ) {
   assert(_current_logfn);
 
 #ifdef _WIN32
@@ -101,7 +115,7 @@ iwrc iwlog_va(FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line, 
   IWLOG_FN logfn = _current_logfn;
   void *opts = _current_logfn_options;
 
-  rc = logfn(out, locale, lvl, ecode, errno_code, werror_code, file, line, ts, opts, fmt, argp);
+  rc = logfn(out, locale, lvl, ecode, errno_code, werror_code, file, line, ts, opts, fmt, argp, no_va);
   if (rc) {
     fprintf(stderr, "Logging function returned with error: %" PRIu64 IW_LINE_SEP, rc);
   }
@@ -294,7 +308,8 @@ static iwrc _default_logfn(
   uint64_t    ts,
   void       *opts,
   const char *fmt,
-  va_list     argp
+  va_list     argp,
+  bool        no_va
   ) {
 #define TBUF_SZ 96
 #define EBUF_SZ 256
@@ -454,9 +469,13 @@ static iwrc _default_logfn(
     }
   }
   if (fmt) {
-    vfprintf(out, fmt, argp);
+    if (no_va) {
+      fwrite(fmt, strlen(fmt), 1, out);
+    } else {
+      vfprintf(out, fmt, argp);
+    }
   }
-  fprintf(out, IW_LINE_SEP);
+  fwrite(IW_LINE_SEP, sizeof(IW_LINE_SEP) - 1, 1, out);
   fflush(out);
 
 #else
@@ -476,7 +495,11 @@ static iwrc _default_logfn(
     }
   }
   if (fmt) {
-    __android_log_vprint(alp, "IWLOG", fmt, argp);
+    if (no_va) {
+      __android_log_write(alp, "IWLOG", fmt);
+    } else {
+      __android_log_vprint(alp, "IWLOG", fmt, argp);
+    }
   }
 
 #endif

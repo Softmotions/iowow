@@ -141,7 +141,7 @@ typedef iwrc (*IWLOG_FN)(
   FILE *out, locale_t locale, iwlog_lvl lvl, iwrc ecode,
   int errno_code, int werror_code, const char *file,
   int line, uint64_t ts, void *opts, const char *fmt,
-  va_list argp);
+  va_list argp, bool no_va);
 
 /**
  * @brief Return the locale aware error code explanation message.
@@ -242,9 +242,13 @@ IW_EXPORT void iwlog2(
   iwlog_lvl lvl, iwrc ecode, const char *file, int line,
   const char *fmt, ...) __attribute__((format(__printf__, 5, 6)));
 
+IW_EXPORT void iwlog3(
+  iwlog_lvl lvl, iwrc ecode, const char *file, int line,
+  const char *data);
+
 IW_EXPORT iwrc iwlog_va(
   FILE *out, iwlog_lvl lvl, iwrc ecode, const char *file, int line,
-  const char *fmt, va_list argp);
+  const char *fmt, va_list argp, bool no_va);
 
 #ifdef _DEBUG
 #define iwlog_debug(IW_fmt, ...) \
@@ -261,14 +265,14 @@ IW_EXPORT iwrc iwlog_va(
 
 #ifdef _DEBUG
 #define iwlog_debug2(IW_fmt) \
-  iwlog2(IWLOG_DEBUG, 0, __FILE__, __LINE__, (IW_fmt))
+  iwlog3(IWLOG_DEBUG, 0, __FILE__, __LINE__, (IW_fmt))
 #else
 #define iwlog_debug2(IW_fmt)
 #endif
-#define iwlog_info2(IW_fmt) iwlog2(IWLOG_INFO, 0, __FILE__, __LINE__, (IW_fmt))
-#define iwlog_warn2(IW_fmt) iwlog2(IWLOG_WARN, 0, __FILE__, __LINE__, (IW_fmt))
+#define iwlog_info2(IW_fmt) iwlog3(IWLOG_INFO, 0, __FILE__, __LINE__, (IW_fmt))
+#define iwlog_warn2(IW_fmt) iwlog3(IWLOG_WARN, 0, __FILE__, __LINE__, (IW_fmt))
 #define iwlog_error2(IW_fmt) \
-  iwlog2(IWLOG_ERROR, 0, __FILE__, __LINE__, (IW_fmt))
+  iwlog3(IWLOG_ERROR, 0, __FILE__, __LINE__, (IW_fmt))
 
 #ifdef _DEBUG
 #define iwlog_ecode_debug(IW_ecode, IW_fmt, ...) \
@@ -285,28 +289,28 @@ IW_EXPORT iwrc iwlog_va(
 
 #ifdef _DEBUG
 #define iwlog_ecode_debug2(IW_ecode, IW_fmt) \
-  iwlog2(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+  iwlog3(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #else
 #define iwlog_ecode_debug2(IW_ecode, IW_fmt)
 #endif
 #define iwlog_ecode_info2(IW_ecode, IW_fmt) \
-  iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+  iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_warn2(IW_ecode, IW_fmt) \
-  iwlog2(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+  iwlog3(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_error2(IW_ecode, IW_fmt) \
-  iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+  iwlog3(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 
 #ifdef _DEBUG
 #define iwlog_ecode_debug3(IW_ecode) \
-  iwlog2(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, "")
+  iwlog3(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, "")
 #else
 #define iwlog_ecode_debug3(IW_ecode)
 #endif
-#define iwlog_ecode_info3(IW_ecode) iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, ""))
+#define iwlog_ecode_info3(IW_ecode) iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, ""))
 #define iwlog_ecode_warn3(IW_ecode) \
-  iwlog2(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, "")
+  iwlog3(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, "")
 #define iwlog_ecode_error3(IW_ecode) \
-  iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, "")
+  iwlog3(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, "")
 
 #define IWRC(IW_act, IW_rc)                                   \
   {                                                           \
@@ -315,7 +319,7 @@ IW_EXPORT iwrc iwlog_va(
       if (!(IW_rc))                                           \
       (IW_rc) = __iwrc;                                       \
       else                                                    \
-      iwlog2(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, "");    \
+      iwlog3(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, "");    \
     }                                                         \
   }
 
@@ -323,7 +327,7 @@ IW_EXPORT iwrc iwlog_va(
   {                                                             \
     iwrc __iwrc = (IW_act);                                     \
     if (__iwrc) {                                               \
-      iwlog2(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+      iwlog3(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
     }                                                           \
   }
 
@@ -334,7 +338,7 @@ IW_EXPORT iwrc iwlog_va(
       if (!(IW_rc))                                             \
       (IW_rc) = __iwrc;                                         \
       else                                                      \
-      iwlog2(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+      iwlog3(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
     }                                                           \
   }
 
