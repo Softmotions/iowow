@@ -1,8 +1,8 @@
-iowow (1.4.15) UNRELEASED; urgency=medium
+iowow (1.4.15) testing; urgency=medium
 
   * Added format checking __attribute__ to all printf like functions.
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 17 Feb 2022 17:33:20 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Fri, 18 Feb 2022 21:54:04 +0700
 
 iowow (1.4.14) testing; urgency=medium
 
