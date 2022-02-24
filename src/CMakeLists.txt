@@ -4,7 +4,7 @@ if (NOT CMAKE_BUILD_TYPE)
     message(FATAL_ERROR "Please specify the build type -DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo")
 endif()
 
-set(MODULES log utils platform fs rdb kv)
+set(MODULES log utils platform fs rdb kv re)
 
 set(PROJECT_LLIBRARIES)
 set(PROJECT_INCLUDE_DIRS)
@@ -170,7 +170,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/murmur3.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwtp.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrb.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwre.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/re/iwre.h
                      )
 
 list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)
