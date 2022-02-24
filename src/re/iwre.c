@@ -9,17 +9,17 @@ struct iwre {
   cregex_program_t *program;
 };
 
-int iwre_match(struct iwre *re, const char *text, const char *matches[], size_t nmatches) {
-  if (nmatches % 2 != 0) {
+int iwre_match(struct iwre *re, const char *text, const char *mpairs[], size_t mpairs_len) {
+  if (mpairs_len % 2 != 0) {
     errno = EINVAL;
     return -1;
   }
-  memset(matches, 0, sizeof(matches[0]) * nmatches);
-  int ret = cregex_program_run(re->program, text, matches, nmatches);
+  memset(mpairs, 0, sizeof(mpairs[0]) * mpairs_len);
+  int ret = cregex_program_run(re->program, text, mpairs, mpairs_len);
   if (ret < 1) {
     return 0;
   }
-  for (int i = 0, ret = 0; i < nmatches && matches[i]; ++i) {
+  for (int i = 0, ret = 0; i < mpairs_len && mpairs[i]; ++i) {
     ++ret;
   }
   return ret / 2;
