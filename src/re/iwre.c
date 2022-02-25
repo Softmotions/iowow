@@ -6,8 +6,13 @@
 #include <errno.h>
 
 struct iwre {
+  const char       *pattern;
   cregex_program_t *program;
 };
+
+const char* iwre_pattern_get(struct iwre *re) {
+  return re->pattern;
+}
 
 int iwre_match(struct iwre *re, const char *text, const char *mpairs[], size_t mpairs_len) {
   if (mpairs_len % 2 != 0) {
@@ -42,6 +47,7 @@ struct iwre* iwre_create(const char *pattern) {
   if (!node) {
     goto error;
   }
+  re->pattern = pattern;
   re->program = cregex_compile_node(node);
   if (!re->program) {
     goto error;

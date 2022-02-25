@@ -11,6 +11,8 @@ struct iwre;
 
 struct iwre* iwre_create(const char *pattern);
 
+const char* iwre_pattern_get(struct iwre*);
+
 /// @return Number of of matches `n`, where `2*n <= nmatches`
 int iwre_match(struct iwre*, const char *text, const char *mpairs[], size_t mpairs_len);
 
