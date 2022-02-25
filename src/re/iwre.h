@@ -5,6 +5,8 @@
 
 #include "basedefs.h"
 
+#define IWRE_MAX_MATCHES 64
+
 struct iwre;
 
 struct iwre* iwre_create(const char *pattern);

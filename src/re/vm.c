@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "iwre.h"
 #include "cregex.h"
 
-#define REGEX_VM_MAX_MATCHES 64
+#define REGEX_VM_MAX_MATCHES IWRE_MAX_MATCHES
 
 /* The VM executes one or more threads, each running a regular expression
  * program, which is just a list of regular expression instructions. Each
