@@ -1,6 +1,8 @@
-cd ./build/src/utils/tests
+cd ./build/src/re/tests
+file ./iwre_test1
 #set args -c
 
+set confirm off
 set follow-fork-mode parent
 set detach-on-fork on
 set print elements 4096

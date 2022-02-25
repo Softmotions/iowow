@@ -19,7 +19,8 @@ int iwre_match(struct iwre *re, const char *text, const char *mpairs[], size_t m
   if (ret < 1) {
     return 0;
   }
-  for (int i = 0, ret = 0; i < mpairs_len && mpairs[i]; ++i) {
+  ret = 0;
+  for (int i = 0; i < mpairs_len && mpairs[i]; ++i) {
     ++ret;
   }
   return ret / 2;
