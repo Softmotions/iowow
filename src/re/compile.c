@@ -269,23 +269,25 @@ static cregex_program_t* compile_node_with_program(
     .captured = (cregex_node_t*) root
   };
 
+  cregex_node_t naroot = (cregex_node_t) {
+    .type = REGEX_NODE_TYPE_CONCATENATION,
+    .left
+      = &(cregex_node_t) {
+      .type = REGEX_NODE_TYPE_QUANTIFIER,
+      .nmin = 0,
+      .nmax = -1,
+      .greedy = 0,
+      .quantified = &(
+        cregex_node_t) {
+        .type = REGEX_NODE_TYPE_ANY_CHARACTER
+      }
+      },
+    .right = (cregex_node_t*) root
+  };
+
   /* add .*? unless pattern starts with ^ */
   if (!node_is_anchored(root)) {
-    root = &(cregex_node_t) {
-      .type = REGEX_NODE_TYPE_CONCATENATION,
-      .left
-        = &(cregex_node_t) {
-        .type = REGEX_NODE_TYPE_QUANTIFIER,
-        .nmin = 0,
-        .nmax = -1,
-        .greedy = 0,
-        .quantified = &(
-          cregex_node_t) {
-          .type = REGEX_NODE_TYPE_ANY_CHARACTER
-        }
-        },
-      .right = (cregex_node_t*) root
-    };
+    root = &naroot;
   }
 
   /* compile */
