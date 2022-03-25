@@ -166,12 +166,12 @@ char* iwpool_printf(IWPOOL *pool, const char *format, ...) {
   return res;
 }
 
-char** iwpool_split_string(
+const char** iwpool_split_string(
   IWPOOL *pool, const char *haystack, const char *split_chars,
-  bool ignore_whitespace) {
-
+  bool ignore_whitespace
+  ) {
   size_t hsz = strlen(haystack);
-  char **ret = iwpool_alloc((hsz + 1) * sizeof(char*), pool);
+  const char **ret = iwpool_alloc((hsz + 1) * sizeof(char*), pool);
   if (!ret) {
     return 0;
   }
@@ -206,11 +206,11 @@ char** iwpool_split_string(
   return ret;
 }
 
-char** iwpool_printf_split(
+const char** iwpool_printf_split(
   IWPOOL *pool,
   const char *split_chars, bool ignore_whitespace,
-  const char *format, ...) {
-
+  const char *format, ...
+  ) {
   va_list ap;
   va_start(ap, format);
   int size = _iwpool_printf_estimate_size(format, ap);
@@ -222,7 +222,7 @@ char** iwpool_printf_split(
   va_start(ap, format);
   vsnprintf(buf, size, format, ap);
   va_end(ap);
-  char **ret = iwpool_split_string(pool, buf, split_chars, ignore_whitespace);
+  const char **ret = iwpool_split_string(pool, buf, split_chars, ignore_whitespace);
   free(buf);
   return ret;
 }

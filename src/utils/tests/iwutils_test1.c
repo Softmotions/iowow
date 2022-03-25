@@ -40,7 +40,7 @@ void test_iwu_replace_into(void) {
 void test_iwpool_split_string(void) {
   IWPOOL *pool = iwpool_create(128);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
-  char **res = iwpool_split_string(pool, " foo , bar:baz,,z,", ",:", true);
+  const char **res = iwpool_split_string(pool, " foo , bar:baz,,z,", ",:", true);
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
   int i = 0;
   for ( ; res[i]; ++i) {

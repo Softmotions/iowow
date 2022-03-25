@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * iwpool_split_xx() now returns const pointer (iwpool.h)
   * Added new regexp API implementation (iwre.h) based on https://github.com/jserv/cregex/
   * Removed iwsha256() from sources. Use iwnet/beassl for hashing instead.
 
