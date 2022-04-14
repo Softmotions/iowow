@@ -67,8 +67,8 @@ char* iwbin2hex(
   char* const                hex,
   const size_t               hex_maxlen,
   const unsigned char* const bin,
-  const size_t               bin_len) {
-
+  const size_t               bin_len
+  ) {
   size_t i = (size_t) 0U;
   unsigned int x;
   int b;
@@ -234,6 +234,38 @@ int64_t iwatoi(const char *str) {
     }
     num = num * 10 + *str - '0';
     str++;
+  }
+  return num * sign;
+}
+
+int64_t iwatoi2(const char *str, size_t len) {
+  while (len > 0 && *str > '\0' && *str <= ' ') {
+    str++;
+    len--;
+  }
+  if (len == 0) {
+    return 0;
+  }
+  int sign = 1;
+  int64_t num = 0;
+  if (*str == '-') {
+    str++;
+    len--;
+    sign = -1;
+  } else if (*str == '+') {
+    str++;
+    len--;
+  }
+  if (!strcmp(str, "inf")) {
+    return (INT64_MAX * sign);
+  }
+  while (len > 0 && *str != '\0') {
+    if ((*str < '0') || (*str > '9')) {
+      break;
+    }
+    num = num * 10 + *str - '0';
+    str++;
+    len--;
   }
   return num * sign;
 }

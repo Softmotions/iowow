@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Added `int64_t iwatoi2(const char *str, size_t len)` (iwconv.h)
   * iwpool_split_xx() now returns const pointer (iwpool.h)
   * Fixed iwre() regexp compilation error.
   * Added new regexp API implementation (iwre.h) based on https://github.com/jserv/cregex/

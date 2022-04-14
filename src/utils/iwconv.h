@@ -39,6 +39,8 @@ IW_EXTERN_C_START
 
 IW_EXPORT int64_t iwatoi(const char *str);
 
+IW_EXPORT int64_t iwatoi2(const char *str, size_t len);
+
 IW_EXPORT long double iwatof(const char *str);
 
 IW_EXPORT double iwstrtod(const char *str, char **end);
