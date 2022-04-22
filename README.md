@@ -1,4 +1,4 @@
-IOWOW - The C11 persistent key/value database engine based on [skip list](https://en.wikipedia.org/wiki/Skip_list)
+IOWOW - The C11 persistent key/value database engine
 ==================================================================================================================
 
 [![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/iowow/blob/master/LICENSE)
