@@ -255,7 +255,7 @@ IW_EXPORT iwrc iwp_mkdirs(const char *path);
  * It will be writein into @a opath
  * @param opath Allocated buffer at least `PATH_MAX` length
  */
-IW_EXPORT iwrc iwp_exec_path(char *opath);
+IW_EXPORT iwrc iwp_exec_path(char *opath, size_t opath_maxlen);
 
 /**
  * @brief Return number of CPU cores.

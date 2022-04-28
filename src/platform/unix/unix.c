@@ -46,6 +46,8 @@
 #endif
 
 #ifdef __APPLE__
+#include <libproc.h>
+
 #define st_atim st_atimespec
 #define st_ctim st_ctimespec
 #define st_mtim st_mtimespec
@@ -317,22 +319,31 @@ iwrc iwp_removedir(const char *path) {
   return 0;
 }
 
-iwrc iwp_exec_path(char *opath) {
-#ifdef __linux
-  pid_t pid;
-  char path[MAXPATHLEN];
+iwrc iwp_exec_path(char *opath, size_t opath_maxlen) {
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
   char epath[MAXPATHLEN];
-  memset(epath, 0, sizeof(epath));
-  pid = getpid();
-  sprintf(path, "/proc/%d/exe", pid);
-  if (readlink(path, epath, MAXPATHLEN - 1) == -1) {
+  #if defined(__linux__)
+  char *path = "/proc/self/exe";
+  #else
+  char *path = "/proc/curproc/file";
+  #endif
+  ssize_t ret = readlink(path, opath, opath_maxlen);
+  if (ret == -1) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
-  } else {
-    strncpy(opath, epath, MAXPATHLEN);
+  } else if (ret < opath_maxlen) {
+    opath[ret] = '\0';
+  } else if (opath_maxlen > 0) {
+    opath[opath_maxlen - 1] = '\0';
   }
   return 0;
+#elif defined(__APPLE__)
+  pid_t pid = getpid();
+  int ret = proc_pidpath(pid, opath, opath_maxlen);
+  if (ret < 0) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
 #else
-  // todo
+  // TODO:
   return IW_ERROR_NOT_IMPLEMENTED;
 #endif
 }
