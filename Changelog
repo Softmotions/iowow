@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * iwp_exec_path() implemented for FreeBSD & Macos
   * Added `int64_t iwatoi2(const char *str, size_t len)` (iwconv.h)
   * iwpool_split_xx() now returns const pointer (iwpool.h)
   * Fixed iwre() regexp compilation error.
