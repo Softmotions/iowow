@@ -321,7 +321,6 @@ iwrc iwp_removedir(const char *path) {
 
 iwrc iwp_exec_path(char *opath, size_t opath_maxlen) {
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
-  char epath[MAXPATHLEN];
   #if defined(__linux__)
   char *path = "/proc/self/exe";
   #else
