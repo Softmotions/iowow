@@ -43,6 +43,7 @@
 #include <sys/prctl.h>
 #elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
 #include <pthread_np.h>
+#include <sys/sysctl.h>
 #endif
 
 #ifdef __APPLE__
@@ -320,12 +321,13 @@ iwrc iwp_removedir(const char *path) {
 }
 
 iwrc iwp_exec_path(char *opath, size_t opath_maxlen) {
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
-  #if defined(__linux__)
+ #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+  const int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+  if (sysctl(mib, 4, opath, &opath_maxlen, 0, 0) < 0) {
+    rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+ #elif defined(__linux__)
   char *path = "/proc/self/exe";
-  #else
-  char *path = "/proc/curproc/file";
-  #endif
   ssize_t ret = readlink(path, opath, opath_maxlen);
   if (ret == -1) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
