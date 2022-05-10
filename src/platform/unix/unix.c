@@ -326,6 +326,7 @@ iwrc iwp_exec_path(char *opath, size_t opath_maxlen) {
   if (sysctl(mib, 4, opath, &opath_maxlen, 0, 0) < 0) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
+  return 0;
  #elif defined(__linux__)
   char *path = "/proc/self/exe";
   ssize_t ret = readlink(path, opath, opath_maxlen);
