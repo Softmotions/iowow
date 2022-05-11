@@ -368,9 +368,9 @@ static void _last_fix_and_reset_points(IWAL *wal, uint8_t *wmm, off_t fsz, off_t
         rp += sizeof(WBRESIZE);
         break;
       }
-      case WOP_FIXPOINT: {
+      case WOP_SAVEPOINT: {
         *fpos = (rp - wmm);
-        rp += sizeof(WBFIXPOINT);
+        rp += sizeof(WBSAVEPOINT);
         break;
       }
       case WOP_RESET: {
@@ -549,16 +549,16 @@ static iwrc _rollforward_exl(IWAL *wal, IWFS_EXT *extf, int recover_mode) {
         RCGO(rc, finish);
         break;
       }
-      case WOP_FIXPOINT:
+      case WOP_SAVEPOINT:
         if (fpos == rp - wmm) { // last fixpoint to
-          WBFIXPOINT wb;
+          WBSAVEPOINT wb;
           memcpy(&wb, rp, sizeof(wb));
           iwlog_warn("Database recovered at point of time: %"
                      PRIu64
                      " ms since epoch\n", wb.ts);
           goto finish;
         }
-        rp += sizeof(WBFIXPOINT);
+        rp += sizeof(WBSAVEPOINT);
         break;
       case WOP_RESET: {
         rp += sizeof(WBRESET);
@@ -649,8 +649,8 @@ static iwrc _checkpoint_exl(IWAL *wal, uint64_t *tsp, bool no_fixpoint) {
   if (!no_fixpoint) {
     wal->force_cp = false;
     wal->force_sp = false;
-    WBFIXPOINT wb = {
-      .id = WOP_FIXPOINT
+    WBSAVEPOINT wb = {
+      .id = WOP_SAVEPOINT
     };
     rc = iwp_current_time_ms(&wb.ts, false);
     RCGO(rc, finish);
@@ -748,8 +748,8 @@ iwrc _savepoint_exl(IWAL *wal, uint64_t *tsp, bool sync) {
     *tsp = 0;
   }
   wal->force_sp = false;
-  WBFIXPOINT wbfp = {
-    .id = WOP_FIXPOINT
+  WBSAVEPOINT wbfp = {
+    .id = WOP_SAVEPOINT
   };
   iwrc rc = iwp_current_time_ms(&wbfp.ts, false);
   RCRET(rc);

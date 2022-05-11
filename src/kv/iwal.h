@@ -41,7 +41,7 @@ typedef enum {
   WOP_COPY,
   WOP_WRITE,
   WOP_RESIZE,
-  WOP_FIXPOINT,
+  WOP_SAVEPOINT,
   WOP_RESET,
   WOP_SEP = 127, /**< WAL file separator */
 } wop_t;
@@ -90,11 +90,11 @@ typedef struct WBRESIZE {
   off_t   nsize;
 } WBRESIZE;
 
-typedef struct WBFIXPOINT {
+typedef struct WBSAVEPOINT {
   uint8_t  id;
   uint8_t  pad[3];
   uint64_t ts;
-} WBFIXPOINT;
+} WBSAVEPOINT;
 #pragma pack(pop)
 
 iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool recover_backup);
