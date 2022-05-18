@@ -34,13 +34,15 @@
 
 IW_EXTERN_C_START
 
-struct _IWSTW;
-typedef struct _IWSTW*IWSTW;
+struct iwstw;
+typedef struct iwstw*IWSTW;
 
 /**
  * @brief Task to execute
  */
 typedef void (*iwstw_task_f)(void *arg);
+
+typedef void (*iwstw_on_task_discard_f)(iwstw_task_f task, void *arg);
 
 /**
  * @brief Starts a single thread worker.
@@ -75,9 +77,21 @@ IW_EXPORT iwrc iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
 IW_EXPORT iwrc iwstw_schedule(IWSTW stw, iwstw_task_f task, void *task_arg);
 
 /**
+ * @brief Schedule task for execution discading all pending tasks on queue.
+ * @note If worker is in process of stopping `IW_ERROR_INVALID_STATE` will be returned.
+ */
+IW_EXPORT iwrc iwstw_schedule_only(IWSTW stw, iwstw_task_f task, void *task_arg);
+
+/**
  * @brief Schedule task only if task queue is empty.
  */
 IW_EXPORT iwrc iwstw_schedule_empty_only(IWSTW stw, iwstw_task_f task, void *task_arg, bool *out_scheduled);
+
+/**
+ * @brief Set on task discard callback function.
+ * Called when pending task removed from queue and will not be executed.
+ */
+IW_EXPORT void iwstw_set_on_task_discard(IWSTW stw, iwstw_on_task_discard_f on_task_discard);
 
 /**
  * @brief Returns size of tasks queue.
