@@ -837,7 +837,9 @@ static void* _cpt_worker_fn(void *op) {
     }
     tp.tv_sec += 1; // one sec tick
     tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);
-    rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
+    do {
+      rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
+    } while (rci == EINTR);
     if (rci && (rci != ETIMEDOUT)) {
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
       _unlock(wal);
