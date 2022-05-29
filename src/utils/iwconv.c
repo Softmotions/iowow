@@ -59,7 +59,6 @@ size_t iwhex2bin(const char *hex, int hexlen, char *out, int max) {
       return vpos;
     }
   }
-  ;
   return vpos;
 }
 
