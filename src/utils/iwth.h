@@ -31,6 +31,12 @@
 #include "basedefs.h"
 #include <pthread.h>
 
+IW_EXPORT iwrc iw_cond_timed_wait_ms(
+  pthread_cond_t  *cond,
+  pthread_mutex_t *mtx,
+  long             timeout_ms,
+  bool            *out_is_timeout);
+
 #if defined(__APPLE__) || (defined(__ANDROID_API__) && __ANDROID_API__ < 24)
 
 #ifdef __cplusplus

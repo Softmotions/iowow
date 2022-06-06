@@ -1,5 +1,37 @@
 #include "iwth.h"
+#include "iwp.h"
+#include "iwlog.h"
+
 #include <errno.h>
+#include <time.h>
+
+iwrc iw_cond_timed_wait_ms(pthread_cond_t *cond, pthread_mutex_t *mtx, long timeout_ms, bool *out_is_timeout) {
+  iwrc rc;
+  int rci;
+  struct timespec tp;
+  *out_is_timeout = false;
+
+#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
+  rc = iwp_clock_get_time(CLOCK_MONOTONIC, &tp);
+#else
+  rc = iwp_clock_get_time(CLOCK_REALTIME, &tp);
+#endif
+  RCRET(rc);
+  tp.tv_sec += timeout_ms / 1000;
+  tp.tv_nsec += (timeout_ms % 1000) * 1000000;
+  do {
+    rci = pthread_cond_timedwait(cond, mtx, &tp);
+  } while (rci == EINTR);
+  if (rci) {
+    if (rci == ETIMEDOUT) {
+      *out_is_timeout = true;
+    } else {
+      rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    }
+  }
+
+  return rc;
+}
 
 #ifdef __APPLE__
 
@@ -17,14 +49,16 @@ int pthread_barrierattr_destroy(pthread_barrierattr_t *attr __unused) {
 
 int pthread_barrierattr_getpshared(
   const pthread_barrierattr_t* restrict attr __unused,
-  int* restrict                         pshared) {
+  int* restrict                         pshared
+  ) {
   *pshared = PTHREAD_PROCESS_PRIVATE;
   return 0;
 }
 
 int pthread_barrierattr_setpshared(
   pthread_barrierattr_t *attr __unused,
-  int                    pshared) {
+  int                    pshared
+  ) {
   if (pshared != PTHREAD_PROCESS_PRIVATE) {
     errno = EINVAL;
     return -1;
@@ -35,7 +69,8 @@ int pthread_barrierattr_setpshared(
 int pthread_barrier_init(
   pthread_barrier_t* restrict           barrier,
   const pthread_barrierattr_t* restrict attr __unused,
-  unsigned                              count) {
+  unsigned                              count
+  ) {
   if (count == 0) {
     errno = EINVAL;
     return -1;
