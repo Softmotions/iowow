@@ -299,7 +299,11 @@ iwrc iwp_sleep(uint64_t ms) {
   struct timespec req;
   req.tv_sec = ms / 1000UL;
   req.tv_nsec = (ms % 1000UL) * 1000UL * 1000UL;
-  if (nanosleep(&req, NULL)) {
+again:
+  if (nanosleep(&req, NULL) == -1) {
+    if (errno == EINTR) {
+      goto again;
+    }
     rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, errno);
   }
   return rc;
