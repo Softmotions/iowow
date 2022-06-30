@@ -170,6 +170,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/murmur3.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwtp.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrb.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwini.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/re/iwre.h
                      )
 

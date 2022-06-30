@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Added .ini file parsing utility module (iwini.h)
   * Added iw_cond_timed_wait_ms() (iwth.h)
   * Added iwstw_set_on_task_discard(), iwstw_schedule_only() (iwstw.h)
   * Fixed iwp_exec_path() on FreeBSD sinceprocfs(5) is not mounted by default in FreeBSD.
