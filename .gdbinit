@@ -1,5 +1,5 @@
-cd ./build/src/re/tests
-file ./iwre_test1
+cd ./build/src/utils/tests
+file ./iwhmap_test1
 #set args -c
 
 set confirm off

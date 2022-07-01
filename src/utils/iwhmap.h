@@ -65,11 +65,17 @@ IW_EXPORT IWHMAP* iwhmap_create_str(void (*kv_free_fn)(void*, void*));
 
 IW_EXPORT iwrc iwhmap_put(IWHMAP *hm, void *key, void *val);
 
+IW_EXPORT iwrc iwhmap_put_i32(IWHMAP *hm, int32_t key, void *val);
+
+IW_EXPORT iwrc iwhmap_put_i64(IWHMAP *hm, int64_t key, void *val);
+
 IW_EXPORT void iwhmap_remove(IWHMAP *hm, const void *key);
 
 IW_EXPORT void* iwhmap_get(IWHMAP *hm, const void *key);
 
-IW_EXPORT int iwhmap_count(IWHMAP *hm);
+IW_EXPORT void* iwhmap_get_i64(IWHMAP *hm, int64_t key);
+
+IW_EXPORT uint32_t iwhmap_count(IWHMAP *hm);
 
 IW_EXPORT void iwhmap_clear(IWHMAP *hm);
 
@@ -78,6 +84,15 @@ IW_EXPORT void iwhmap_iter_init(IWHMAP *hm, IWHMAP_ITER *iter);
 IW_EXPORT bool iwhmap_iter_next(IWHMAP_ITER *iter);
 
 IW_EXPORT void iwhmap_destroy(IWHMAP *hm);
+
+typedef bool (*iwhmap_lru_eviction_needed)(IWHMAP *hm, void *user_data);
+
+IW_EXPORT bool iwhmap_lru_eviction_max_count(IWHMAP *hm, void *max_count_val);
+
+/// Init LRU eviction mode for given `hm` map.
+/// @param ev Returns `true` if needed to evict the next least recently used element.
+/// @param ev_user_data Arbitrary user data from `ev` function.
+IW_EXPORT void iwhmap_lru_init(IWHMAP *hm, iwhmap_lru_eviction_needed ev, void *ev_user_data);
 
 IW_EXTERN_C_END
 #endif

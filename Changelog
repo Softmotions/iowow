@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * IWHMAP can operate in LRU cache mode (iwhmap.h)
   * Added .ini file parsing utility module (iwini.h)
   * Added iw_cond_timed_wait_ms() (iwth.h)
   * Added iwstw_set_on_task_discard(), iwstw_schedule_only() (iwstw.h)
