@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * iwxstr_destroy_keep_ptr() now returns pointer to underlying buffer
   * IWHMAP can operate in LRU cache mode (iwhmap.h)
   * Added .ini file parsing utility module (iwini.h)
   * Added iw_cond_timed_wait_ms() (iwth.h)

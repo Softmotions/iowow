@@ -68,14 +68,16 @@ void iwxstr_destroy(IWXSTR *xstr) {
   free(xstr);
 }
 
-void iwxstr_destroy_keep_ptr(IWXSTR *xstr) {
+char* iwxstr_destroy_keep_ptr(IWXSTR *xstr) {
   if (!xstr) {
-    return;
+    return 0;
   }
+  char *ptr = xstr->ptr;
   if (xstr->user_data_free_fn) {
     xstr->user_data_free_fn(xstr->user_data);
   }
   free(xstr);
+  return ptr;
 }
 
 void iwxstr_clear(IWXSTR *xstr) {

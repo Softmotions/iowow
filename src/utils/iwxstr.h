@@ -42,7 +42,7 @@ IW_EXPORT IWXSTR* iwxstr_wrap(const char *buf, size_t size);
 
 IW_EXPORT void iwxstr_destroy(IWXSTR *xstr);
 
-IW_EXPORT void iwxstr_destroy_keep_ptr(IWXSTR *xstr);
+IW_EXPORT IW_ALLOC char* iwxstr_destroy_keep_ptr(IWXSTR *xstr);
 
 IW_EXPORT iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size);
 
