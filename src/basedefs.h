@@ -75,11 +75,13 @@
 #define IW_SOFT_INLINE static inline
 
 #if __GNUC__ >= 4
-#define WUR      __attribute__((__warn_unused_result__))
+#define WUR      __attribute__((warn_unused_result))
 #define IW_ALLOC __attribute__((malloc)) __attribute__((warn_unused_result))
+#define IW_NORET __attribute__((noreturn))
 #else
 #define WUR
 #define IW_ALLOC
+#define IW_NORET
 #endif
 
 #define IW_ARR_STATIC static
