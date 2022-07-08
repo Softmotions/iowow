@@ -16,29 +16,42 @@
 #define IWINI_H
 
 #include "basedefs.h"
+#include "iwlog.h"
+
 #include <stdio.h>
+#include <strings.h>
 
 IW_EXTERN_C_START
 
+#define IWN_PARSE_BOOL(var__) { \
+    if (!strcasecmp(value, "true") || !strcasecmp(value, "on") || !strcasecmp(value, "yes")) { \
+      var__ = true; \
+    } else if (!strcasecmp(value, "false") || !strcasecmp(value, "off") || !strcasecmp(value, "no")) { \
+      var__ = false; \
+    } else { \
+      iwlog_error("Config: Wrong [%s] section property %s value", section, name); \
+    } \
+}
+
 /* Nonzero if ini_handler callback should accept lineno parameter. */
-#ifndef INI_HANDLER_LINENO
-#define INI_HANDLER_LINENO 0
+#ifndef IWINI_HANDLER_LINENO
+#define IWINI_HANDLER_LINENO 0
 #endif
 
 /* Typedef for prototype of handler function. */
-#if INI_HANDLER_LINENO
+#if IWINI_HANDLER_LINENO
 typedef int (*iwini_handler)(
-  void *user, const char *section,
-  const char *name, const char *value,
+  void*user, const char*section,
+  const char*name, const char*value,
   int lineno);
 #else
 typedef int (*iwini_handler)(
-  void *user, const char *section,
-  const char *name, const char *value);
+  void*user, const char*section,
+  const char*name, const char*value);
 #endif
 
 /* Typedef for prototype of fgets-style reader function. */
-typedef char* (*iwini_reader)(char *str, int num, void *stream);
+typedef char* (*iwini_reader)(char*str, int num, void*stream);
 
 /* Parse given INI-style file. May have [section]s, name=value pairs
    (whitespace stripped), and comments starting with ';' (semicolon). Section
@@ -53,23 +66,23 @@ typedef char* (*iwini_reader)(char *str, int num, void *stream);
    stop on first error), -1 on file open error, or -2 on memory allocation
    error (only when INI_USE_STACK is zero).
  */
-IW_EXPORT int iwini_parse(const char *filename, iwini_handler handler, void *user);
+IW_EXPORT int iwini_parse(const char*filename, iwini_handler handler, void*user);
 
 /* Same as ini_parse(), but takes a FILE* instead of filename. This doesn't
    close the file when it's finished -- the caller must do that. */
-IW_EXPORT int iwini_parse_file(FILE *file, iwini_handler handler, void *user);
+IW_EXPORT int iwini_parse_file(FILE*file, iwini_handler handler, void*user);
 
 /* Same as ini_parse(), but takes an ini_reader function pointer instead of
    filename. Used for implementing custom or string-based I/O (see also
    iwini_parse_string). */
 IW_EXPORT int iwini_parse_stream(
-  iwini_reader reader, void *stream, iwini_handler handler,
-  void *user);
+  iwini_reader reader, void*stream, iwini_handler handler,
+  void*user);
 
 /* Same as ini_parse(), but takes a zero-terminated string with the INI data
    instead of a file. Useful for parsing INI data from a network socket or
    already in memory. */
-IW_EXPORT int iwini_parse_string(const char *string, iwini_handler handler, void *user);
+IW_EXPORT int iwini_parse_string(const char*string, iwini_handler handler, void*user);
 
 /* Nonzero to allow multi-line value parsing, in the style of Python's
    configparser. If allowed, ini_parse() will call the handler with the same
