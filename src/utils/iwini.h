@@ -23,7 +23,7 @@
 
 IW_EXTERN_C_START
 
-#define IWN_PARSE_BOOL(var__) { \
+#define IWINI_PARSE_BOOL(var__) { \
     if (!strcasecmp(value, "true") || !strcasecmp(value, "on") || !strcasecmp(value, "yes")) { \
       var__ = true; \
     } else if (!strcasecmp(value, "false") || !strcasecmp(value, "off") || !strcasecmp(value, "no")) { \
