@@ -225,10 +225,10 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   return (c1 - c2);
 }
 
-char* iwu_file_read_as_buf_len(const char *path, size_t *out_size) {
+char* iwu_file_read_as_buf_len(const char *path, size_t *out_len) {
   IWXSTR *xstr = iwxstr_new();
   if (!xstr) {
-    *out_size = 0;
+    *out_len = 0;
     return 0;
   }
   ssize_t rb, rc = 0;
@@ -254,11 +254,11 @@ char* iwu_file_read_as_buf_len(const char *path, size_t *out_size) {
     }
   }
 
-  *out_size = rc;
+  *out_len = rc;
   return iwxstr_destroy_keep_ptr(xstr);
 
 error:
-  *out_size = 0;
+  *out_len = 0;
   iwxstr_destroy(xstr);
   return 0;
 }

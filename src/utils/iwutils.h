@@ -274,7 +274,7 @@ IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 
 IW_EXPORT char* iwu_file_read_as_buf(const char *path);
 
-IW_EXPORT char* iwu_file_read_as_buf_len(const char *path, size_t *out_size);
+IW_EXPORT char* iwu_file_read_as_buf_len(const char *path, size_t *out_len);
 
 /**
  * @brief Create X31 hash value.
