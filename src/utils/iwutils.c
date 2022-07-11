@@ -29,6 +29,8 @@
 #include "iwcfg.h"
 #include "iwutils.h"
 #include "iwlog.h"
+#include "iwxstr.h"
+
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -104,7 +106,6 @@ int iwlog2_64(uint64_t val) {
 }
 
 uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init) {
-
   static const unsigned int crc32_table[] = {
     0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9,
     0x130476dc, 0x17c56b6b, 0x1a864db2, 0x1e475005,
@@ -224,28 +225,47 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   return (c1 - c2);
 }
 
-char* iwu_file_read_as_buf(const char *path) {
-  struct stat st;
-  if (stat(path, &st) == -1) {
+char* iwu_file_read_as_buf_len(const char *path, size_t *out_size) {
+  IWXSTR *xstr = iwxstr_new();
+  if (!xstr) {
+    *out_size = 0;
     return 0;
   }
+  ssize_t rb, rc = 0;
+  char buf[8192];
   int fd = open(path, O_RDONLY | O_CLOEXEC);
-  if (fd == -1) {
+  if (fd < 0) {
+    iwxstr_destroy(xstr);
     return 0;
+  }
+  while (1) {
+    rb = read(fd, buf, sizeof(buf));
+    if (rb > 0) {
+      if (iwxstr_cat(xstr, buf, rb)) {
+        goto error;
+      }
+      rc += rb;
+    } else if (rb < 0) {
+      if (errno != EINTR) {
+        goto error;
+      }
+    } else {
+      break;
+    }
   }
 
-  char *data = malloc(st.st_size + 1);
-  if (!data) {
-    close(fd);
-    return 0;
-  }
-  if (st.st_size != read(fd, data, st.st_size)) {
-    close(fd);
-    return 0;
-  }
-  close(fd);
-  data[st.st_size] = '\0';
-  return data;
+  *out_size = rc;
+  return iwxstr_destroy_keep_ptr(xstr);
+
+error:
+  *out_size = 0;
+  iwxstr_destroy(xstr);
+  return 0;
+}
+
+char* iwu_file_read_as_buf(const char *path) {
+  size_t sz;
+  return iwu_file_read_as_buf_len(path, &sz);
 }
 
 uint32_t iwu_x31_u32_hash(const char *s) {
@@ -265,8 +285,8 @@ iwrc iwu_replace(
   const char        *keys[],
   int                keysz,
   iwu_replace_mapper mapper,
-  void              *mapper_op) {
-
+  void              *mapper_op
+  ) {
   if (!result || !data || !keys || !mapper) {
     return IW_ERROR_INVALID_ARGS;
   }

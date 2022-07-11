@@ -240,7 +240,7 @@ IW_EXPORT uint32_t iwu_crc32(const uint8_t *buf, int len, uint32_t init);
 /**
  * @brief Replaces a char @a sch with @a rch in a null terminated @a data char buffer.
  */
-IW_EXPORT char *iwu_replace_char(char *data, char sch, char rch);
+IW_EXPORT char* iwu_replace_char(char *data, char sch, char rch);
 
 /**
  * @brief Returns `\0` terminated string as replacement
@@ -257,7 +257,7 @@ typedef const char* (*iwu_replace_mapper)(const char *key, void *op);
  * @param datalen Length of data buffer
  * @param keys   Array of keys to search
  * @param keysz  Number of elements in keys array.
-*                Negative for NULL terminated arrays.
+ *               Negative for NULL terminated arrays.
  * @param mapper Replacement mapper
  * @param mapper_op Replacement mapper opaque data
  */
@@ -272,7 +272,9 @@ IW_EXPORT iwrc iwu_replace(
 
 IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 
-IW_EXPORT char *iwu_file_read_as_buf(const char *path);
+IW_EXPORT char* iwu_file_read_as_buf(const char *path);
+
+IW_EXPORT char* iwu_file_read_as_buf_len(const char *path, size_t *out_size);
 
 /**
  * @brief Create X31 hash value.

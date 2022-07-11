@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Added iwu_file_read_as_buf_len() (iwutils.h)
   * Added IW_NORET (basedefs.h)
   * iwxstr_destroy_keep_ptr() now returns pointer to underlying buffer
   * IWHMAP can operate in LRU cache mode (iwhmap.h)
