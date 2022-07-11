@@ -372,7 +372,9 @@ void iwhmap_remove(IWHMAP *hm, const void *key) {
   uint32_t hash = hm->hash_key_fn(key);
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
   entry_t *entry = _entry_find(hm, key, hash);
-  _entry_remove(hm, bucket, entry);
+  if (entry) {
+    _entry_remove(hm, bucket, entry);
+  }
 }
 
 iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
