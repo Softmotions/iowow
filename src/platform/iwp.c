@@ -32,8 +32,13 @@
 #include "utils/iwuuid.h"
 #include <stdio.h>
 
-#if (defined(_WIN32) || defined(__WIN32__))
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || !_GNU_SOURCE
+#include <libgen.h>
+#elif defined(_WIN32)
+#include <libiberty/libiberty.h>
 #include <direct.h>
+#else
+#include <string.h>
 #endif
 
 unsigned int iwcpuflags = 0;
@@ -49,7 +54,6 @@ static iwrc _iwp_init_impl(void);
 
 // Thanks to https://attractivechaos.wordpress.com/2017/09/04/on-cpu-dispatch
 static unsigned int x86_simd(void) {
-
 #if defined(__i386__) || defined(__amd64__)
   unsigned int eax, ebx, ecx, edx, flag = 0;
 # ifdef _MSC_VER
@@ -157,32 +161,60 @@ char* iwp_allocate_tmpfile_path(const char *prefix) {
   return res;
 }
 
+char* iwp_dirname(char *path) {
+  return dirname(path);
+}
+
+char* iwp_basename(char *path) {
+  size_t i;
+  if (!path || !*path) {
+    return ".";
+  }
+  i = strlen(path) - 1;
+#ifdef _WIN32
+  for ( ; i && (path[i] == '/' || path[i] == '\\'); i--) path[i] = 0;
+  for ( ; i && (path[i - 1] != '/' && path[i - 1] != '\\'); i--);
+ #else
+  for ( ; i && path[i] == '/'; i--) path[i] = 0;
+  for ( ; i && path[i - 1] != '/'; i--);
+ #endif
+  return path + i;
+}
+
 iwrc iwp_mkdirs(const char *path) {
   /* Adapted from http://stackoverflow.com/a/2336245/119527 */
+  iwrc rc = 0;
   const size_t len = strlen(path);
-  char _path[PATH_MAX];
-  char *p;
+  char buf[PATH_MAX];
+  char *p, *ppath = buf;
 
   errno = 0;
   /* Copy string so its mutable */
-  if (len > sizeof(_path) - 1) {
-    errno = ENAMETOOLONG;
-    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  if (len >= sizeof(buf)) {
+    ppath = malloc(len + 1);
+    if (!ppath) {
+      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
   }
-  strcpy(_path, path);
+  memcpy(ppath, path, len + 1);
 
   /* Iterate the string */
-  for (p = _path + 1; *p; p++) {
+  for (p = ppath + 1; *p; p++) {
+#ifdef _WIN32
+    if (*p == '/' || *p == '\\') {
+#else
     if (*p == '/') {
+#endif
       /* Temporarily truncate */
       *p = '\0';
       #if (defined(_WIN32) || defined(__WIN32__))
       if (_mkdir(_path) != 0) {
       #else
-      if (mkdir(_path, S_IRWXU) != 0) {
+      if (mkdir(ppath, S_IRWXU) != 0) {
       #endif
         if (errno != EEXIST) {
-          return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+          rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+          goto finish;
         }
       }
       *p = '/';
@@ -191,13 +223,38 @@ iwrc iwp_mkdirs(const char *path) {
   #if (defined(_WIN32) || defined(__WIN32__))
   if (_mkdir(_path) != 0) {
   #else
-  if (mkdir(_path, S_IRWXU) != 0) {
+  if (mkdir(ppath, S_IRWXU) != 0) {
   #endif
     if (errno != EEXIST) {
-      return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+      rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
+      goto finish;
     }
   }
-  return 0;
+
+finish:
+  if (ppath != buf) {
+    free(ppath);
+  }
+  return rc;
+}
+
+iwrc iwp_mkdirs_for_file(const char *path) {
+  char buf[PATH_MAX];
+  char *ppath = buf;
+  const size_t len = strlen(path);
+  if (len >= sizeof(buf)) {
+    ppath = malloc(len + 1);
+    if (!ppath) {
+      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    }
+  }
+  memcpy(ppath, path, len + 1);
+  iwp_dirname(ppath);
+  iwrc rc = iwp_mkdirs(ppath);
+  if (ppath != buf) {
+    free(ppath);
+  }
+  return rc;
 }
 
 iwrc iwp_init(void) {

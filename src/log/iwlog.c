@@ -39,15 +39,6 @@
 #include <time.h>
 #include <limits.h>
 
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || !_GNU_SOURCE
-#include <libgen.h>
-#elif defined(_WIN32)
-#include <libiberty/libiberty.h>
-#else
-#include <string.h>
-#endif
-
-
 #ifdef __ANDROID__
 #define IW_ANDROID_LOG
 #include <android/log.h>
@@ -438,11 +429,7 @@ static iwrc _default_logfn(
       fnameptr = strdup(file);
       RCA(fnameptr, finish);
     }
-#if defined(IW_HAVE_BASENAME_R) && defined(__FreeBSD__)
-    fname = basename_r(file, fnameptr);
-#else
-    fname = basename(fnameptr); // NOLINT
-#endif
+    fname = iwp_basename(fnameptr);
   }
 
   if (pthread_mutex_lock(&_mtx)) {

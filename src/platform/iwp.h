@@ -251,6 +251,24 @@ IW_EXPORT iwrc iwp_removedir(const char *path);
 IW_EXPORT iwrc iwp_mkdirs(const char *path);
 
 /**
+ * @brief Make directory `dirname(path)` of specified file
+ * as well as all parent directories.
+ */
+IW_EXPORT iwrc iwp_mkdirs_for_file(const char *path);
+
+/**
+ * @brief Platform neutral version of basename.
+ * @note Modifies its `path` argument.
+ */
+IW_EXPORT char* iwp_basename(char *path);
+
+/**
+ * @brief Platform neutral version of dirname.
+ * @note Modifies its `path` argument.
+ */
+IW_EXPORT char* iwp_dirname(char *path);
+
+/**
  * @brief Get executable path for the current process.
  * It will be writein into @a opath
  * @param opath Allocated buffer at least `PATH_MAX` length

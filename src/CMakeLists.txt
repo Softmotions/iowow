@@ -111,11 +111,6 @@ if (HAVE_CLOCK_MONOTONIC)
   add_definitions(-DIW_HAVE_CLOCK_MONOTONIC)
 endif()
 
-check_symbol_exists(basename_r libgen.h HAVE_BASENAME_R)
-if (HAVE_BASENAME_R)
-  set_source_files_properties(log/iwlog.c PROPERTIES COMPILE_FLAGS -DIW_HAVE_BASENAME_R)
-endif()
-
 foreach(HF IN ITEMS stdlib stddef stdint stdbool stdatomic unistd dirent)
     string(TOUPPER "${HF}" UHF)
     check_include_file(${HF}.h "IW_HAVE_${UHF}")
