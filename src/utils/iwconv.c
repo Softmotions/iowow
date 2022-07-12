@@ -135,7 +135,7 @@ int iwitoa(int64_t v, char *buf, int max) {
 #undef ITOA_SZSTEP
 }
 
-char* iwftoa(long double n, char s[static IWFTOA_BUFSIZE]) {
+char* iwftoa(long double n, char s[static IWNUMBUF_SIZE]) {
   static double PRECISION = 0.00000000000001;
   // handle special cases
   if (isnan(n)) {
@@ -376,8 +376,8 @@ int iwafcmp(const char *aptr, int asiz, const char *bptr, int bsiz) {
     if ((alen > 1) && (*arp == '.')) {
       arp++;
       alen--;
-      if (alen > IWFTOA_BUFSIZE) {
-        alen = IWFTOA_BUFSIZE;
+      if (alen > IWNUMBUF_SIZE) {
+        alen = IWNUMBUF_SIZE;
       }
       long double base = 10;
       while (alen > 0) {
@@ -394,8 +394,8 @@ int iwafcmp(const char *aptr, int asiz, const char *bptr, int bsiz) {
     if ((blen > 1) && (*brp == '.')) {
       brp++;
       blen--;
-      if (blen > IWFTOA_BUFSIZE) {
-        blen = IWFTOA_BUFSIZE;
+      if (blen > IWNUMBUF_SIZE) {
+        blen = IWNUMBUF_SIZE;
       }
       long double base = 10;
       while (blen > 0) {

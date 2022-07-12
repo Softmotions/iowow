@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Added json module (migrated from ejdb) (iwjson.h, iwbinn.h)
   * Added platform neutral iwp_basename() and iwp_dirname() (iwp.h)
   * Added iwu_file_read_as_buf_len() (iwutils.h)
   * Added IW_NORET (basedefs.h)

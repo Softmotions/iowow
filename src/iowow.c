@@ -37,6 +37,7 @@ static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 
 iwrc iwfs_init(void);
 iwrc iwkv_init(void);
+iwrc jbl_init(void);
 
 iwrc iw_init(void) {
   iwrc rc;
@@ -44,33 +45,25 @@ iwrc iw_init(void) {
   if (!__sync_bool_compare_and_swap(&_iw_initialized, 0, 1)) {
     return 0;  // initialized already
   }
-  rc = iwlog_init();
-  RCGO(rc, finish);
-
-  rc = iwu_init();
-  RCGO(rc, finish);
-
-  rc = iwp_init();
-  RCGO(rc, finish);
+  RCC(rc, finish, iwlog_init());
+  RCC(rc, finish, iwu_init());
+  RCC(rc, finish, iwp_init());
+  RCC(rc, finish, jbl_init());
 
   uint64_t ts;
-  rc = iwp_current_time_ms(&ts, false);
-  RCRET(rc);
+  RCC(rc, finish, iwp_current_time_ms(&ts, false));
   ts = IW_SWAB64(ts);
   ts >>= 32;
   iwu_rand_seed(ts);
 
-  rc = iwfs_init();
-  RCGO(rc, finish);
-
-  rc = iwkv_init();
-  RCGO(rc, finish);
+  RCC(rc, finish, iwfs_init());
+  RCC(rc, finish, iwkv_init());
 
 finish:
   return rc;
 }
 
-const char *iowow_version_full(void) {
+const char* iowow_version_full(void) {
   return IOWOW_VERSION;
 }
 

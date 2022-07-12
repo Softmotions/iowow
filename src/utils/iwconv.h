@@ -35,8 +35,6 @@
 
 IW_EXTERN_C_START
 
-#define IWFTOA_BUFSIZE 32
-
 IW_EXPORT int64_t iwatoi(const char *str);
 
 IW_EXPORT int64_t iwatoi2(const char *str, size_t len);
@@ -51,7 +49,7 @@ IW_EXPORT int iwitoa(int64_t v, char *buf, int max);
  * Convert a given floating point number to string.
  * @note Exponent notation can be used during conversion
  */
-IW_EXPORT char* iwftoa(long double v, char buf[static IWFTOA_BUFSIZE]);
+IW_EXPORT char* iwftoa(long double v, char buf[static IWNUMBUF_SIZE]);
 
 /**
  * Compare real(float) numbers encoded as decimal point string value.

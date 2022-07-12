@@ -4,7 +4,7 @@ if (NOT CMAKE_BUILD_TYPE)
     message(FATAL_ERROR "Please specify the build type -DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo")
 endif()
 
-set(MODULES log utils platform fs rdb kv re)
+set(MODULES log utils platform fs rdb re json kv)
 
 set(PROJECT_LLIBRARIES)
 set(PROJECT_INCLUDE_DIRS)
@@ -166,7 +166,10 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwtp.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrb.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwini.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/utf8proc.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/re/iwre.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwbinn.h
                      )
 
 list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)

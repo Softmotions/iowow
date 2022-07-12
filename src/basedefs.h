@@ -99,6 +99,8 @@ typedef int HANDLE;
 
 #define IW_ERROR_START 70000
 
+#define IWNUMBUF_SIZE 32
+
 #ifdef _WIN32
 #define IW_PATH_CHR '\\'
 #define IW_PATH_STR "\\"
