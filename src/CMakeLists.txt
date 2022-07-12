@@ -169,6 +169,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/utf8proc.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/re/iwre.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson_internal.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/json/iwbinn.h
                      )
 
