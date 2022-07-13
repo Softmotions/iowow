@@ -181,7 +181,7 @@ include_directories(${PROJECT_INCLUDE_DIRS})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
                     -std=gnu11 -fsigned-char -pedantic \
                     -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter \
-                    -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers \
+                    -Wno-implicit-fallthrough -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers \
                     -Wno-missing-braces")
 if (APPLE)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-shorten-64-to-32")
