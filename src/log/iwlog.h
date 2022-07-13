@@ -68,10 +68,6 @@
 
 IW_EXTERN_C_START
 
-#ifndef IW_ERROR_START
-#define IW_ERROR_START 70000
-#endif
-
 /**
  * @enum iw_ecode
  * @brief Common used error codes.
