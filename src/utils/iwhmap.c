@@ -65,19 +65,19 @@ static int _ptr_cmp(const void *v1, const void *v2) {
   return v1 > v2 ? 1 : v1 < v2 ? -1 : 0;
 }
 
-static int _int32_cmp(const void *v1, const void *v2) {
+static int _uint32_cmp(const void *v1, const void *v2) {
   intptr_t p1 = (intptr_t) v1;
   intptr_t p2 = (intptr_t) v2;
   return p1 > p2 ? 1 : p1 < p2 ? -1 : 0;
 }
 
-static int _int64_cmp(const void *v1, const void *v2) {
+static int _uint64_cmp(const void *v1, const void *v2) {
 #ifdef IW_64
   intptr_t p1 = (intptr_t) v1;
   intptr_t p2 = (intptr_t) v2;
   return p1 > p2 ? 1 : p1 < p2 ? -1 : 0;
 #else
-  int64_t l1, l2;
+  uint64_t l1, l2;
   memcpy(&l1, v1, sizeof(l1));
   memcpy(&l2, v2, sizeof(l2));
   return l1 > l2 ? 1 : l1 < l2 ? -1 : 0;
@@ -87,7 +87,7 @@ static int _int64_cmp(const void *v1, const void *v2) {
 // https://gist.github.com/badboy/6267743
 // https://nullprogram.com/blog/2018/07/31
 
-IW_INLINE uint32_t _hash_int32(uint32_t x) {
+IW_INLINE uint32_t _hash_uint32(uint32_t x) {
   x ^= x >> 17;
   x *= UINT32_C(0xed5ad4bb);
   x ^= x >> 11;
@@ -98,22 +98,22 @@ IW_INLINE uint32_t _hash_int32(uint32_t x) {
   return x;
 }
 
-IW_INLINE uint32_t _hash_int64(uint64_t x) {
-  return _hash_int32(x) ^ _hash_int32(x >> 31);
+IW_INLINE uint32_t _hash_uint64(uint64_t x) {
+  return _hash_uint32(x) ^ _hash_uint32(x >> 31);
 }
 
-IW_INLINE uint32_t _hash_int64_key(const void *key) {
+IW_INLINE uint32_t _hash_uint64_key(const void *key) {
 #ifdef IW_64
-  return _hash_int64((uint64_t) key);
+  return _hash_uint64((uint64_t) key);
 #else
   uint64_t lv;
   memcpy(&lv, key, sizeof(lv));
-  return _hash_int64(lv);
+  return _hash_uint64(lv);
 #endif
 }
 
-IW_INLINE uint32_t _hash_int32_key(const void *key) {
-  return _hash_int32((uintptr_t) key);
+IW_INLINE uint32_t _hash_uint32_key(const void *key) {
+  return _hash_uint32((uintptr_t) key);
 }
 
 IW_INLINE uint32_t _hash_buf_key(const void *key) {
@@ -156,8 +156,8 @@ IWHMAP* iwhmap_create(
   return hm;
 }
 
-IWHMAP* iwhmap_create_i64(void (*kv_free_fn)(void*, void*)) {
-  hmap_t *hm = iwhmap_create(_int64_cmp, _hash_int64_key, kv_free_fn);
+IWHMAP* iwhmap_create_u64(void (*kv_free_fn)(void*, void*)) {
+  hmap_t *hm = iwhmap_create(_uint64_cmp, _hash_uint64_key, kv_free_fn);
   if (hm) {
 #ifdef IW_64
     hm->int_key_as_pointer_value = true;
@@ -166,8 +166,8 @@ IWHMAP* iwhmap_create_i64(void (*kv_free_fn)(void*, void*)) {
   return hm;
 }
 
-IWHMAP* iwhmap_create_i32(void (*kv_free_fn)(void*, void*)) {
-  hmap_t *hm = iwhmap_create(_int32_cmp, _hash_int32_key, kv_free_fn);
+IWHMAP* iwhmap_create_u32(void (*kv_free_fn)(void*, void*)) {
+  hmap_t *hm = iwhmap_create(_uint32_cmp, _hash_uint32_key, kv_free_fn);
   if (hm) {
     hm->int_key_as_pointer_value = true;
   }
@@ -242,15 +242,17 @@ static void _rehash(hmap_t *hm, uint32_t num_buckets) {
 
   for (bucket = hm->buckets; bucket < bucket_end; ++bucket) {
     entry_t *entry_old = bucket->entries;
-    entry_t *entry_old_end = entry_old + bucket->used;
-    for ( ; entry_old < entry_old_end; ++entry_old) {
-      entry_t *entry_new = _entry_add(&hm_copy, entry_old->key, entry_old->hash);
-      if (!entry_new) {
-        goto fail;
+    if (entry_old) {
+      entry_t *entry_old_end = entry_old + bucket->used;
+      for ( ; entry_old < entry_old_end; ++entry_old) {
+        entry_t *entry_new = _entry_add(&hm_copy, entry_old->key, entry_old->hash);
+        if (!entry_new) {
+          goto fail;
+        }
+        entry_new->key = entry_old->key;
+        entry_new->val = entry_old->val;
+        entry_new->lru_node = entry_old->lru_node;
       }
-      entry_new->key = entry_old->key;
-      entry_new->val = entry_old->val;
-      entry_new->lru_node = entry_old->lru_node;
     }
   }
 
@@ -377,6 +379,18 @@ void iwhmap_remove(IWHMAP *hm, const void *key) {
   }
 }
 
+void iwhmap_remove_u64(IWHMAP *hm, uint64_t key) {
+  if (hm->int_key_as_pointer_value) {
+    iwhmap_remove(hm, (void*) (uintptr_t) key);
+  } else {
+    iwhmap_remove(hm, &key);
+  }
+}
+
+void iwhmap_remove_u32(IWHMAP *hm, uint32_t key) {
+  iwhmap_remove(hm, (void*) (uintptr_t) key);
+}
+
 iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
   uint32_t hash = hm->hash_key_fn(key);
   entry_t *entry = _entry_add(hm, key, hash);
@@ -408,15 +422,15 @@ iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
   return 0;
 }
 
-iwrc iwhmap_put_i32(IWHMAP *hm, int32_t key, void *val) {
-  return iwhmap_put(hm, (void*) (intptr_t) key, val);
+iwrc iwhmap_put_u32(IWHMAP *hm, uint32_t key, void *val) {
+  return iwhmap_put(hm, (void*) (uintptr_t) key, val);
 }
 
-iwrc iwhmap_put_i64(IWHMAP *hm, int64_t key, void *val) {
+iwrc iwhmap_put_u64(IWHMAP *hm, uint64_t key, void *val) {
   if (hm->int_key_as_pointer_value) {
-    return iwhmap_put(hm, (void*) (intptr_t) key, val);
+    return iwhmap_put(hm, (void*) (uintptr_t) key, val);
   } else {
-    int64_t *kv = malloc(sizeof(*kv));
+    uint64_t *kv = malloc(sizeof(*kv));
     if (!kv) {
       return iwrc_set_errno(IW_ERROR_ALLOC, errno);
     }
@@ -429,12 +443,16 @@ iwrc iwhmap_put_i64(IWHMAP *hm, int64_t key, void *val) {
   }
 }
 
-void* iwhmap_get_i64(IWHMAP *hm, int64_t key) {
+void* iwhmap_get_u64(IWHMAP *hm, uint64_t key) {
   if (hm->int_key_as_pointer_value) {
     return iwhmap_get(hm, (void*) (intptr_t) key);
   } else {
     return iwhmap_get(hm, &key);
   }
+}
+
+void* iwhmap_get_u32(IWHMAP *hm, uint32_t key) {
+  return iwhmap_get(hm, (void*) (intptr_t) key);
 }
 
 uint32_t iwhmap_count(IWHMAP *hm) {
@@ -502,10 +520,12 @@ void iwhmap_destroy(IWHMAP *hm) {
     return;
   }
   for (bucket_t *b = hm->buckets, *be = hm->buckets + _n_buckets(hm); b < be; ++b) {
-    for (entry_t *e = b->entries, *ee = b->entries + b->used; e < ee; ++e) {
-      hm->kv_free_fn(hm->int_key_as_pointer_value ? 0 : e->key, e->val);
+    if (b->entries) {
+      for (entry_t *e = b->entries, *ee = b->entries + b->used; e < ee; ++e) {
+        hm->kv_free_fn(hm->int_key_as_pointer_value ? 0 : e->key, e->val);
+      }
+      free(b->entries);
     }
-    free(b->entries);
   }
   for (lru_node_t *n = hm->lru_first; n; ) {
     lru_node_t *nn = n->next;

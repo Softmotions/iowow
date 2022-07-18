@@ -274,7 +274,9 @@ BINN_PRIVATE int binn_get_ptr_type(const void *ptr) {
   if (ptr == NULL) {
     return 0;
   }
-  switch (*(const unsigned int*) ptr) {
+  unsigned type;
+  memcpy(&type, ptr, sizeof(type));
+  switch (type) {
     case BINN_MAGIC:
       return BINN_STRUCT;
     default:

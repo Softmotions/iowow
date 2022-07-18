@@ -398,7 +398,9 @@ static void iwkv_test1_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_get(db1, &key, &val);
   CU_ASSERT_NSTRING_EQUAL(key.data, "foo", key.size);
-  CU_ASSERT_NSTRING_EQUAL(val.data, "", val.size);
+  if (val.data) {
+    CU_ASSERT_NSTRING_EQUAL(val.data, "", val.size);
+  }
   iwkv_kv_dispose(0, &val);
 
   logstage(f, "put foo:", db1);

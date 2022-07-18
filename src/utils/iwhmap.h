@@ -57,23 +57,29 @@ IW_EXPORT IWHMAP* iwhmap_create(
   uint32_t (*hash_key_fn)(const void*),
   void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP* iwhmap_create_i64(void (*kv_free_fn)(void*, void*));
+IW_EXPORT IWHMAP* iwhmap_create_u64(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP* iwhmap_create_i32(void (*kv_free_fn)(void*, void*));
+IW_EXPORT IWHMAP* iwhmap_create_u32(void (*kv_free_fn)(void*, void*));
 
 IW_EXPORT IWHMAP* iwhmap_create_str(void (*kv_free_fn)(void*, void*));
 
 IW_EXPORT iwrc iwhmap_put(IWHMAP *hm, void *key, void *val);
 
-IW_EXPORT iwrc iwhmap_put_i32(IWHMAP *hm, int32_t key, void *val);
+IW_EXPORT iwrc iwhmap_put_u32(IWHMAP *hm, uint32_t key, void *val);
 
-IW_EXPORT iwrc iwhmap_put_i64(IWHMAP *hm, int64_t key, void *val);
+IW_EXPORT iwrc iwhmap_put_u64(IWHMAP *hm, uint64_t key, void *val);
 
 IW_EXPORT void iwhmap_remove(IWHMAP *hm, const void *key);
 
+IW_EXPORT void iwhmap_remove_u64(IWHMAP *hm, uint64_t key);
+
+IW_EXPORT void iwhmap_remove_u32(IWHMAP *hm, uint32_t key);
+
 IW_EXPORT void* iwhmap_get(IWHMAP *hm, const void *key);
 
-IW_EXPORT void* iwhmap_get_i64(IWHMAP *hm, int64_t key);
+IW_EXPORT void* iwhmap_get_u64(IWHMAP *hm, uint64_t key);
+
+IW_EXPORT void* iwhmap_get_u32(IWHMAP *hm, uint32_t key);
 
 IW_EXPORT uint32_t iwhmap_count(IWHMAP *hm);
 

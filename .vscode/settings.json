@@ -62,5 +62,6 @@
     "src/utils",
     "-I",
     "build/src/generated"
-  ]
+  ],
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
 }

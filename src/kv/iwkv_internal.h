@@ -9,11 +9,13 @@
 #include "iwfsmfile.h"
 #include "iwdlsnr.h"
 #include "iwal.h"
-#include "khash.h"
+#include "iwhmap.h"
 #include "ksort.h"
+
 #include <pthread.h>
 #include <stdatomic.h>
 #include <unistd.h>
+
 #include "iwcfg.h"
 
 #if defined(__APPLE__) || defined(__ANDROID__)
@@ -247,9 +249,6 @@ typedef struct SBLK {
   uint8_t lk[PREFIX_KEY_LEN_V1]; /**< Lower key buffer */
 } SBLK;
 
-// -V:KHASH_MAP_INIT_INT:522
-KHASH_MAP_INIT_INT(DBS, IWDB)
-
 /** IWKV instance */
 struct _IWKV {
   IWFS_FSM fsm;                          /**< FSM pool */
@@ -258,7 +257,7 @@ struct _IWKV {
   IWDB     first_db;                     /**< First database in chain */
   IWDB     last_db;                      /**< Last database in chain */
   IWDLSNR *dlsnr;                        /**< WAL data events listener */
-  khash_t(DBS) * dbs;                    /**< Database id -> IWDB mapping */
+  IWHMAP  *dbs;                          /**< Database id -> IWDB mapping */
   iwkv_openflags  oflags;                /**< Open flags */
   pthread_cond_t  wk_cond;               /**< Workers cond variable */
   pthread_mutex_t wk_mtx;                /**< Workers cond mutext */

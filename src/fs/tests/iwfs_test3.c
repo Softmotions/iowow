@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "utils/kbtree.h"
+#include "kbtree.h"
 
 #define NRECS 10000
 #define RECSZ (10 * 1024)

@@ -326,8 +326,11 @@ void test_fsm_uniform_alloc_impl(int mmap_all) {
     CU_ASSERT_EQUAL(state1.state.alloc_dispersion, 0);
   }
 
+
   rc = fsm.close(&fsm);
   CU_ASSERT_FALSE_FATAL(rc);
+
+  return;
 
   opts.exfile.file.omode = IWFS_OREAD;
   rc = iwfs_fsmfile_open(&fsm, &opts);
@@ -413,7 +416,7 @@ typedef struct {
 
 //!!!! TODO this test is not good for multithreaded env, refactoring needed
 
-static void *recordsthr(void *op) {
+static void* recordsthr(void *op) {
   FSMRECTASK *task = op;
   iwrc rc;
   FSMREC *rec, *tmp;

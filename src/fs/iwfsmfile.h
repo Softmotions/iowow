@@ -175,10 +175,9 @@ typedef struct IWFS_FSM_STATE {
   IWFS_EXT_STATE exfile;      /**< File pool state */
   size_t block_size;          /**< Size of data block in bytes. */
   iwfs_fsm_openflags oflags;  /**< Operation mode flags. */
-  uint32_t hdrlen;            /**< Length of custom file header length in bytes */
   uint64_t blocks_num;        /**< Number of available data blocks. */
-  uint64_t free_segments_num; /**< Number of free (deallocated) continuous data
-                                 segments. */
+  uint32_t free_segments_num; /**< Number of free (deallocated) continuous data segments */
+  uint32_t hdrlen;            /**< Length of custom file header length in bytes */
   double_t avg_alloc_size;    /**< Average allocation number of blocks */
   double_t alloc_dispersion;  /**< Average allocation blocks dispersion */
 } IWFS_FSM_STATE;
@@ -197,7 +196,7 @@ typedef struct IWFS_FSMDBG_STATE {
  *        and free space blocks management using bitmaps.
  */
 typedef struct IWFS_FSM {
-  struct IWFS_FSM_IMPL *impl;
+  struct fsm *impl;
 
   /**
    * @brief Allocate a continuous address space within a file

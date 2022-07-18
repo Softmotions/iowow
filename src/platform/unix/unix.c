@@ -54,7 +54,7 @@
 #define st_mtim st_mtimespec
 #endif
 
-#define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000ULL) + (uint64_t) round((IW_ts).tv_nsec / 1.0e6))
+#define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000ULL) + lround((IW_ts).tv_nsec / 1.0e6) )
 
 IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
 #if (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED < 101200)

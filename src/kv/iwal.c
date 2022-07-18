@@ -186,7 +186,7 @@ static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *dat
     RCRET(rc);
     rc = iwp_write(wal->fh, data, (size_t) len);
     RCRET(rc);
-  } else {
+  } else if (len > 0){
     assert(bufsz - wal->bufpos >= len);
     memcpy(wal->buf + wal->bufpos, data, (size_t) len);
     wal->bufpos += len;

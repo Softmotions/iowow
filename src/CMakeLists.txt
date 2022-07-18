@@ -156,7 +156,6 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwconv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwhmap.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwpool.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwstree.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwstw.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwth.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwutils.h
@@ -167,6 +166,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrb.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwini.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/utf8proc.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwavl.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/re/iwre.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson_internal.h
@@ -180,7 +180,8 @@ include_directories(${PROJECT_INCLUDE_DIRS})
 # -pg -no-pie
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
                     -std=gnu11 -fsigned-char -pedantic \
-                    -Wfatal-errors -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter \
+                    -Wfatal-errors -Wall -Wextra \
+                    -Wno-sign-compare -Wno-unused-parameter \
                     -Wno-implicit-fallthrough -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers \
                     -Wno-missing-braces")
 if (APPLE)
@@ -198,6 +199,8 @@ endif()
 
 if (ASAN)
   set(CMAKE_C_ASAN "-fsanitize=address -fno-omit-frame-pointer")
+elseif (UBSAN)
+  set(CMAKE_C_ASAN "-fsanitize=undefined -fno-omit-frame-pointer")
 endif()
 
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -Werror -DDEBUG -D_DEBUG -UNDEBUG \
@@ -350,6 +353,7 @@ message("\n${PROJECT_NAME} PUB_HDRS: ${PUB_HDRS}")
 message("\n${PROJECT_NAME} CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message("${PROJECT_NAME} BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 message("${PROJECT_NAME} BUILD_TESTS: ${BUILD_TESTS}")
+message("${PROJECT_NAME} CMAKE_C_ASAN: ${CMAKE_C_ASAN}")
 message("${PROJECT_NAME} BUILD_EXAMPLES: ${BUILD_EXAMPLES}")
 message("${PROJECT_NAME} BUILD_BENCHMARKS: ${BUILD_BENCHMARKS}")
 message("${PROJECT_NAME} BUILD_DOCUMENTATION: ${BUILD_DOCUMENTATION}")

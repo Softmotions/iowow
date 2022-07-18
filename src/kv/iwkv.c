@@ -442,7 +442,6 @@ static WUR iwrc _db_save(IWDB db, bool newdb, uint8_t *mm) {
 
 static WUR iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
   iwrc rc;
-  int rci;
   IWDB db = 0, ndb;
   if (!addr) {
     return 0;
@@ -450,6 +449,7 @@ static WUR iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
   do {
     rc = _db_at(iwkv, &ndb, addr, mm);
     RCRET(rc);
+
     if (db) {
       db->next = ndb;
       ndb->prev = db;
@@ -458,15 +458,14 @@ static WUR iwrc _db_load_chain(IWKV iwkv, off_t addr, uint8_t *mm) {
     }
     db = ndb;
     addr = db->next_db_addr;
+
+    rc = iwhmap_put_u32(iwkv->dbs, db->id, db);
+    RCRET(rc);
+
     iwkv->last_db = db;
-    khiter_t k = kh_put(DBS, iwkv->dbs, db->id, &rci);
-    if (rci != -1) {
-      kh_value(iwkv->dbs, k) = db;
-    } else {
-      return iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    }
   } while (db->next_db_addr);
-  return rc;
+
+  return 0;
 }
 
 static void _db_release_lw(IWDB *dbp) {
@@ -552,12 +551,11 @@ static WUR iwrc _db_destroy_lw(IWDB *dbp) {
   IWFS_FSM *fsm = &iwkv->fsm;
   uint32_t first_sblkn;
 
-  khiter_t k = kh_get(DBS, iwkv->dbs, db->id);
-  if (k == kh_end(iwkv->dbs)) {
+  if (!iwhmap_get_u32(iwkv->dbs, db->id)) {
     iwlog_ecode_error3(IW_ERROR_INVALID_STATE);
     return IW_ERROR_INVALID_STATE;
   }
-  kh_del(DBS, iwkv->dbs, k);
+  iwhmap_remove_u32(iwkv->dbs, db->id);
 
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
@@ -657,14 +655,10 @@ static WUR iwrc _db_create_lw(IWKV iwkv, dbid_t dbid, iwdb_flags_t dbflg, IWDB *
   } else if (iwkv->last_db) {
     iwkv->last_db->next = db;
   }
+
+  RCC(rc, finish, iwhmap_put_u32(iwkv->dbs, db->id, db));
   iwkv->last_db = db;
-  khiter_t k = kh_put(DBS, iwkv->dbs, db->id, &rci);
-  if (rci != -1) {
-    kh_value(iwkv->dbs, k) = db;
-  } else {
-    rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-    goto finish;
-  }
+
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   rc = _db_save(db, true, mm);
@@ -1226,8 +1220,10 @@ start:
   }
   memcpy(wp, key->data, key->size);
   wp += key->size;
-  memcpy(wp, uval->data, uval->size);
-  wp += uval->size;
+  if (uval->size) {
+    memcpy(wp, uval->data, uval->size);
+    wp += uval->size;
+  }
 #ifndef NDEBUG
   assert(wp - sptr == kvp->len);
 #endif
@@ -3564,17 +3560,14 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     fsmopts.exfile.file.lock_mode |= IWP_NBLOCK;
   }
   // Init WAL
-  rc = iwal_create(iwkv, opts, &fsmopts, has_online_bkp);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwal_create(iwkv, opts, &fsmopts, has_online_bkp));
 
   // Now open database file
-  rc = iwfs_fsmfile_open(&iwkv->fsm, &fsmopts);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwfs_fsmfile_open(&iwkv->fsm, &fsmopts));
+  RCB(finish, iwkv->dbs = iwhmap_create_u32(0));
 
   IWFS_FSM *fsm = &iwkv->fsm;
-  iwkv->dbs = kh_init(DBS);
-  rc = fsm->state(fsm, &fsmstate);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->state(fsm, &fsmstate));
 
   // Database header: [magic:u4, first_addr:u8, db_format_version:u4]
   if (fsmstate.exfile.file.ostatus & IWFS_OPEN_NEW) {
@@ -3583,15 +3576,12 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     IW_WRITELV(wp, lv, IWKV_MAGIC);
     wp += sizeof(llv); // skip first db addr
     IW_WRITELV(wp, lv, iwkv->fmt_version);
-    rc = fsm->writehdr(fsm, 0, hdr, sizeof(hdr));
-    RCGO(rc, finish);
-    rc = fsm->sync(fsm, 0);
-    RCGO(rc, finish);
+    RCC(rc, finish, fsm->writehdr(fsm, 0, hdr, sizeof(hdr)));
+    RCC(rc, finish, fsm->sync(fsm, 0));
   } else {
     off_t dbaddr; // first database address
     uint8_t hdr[KVHDRSZ];
-    rc = fsm->readhdr(fsm, 0, hdr, KVHDRSZ);
-    RCGO(rc, finish);
+    RCC(rc, finish, fsm->readhdr(fsm, 0, hdr, KVHDRSZ));
     rp = hdr; // -V507
     IW_READLV(rp, lv, lv);
     IW_READLLV(rp, llv, dbaddr);
@@ -3611,9 +3601,8 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     } else {
       iwkv->pklen = PREFIX_KEY_LEN_V2;
     }
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCGO(rc, finish);
-    rc = _db_load_chain(iwkv, dbaddr, mm);
+    RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
+    RCC(rc, finish, _db_load_chain(iwkv, dbaddr, mm));
     fsm->release_mmap(fsm);
   }
   (*iwkvp)->open = true;
@@ -3653,9 +3642,10 @@ iwrc iwkv_close(IWKV *iwkvp) {
   IWRC(iwkv->fsm.close(&iwkv->fsm), rc);
   // Below the memory cleanup only
   if (iwkv->dbs) {
-    kh_destroy(DBS, iwkv->dbs);
+    iwhmap_destroy(iwkv->dbs);
     iwkv->dbs = 0;
   }
+
   iwkv_exclusive_unlock(iwkv);
   pthread_rwlock_destroy(&iwkv->rwl);
   pthread_mutex_destroy(&iwkv->wk_mtx);
@@ -3709,13 +3699,12 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   iwrc rc = 0;
   IWDB db = 0;
   *dbp = 0;
+
   API_RLOCK(iwkv, rci);
-  khiter_t ki = kh_get(DBS, iwkv->dbs, dbid);
-  if (ki != kh_end(iwkv->dbs)) {
-    db = kh_value(iwkv->dbs, ki);
-  }
+  db = iwhmap_get_u32(iwkv->dbs, dbid);
   API_UNLOCK(iwkv, rci, rc);
   RCRET(rc);
+
   if (db) {
     if (db->dbflg != dbflg) {
       return IWKV_ERROR_INCOMPATIBLE_DB_MODE;
@@ -3728,10 +3717,8 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
   }
   rc = iwkv_exclusive_lock(iwkv);
   RCRET(rc);
-  ki = kh_get(DBS, iwkv->dbs, dbid);
-  if (ki != kh_end(iwkv->dbs)) {
-    db = kh_value(iwkv->dbs, ki);
-  }
+
+  db = iwhmap_get_u32(iwkv->dbs, dbid);
   if (db) {
     if (db->dbflg != dbflg) {
       return IWKV_ERROR_INCOMPATIBLE_DB_MODE;
@@ -3756,15 +3743,17 @@ iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp) {
   uint32_t dbid = 0;
   iwrc rc = iwkv_exclusive_lock(iwkv);
   RCRET(rc);
-  for (khiter_t k = kh_begin(iwkv->dbs); k != kh_end(iwkv->dbs); ++k) {
-    if (!kh_exist(iwkv->dbs, k)) {
-      continue;
-    }
-    uint32_t id = kh_key(iwkv->dbs, k);
+
+  IWHMAP_ITER iter;
+  iwhmap_iter_init(iwkv->dbs, &iter);
+
+  while (iwhmap_iter_next(&iter)) {
+    uint32_t id = (uint32_t) (uintptr_t) iter.val;
     if (id > dbid) {
       dbid = id;
     }
   }
+
   dbid++;
   rc = _db_create_lw(iwkv, dbid, dbflg, dbp);
   if (!rc) {
