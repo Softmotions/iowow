@@ -159,9 +159,9 @@ IWHMAP* iwhmap_create(
 IWHMAP* iwhmap_create_u64(void (*kv_free_fn)(void*, void*)) {
   hmap_t *hm = iwhmap_create(_uint64_cmp, _hash_uint64_key, kv_free_fn);
   if (hm) {
-#ifdef IW_64
-    hm->int_key_as_pointer_value = true;
-#endif
+    if (sizeof(uintptr_t) >= sizeof(uint64_t)) {
+      hm->int_key_as_pointer_value = true;
+    }
   }
   return hm;
 }
