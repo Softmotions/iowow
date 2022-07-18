@@ -57,6 +57,8 @@ IW_EXPORT IWHMAP* iwhmap_create(
   uint32_t (*hash_key_fn)(const void*),
   void (*kv_free_fn)(void*, void*));
 
+IW_EXPORT IWHMAP* iwhmap_create_ptr(void (*kv_free_fn)(void*, void*));
+
 IW_EXPORT IWHMAP* iwhmap_create_u64(void (*kv_free_fn)(void*, void*));
 
 IW_EXPORT IWHMAP* iwhmap_create_u32(void (*kv_free_fn)(void*, void*));

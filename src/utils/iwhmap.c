@@ -52,6 +52,12 @@ typedef struct _IWHMAP {
 static void _noop_kv_free(void *key, void *val) {
 }
 
+static void _noop_uint64_kv_free(void *key, void *val) {
+  if (key) {
+    free(key);
+  }
+}
+
 void iwhmap_kv_free(void *key, void *val) {
   free(key);
   free(val);
@@ -72,16 +78,16 @@ static int _uint32_cmp(const void *v1, const void *v2) {
 }
 
 static int _uint64_cmp(const void *v1, const void *v2) {
-#ifdef IW_64
-  intptr_t p1 = (intptr_t) v1;
-  intptr_t p2 = (intptr_t) v2;
-  return p1 > p2 ? 1 : p1 < p2 ? -1 : 0;
-#else
-  uint64_t l1, l2;
-  memcpy(&l1, v1, sizeof(l1));
-  memcpy(&l2, v2, sizeof(l2));
-  return l1 > l2 ? 1 : l1 < l2 ? -1 : 0;
-#endif
+  if (sizeof(uintptr_t) >= sizeof(uint64_t)) {
+    intptr_t p1 = (intptr_t) v1;
+    intptr_t p2 = (intptr_t) v2;
+    return p1 > p2 ? 1 : p1 < p2 ? -1 : 0;
+  } else {
+    uint64_t l1, l2;
+    memcpy(&l1, v1, sizeof(l1));
+    memcpy(&l2, v2, sizeof(l2));
+    return l1 > l2 ? 1 : l1 < l2 ? -1 : 0;
+  }
 }
 
 // https://gist.github.com/badboy/6267743
@@ -103,13 +109,13 @@ IW_INLINE uint32_t _hash_uint64(uint64_t x) {
 }
 
 IW_INLINE uint32_t _hash_uint64_key(const void *key) {
-#ifdef IW_64
-  return _hash_uint64((uint64_t) key);
-#else
-  uint64_t lv;
-  memcpy(&lv, key, sizeof(lv));
-  return _hash_uint64(lv);
-#endif
+  if (sizeof(uintptr_t) >= sizeof(uint64_t)) {
+    return _hash_uint64((uint64_t) key);
+  } else {
+    uint64_t lv;
+    memcpy(&lv, key, sizeof(lv));
+    return _hash_uint64(lv);
+  }
 }
 
 IW_INLINE uint32_t _hash_uint32_key(const void *key) {
@@ -157,6 +163,9 @@ IWHMAP* iwhmap_create(
 }
 
 IWHMAP* iwhmap_create_u64(void (*kv_free_fn)(void*, void*)) {
+  if (!kv_free_fn) {
+    kv_free_fn = _noop_uint64_kv_free;
+  }
   hmap_t *hm = iwhmap_create(_uint64_cmp, _hash_uint64_key, kv_free_fn);
   if (hm) {
     if (sizeof(uintptr_t) >= sizeof(uint64_t)) {
