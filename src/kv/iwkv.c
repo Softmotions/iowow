@@ -3748,7 +3748,7 @@ iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp) {
   iwhmap_iter_init(iwkv->dbs, &iter);
 
   while (iwhmap_iter_next(&iter)) {
-    uint32_t id = (uint32_t) (uintptr_t) iter.val;
+    uint32_t id = (uint32_t) (uintptr_t) iter.key;
     if (id > dbid) {
       dbid = id;
     }
