@@ -379,25 +379,28 @@ static void _entry_remove(IWHMAP *hm, bucket_t *bucket, entry_t *entry) {
   }
 }
 
-void iwhmap_remove(IWHMAP *hm, const void *key) {
+bool iwhmap_remove(IWHMAP *hm, const void *key) {
   uint32_t hash = hm->hash_key_fn(key);
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
   entry_t *entry = _entry_find(hm, key, hash);
   if (entry) {
     _entry_remove(hm, bucket, entry);
-  }
-}
-
-void iwhmap_remove_u64(IWHMAP *hm, uint64_t key) {
-  if (hm->int_key_as_pointer_value) {
-    iwhmap_remove(hm, (void*) (uintptr_t) key);
+    return true;
   } else {
-    iwhmap_remove(hm, &key);
+    return false;
   }
 }
 
-void iwhmap_remove_u32(IWHMAP *hm, uint32_t key) {
-  iwhmap_remove(hm, (void*) (uintptr_t) key);
+bool iwhmap_remove_u64(IWHMAP *hm, uint64_t key) {
+  if (hm->int_key_as_pointer_value) {
+    return iwhmap_remove(hm, (void*) (uintptr_t) key);
+  } else {
+    return iwhmap_remove(hm, &key);
+  }
+}
+
+bool iwhmap_remove_u32(IWHMAP *hm, uint32_t key) {
+  return iwhmap_remove(hm, (void*) (uintptr_t) key);
 }
 
 iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {

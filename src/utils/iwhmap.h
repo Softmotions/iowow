@@ -71,11 +71,11 @@ IW_EXPORT iwrc iwhmap_put_u32(IWHMAP *hm, uint32_t key, void *val);
 
 IW_EXPORT iwrc iwhmap_put_u64(IWHMAP *hm, uint64_t key, void *val);
 
-IW_EXPORT void iwhmap_remove(IWHMAP *hm, const void *key);
+IW_EXPORT bool iwhmap_remove(IWHMAP *hm, const void *key);
 
-IW_EXPORT void iwhmap_remove_u64(IWHMAP *hm, uint64_t key);
+IW_EXPORT bool iwhmap_remove_u64(IWHMAP *hm, uint64_t key);
 
-IW_EXPORT void iwhmap_remove_u32(IWHMAP *hm, uint32_t key);
+IW_EXPORT bool iwhmap_remove_u32(IWHMAP *hm, uint32_t key);
 
 IW_EXPORT void* iwhmap_get(IWHMAP *hm, const void *key);
 
