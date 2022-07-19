@@ -44,7 +44,6 @@
  * <strong>Limitations:<strong>
  * - Maximum iwkv storage file size: 512 GB (0x7fffffff80)
  * - Total size of a single key+value record must be not greater than 255Mb (0xfffffff)
- * - In-memory cache for every opened database takes ~130Kb, cache can be disposed by `iwkv_db_cache_release()`
  */
 
 #include "iowow.h"
@@ -233,8 +232,6 @@ IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
  *          a new database will be created using specified function arguments.
  *
  * @note Database handler doesn't require to be explicitly closed or freed.
- *       Although it may be usefull to release database cache memory of unused databases
- *       dependening on memory requirements of your application by `iwkv_db_cache_release()`.
  * @note Database `flags` argument must be same for all subsequent
  *       calls after first call for particular database,
  *       otherwise `IWKV_ERROR_INCOMPATIBLE_DB_MODE` will be reported.
@@ -255,15 +252,6 @@ IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *d
  * @param [out] dbp Pointer to database opaque structure
  */
 IW_EXPORT WUR iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp);
-
-/**
- * @brief Frees memory resources used by database cache
- *        until to next database access operation (get/put/cursor).
- *        Typicaly it will free ~130Kb of memory per database in use.
- *
- * @param db Database handler
- */
-IW_EXPORT iwrc iwkv_db_cache_release(IWDB db);
 
 /**
  * @brief Destroy(drop) existing database and cleanup all of its data.
