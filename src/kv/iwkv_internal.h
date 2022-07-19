@@ -139,10 +139,6 @@ typedef uint8_t sblk_flags_t;
 #define SBLK_DB ((sblk_flags_t) 0x08U)
 /** Block data changed, block marked as durty and needs to be persisted */
 #define SBLK_DURTY ((sblk_flags_t) 0x10U)
-/** Put this `SBLK` into dbcache */
-#define SBLK_CACHE_PUT    ((sblk_flags_t) 0x20U)
-#define SBLK_CACHE_UPDATE ((sblk_flags_t) 0x40U)
-#define SBLK_CACHE_REMOVE ((sblk_flags_t) 0x80U)
 
 typedef uint8_t iwlctx_op_t;
 /** Put key value operation */
@@ -165,44 +161,6 @@ typedef struct KVBLK {
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
 #define SBLK_CACHE_FLAGS      (SBLK_CACHE_UPDATE | SBLK_CACHE_PUT | SBLK_CACHE_REMOVE)
 
-// Number of top levels to cache (~ (1<<DBCACHE_LEVELS) cached elements)
-#define DBCACHE_LEVELS 10U
-
-// Minimal cached level
-#define DBCACHE_MIN_LEVEL 5U
-
-// Single allocation step - number of DBCNODEs
-#define DBCACHE_ALLOC_STEP 32U
-
-/** Cached SBLK node */
-typedef struct DBCNODE {
-  blkn_t  sblkn;              /**< SBLK block number or used to store key size (to keep DBCNODE compact) */
-  blkn_t  kblkn;              /**< KVBLK block number */
-  uint8_t lkl;                /**< Lower key length */
-  uint8_t fullkey;            /**< SBLK is full key */
-  uint8_t k0idx;              /**< KVBLK Zero KVP index */
-  uint8_t pad;                /**< 1 byte pad */
-  uint8_t lk[1];              /**< Lower key buffer */
-} DBCNODE;
-
-#define DBCNODE_VNUM_SZ 24
-#define DBCNODE_STR_SZ  128
-
-static_assert(DBCNODE_VNUM_SZ >= offsetof(DBCNODE, lk) + IW_VNUMBUFSZ,
-              "DBCNODE_VNUM_SZ >= offsetof(DBCNODE, lk) + IW_VNUMBUFSZ");
-static_assert(DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN,
-              "DBCNODE_STR_SZ >= offsetof(DBCNODE, lk) + SBLK_LKLEN");
-
-/** Tallest SBLK nodes cache */
-typedef struct DBCACHE {
-  size_t   asize;               /**< Size of allocated cache buffer */
-  size_t   num;                 /**< Actual number of nodes */
-  size_t   nsize;               /**< Cached node size */
-  uint8_t  lvl;                 /**< Lowes cached level */
-  bool     open;                /**< Is cache open */
-  DBCNODE *nodes;               /**< Sorted nodes array */
-} DBCACHE;
-
 struct _IWKV_cursor;
 
 /* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209 */
@@ -213,7 +171,6 @@ struct _IWDB {
   sblk_flags_t flags;             /**< Flags */
   // !SBH
   IWKV    iwkv;
-  DBCACHE cache;                      /**< SBLK nodes cache */
   pthread_rwlock_t   rwl;             /**< Database API RW lock */
   pthread_spinlock_t cursors_slk;     /**< Cursors set guard lock */
   off_t next_db_addr;                 /**< Next IWDB addr */
@@ -287,7 +244,6 @@ typedef struct IWLCTX {
   uint8_t      saan;          /**< Position of next free `SBLK` element in the `saa` area */
   uint8_t      kaan;          /**< Position of next free `KVBLK` element in the `kaa` area */
   int8_t       nlvl;          /**< Level of new inserted/deleted `SBLK` node. -1 if no new node inserted/deleted */
-  int8_t       cache_reload;  /**< If true dbcache should be refreshed after operation */
   IWKV_PUT_HANDLER ph;        /**< Optional put handler */
   void    *phop;              /**< Put handler opaque data */
   SBLK    *plower[SLEVELS];   /**< Pinned lower nodes per level */

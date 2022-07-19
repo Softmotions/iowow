@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Reduced iwkv code complexity. Removed in-memory db cache since benchmarks shows only minor perf imprivements with cache.
   * Fixed many of UB errors (eg: misaligned access)
   * Removed dependency on kbtree.h replaced with iwavl.h
   * Added json module (migrated from ejdb) (iwjson.h, iwbinn.h)
