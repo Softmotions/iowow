@@ -434,6 +434,33 @@ iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
   return 0;
 }
 
+iwrc iwhmap_rename(IWHMAP *hm, void *key_old, void *key_new) {
+  uint32_t hash = hm->hash_key_fn(key_old);
+  entry_t *entry = _entry_find(hm, key_old, hash);
+  bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
+
+  if (entry) {
+    void *val = entry->val;
+    entry->val = 0;
+    _entry_remove(hm, bucket, entry);
+    hash = hm->hash_key_fn(key_new);
+    entry = _entry_add(hm, key_new, hash);
+    if (!entry) {
+      return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+    }
+    hm->kv_free_fn(hm->int_key_as_pointer_value ? 0 : entry->key, entry->val);
+
+    entry->key = key_new;
+    entry->val = val;
+
+    if (hm->lru_ev) {
+      _lru_entry_update(hm, entry);
+    }
+  }
+
+  return 0;
+}
+
 iwrc iwhmap_put_u32(IWHMAP *hm, uint32_t key, void *val) {
   return iwhmap_put(hm, (void*) (uintptr_t) key, val);
 }
