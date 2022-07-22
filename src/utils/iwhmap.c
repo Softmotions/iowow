@@ -434,7 +434,7 @@ iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
   return 0;
 }
 
-iwrc iwhmap_rename(IWHMAP *hm, void *key_old, void *key_new) {
+iwrc iwhmap_rename(IWHMAP *hm, const void *key_old, void *key_new) {
   uint32_t hash = hm->hash_key_fn(key_old);
   entry_t *entry = _entry_find(hm, key_old, hash);
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
