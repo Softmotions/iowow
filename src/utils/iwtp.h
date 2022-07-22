@@ -34,8 +34,8 @@
 
 IW_EXTERN_C_START
 
-struct _IWTP;
-typedef struct _IWTP*IWTP;
+struct iwtp;
+typedef struct iwtp*IWTP;
 
 /**
  * @brief Task to execute

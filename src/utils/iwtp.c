@@ -8,15 +8,15 @@
 #include <assert.h>
 #include <string.h>
 
-struct _TASK {
+struct task {
   iwtp_task_f fn;
   void       *arg;
-  struct _TASK *next;
+  struct task *next;
 };
 
-struct _IWTP {
-  struct _TASK   *head;
-  struct _TASK   *tail;
+struct iwtp {
+  struct task    *head;
+  struct task    *tail;
   pthread_mutex_t mtx;
   pthread_cond_t  cond;
   pthread_t      *threads;
@@ -31,11 +31,15 @@ iwrc iwtp_schedule(IWTP tp, iwtp_task_f fn, void *arg) {
   if (!tp || !fn) {
     return IW_ERROR_INVALID_ARGS;
   }
+  if (tp->shutdown) {
+    return IW_ERROR_INVALID_STATE;
+  }
+
   iwrc rc = 0;
-  struct _TASK *task = malloc(sizeof(*task));
+  struct task *task = malloc(sizeof(*task));
   RCA(task, finish);
 
-  *task = (struct _TASK) {
+  *task = (struct task) {
     .fn = fn,
     .arg = arg
   };
@@ -74,7 +78,7 @@ finish:
 }
 
 static void* _worker_fn(void *op) {
-  struct _IWTP *tp = op;
+  struct iwtp *tp = op;
   assert(tp);
 
   if (tp->thread_name_prefix) {
@@ -95,7 +99,7 @@ static void* _worker_fn(void *op) {
 
     pthread_mutex_lock(&tp->mtx);
     if (tp->head) {
-      struct _TASK *h = tp->head;
+      struct task *h = tp->head;
       fn = h->fn;
       arg = h->arg;
       tp->head = h->next;
@@ -133,12 +137,12 @@ iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit
     return IW_ERROR_INVALID_ARGS;
   }
 
-  struct _IWTP *tp = malloc(sizeof(*tp) + sizeof(pthread_t) * num_threads);
+  struct iwtp *tp = malloc(sizeof(*tp) + sizeof(pthread_t) * num_threads);
   if (!tp) {
     *out_tp = 0;
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  *tp = (struct _IWTP) {
+  *tp = (struct iwtp) {
     .num_threads = num_threads,
     .queue_limit = queue_limit,
     .mtx = PTHREAD_MUTEX_INITIALIZER,
@@ -161,12 +165,11 @@ iwrc iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
     return 0;
   }
   IWTP tp = *tpp;
-  pthread_mutex_lock(&tp->mtx);
-  if (tp->shutdown) {
-    pthread_mutex_unlock(&tp->mtx);
+  if (!__sync_bool_compare_and_swap(&tp->shutdown, 0, 1)) {
     return 0;
   }
-  tp->shutdown = true;
+
+  pthread_mutex_lock(&tp->mtx);
   pthread_t st = pthread_self();
   for (int i = 0; i < tp->num_threads; ++i) {
     if (tp->threads[i] == st) {
@@ -176,9 +179,9 @@ iwrc iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
     }
   }
   if (!wait_for_all) {
-    struct _TASK *t = tp->head;
+    struct task *t = tp->head;
     while (t) {
-      struct _TASK *o = t;
+      struct task *o = t;
       t = t->next;
       free(o);
     }
@@ -194,6 +197,7 @@ iwrc iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
       pthread_join(tp->threads[i], 0);
     }
   }
+
   pthread_cond_destroy(&tp->cond);
   pthread_mutex_destroy(&tp->mtx);
   free(tp->thread_name_prefix);
