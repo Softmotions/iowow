@@ -38,6 +38,8 @@ IW_EXPORT IW_ALLOC IWXSTR* iwxstr_new(void);
 
 IW_EXPORT IWXSTR* iwxstr_new2(size_t siz);
 
+IW_EXPORT IWXSTR* iwxstr_new_printf(const char *format, ...) __attribute__ ((format(__printf__, 1, 2)));
+
 IW_EXPORT IWXSTR* iwxstr_wrap(const char *buf, size_t size);
 
 IW_EXPORT void iwxstr_destroy(IWXSTR *xstr);

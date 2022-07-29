@@ -209,6 +209,22 @@ iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) {
   return rc;
 }
 
+IWXSTR* iwxstr_new_printf(const char *format, ...) {
+  IWXSTR *xstr = iwxstr_new();
+  if (!xstr) {
+    return 0;
+  }
+  va_list ap;
+  va_start(ap, format);
+  iwrc rc = iwxstr_vaprintf(xstr, format, ap);
+  va_end(ap);
+  if (rc) {
+    iwxstr_destroy(xstr);
+    return 0;
+  }
+  return xstr;
+}
+
 char* iwxstr_ptr(IWXSTR *xstr) {
   return xstr->ptr;
 }
