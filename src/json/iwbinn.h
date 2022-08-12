@@ -269,9 +269,9 @@ BOOL binn_save_header(binn *item);
 
 // create a new binn allocating memory for the structure
 IW_ALLOC binn* binn_new(int type, int size, void *buffer);
-IW_ALLOC binn* binn_list();
-IW_ALLOC binn* binn_map();
-IW_ALLOC binn* binn_object();
+IW_ALLOC binn* binn_list(void);
+IW_ALLOC binn* binn_map(void);
+IW_ALLOC binn* binn_object(void);
 
 // create a new binn storing the structure on the stack
 BOOL binn_create(binn *item, int type, int size, void *buffer);
@@ -353,7 +353,7 @@ IW_ALLOC IW_INLINE binn* binn_bool(BOOL value) {
   return binn_value(BINN_BOOL, &value, 0, NULL);
 }
 
-IW_ALLOC IW_INLINE binn* binn_null() {
+IW_ALLOC IW_INLINE binn* binn_null(void) {
   return binn_value(BINN_NULL, NULL, 0, NULL);
 }
 

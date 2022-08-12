@@ -2052,12 +2052,12 @@ static iwrc _jbl_node_from_binn_impl(
         return JBL_ERROR_INVALID;
       }
       if (bn->type == BINN_OBJECT) {
-        for (int i = 0; binn_object_next2(&iter, &key, &klidx, &bv); ++i) {
+        while (binn_object_next2(&iter, &key, &klidx, &bv)) {
           rc = _jbl_node_from_binn_impl(ctx, &bv, parent, key, klidx, clone_strings);
           RCRET(rc);
         }
       } else if (bn->type == BINN_MAP) {
-        for (int i = 0; binn_map_next(&iter, &klidx, &bv); ++i) {
+        while (binn_map_next(&iter, &klidx, &bv)) {
           rc = _jbl_node_from_binn_impl(ctx, &bv, parent, 0, klidx, clone_strings);
           RCRET(rc);
         }
@@ -2980,7 +2980,7 @@ static const char* _jbl_ecodefn(locale_t locale, uint32_t ecode) {
   return 0;
 }
 
-iwrc jbl_init() {
+iwrc jbl_init(void) {
   static int _jbl_initialized = 0;
   if (!__sync_bool_compare_and_swap(&_jbl_initialized, 0, 1)) {
     return 0;

@@ -234,15 +234,15 @@ BOOL binn_create_object(binn *object) {
   return binn_create(object, BINN_OBJECT, 0, NULL);
 }
 
-binn* binn_list() {
+binn* binn_list(void) {
   return binn_new(BINN_LIST, 0, 0);
 }
 
-binn* binn_map() {
+binn* binn_map(void) {
   return binn_new(BINN_MAP, 0, 0);
 }
 
-binn* binn_object() {
+binn* binn_object(void) {
   return binn_new(BINN_OBJECT, 0, 0);
 }
 
@@ -2753,7 +2753,7 @@ void* binn_object_object(void *obj, const char *key) {
   return value;
 }
 
-BINN_PRIVATE binn* binn_alloc_item() {
+BINN_PRIVATE binn* binn_alloc_item(void) {
   binn *item;
   item = (binn*) binn_malloc(sizeof(binn));
   if (item) {

@@ -354,7 +354,7 @@ iwrc iwp_exec_path(char *opath, size_t opath_maxlen) {
 #endif
 }
 
-uint16_t iwp_num_cpu_cores() {
+uint16_t iwp_num_cpu_cores(void) {
   long res = sysconf(_SC_NPROCESSORS_ONLN);
   return (uint16_t) (res > 0 ? res : 1);
 }
@@ -406,7 +406,7 @@ void iwp_set_current_thread_name(const char *name) {
 #endif
 }
 
-static iwrc _iwp_init_impl() {
+static iwrc _iwp_init_impl(void) {
   iwp_page_size(); // init statics
   return 0;
 }

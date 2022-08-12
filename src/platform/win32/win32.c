@@ -66,7 +66,7 @@ iwrc iwp_fdatasync(HANDLE fh) {
 
 static SYSTEM_INFO sysinfo;
 
-static void _iwp_getsysinfo() {
+static void _iwp_getsysinfo(void) {
   GetSystemInfo(&sysinfo);
 }
 
@@ -78,7 +78,7 @@ size_t iwp_alloc_unit(void) {
   return sysinfo.dwAllocationGranularity;
 }
 
-uint16_t iwp_num_cpu_cores() {
+uint16_t iwp_num_cpu_cores(void) {
   return sysinfo.dwNumberOfProcessors;
 }
 
@@ -314,7 +314,7 @@ size_t iwp_tmpdir(char *out, size_t len) {
   return GetTempPathA(len, out);
 }
 
-static iwrc _iwp_init_impl() {
+static iwrc _iwp_init_impl(void) {
   _iwp_getsysinfo();
   return 0;
 }
