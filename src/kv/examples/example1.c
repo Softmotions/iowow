@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-int main() {
+int main(void) {
   IWKV_OPTS opts = {
     .path   = "example1.db",
     .oflags = IWKV_TRUNC // Cleanup database before open

@@ -438,7 +438,6 @@ static const char* skipwhite(const char *q) {
 double iwstrtod(const char *str, char **end) {
   double d = 0.0;
   int sign;
-  int n = 0;
   const char *p, *a;
 
   a = p = str;
@@ -457,7 +456,6 @@ double iwstrtod(const char *str, char **end) {
     while (*p && isdigit(*p)) {
       d = d * 10.0 + (double) (*p - '0');
       ++p;
-      ++n;
     }
     a = p;
   } else if (*p != '.') {
@@ -476,7 +474,6 @@ double iwstrtod(const char *str, char **end) {
         f += base * (*p - '0');
         base /= 10.0;
         ++p;
-        ++n;
       }
     }
     d += f * sign;

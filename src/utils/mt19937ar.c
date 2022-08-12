@@ -62,7 +62,7 @@ static int mti = N + 1;     /* mti==N+1 means mt[N] is not initialized */
 static pthread_spinlock_t lock;
 static volatile int mt_initialized;
 
-void init_mt19937ar() {
+void init_mt19937ar(void) {
   if (!__sync_bool_compare_and_swap(&mt_initialized, 0, 1)) {
     return;  // initialized already
   }
@@ -71,13 +71,13 @@ void init_mt19937ar() {
 
 __attribute__((constructor))
 
-void lock_constructor() {
+void lock_constructor(void) {
   init_mt19937ar();
 }
 
 __attribute__((destructor))
 
-void lock_destructor() {
+void lock_destructor(void) {
   if (!__sync_bool_compare_and_swap(&mt_initialized, 1, 0)) {
     return;  // initialized already
   }

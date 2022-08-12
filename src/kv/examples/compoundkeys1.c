@@ -111,7 +111,7 @@ finish:
   return rc;
 }
 
-int main() {
+int main(void) {
   iwrc rc = run();
   if (rc) {
     iwlog_ecode_error3(rc);
