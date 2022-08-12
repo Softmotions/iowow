@@ -13,8 +13,8 @@ off_t iwarr_sorted_insert(
   size_t elsize,
   void* restrict eptr,
   int (*cmp)(const void*, const void*),
-  bool skipeq) {
-
+  bool skipeq
+  ) {
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
   off_t idx = 0,
@@ -58,8 +58,8 @@ off_t iwarr_sorted_remove(
   size_t nels,
   size_t elsize,
   void* restrict eptr,
-  int (*cmp)(const void*, const void*)) {
-
+  int (*cmp)(const void*, const void*)
+  ) {
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
   off_t idx = 0,
@@ -99,8 +99,8 @@ off_t iwarr_sorted_find(
   size_t nels,
   size_t elsize,
   void* restrict eptr,
-  int (*cmp)(const void*, const void*)) {
-
+  int (*cmp)(const void*, const void*)
+  ) {
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
   off_t idx = 0,
@@ -139,8 +139,8 @@ off_t iwarr_sorted_find2(
   void* restrict eptr,
   void *op,
   bool *found,
-  iwrc (*cmp)(const void*, const void*, void*, int *res)) {
-
+  iwrc (*cmp)(const void*, const void*, void*, int *res)
+  ) {
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
   off_t idx = 0,
@@ -393,6 +393,26 @@ iwrc iwulist_remove(IWULIST *list, size_t index) {
     list->array = nptr;
   }
   return 0;
+}
+
+bool iwulist_remove_first_by(IWULIST *list, void *data_ptr) {
+  for (size_t i = list->start; i < list->start + list->num; ++i) {
+    void *ptr = list->array + i * list->usize;
+    if (memcmp(data_ptr, ptr, list->usize) == 0) {
+      return iwulist_remove(list, i - list->start) == 0;
+    }
+  }
+  return false;
+}
+
+ssize_t iwulist_find_first(IWULIST *list, void *data_ptr) {
+  for (size_t i = list->start; i < list->start + list->num; ++i) {
+    void *ptr = list->array + i * list->usize;
+    if (memcmp(data_ptr, ptr, list->usize) == 0) {
+      return i - list->start;
+    }
+  }
+  return -1;
 }
 
 iwrc iwulist_unshift(IWULIST *list, const void *data) {

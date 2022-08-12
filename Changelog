@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Added iwulist_remove_first_by(), iwulist_find_first() (iwarr.h)
   * Added iwxstr_new_printf() (iwxstr.h)
   * Reduced iwkv code complexity. Removed in-memory db cache since benchmarks shows only minor perf imprivements with cache.
   * Fixed many of UB errors (eg: misaligned access)

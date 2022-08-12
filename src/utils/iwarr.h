@@ -162,6 +162,24 @@ IW_EXPORT iwrc iwulist_set(IWULIST *list, size_t index, const void *data);
 IW_EXPORT iwrc iwulist_remove(IWULIST *list, size_t index);
 
 /**
+ * @brief Removes first element matches the given `data_ptr` content.
+ * @note `data_ptr` buffer must at least of list unit size.
+ *
+ * @param data_ptr Pointer to data buffer list items will be matched against.
+ * @return True if matched element was found.
+ */
+IW_EXPORT bool iwulist_remove_first_by(IWULIST *list, void *data_ptr);
+
+/**
+ * @brief Finds first element matched the given `data_ptr` content.
+ * @note `data_ptr` buffer must at least of list unit size.
+ *
+ * @param data_ptr Pointer to data buffer list items will be matched against.
+ * @return Index of first matched element or `-1` if item not found.
+ */
+IW_EXPORT ssize_t iwulist_find_first(IWULIST *list, void *data_ptr);
+
+/**
  * @brief Adds new element to end of list.
  *
  * @param data Pointer to unit data to copy
