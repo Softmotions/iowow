@@ -40,14 +40,6 @@ Website http://iowow.softmotions.com
 # Supported platforms
 
 ## Linux
-### Ubuntu/Debian
-#### PPA repository
-
-```sh
-sudo add-apt-repository ppa:adamansky/iwowow
-sudo apt-get update
-sudo apt-get install iowow
-```
 
 #### Building debian packages
 
@@ -338,4 +330,9 @@ Arsenal: 40
 AFC Bournemouth: 27
 ```
 
+## IWSTART
+
+IWSTART is an automatic CMake initial project generator for C projects based on iowow / [iwnet](https://github.com/Softmotions/iwnet) / [ejdb2](https://github.com/Softmotions/ejdb) libs.
+
+https://github.com/Softmotions/iwstart
 
