@@ -434,6 +434,18 @@ iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
   return 0;
 }
 
+iwrc iwhmap_put_str(IWHMAP *hm, const char *key_, void *val) {
+  char *key = strdup(key_);
+  if (!key) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
+  iwrc rc = iwhmap_put(hm, key, val);
+  if (rc) {
+    free(key);
+  }
+  return rc;
+}
+
 iwrc iwhmap_rename(IWHMAP *hm, const void *key_old, void *key_new) {
   uint32_t hash = hm->hash_key_fn(key_old);
   entry_t *entry = _entry_find(hm, key_old, hash);

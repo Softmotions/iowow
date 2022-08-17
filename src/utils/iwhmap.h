@@ -71,6 +71,10 @@ IW_EXPORT iwrc iwhmap_put_u32(IWHMAP *hm, uint32_t key, void *val);
 
 IW_EXPORT iwrc iwhmap_put_u64(IWHMAP *hm, uint64_t key, void *val);
 
+/// Makes copy of key (strdup) then puts key value pair into map.
+/// @note Key memory expected to be released by `kv_free_fn` function given to iwhmap_create_xxx.
+IW_EXPORT iwrc iwhmap_put_str(IWHMAP *hm, const char *key, void *val);
+
 IW_EXPORT iwrc iwhmap_rename(IWHMAP *hm, const void *key_old, void *key_new);
 
 IW_EXPORT bool iwhmap_remove(IWHMAP *hm, const void *key);
