@@ -8,12 +8,17 @@ Website http://iowow.softmotions.com
 
 # Key components
 
-* [iwkv.h](https://github.com/Softmotions/iowow/blob/master/src/kv/iwkv.h) Persistent key/value database engine
-* [iwfsmfile.h](https://github.com/Softmotions/iowow/blob/master/src/fs/iwfsmfile.h) File blocks allocation manager like `malloc()` on files
+* [utils](https://github.com/Softmotions/iowow/tree/master/src/utils) Useful data structures and various commonly used routines.
+* [json](https://github.com/Softmotions/iowow/tree/master/src/json) JSON parsing and manipulation routines incluing JSON Patch/Pointers support.
+* [iwkv.h](https://github.com/Softmotions/iowow/blob/master/src/kv/iwkv.h) Persistent key/value database engine.
+* [iwfsmfile.h](https://github.com/Softmotions/iowow/blob/master/src/fs/iwfsmfile.h) File blocks allocation manager like `malloc()` on files.
 
-# IWKV
+## Used by
 
-## Features
+* EJDB - Embeddable JSON database engine. http://ejdb.org
+* [Wirow video conferencing platform](https://github.com/wirow-io/wirow-server/)
+
+## IWKV Features
 
 * Support of multiple key-value databases within a single file
 * Online database backups
@@ -24,15 +29,9 @@ Website http://iowow.softmotions.com
 * Good performance comparing its main competitors: `lmdb`, `leveldb`, `kyoto cabinet`
 * Tiny C11 library (200Kb) can be easily embedded into any software
 
-[![Presentation](https://iowow.io/articles/iowow-presentation-cover-small.png)](https://iowow.io/articles/intro/)
+[![IWKV Presentation](https://iowow.io/articles/iowow-presentation-cover-small.png)](https://iowow.softmotions.com/articles/intro/)
 
-
-## Used by
-
-* EJDB - Embeddable JSON database engine. http://ejdb.org
-* [Wirow video conferencing platform](https://github.com/wirow-io/wirow-server/)
-
-## Limitations
+## IWKV Limitations
 
 * Maximum iwkv storage file size: `512 GB (0x7fffffff80)`
 * Total size of a single key+value record must be not greater than `255Mb (0xfffffff)`
