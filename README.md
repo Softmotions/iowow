@@ -1,4 +1,4 @@
-IOWOW - The C11 persistent key/value database engine
+IOWOW - A C utility library and persistent key/value storage engine
 ==================================================================================================================
 
 [![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/iowow/blob/master/LICENSE)
