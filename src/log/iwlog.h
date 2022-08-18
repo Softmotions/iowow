@@ -104,10 +104,11 @@ typedef enum {
  * @brief Available logging vebosity levels.
  */
 typedef enum {
-  IWLOG_ERROR = 0,
-  IWLOG_WARN  = 1,
-  IWLOG_INFO  = 2,
-  IWLOG_DEBUG = 3,
+  IWLOG_ERROR   = 0,
+  IWLOG_WARN    = 1,
+  IWLOG_INFO    = 2,
+  IWLOG_VERBOSE = 3,
+  IWLOG_DEBUG   = 4,
 } iwlog_lvl;
 
 /**
@@ -252,6 +253,8 @@ IW_EXPORT iwrc iwlog_va(
 #else
 #define iwlog_debug(IW_fmt, ...)
 #endif
+#define iwlog_verbose(IW_fmt, ...) \
+  iwlog2(IWLOG_VERBOSE, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_info(IW_fmt, ...) \
   iwlog2(IWLOG_INFO, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_warn(IW_fmt, ...) \
@@ -265,8 +268,9 @@ IW_EXPORT iwrc iwlog_va(
 #else
 #define iwlog_debug2(IW_fmt)
 #endif
-#define iwlog_info2(IW_fmt) iwlog3(IWLOG_INFO, 0, __FILE__, __LINE__, (IW_fmt))
-#define iwlog_warn2(IW_fmt) iwlog3(IWLOG_WARN, 0, __FILE__, __LINE__, (IW_fmt))
+#define iwlog_verbose2(IW_fmt) iwlog3(IWLOG_VERBOSE, 0, __FILE__, __LINE__, (IW_fmt))
+#define iwlog_info2(IW_fmt)    iwlog3(IWLOG_INFO, 0, __FILE__, __LINE__, (IW_fmt))
+#define iwlog_warn2(IW_fmt)    iwlog3(IWLOG_WARN, 0, __FILE__, __LINE__, (IW_fmt))
 #define iwlog_error2(IW_fmt) \
   iwlog3(IWLOG_ERROR, 0, __FILE__, __LINE__, (IW_fmt))
 
@@ -276,6 +280,8 @@ IW_EXPORT iwrc iwlog_va(
 #else
 #define iwlog_ecode_debug(IW_ecode, IW_fmt, ...)
 #endif
+#define iwlog_ecode_verbose(IW_ecode, IW_fmt, ...) \
+  iwlog2(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_ecode_info(IW_ecode, IW_fmt, ...) \
   iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_ecode_warn(IW_ecode, IW_fmt, ...) \
@@ -289,6 +295,8 @@ IW_EXPORT iwrc iwlog_va(
 #else
 #define iwlog_ecode_debug2(IW_ecode, IW_fmt)
 #endif
+#define iwlog_ecode_verbose2(IW_ecode, IW_fmt) \
+  iwlog3(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_info2(IW_ecode, IW_fmt) \
   iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_warn2(IW_ecode, IW_fmt) \
@@ -302,7 +310,8 @@ IW_EXPORT iwrc iwlog_va(
 #else
 #define iwlog_ecode_debug3(IW_ecode)
 #endif
-#define iwlog_ecode_info3(IW_ecode) iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, ""))
+#define iwlog_ecode_verbose3(IW_ecode) iwlog3(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, ""))
+#define iwlog_ecode_info3(IW_ecode)    iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, ""))
 #define iwlog_ecode_warn3(IW_ecode) \
   iwlog3(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, "")
 #define iwlog_ecode_error3(IW_ecode) \

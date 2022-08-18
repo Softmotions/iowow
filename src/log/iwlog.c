@@ -388,6 +388,7 @@ static iwrc _default_logfn(
       cat = "DEBUG";
 #endif
       break;
+
     case IWLOG_INFO:
 #ifdef IW_ANDROID_LOG
       alp = ANDROID_LOG_INFO;
@@ -396,6 +397,17 @@ static iwrc _default_logfn(
 #endif
       file = 0;
       break;
+
+    case IWLOG_VERBOSE:
+#ifdef IW_ANDROID_LOG
+      alp = ANDROID_LOG_INFO;
+#else
+      cat = "VERBOSE";
+#endif
+      file = 0;
+      break;
+
+
     case IWLOG_WARN:
 #ifdef IW_ANDROID_LOG
       alp = ANDROID_LOG_WARN;
@@ -403,6 +415,7 @@ static iwrc _default_logfn(
       cat = "WARN";
 #endif
       break;
+
     case IWLOG_ERROR:
 #ifdef IW_ANDROID_LOG
       alp = ANDROID_LOG_ERROR;
@@ -410,6 +423,7 @@ static iwrc _default_logfn(
       cat = "ERROR";
 #endif
       break;
+
     default:
 #ifndef IW_ANDROID_LOG
       cat = "UNKNOW";
