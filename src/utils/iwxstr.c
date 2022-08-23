@@ -45,14 +45,24 @@ IWXSTR* iwxstr_new(void) {
   return iwxstr_new2(IWXSTR_AUNIT);
 }
 
-IWXSTR* iwxstr_wrap(const char *buf, size_t size) {
-  IWXSTR *xstr = iwxstr_new2(size + 1);
+IWXSTR* iwxstr_wrap(char *buf, size_t size, size_t asize) {
+  IWXSTR *xstr = malloc(sizeof(*xstr));
   if (!xstr) {
     return 0;
   }
-  if (iwxstr_cat(xstr, buf, size)) {
-    iwxstr_destroy(xstr);
-    return 0;
+  xstr->user_data = 0;
+  xstr->user_data_free_fn = 0;
+  xstr->size = size;
+  xstr->asize = asize;
+  xstr->ptr = buf;
+
+  if (xstr->size >= asize) {
+    if (iwxstr_cat(xstr, buf, size)) {
+      free(xstr);
+      return 0;
+    }
+  } else {
+    xstr->ptr[size] = '\0';
   }
   return xstr;
 }
