@@ -97,6 +97,10 @@ typedef enum {
   IW_ERROR_UNEXPECTED_RESPONSE,   /**< Unexpected response (IW_ERROR_UNEXPECTED_RESPONSE) */
   IW_ERROR_NOT_ALLOWED,           /**< Action is not allowed. (IW_ERROR_NOT_ALLOWED) */
   IW_ERROR_UNSUPPORTED,           /**< Unsupported opration. (IW_ERROR_UNSUPPORTED) */
+  IW_ERROR_EOF,                   /**< End of IO stream/file (IW_ERROR_EOF) */
+  IW_ERROR_UNEXPECTED_INPUT,      /**< Unexpected input/data (IW_ERROR_UNEXPECTED_INPUT) */
+  IW_ERROR_IO,                    /**< IO error (IW_ERROR_IO) */
+  IW_ERROR_INVALID_CONFIG,        /**< Invalid configuration (IW_ERROR_INVALID_CONFIG) */
 } iw_ecode;
 
 /**

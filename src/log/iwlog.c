@@ -280,6 +280,14 @@ static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
       return "Action is not allowed. (IW_ERROR_NOT_ALLOWED)";
     case IW_ERROR_UNSUPPORTED:
       return "Unsupported opration. (IW_ERROR_UNSUPPORTED)";
+    case IW_ERROR_EOF:
+      return "End of IO stream/file (IW_ERROR_EOF)";
+    case IW_ERROR_UNEXPECTED_INPUT:
+      return "Unexpected input/data (IW_ERROR_UNEXPECTED_INPUT)";
+    case IW_ERROR_IO:
+      return "IO error (IW_ERROR_IO)";
+    case IW_ERROR_INVALID_CONFIG:
+      return "Invalid configuration (IW_ERROR_INVALID_CONFIG)";
     case IW_OK:
     default:
       return 0;
