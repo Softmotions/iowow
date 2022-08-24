@@ -519,6 +519,9 @@ void iwhmap_iter_init(IWHMAP *hm, IWHMAP_ITER *iter) {
 }
 
 bool iwhmap_iter_next(IWHMAP_ITER *iter) {
+  if (!iter->hm) {
+    return false;
+  }
   entry_t *entry;
   bucket_t *bucket = iter->hm->buckets + iter->bucket;
 
