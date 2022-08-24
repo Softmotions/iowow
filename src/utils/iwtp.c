@@ -168,7 +168,7 @@ static void* _worker_fn(void *op) {
 
 iwrc iwtp_start_spec(const struct iwtp_spec *spec, IWTP *out_tp) {
   iwrc rc = 0;
-  if (!spec || spec->num_threads < 1 || spec->num_threads > 1023 || spec->queue_limit < 0 || !out_tp) {
+  if (!spec || spec->num_threads < 1 || spec->num_threads > 1024 || spec->queue_limit < 0 || !out_tp) {
     return IW_ERROR_INVALID_ARGS;
   }
   if (spec->thread_name_prefix && strlen(spec->thread_name_prefix) > 15) {
