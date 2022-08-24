@@ -37,10 +37,40 @@ IW_EXTERN_C_START
 struct iwtp;
 typedef struct iwtp*IWTP;
 
+struct iwtp_spec {
+  /** Optional thread name prefix in thread pool.
+   * @note Thread name length must be not greater then 15 characters.
+   */
+  const char *thread_name_prefix;
+
+  /** Number of hot threads in thread pool.
+   * Threads are allocated on when thread pool created.
+   * Value must be in rage [1-1024]. */
+  int num_threads;
+
+  /** Maximum number of tasks in queue. Use zero for no limits. */
+  int queue_limit;
+
+  /** If task queue is full and the `overflow_threads_factor` is not zero
+   * then pool is allowed to spawn extra threads to process tasks as long
+   * as overall number of threads less of equal to `num_threads * overflow_threads_factor` */
+  int overflow_threads_factor;
+
+  /**
+   * It true performs log warning in the case of spawning overflow thread.
+   */
+  bool warn_on_overflow_thread_spawn;
+};
+
 /**
  * @brief Task to execute
  */
 typedef void (*iwtp_task_f)(void *arg);
+
+/**
+ * @brief Creates a new thread pool instance using provided `spec` config.
+ */
+IW_EXPORT iwrc iwtp_start_spec(const struct iwtp_spec *spec, IWTP *out_tp);
 
 /**
  * @brief Creates a new thread pool instance.
