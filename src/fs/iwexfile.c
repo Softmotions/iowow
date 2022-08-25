@@ -172,9 +172,21 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
       iwlog_ecode_error3(rc);
       return rc;
     }
-#ifdef MADV_DONTFORK
-    madvise(s->mmap, s->len, MADV_DONTFORK);
+
+    flags = 0;
+#ifdef MADV_RANDOM
+    if (s->mmopts & IWFS_MMAP_RANDOM) {
+      flags |= MADV_RANDOM;
+    }
 #endif
+
+#ifdef MADV_DONTFORK
+    flags |= MADV_DONTFORK;
+#endif
+
+    if (flags) {
+      madvise(s->mmap, s->len, flags);
+    }
   }
   return 0;
 }

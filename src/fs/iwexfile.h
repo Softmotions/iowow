@@ -87,6 +87,8 @@ typedef uint8_t iwfs_ext_mmap_opts_t;
 #define IWFS_MMAP_SHARED ((iwfs_ext_mmap_opts_t) 0x00U)
 /** Use private mmap */
 #define IWFS_MMAP_PRIVATE ((iwfs_ext_mmap_opts_t) 0x01U)
+/** Use mmap in random access pattern */
+#define IWFS_MMAP_RANDOM ((iwfs_ext_mmap_opts_t) 0x02U)
 
 /**
  * @brief File resize policy function type.

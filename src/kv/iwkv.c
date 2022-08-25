@@ -3167,7 +3167,8 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     .bpow          = IWKV_FSM_BPOW, // 64 bytes block size
     .hdrlen        = KVHDRSZ,       // Size of custom file header
     .oflags        = ((oflags & IWKV_RDONLY) ? IWFSM_NOLOCKS : 0),
-    .mmap_all      = true
+    .mmap_all      = true,
+    .mmap_opts     = IWFS_MMAP_RANDOM
   };
 #ifndef NDEBUG
   fsmopts.oflags |= IWFSM_STRICT;
