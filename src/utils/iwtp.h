@@ -45,15 +45,20 @@ struct iwtp_spec {
 
   /** Number of hot threads in thread pool.
    * Threads are allocated on when thread pool created.
-   * Value must be in rage [1-1024]. */
+   * @note Value must be in rage [1-1024].
+   * @note If zero then value will be set to number of cpu cores.
+   */
   int num_threads;
 
-  /** Maximum number of tasks in queue. Use zero for no limits. */
+  /** Maximum number of tasks in queue.
+     Zero for unlimited queue. */
   int queue_limit;
 
   /** If task queue is full and the `overflow_threads_factor` is not zero
    * then pool is allowed to spawn extra threads to process tasks as long
-   * as overall number of threads less of equal to `num_threads * overflow_threads_factor` */
+   * as overall number of threads less of equal to `num_threads * overflow_threads_factor`
+   * @note Max: 2
+   */
   int overflow_threads_factor;
 
   /**
@@ -70,7 +75,7 @@ typedef void (*iwtp_task_f)(void *arg);
 /**
  * @brief Creates a new thread pool instance using provided `spec` config.
  */
-IW_EXPORT iwrc iwtp_start_spec(const struct iwtp_spec *spec, IWTP *out_tp);
+IW_EXPORT iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, IWTP *out_tp);
 
 /**
  * @brief Creates a new thread pool instance.

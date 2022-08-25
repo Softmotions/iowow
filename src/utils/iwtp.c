@@ -3,6 +3,7 @@
 #include "iwp.h"
 #include "iwlog.h"
 #include "iwarr.h"
+#include "iwp.h"
 
 #include <stdlib.h>
 #include <errno.h>
@@ -53,7 +54,7 @@ iwrc iwtp_schedule(IWTP tp, iwtp_task_f fn, void *arg) {
   if (tp->queue_limit && (tp->queue_size + 1 > tp->queue_limit)) {
     rc = IW_ERROR_OVERFLOW;
     pthread_mutex_unlock(&tp->mtx);
-    iwlog_error("iwtp | Reached the thread pool queue size limit: %d", tp->queue_limit);
+    iwlog_error("iwtp | Reached  thread pool queue size limit: %d", tp->queue_limit);
     goto finish;
   }
   if (tp->tail) {
@@ -103,15 +104,14 @@ static void* _worker_fn(void *op) {
     char nbuf[64];
     if (idx >= tp->num_threads) {
       snprintf(nbuf, sizeof(nbuf), "%s%zd+", tp->thread_name_prefix, idx);
+      if (tp->warn_on_overflow_thread_spawn) {
+        iwlog_warn("iwtp | Overflow thread spawned: %s%zd+",
+                   tp->thread_name_prefix ? tp->thread_name_prefix : "", idx);
+      }
     } else {
       snprintf(nbuf, sizeof(nbuf), "%s%zd", tp->thread_name_prefix, idx);
     }
     iwp_set_current_thread_name(nbuf);
-  }
-
-  if (tp->warn_on_overflow_thread_spawn && idx >= tp->num_threads) {
-    iwlog_warn("iwtp | Overflow thread spawned: %s%zd+",
-               tp->thread_name_prefix ? tp->thread_name_prefix : "", idx);
   }
 
   while (true) {
@@ -139,11 +139,10 @@ static void* _worker_fn(void *op) {
 
     pthread_mutex_lock(&tp->mtx);
     --tp->num_threads_busy;
-    bool shutdown = tp->shutdown;
 
     if (idx >= tp->num_threads) {
       // Overflow thread will be terminated immediately.
-      if (!shutdown) {
+      if (!tp->shutdown) {
         iwulist_remove_first_by(&tp->threads, &st);
         pthread_detach(st);
       }
@@ -154,7 +153,7 @@ static void* _worker_fn(void *op) {
     if (tp->head) {
       pthread_mutex_unlock(&tp->mtx);
       continue;
-    } else if (shutdown) {
+    } else if (tp->shutdown) {
       pthread_mutex_unlock(&tp->mtx);
       break;
     }
@@ -166,13 +165,30 @@ static void* _worker_fn(void *op) {
   return 0;
 }
 
-iwrc iwtp_start_spec(const struct iwtp_spec *spec, IWTP *out_tp) {
+iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, IWTP *out_tp) {
   iwrc rc = 0;
-  if (!spec || spec->num_threads < 1 || spec->num_threads > 1023 || spec->queue_limit < 0 || !out_tp) {
+  if (!spec || !out_tp) {
     return IW_ERROR_INVALID_ARGS;
   }
   if (spec->thread_name_prefix && strlen(spec->thread_name_prefix) > 15) {
     return IW_ERROR_INVALID_ARGS;
+  }
+
+  int num_threads = spec->num_threads;
+  if (num_threads < 1) {
+    num_threads = iwp_num_cpu_cores();
+  } else if (num_threads > 1023) {
+    num_threads = 1024;
+  }
+
+  int queue_limit = spec->queue_limit;
+  if (queue_limit < 1) {
+    queue_limit = 0;
+  }
+
+  int overflow_threads_factor = spec->overflow_threads_factor;
+  if (overflow_threads_factor > 2) {
+    overflow_threads_factor = 2;
   }
 
   struct iwtp *tp = malloc(sizeof(*tp));
@@ -183,9 +199,9 @@ iwrc iwtp_start_spec(const struct iwtp_spec *spec, IWTP *out_tp) {
 
   *tp = (struct iwtp) {
     .warn_on_overflow_thread_spawn = spec->warn_on_overflow_thread_spawn,
-    .overflow_threads_factor = spec->overflow_threads_factor,
-    .num_threads = spec->num_threads,
-    .queue_limit = spec->queue_limit,
+    .overflow_threads_factor = overflow_threads_factor,
+    .num_threads = num_threads,
+    .queue_limit = queue_limit,
     .mtx = PTHREAD_MUTEX_INITIALIZER,
     .cond = PTHREAD_COND_INITIALIZER
   };
@@ -194,9 +210,9 @@ iwrc iwtp_start_spec(const struct iwtp_spec *spec, IWTP *out_tp) {
     tp->thread_name_prefix = strdup(spec->thread_name_prefix);
   }
 
-  RCC(rc, finish, iwulist_init(&tp->threads, spec->num_threads, sizeof(pthread_t)));
+  RCC(rc, finish, iwulist_init(&tp->threads, num_threads, sizeof(pthread_t)));
 
-  for (size_t i = 0; i < spec->num_threads; ++i) {
+  for (size_t i = 0; i < num_threads; ++i) {
     pthread_t th;
     int rci = pthread_create(&th, 0, _worker_fn, tp);
     if (rci) {
@@ -217,7 +233,7 @@ finish:
 }
 
 iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit, IWTP *out_tp) {
-  return iwtp_start_spec(&(struct iwtp_spec) {
+  return iwtp_start_by_spec(&(struct iwtp_spec) {
     .thread_name_prefix = thread_name_prefix,
     .num_threads = num_threads,
     .queue_limit = queue_limit
