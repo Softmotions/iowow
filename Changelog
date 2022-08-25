@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Fixed Github Vulnerability Report GHSL-2022-066
   * Added additional IW_ERROR_XX codes (iwlog.h)
   * Added VERBOSE log level (iwlog.h)
   * Added iwhmap_put_str() (iwhmap.h)

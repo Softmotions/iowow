@@ -26,7 +26,7 @@ static void _jbn_add_item(JBL_NODE parent, JBL_NODE node);
 
 void iwjson_ftoa(long double val, char buf[static IWNUMBUF_SIZE], size_t *out_len) {
   // TODO: review
-  int len = snprintf(buf, 64, "%.8Lf", val);
+  int len = snprintf(buf, IWNUMBUF_SIZE, "%.8Lf", val);
   if (len <= 0) {
     buf[0] = '\0';
     *out_len = 0;
