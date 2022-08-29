@@ -57,7 +57,7 @@ IWXSTR* iwxstr_wrap(char *buf, size_t size, size_t asize) {
   xstr->ptr = buf;
 
   if (size >= asize) {
-    xstr->ptr = malloc(size + 1);
+    xstr->ptr = realloc(buf, size + 1);
     if (!xstr->ptr) {
       free(xstr);
       return 0;
