@@ -109,7 +109,7 @@ iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size) {
     }
     char *ptr = realloc(xstr->ptr, xstr->asize);
     if (!ptr) {
-      return IW_ERROR_ERRNO;
+      return IW_ERROR_ALLOC;
     }
     xstr->ptr = ptr;
   }
@@ -130,7 +130,7 @@ iwrc iwxstr_set_size(IWXSTR *xstr, size_t size) {
     }
     char *ptr = realloc(xstr->ptr, xstr->asize);
     if (!ptr) {
-      return IW_ERROR_ERRNO;
+      return IW_ERROR_ALLOC;
     }
     xstr->ptr = ptr;
   }
@@ -153,7 +153,7 @@ iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size) {
     }
     char *ptr = realloc(xstr->ptr, xstr->asize);
     if (!ptr) {
-      return IW_ERROR_ERRNO;
+      return IW_ERROR_ALLOC;
     }
     xstr->ptr = ptr;
   }
@@ -190,6 +190,33 @@ void iwxstr_pop(IWXSTR *xstr, size_t pop_size) {
   }
   xstr->size -= pop_size;
   xstr->ptr[xstr->size] = '\0';
+}
+
+iwrc iwxstr_insert(IWXSTR *xstr, size_t pos, const void *buf, size_t size) {
+  if (pos > xstr->size) {
+    return IW_ERROR_OUT_OF_BOUNDS;
+  }
+  if (size == 0) {
+    return 0;
+  }
+  size_t nsize = xstr->size + size;
+  if (xstr->asize < nsize) {
+    while (xstr->asize < nsize) {
+      xstr->asize <<= 1;
+      if (xstr->asize < nsize) {
+        xstr->asize = nsize;
+      }
+    }
+    char *ptr = realloc(xstr->ptr, xstr->asize);
+    if (!ptr) {
+      return IW_ERROR_ALLOC;
+    }
+    xstr->ptr = ptr;
+  }
+  memmove(xstr->ptr + pos + size, xstr->ptr + pos, size);
+  memcpy(xstr->ptr + pos, buf, size);
+  xstr->size += size;
+  return IW_OK;
 }
 
 static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list va) {

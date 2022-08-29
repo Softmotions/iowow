@@ -58,6 +58,8 @@ IW_EXPORT void iwxstr_shift(IWXSTR *xstr, size_t shift_size);
 
 IW_EXPORT void iwxstr_pop(IWXSTR *xstr, size_t pop_size);
 
+IW_EXPORT iwrc iwxstr_insert(IWXSTR *xstr, size_t pos, const void *buf, size_t size);
+
 IW_EXPORT char* iwxstr_ptr(IWXSTR *xstr);
 
 IW_EXPORT iwrc iwxstr_set_size(IWXSTR *xstr, size_t size);
