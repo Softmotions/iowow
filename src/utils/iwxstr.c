@@ -56,14 +56,16 @@ IWXSTR* iwxstr_wrap(char *buf, size_t size, size_t asize) {
   xstr->asize = asize;
   xstr->ptr = buf;
 
-  if (xstr->size >= asize) {
-    if (iwxstr_cat(xstr, buf, size)) {
+  if (size >= asize) {
+    xstr->ptr = malloc(xstr->size + 1);
+    if (!xstr->ptr) {
       free(xstr);
       return 0;
     }
-  } else {
-    xstr->ptr[size] = '\0';
+    xstr->asize = size + 1;
+    memcpy(xstr->ptr, buf, size);
   }
+  xstr->ptr[size] = '\0';
   return xstr;
 }
 
