@@ -62,7 +62,6 @@ IWXSTR* iwxstr_wrap(char *buf, size_t size, size_t asize) {
       return 0;
     }
     xstr->asize = size + 1;
-    memcpy(xstr->ptr, buf, size);
   }
   xstr->ptr[size] = '\0';
   return xstr;
