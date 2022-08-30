@@ -30,6 +30,8 @@
 
 #include "basedefs.h"
 
+#include <stdarg.h>
+
 IW_EXTERN_C_START
 
 typedef struct _IWXSTR IWXSTR;
@@ -52,6 +54,8 @@ IW_EXPORT iwrc iwxstr_cat2(IWXSTR *xstr, const char *buf);
 
 IW_EXPORT iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size);
 
+IW_EXPORT iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list va);
+
 IW_EXPORT iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) __attribute__((format(__printf__, 2, 3)));
 
 IW_EXPORT void iwxstr_shift(IWXSTR *xstr, size_t shift_size);
@@ -59,6 +63,10 @@ IW_EXPORT void iwxstr_shift(IWXSTR *xstr, size_t shift_size);
 IW_EXPORT void iwxstr_pop(IWXSTR *xstr, size_t pop_size);
 
 IW_EXPORT iwrc iwxstr_insert(IWXSTR *xstr, size_t pos, const void *buf, size_t size);
+
+IW_EXPORT iwrc iwxstr_insert_vaprintf(IWXSTR *xstr, size_t pos, const char *format, va_list va);
+
+IW_EXPORT iwrc iwxstr_insert_printf(IWXSTR *xstr, size_t pos, const char *format, ...) __attribute__((format(__printf__, 3, 4)));
 
 IW_EXPORT char* iwxstr_ptr(IWXSTR *xstr);
 

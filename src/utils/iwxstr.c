@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <stdarg.h>
 #include <errno.h>
 
 // Default IWXSTR initial size
@@ -199,7 +198,7 @@ iwrc iwxstr_insert(IWXSTR *xstr, size_t pos, const void *buf, size_t size) {
   if (size == 0) {
     return 0;
   }
-  size_t nsize = xstr->size + size;
+  size_t nsize = xstr->size + size + 1;
   if (xstr->asize < nsize) {
     while (xstr->asize < nsize) {
       xstr->asize <<= 1;
@@ -213,13 +212,13 @@ iwrc iwxstr_insert(IWXSTR *xstr, size_t pos, const void *buf, size_t size) {
     }
     xstr->ptr = ptr;
   }
-  memmove(xstr->ptr + pos + size, xstr->ptr + pos, size);
+  memmove(xstr->ptr + pos + size, xstr->ptr + pos, xstr->size - pos + 1 /* \0 */);
   memcpy(xstr->ptr + pos, buf, size);
   xstr->size += size;
   return IW_OK;
 }
 
-static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list va) {
+iwrc iwxstr_insert_vaprintf(IWXSTR *xstr, size_t pos, const char *format, va_list va) {
   iwrc rc = 0;
   char buf[1024];
   va_list cva;
@@ -229,6 +228,43 @@ static iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list va) {
   if (len >= sizeof(buf)) {
     RCA(wp = malloc(len + 1), finish);
     len = vsnprintf(wp, len + 1, format, cva);
+    if (len < 0) {
+      rc = IW_ERROR_FAIL;
+      goto finish;
+    }
+  }
+  rc = iwxstr_insert(xstr, pos, wp, len);
+
+finish:
+  va_end(cva);
+  if (wp != buf) {
+    free(wp);
+  }
+  return rc;
+}
+
+iwrc iwxstr_insert_printf(IWXSTR *xstr, size_t pos, const char *format, ...) {
+  va_list ap;
+  va_start(ap, format);
+  iwrc rc = iwxstr_insert_vaprintf(xstr, pos, format, ap);
+  va_end(ap);
+  return rc;
+}
+
+iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list va) {
+  iwrc rc = 0;
+  char buf[1024];
+  va_list cva;
+  va_copy(cva, va);
+  char *wp = buf;
+  int len = vsnprintf(wp, sizeof(buf), format, va);
+  if (len >= sizeof(buf)) {
+    RCA(wp = malloc(len + 1), finish);
+    len = vsnprintf(wp, len + 1, format, cva);
+    if (len < 0) {
+      rc = IW_ERROR_FAIL;
+      goto finish;
+    }
   }
   rc = iwxstr_cat(xstr, wp, len);
 
