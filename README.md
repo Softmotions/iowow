@@ -30,7 +30,7 @@ Website https://iowow.softmotions.com
 * Good performance comparing its main competitors: `lmdb`, `leveldb`, `kyoto cabinet`
 * Tiny C11 library (200Kb) can be easily embedded into any software
 
-[![IWKV Presentation](https://iowow.io/articles/iowow-presentation-cover-small.png)](https://iowow.softmotions.com/articles/intro/)
+[![IWKV Presentation](https://iowow.softmotions.com/articles/iowow-presentation-cover-small.png)](https://iowow.softmotions.com/articles/intro/)
 
 ## IWKV Limitations
 
