@@ -44,6 +44,26 @@ IWXSTR* iwxstr_new(void) {
   return iwxstr_new2(IWXSTR_AUNIT);
 }
 
+IWXSTR* iwxstr_new_clone(const IWXSTR *xstr) {
+  IWXSTR *ret = malloc(sizeof(*ret));
+  if (!ret) {
+    return 0;
+  }
+  ret->user_data = 0;
+  ret->user_data_free_fn = 0;
+  ret->size = xstr->size;
+  ret->asize = xstr->asize;
+  ret->ptr = malloc(xstr->asize);
+  if (!ret->ptr) {
+    free(ret);
+    return 0;
+  }
+  if (xstr->size) {
+    memcpy(ret->ptr, xstr->ptr, xstr->size);
+  }
+  return ret;
+}
+
 IWXSTR* iwxstr_wrap(char *buf, size_t size, size_t asize) {
   IWXSTR *xstr = malloc(sizeof(*xstr));
   if (!xstr) {
