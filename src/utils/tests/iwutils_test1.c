@@ -4,12 +4,13 @@
 #include "iwutils.h"
 #include "iwpool.h"
 #include "iwrb.h"
+#include "iwconv.h"
 
-int init_suite(void) {
+static int init_suite(void) {
   return iw_init();
 }
 
-int clean_suite(void) {
+static int clean_suite(void) {
   return 0;
 }
 
@@ -25,7 +26,7 @@ static const char* _replace_mapper1(const char *key, void *op) {
   }
 }
 
-void test_iwu_replace_into(void) {
+static void test_iwu_replace_into(void) {
   IWXSTR *res = 0;
   const char *data = "What you said about my {}?";
   const char *keys[] = { "{}", "$", "?", "you", "my" };
@@ -37,7 +38,7 @@ void test_iwu_replace_into(void) {
   iwxstr_destroy(res);
 }
 
-void test_iwpool_split_string(void) {
+static void test_iwpool_split_string(void) {
   IWPOOL *pool = iwpool_create(128);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
   const char **res = iwpool_split_string(pool, " foo , bar:baz,,z,", ",:", true);
@@ -120,7 +121,7 @@ void test_iwpool_split_string(void) {
   iwpool_destroy(pool);
 }
 
-void test_iwpool_printf(void) {
+static void test_iwpool_printf(void) {
   IWPOOL *pool = iwpool_create(128);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
   const char *res = iwpool_printf(pool, "%s=%s", "foo", "bar");
@@ -129,7 +130,7 @@ void test_iwpool_printf(void) {
   iwpool_destroy(pool);
 }
 
-void test_iwrb1(void) {
+static void test_iwrb1(void) {
   int *p;
   IWRB_ITER iter;
   IWRB *rb = iwrb_create(sizeof(int), 7);
@@ -194,7 +195,14 @@ void test_iwrb1(void) {
   CU_ASSERT_PTR_NULL(rb);
 }
 
-int main() {
+static void iwitoa_issue48(void) {
+  char buf[IWNUMBUF_SIZE];
+  int len = iwitoa(INT64_MIN, buf, sizeof(buf));
+  CU_ASSERT_EQUAL(len, 20);
+  CU_ASSERT_STRING_EQUAL("-9223372036854775808", buf);
+}
+
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
@@ -214,7 +222,8 @@ int main() {
   if (  (NULL == CU_add_test(pSuite, "test_iwu_replace_into", test_iwu_replace_into))
      || (NULL == CU_add_test(pSuite, "test_iwpool_split_string", test_iwpool_split_string))
      || (NULL == CU_add_test(pSuite, "test_iwpool_printf", test_iwpool_printf))
-     || (NULL == CU_add_test(pSuite, "test_iwrb1", test_iwrb1))) {
+     || (NULL == CU_add_test(pSuite, "test_iwrb1", test_iwrb1))
+     || (NULL == CU_add_test(pSuite, "iwitoa_issue48", iwitoa_issue48))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 
 // mapping of ASCII characters to hex values
 static const uint8_t ascii2hex[] = {
@@ -106,9 +107,13 @@ int iwitoa(int64_t v, char *buf, int max) {
   }
   // sign stuff
   if (v < 0) {
-    v = -v;
-    ITOA_SZSTEP(1)
-    * ptr++ = '-';
+    if (IW_UNLIKELY(v == INT64_MIN)) {
+      return snprintf(buf, max, "-9223372036854775808");
+    } else {
+      v = -v;
+      ITOA_SZSTEP(1)
+      * ptr++ = '-';
+    }
   }
   // save start pointer
   p = ptr;

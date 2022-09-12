@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Fixed  Incorrect serialization of INT64_MIN by iwitoa() #48 (iwconv.h)
   * Added iwxstr_insert() (iwxstr.h)
   * ~8% IO performance improvements due to use of MADV_RANDOM
   * Fixed Github Vulnerability Report GHSL-2022-066
