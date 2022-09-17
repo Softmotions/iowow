@@ -1,5 +1,6 @@
 iowow (1.4.16) UNRELEASED; urgency=medium
 
+  * Fixed behavior of iwp_tmpdir() accourding to #47
   * Fixed  Incorrect serialization of INT64_MIN by iwitoa() #48 (iwconv.h)
   * Added iwxstr_insert() (iwxstr.h)
   * ~8% IO performance improvements due to use of MADV_RANDOM

@@ -54,7 +54,7 @@
 #define st_mtim st_mtimespec
 #endif
 
-#define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000ULL) + lround((IW_ts).tv_nsec / 1.0e6) )
+#define _IW_TIMESPEC2MS(IW_ts) (((IW_ts).tv_sec * 1000ULL) + lround((IW_ts).tv_nsec / 1.0e6))
 
 IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
 #if (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED < 101200)
@@ -378,8 +378,20 @@ iwrc iwp_fdatasync(HANDLE fh) {
 }
 
 size_t iwp_tmpdir(char *out, size_t len) {
-  const char *tdir = P_tmpdir;
-  size_t tlen = strlen(P_tmpdir);
+  const char *tdir;
+#ifdef IW_TMPDIR
+  tdir = IW_TMPDIR;
+#else
+  tdir = getenv("TMPDIR");
+  if (!tdir) {
+  #ifdef P_tmpdir
+    tdir = P_tmpdir;
+  #else
+    tdir = "/tmp";
+  #endif
+  }
+#endif
+  size_t tlen = strlen(tdir);
   size_t nw = MIN(len, tlen);
   memcpy(out, tdir, nw);
   return nw;
