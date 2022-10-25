@@ -32,14 +32,14 @@
 #include "utils/iwuuid.h"
 #include <stdio.h>
 
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__) || !_GNU_SOURCE
-#include <libgen.h>
-#elif defined(_WIN32)
+#if defined(_WIN32)
 #include <libiberty/libiberty.h>
 #include <direct.h>
 #else
-#include <string.h>
+#include <libgen.h>
 #endif
+
+#include <string.h>
 
 unsigned int iwcpuflags = 0;
 static iwrc _iwp_init_impl(void);
