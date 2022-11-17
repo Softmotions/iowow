@@ -170,7 +170,7 @@ struct _IWDB {
   off_t addr;                     /**< Database block address */
   sblk_flags_t flags;             /**< Flags */
   // !SBH
-  IWKV    iwkv;
+  IWKV iwkv;
   pthread_rwlock_t   rwl;             /**< Database API RW lock */
   pthread_spinlock_t cursors_slk;     /**< Cursors set guard lock */
   off_t next_db_addr;                 /**< Next IWDB addr */
@@ -222,7 +222,7 @@ struct _IWKV {
   int32_t pklen;                         /**< Prefix key length in use */
   volatile int32_t wk_count;             /**< Number of active workers */
   volatile bool    wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWKV */
-  atomic_bool      open;                 /**< True if kvstore is in OPEN state */
+  volatile bool    open;                 /**< True if kvstore is in the operable state */
 };
 
 /** Database lookup context */

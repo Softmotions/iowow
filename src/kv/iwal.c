@@ -114,9 +114,25 @@ static iwrc _init_locks(IWAL *wal) {
   return 0;
 }
 
+static void _wal_shutdown(IWAL *wal) {
+  while (wal->bkp_stage) { // todo: review
+    iwp_sleep(50);
+  }
+  wal->open = false;
+  if (wal->mtxp && wal->cpt_condp) {
+    pthread_mutex_lock(wal->mtxp);
+    pthread_cond_broadcast(wal->cpt_condp);
+    pthread_mutex_unlock(wal->mtxp);
+  }
+  if (wal->cptp) {
+    pthread_join(wal->cpt, 0);
+    wal->cptp = 0;
+  }
+}
+
 static void _destroy(IWAL *wal) {
   if (wal) {
-    wal->open = false;
+    _wal_shutdown(wal);
     if (!INVALIDHANDLE(wal->fh)) {
       iwp_unlock(wal->fh);
       iwp_closefh(wal->fh);
@@ -186,7 +202,7 @@ static iwrc _write_wl(IWAL *wal, const void *op, off_t oplen, const uint8_t *dat
     RCRET(rc);
     rc = iwp_write(wal->fh, data, (size_t) len);
     RCRET(rc);
-  } else if (len > 0){
+  } else if (len > 0) {
     assert(bufsz - wal->bufpos >= len);
     memcpy(wal->buf + wal->bufpos, data, (size_t) len);
     wal->bufpos += len;
@@ -784,21 +800,8 @@ iwrc iwal_savepoint_exl(IWKV iwkv, bool sync) {
 
 void iwal_shutdown(IWKV iwkv) {
   IWAL *wal = (IWAL*) iwkv->dlsnr;
-  if (!wal) {
-    return;
-  }
-  while (wal->bkp_stage) { // todo: review
-    iwp_sleep(50);
-  }
-  wal->open = false;
-  if (wal->mtxp && wal->cpt_condp) {
-    pthread_mutex_lock(wal->mtxp);
-    pthread_cond_broadcast(wal->cpt_condp);
-    pthread_mutex_unlock(wal->mtxp);
-  }
-  if (wal->cptp) {
-    pthread_join(wal->cpt, 0);
-    wal->cpt = 0;
+  if (wal) {
+    _wal_shutdown(wal);
   }
 }
 
@@ -839,7 +842,7 @@ static void* _cpt_worker_fn(void *op) {
     tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);
     do {
       rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
-    } while (rci == EINTR);
+    } while (rci == EINTR && !wal->open);
     if (rci && (rci != ETIMEDOUT)) {
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
       _unlock(wal);

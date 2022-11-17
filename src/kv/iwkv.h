@@ -273,8 +273,8 @@ IW_EXPORT iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags flags);
 
 /**
  * @brief Close iwkv storage.
- * @details Upon successfull call of iwkv_close()
- * no farther operations on storage or any of its databases are allowed.
+ * @warning Please ensure what all of application threads stopped
+ *          calling iwkv.h API before calling iwkv_close().
  *
  * @param iwkvp
  */

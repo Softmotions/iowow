@@ -2283,7 +2283,7 @@ finish:
   return rc;
 }
 
-iwrc _lx_release(IWLCTX *lx) {
+static iwrc _lx_release(IWLCTX *lx) {
   uint8_t *mm;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -2929,6 +2929,7 @@ iwrc iwkv_state(IWKV iwkv, IWFS_FSM_STATE *out) {
 }
 
 iwrc iwkv_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file) {
+  ENSURE_OPEN(iwkv);
   return iwal_online_backup(iwkv, ts, target_file);
 }
 
@@ -3249,7 +3250,9 @@ iwrc iwkv_exclusive_unlock(IWKV iwkv) {
 iwrc iwkv_close(IWKV *iwkvp) {
   ENSURE_OPEN((*iwkvp));
   IWKV iwkv = *iwkvp;
-  iwkv->open = false;
+  if (!__sync_bool_compare_and_swap(&iwkv->open, 1, 0)) {
+    return IW_ERROR_INVALID_STATE;
+  }
   iwal_shutdown(iwkv);
   iwrc rc = iwkv_exclusive_lock(iwkv);
   RCRET(rc);
@@ -3355,6 +3358,7 @@ iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t dbflg, IWDB *dbp) {
 }
 
 iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp) {
+  ENSURE_OPEN(iwkv);
   *dbp = 0;
   *dbidp = 0;
   if (iwkv->oflags & IWKV_RDONLY) {
@@ -3385,9 +3389,10 @@ iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp) {
 }
 
 iwrc iwkv_db_destroy(IWDB *dbp) {
-  if (!dbp || !*dbp) {
+  if (!dbp) {
     return IW_ERROR_INVALID_ARGS;
   }
+  ENSURE_OPEN_DB(*dbp);
   IWDB db = *dbp;
   IWKV iwkv = db->iwkv;
   *dbp = 0;
@@ -3531,12 +3536,13 @@ iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz) {
 
   int rci;
   iwrc rc = 0;
+  API_DB_WLOCK(db, rci);
+
   bool resized = false;
   uint8_t *mm = 0, *wp, *sp;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   size_t asz = IW_ROUNDUP(sz, 1U << IWKV_FSM_BPOW);
 
-  API_DB_WLOCK(db, rci);
   if ((asz > db->meta_blkn) || (asz * 2 <= db->meta_blkn)) {
     off_t oaddr = 0;
     off_t olen = 0;
@@ -3585,18 +3591,21 @@ iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz, size_t *rsz) {
     return IW_ERROR_INVALID_ARGS;
   }
   *rsz = 0;
-  if (!sz || !db->meta_blkn) {
-    return 0;
-  }
   int rci;
   iwrc rc = 0;
+
+  API_DB_RLOCK(db, rci);
+  if (!sz || !db->meta_blkn) {
+    API_DB_UNLOCK(db, rci, rc);
+    return 0;
+  }
+
   uint8_t *mm = 0;
   IWFS_FSM *fsm = &db->iwkv->fsm;
   size_t rmax = BLK2ADDR(db->meta_blkn);
   if (sz > rmax) {
     sz = rmax;
   }
-  API_DB_RLOCK(db, rci);
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   memcpy(buf, mm + BLK2ADDR(db->meta_blk), sz);
@@ -3724,6 +3733,7 @@ iwrc iwkv_cursor_close(IWKV_cursor *curp) {
   }
   IWKV_cursor cur = *curp;
   *curp = 0;
+
   IWKV iwkv = cur->lx.db->iwkv;
   if (cur->closed) {
     free(cur);

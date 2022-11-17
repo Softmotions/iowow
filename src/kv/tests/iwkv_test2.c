@@ -55,7 +55,7 @@ static void iwkv_test2_1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
