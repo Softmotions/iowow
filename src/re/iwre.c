@@ -39,6 +39,10 @@ void iwre_destroy(struct iwre *re) {
 }
 
 struct iwre* iwre_create(const char *pattern) {
+  if (!pattern || pattern[0] == '\0') {
+    // Don't support empty regexp patterns
+    return 0;
+  }
   struct iwre *re = calloc(1, sizeof(*re));
   if (!re) {
     return 0;
