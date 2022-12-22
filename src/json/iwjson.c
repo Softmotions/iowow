@@ -2114,10 +2114,18 @@ static JBL_NODE _jbl_node_find(JBL_NODE node, JBL_PTR ptr, int from, int to) {
         }
       }
     } else if (n->type == JBV_ARRAY) {
-      int64_t idx = iwatoi(ptr->n[i]);
-      for (n = n->child; n; n = n->next) {
-        if (idx == n->klidx) {
-          break;
+      if (*ptr->n[i] == '-' && *(ptr->n[i] + 1) == '\0') {
+        for (n = n->child; n; n = n->next) {
+          if (n->next == 0) {
+            break;
+          }
+        }
+      } else {
+        int64_t idx = iwatoi(ptr->n[i]);
+        for (n = n->child; n; n = n->next) {
+          if (idx == n->klidx) {
+            break;
+          }
         }
       }
     } else {

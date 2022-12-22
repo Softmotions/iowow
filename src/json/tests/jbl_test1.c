@@ -72,7 +72,7 @@ finish:
   iwxstr_destroy(res);
 }
 
-void jbl_test1_1() {
+void jbl_test1_1(void) {
   _jbl_test1_1(1, 0, JBL_PRINT_PRETTY);
   _jbl_test1_1(2, 0, JBL_PRINT_PRETTY | JBL_PRINT_CODEPOINTS);
   _jbl_test1_1(3, 0, JBL_PRINT_PRETTY);
@@ -80,7 +80,7 @@ void jbl_test1_1() {
   _jbl_test1_1(5, 0, JBL_PRINT_PRETTY);
 }
 
-void jbl_test1_2() {
+void jbl_test1_2(void) {
   const char *data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
                      "\"n\\\"um2\":10.1226222, "
                      "\"list\":[3,2.1,1,\"one\", \"two\", "
@@ -108,7 +108,7 @@ void jbl_test1_2() {
   iwxstr_destroy(xstr);
 }
 
-void jbl_test1_3() {
+void jbl_test1_3(void) {
   JBL_PTR jp;
   iwrc rc = jbl_ptr_alloc("/", &jp);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -164,7 +164,7 @@ void jbl_test1_3() {
   free(jp);
 }
 
-void jbl_test1_4() {
+void jbl_test1_4(void) {
   //  { "foo": "bar",
   //    "foo2": {
   //      "foo3": {
@@ -254,7 +254,7 @@ void jbl_test1_4() {
   free(data);
 }
 
-void jbl_test1_5() {
+void jbl_test1_5(void) {
   IWXSTR *xstr = iwxstr_new();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
@@ -396,7 +396,7 @@ finish:
 }
 
 // Run tests: https://github.com/json-patch/json-patch-tests/blob/master/spec_tests.json
-void jbl_test1_6() {
+void jbl_test1_6(void) {
   iwrc rc;
   IWXSTR *xstr = iwxstr_new();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
@@ -625,7 +625,7 @@ void jbl_test1_6() {
   iwxstr_destroy(xstr);
 }
 
-void jbl_test1_7() {
+void jbl_test1_7(void) {
   iwrc rc;
   IWXSTR *xstr = iwxstr_new();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
@@ -720,7 +720,7 @@ void jbl_test1_7() {
   iwxstr_destroy(xstr);
 }
 
-void jbl_test1_8() {
+void jbl_test1_8(void) {
   JBL jbl, nested, at;
   iwrc rc = jbl_create_empty_object(&jbl);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -873,7 +873,7 @@ void jbl_test1_12(void) {
   iwpool_destroy(pool);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
   if (CUE_SUCCESS != CU_initialize_registry()) {
     return CU_get_error();
