@@ -184,9 +184,11 @@ static iwrc _exfile_initmmap_slot_lw(struct IWFS_EXT *f, MMAPSLOT *s) {
     flags |= MADV_DONTFORK;
 #endif
 
+#ifndef _WIN32
     if (flags) {
       madvise(s->mmap, s->len, flags);
     }
+#endif
   }
   return 0;
 }

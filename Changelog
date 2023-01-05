@@ -1,3 +1,10 @@
+iowow (1.4.17) UNRELEASED; urgency=medium
+
+  * Fixed windows build
+  * Added ref counting feature to iwpool (iwpool.h)
+
+ -- Anton Adamansky <adamansky@gmail.com>  Thu, 05 Jan 2023 19:23:07 +0200
+
 iowow (1.4.16) testing; urgency=medium
 
   * Fixed behavior of iwp_tmpdir() accourding to #47

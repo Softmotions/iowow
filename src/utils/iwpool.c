@@ -17,12 +17,13 @@ typedef struct IWPOOL_UNIT {
 
 /** Memory pool */
 struct _IWPOOL {
-  size_t usiz;                       /**< Used size */
-  size_t asiz;                       /**< Allocated size */
-  char  *heap;                       /**< Current pool heap ptr */
+  size_t       usiz;                 /**< Used size */
+  size_t       asiz;                 /**< Allocated size */
   IWPOOL_UNIT *unit;                 /**< Current heap unit */
   void *user_data;                   /**< Associated user data */
   void  (*user_data_free_fn)(void*); /**< User data dispose function */
+  int   numrefs;                     /**< Number of references if reached 0 a pool will destroyed by iwpool_destroy */
+  char *heap;                        /**< Current pool heap ptr */
 };
 
 IWPOOL* iwpool_create(size_t siz) {
@@ -43,6 +44,7 @@ IWPOOL* iwpool_create(size_t siz) {
   }
   pool->asiz = siz;
   pool->heap = pool->unit->heap;
+  pool->numrefs = 1;
   pool->usiz = 0;
   pool->unit->next = 0;
   pool->user_data = 0;
@@ -256,8 +258,12 @@ size_t iwpool_used_size(IWPOOL *pool) {
   return pool->usiz;
 }
 
+int iwpool_ref(IWPOOL *pool) {
+  return ++pool->numrefs;
+}
+
 void iwpool_destroy(IWPOOL *pool) {
-  if (!pool) {
+  if (!pool || --pool->numrefs > 0) {
     return;
   }
   for (IWPOOL_UNIT *u = pool->unit, *next; u; u = next) {

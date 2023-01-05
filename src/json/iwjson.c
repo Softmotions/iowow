@@ -2299,7 +2299,7 @@ int jbn_compare_nodes(JBL_NODE n1, JBL_NODE n2, iwrc *rcp) {
 }
 
 static iwrc _jbl_target_apply_patch(JBL_NODE target, const JBL_PATCHEXT *ex, IWPOOL *pool) {
-  struct _JBL_NODE *ntmp;
+  struct _JBL_NODE *ntmp = 0;
   jbp_patch_t op = ex->p->op;
   JBL_PTR path = ex->path;
   JBL_NODE value = ex->p->vnode;

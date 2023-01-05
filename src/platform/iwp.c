@@ -33,12 +33,10 @@
 #include <stdio.h>
 
 #if defined(_WIN32)
-#include <libiberty/libiberty.h>
 #include <direct.h>
-#else
-#include <libgen.h>
 #endif
 
+#include <libgen.h>
 #include <string.h>
 
 unsigned int iwcpuflags = 0;
@@ -208,7 +206,7 @@ iwrc iwp_mkdirs(const char *path) {
       /* Temporarily truncate */
       *p = '\0';
       #if (defined(_WIN32) || defined(__WIN32__))
-      if (_mkdir(_path) != 0) {
+      if (_mkdir(ppath) != 0) {
       #else
       if (mkdir(ppath, S_IRWXU) != 0) {
       #endif
@@ -221,7 +219,7 @@ iwrc iwp_mkdirs(const char *path) {
     }
   }
   #if (defined(_WIN32) || defined(__WIN32__))
-  if (_mkdir(_path) != 0) {
+  if (_mkdir(ppath) != 0) {
   #else
   if (mkdir(ppath, S_IRWXU) != 0) {
   #endif

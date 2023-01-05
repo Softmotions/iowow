@@ -12,7 +12,7 @@
 ### Prepare MXE
 
 ```sh
-git submodule update --init
+git clone https://github.com/mxe/mxe.git
 ```
 
 `nano ./mxe/settings.mk`:

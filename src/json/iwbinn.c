@@ -7,6 +7,11 @@
 #include "iwbinn.h"
 #include "iwutils.h"
 
+#ifdef _WIN32
+#include <libiberty/libiberty.h>
+#define strndup(c__, s__) xstrndup(c__, s__)
+#endif
+
 #define INT64_FORMAT     PRId64
 #define UINT64_FORMAT    PRIu64
 #define INT64_HEX_FORMAT PRIx64

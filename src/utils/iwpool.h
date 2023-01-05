@@ -119,6 +119,14 @@ IW_EXPORT const char** iwpool_printf_split(
   const char *format, ...) __attribute__((format(__printf__, 4, 5)));
 
 /**
+ * Increments an internal reference count.
+ * References are decremented by `iwpool_destroy()`.
+ *
+ * @return Actual number of references.
+ */
+IW_EXPORT int iwpool_ref(IWPOOL *pool);
+
+/**
  * @brief Destroys a given memory pool and frees its resources.
  *
  * @param pool
