@@ -3,7 +3,8 @@
 ## Prerequisites
 
 ```sh
-  sudo apt-get install bison flex libtool ruby scons intltool libtool-bin p7zip-full wine wine32
+  sudo apt-get install bison flex libtool ruby scons intltool libtool-bin p7zip-full wine wine32 \
+                       python-is-python3 python3-mako gperf
 ```
 
 ## Build
