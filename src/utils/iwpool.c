@@ -63,7 +63,11 @@ error:
 }
 
 IWPOOL* iwpool_create_empty(void) {
-  return calloc(1, sizeof(struct _IWPOOL));
+  IWPOOL *ret = calloc(1, sizeof(struct _IWPOOL));
+  if (ret) {
+    ret->numrefs = 1;
+  }
+  return ret;
 }
 
 IW_INLINE int iwpool_extend(IWPOOL *pool, size_t siz) {
