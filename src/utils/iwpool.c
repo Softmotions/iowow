@@ -266,9 +266,9 @@ int iwpool_ref(IWPOOL *pool) {
   return ++pool->numrefs;
 }
 
-void iwpool_destroy(IWPOOL *pool) {
+bool iwpool_destroy(IWPOOL *pool) {
   if (!pool || --pool->numrefs > 0) {
-    return;
+    return false;
   }
   for (IWPOOL_UNIT *u = pool->unit, *next; u; u = next) {
     next = u->next;
@@ -279,4 +279,5 @@ void iwpool_destroy(IWPOOL *pool) {
     pool->user_data_free_fn(pool->user_data);
   }
   free(pool);
+  return true;
 }

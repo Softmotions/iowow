@@ -132,7 +132,7 @@ IW_EXPORT int iwpool_ref(IWPOOL *pool);
  * @param pool
  * @return IW_EXPORT
  */
-IW_EXPORT void iwpool_destroy(IWPOOL *pool);
+IW_EXPORT bool iwpool_destroy(IWPOOL *pool);
 
 /**
  * @brief Dispose function for `IWPOOL` stored as user data.
