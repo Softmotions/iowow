@@ -123,10 +123,6 @@ static void iwkv_test3_impl(int fmt_version) {
   fclose(r);
 }
 
-static void iwkv_test3_v1() {
-  iwkv_test3_impl(1);
-}
-
 static void iwkv_test3_v2() {
   iwkv_test3_impl(2);
 }
@@ -245,10 +241,6 @@ static void iwkv_test2_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rci, 0);
   fclose(f);
   fclose(r);
-}
-
-static void iwkv_test2_v1() {
-  iwkv_test2_impl(1);
 }
 
 static void iwkv_test2_v2() {
@@ -682,10 +674,6 @@ static void iwkv_test1_impl(int fmt_version) {
   fclose(f);
 }
 
-static void iwkv_test1_v1() {
-  iwkv_test1_impl(1);
-}
-
 static void iwkv_test1_v2() {
   iwkv_test1_impl(2);
 }
@@ -774,10 +762,6 @@ static void iwkv_test8_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test8_v1() {
-  iwkv_test1_impl(1);
-}
-
 static void iwkv_test8_v2() {
   iwkv_test1_impl(2);
 }
@@ -829,10 +813,6 @@ static void iwkv_test7_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test7_v1() {
-  iwkv_test7_impl(1);
-}
-
 static void iwkv_test7_v2() {
   iwkv_test7_impl(2);
 }
@@ -874,10 +854,6 @@ static void iwkv_test6_impl(int fmt_version) {
   free(vbuf);
 }
 
-static void iwkv_test6_v1() {
-  iwkv_test6_impl(1);
-}
-
 static void iwkv_test6_v2() {
   iwkv_test6_impl(2);
 }
@@ -911,21 +887,15 @@ int main() {
   }
 
   /* Add the tests to the suite */
-  if (  (NULL == CU_add_test(pSuite, "iwkv_test1_v1", iwkv_test1_v1))
-     || (NULL == CU_add_test(pSuite, "iwkv_test1_v2", iwkv_test1_v2))
-     || (NULL == CU_add_test(pSuite, "iwkv_test2_v1", iwkv_test2_v1))
+  if (  (NULL == CU_add_test(pSuite, "iwkv_test1_v1", iwkv_test1_v2))
      || (NULL == CU_add_test(pSuite, "iwkv_test2_v2", iwkv_test2_v2))
-     || (NULL == CU_add_test(pSuite, "iwkv_test3_v1", iwkv_test3_v1))
      || (NULL == CU_add_test(pSuite, "iwkv_test3_v2", iwkv_test3_v2)) ||
 
         //-    (NULL == CU_add_test(pSuite, "iwkv_test4", iwkv_test4)) ||
         //-    (NULL == CU_add_test(pSuite, "iwkv_test5", iwkv_test5)) ||
 
-        (NULL == CU_add_test(pSuite, "iwkv_test6_v1", iwkv_test6_v1))
-     || (NULL == CU_add_test(pSuite, "iwkv_test6_v2", iwkv_test6_v2))
-     || (NULL == CU_add_test(pSuite, "iwkv_test7_v1", iwkv_test7_v1))
+        (NULL == CU_add_test(pSuite, "iwkv_test6_v2", iwkv_test6_v2))
      || (NULL == CU_add_test(pSuite, "iwkv_test7_v2", iwkv_test7_v2))
-     || (NULL == CU_add_test(pSuite, "iwkv_test8_v1", iwkv_test8_v1))
      || (NULL == CU_add_test(pSuite, "iwkv_test8_v2", iwkv_test8_v2))
      || (NULL == CU_add_test(pSuite, "iwkv_test9", iwkv_test9))) {
     CU_cleanup_registry();

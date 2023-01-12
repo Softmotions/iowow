@@ -86,7 +86,7 @@ static void iwkv_test6_2_impl(int fmt_version) {
   IWDB db;
   IWKV_val key = { 0 };
   IWKV_val val = { 0 };
-  char kbuf[PREFIX_KEY_LEN_V1];
+  char kbuf[PREFIX_KEY_LEN_V2];
 
   IWKV_OPTS opts = {
     .path        = "iwkv_test6_2.db",
@@ -96,7 +96,7 @@ static void iwkv_test6_2_impl(int fmt_version) {
   rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  for (int i = 0; i < iwkv->pklen - 1; ++i) {
+  for (int i = 0; i < PREFIX_KEY_LEN_V2 - 1; ++i) {
     kbuf[i] = (i % 94) + 33;
   }
 
@@ -105,7 +105,7 @@ static void iwkv_test6_2_impl(int fmt_version) {
 
   for (uint32_t i = 0; i < 1000; ++i) {
     key.data = kbuf;
-    key.size = iwkv->pklen - 1;
+    key.size = PREFIX_KEY_LEN_V2 - 1;
     key.compound = i;
     rc = iwkv_put(db, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);

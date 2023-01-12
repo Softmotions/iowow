@@ -29,7 +29,7 @@
 #define IWKV_BACKUP_MAGIC 0xBACBAC69U
 
 // IWKV file format version
-#define IWKV_FORMAT 2
+#define IWKV_FORMAT 2U
 
 // IWDB magic number
 #define IWDB_MAGIC 0x69776462U
@@ -53,8 +53,6 @@
 // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK
 
 // Maximum length of prefix key to compare for v2 formst
-#define PREFIX_KEY_LEN_V1 116U
-
 #define PREFIX_KEY_LEN_V2 115U
 
 // Number of skip list levels
@@ -203,7 +201,7 @@ typedef struct SBLK {
   int8_t  pnum;                  /**< Number of active kv indexes in `SBLK::pi` */
   uint8_t lkl;                   /**< Lower key length within a buffer */
   uint8_t pi[KVBLK_IDXNUM];      /**< Sorted KV slots, value is an index of kv slot in `KVBLK` */
-  uint8_t lk[PREFIX_KEY_LEN_V1]; /**< Lower key buffer */
+  uint8_t lk[PREFIX_KEY_LEN_V2 + 1]; /**< Lower key buffer */
 } SBLK;
 
 /** IWKV instance */
@@ -219,7 +217,6 @@ struct _IWKV {
   pthread_cond_t  wk_cond;               /**< Workers cond variable */
   pthread_mutex_t wk_mtx;                /**< Workers cond mutext */
   int32_t fmt_version;                   /**< Database format version */
-  int32_t pklen;                         /**< Prefix key length in use */
   volatile int32_t wk_count;             /**< Number of active workers */
   volatile bool    wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWKV */
   volatile bool    open;                 /**< True if kvstore is in the operable state */

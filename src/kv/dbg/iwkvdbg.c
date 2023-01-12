@@ -38,7 +38,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
 iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   assert(sb && sb->addr);
   uint32_t lkl = 0;
-  char lkbuf[PREFIX_KEY_LEN_V1 + 1] = { 0 };
+  char lkbuf[PREFIX_KEY_LEN_V2 + 1] = { 0 };
   uint8_t *mm, *vbuf, *kbuf;
   uint32_t klen, vlen;
   IWFS_FSM *fsm = &sb->db->iwkv->fsm;

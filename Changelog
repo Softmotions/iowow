@@ -1,5 +1,7 @@
 iowow (1.4.17) UNRELEASED; urgency=medium
 
+  * Removed support of legacy iwkv v1 data file format.
+  * Fixed incorrect read of memory bytes (reported by valgrind)
   * Fixed windows build
   * Added ref counting feature to iwpool (iwpool.h)
 

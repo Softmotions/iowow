@@ -376,14 +376,15 @@ static WUR iwrc _db_at(IWKV iwkv, IWDB *dbp, off_t addr, uint8_t *mm) {
   IW_READLV(rp, lv, db->id);
   IW_READLV(rp, lv, db->next_db_addr);
   db->next_db_addr = BLK2ADDR(db->next_db_addr); // blknum -> addr
+
   rp = mm + addr + DOFF_C0_U4;
   for (int i = 0; i < SLEVELS; ++i) {
     IW_READLV(rp, lv, db->lcnt[i]);
   }
-  if (iwkv->fmt_version >= 1) {
-    IW_READLV(rp, lv, db->meta_blk);
-    IW_READLV(rp, lv, db->meta_blkn);
-  }
+
+  IW_READLV(rp, lv, db->meta_blk);
+  IW_READLV(rp, lv, db->meta_blkn);
+
   db->open = true;
   *dbp = db;
 
@@ -411,20 +412,18 @@ static WUR iwrc _db_save(IWDB db, bool newdb, uint8_t *mm) {
     rc = dlsnr->onwrite(dlsnr, db->addr, sp, wp - sp, 0);
     RCRET(rc);
   }
-  if (db->iwkv->fmt_version >= 1) {
-    if (newdb) {
-      memset(wp, 0, 4 + SLEVELS * 4 * 2); // p0 + n[24] + c[24]
-      sp = wp;
-      wp += 4 + SLEVELS * 4 * 2; // set to zero
-    } else {
-      wp += 4 + SLEVELS * 4 * 2; // skip
-      sp = wp;
-    }
-    IW_WRITELV(wp, lv, db->meta_blk);
-    IW_WRITELV(wp, lv, db->meta_blkn);
-    if (dlsnr) {
-      rc = dlsnr->onwrite(dlsnr, sp - mm, sp, wp - sp, 0);
-    }
+  if (newdb) {
+    memset(wp, 0, 4 + SLEVELS * 4 * 2);   // p0 + n[24] + c[24]
+    sp = wp;
+    wp += 4 + SLEVELS * 4 * 2;   // set to zero
+  } else {
+    wp += 4 + SLEVELS * 4 * 2;   // skip
+    sp = wp;
+  }
+  IW_WRITELV(wp, lv, db->meta_blk);
+  IW_WRITELV(wp, lv, db->meta_blkn);
+  if (dlsnr) {
+    rc = dlsnr->onwrite(dlsnr, sp - mm, sp, wp - sp, 0);
   }
   return rc;
 }
@@ -490,12 +489,13 @@ static iwrc _db_dispose_chain(DISPOSE_DB_CTX *dctx) {
     if (kvblkn) {
       memcpy(&kvszpow, mm + BLK2ADDR(kvblkn) + KBLK_SZPOW_OFF, 1);
     }
-    if (dctx->iwkv->fmt_version > 1) {
-      off_t bpos;
+
+    {
+      uint8_t bpos;
       memcpy(&bpos, mm + sba + SOFF_BPOS_U1_V2, 1);
       rc = fsm->release_mmap(fsm);
       RCBREAK(rc);
-      if ((bpos > 0) && (bpos <= SBLK_PAGE_SBLK_NUM_V2)) {
+      if (bpos <= SBLK_PAGE_SBLK_NUM_V2) {
         off_t npage = sba - (bpos - 1) * SBLK_SZ;
         if (npage != page) {
           if (page) {
@@ -507,13 +507,8 @@ static iwrc _db_dispose_chain(DISPOSE_DB_CTX *dctx) {
           page = npage;
         }
       }
-    } else {
-      rc = fsm->release_mmap(fsm);
-      RCBREAK(rc);
-      // Deallocate `SBLK`
-      rc = fsm->deallocate(fsm, sba, SBLK_SZ);
-      RCBREAK(rc);
     }
+
     // Deallocate `KVBLK`
     if (kvblkn) {
       rc = fsm->deallocate(fsm, BLK2ADDR(kvblkn), 1ULL << kvszpow);
@@ -1376,11 +1371,13 @@ IW_INLINE WUR iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
     } else {
       kvb_szpow = sblk->kvblk->szpow;
     }
+
     if (lx->db->lcnt[sblk->lvl]) {
       lx->db->lcnt[sblk->lvl]--;
       lx->db->flags |= SBLK_DURTY;
     }
-    if (lx->db->iwkv->fmt_version > 1) {
+
+    {
       off_t paddr;
       if (_sblk_is_only_one_on_page_v2(lx, mm, sblk, &paddr)) {
         fsm->release_mmap(fsm);
@@ -1393,10 +1390,8 @@ IW_INLINE WUR iwrc _sblk_destroy(IWLCTX *lx, SBLK **sblkp) {
           dlsnr->onset(dlsnr, sblk->addr + SOFF_BPOS_U1_V2, 0, 1, 0);
         }
       }
-    } else {
-      fsm->release_mmap(fsm);
-      rc = fsm->deallocate(fsm, sblk->addr, SBLK_SZ);
     }
+
     IWRC(fsm->deallocate(fsm, kvb_addr, 1ULL << kvb_szpow), rc);
   }
   _sblk_release(lx, sblkp);
@@ -1547,11 +1542,7 @@ static WUR iwrc _sblk_create_v2(IWLCTX *lx, uint8_t nlevel, uint8_t kvbpow, SBLK
 }
 
 IW_INLINE WUR iwrc _sblk_create(IWLCTX *lx, uint8_t nlevel, uint8_t kvbpow, SBLK *lower, SBLK *upper, SBLK **oblk) {
-  if (lx->db->iwkv->fmt_version > 1) {
-    return _sblk_create_v2(lx, nlevel, kvbpow, lower, upper, oblk);
-  } else {
-    return _sblk_create_v1(lx, nlevel, kvbpow, lower->addr, 0, oblk);
-  }
+  return _sblk_create_v2(lx, nlevel, kvbpow, lower, upper, oblk);
 }
 
 static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk) {
@@ -1610,7 +1601,7 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
       goto finish;
     }
     memcpy(&sblk->lkl, rp++, 1);
-    if (sblk->lkl > db->iwkv->pklen) {
+    if (sblk->lkl > PREFIX_KEY_LEN_V2) {
       rc = IWKV_ERROR_CORRUPTED;
       iwlog_ecode_error3(rc);
       goto finish;
@@ -1640,12 +1631,8 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
     memcpy(sblk->n, rp, 4UL * (sblk->lvl + 1));
     rp += 4UL * (sblk->lvl + 1);
 #endif
-    if (db->iwkv->fmt_version > 1) {
-      rp = mm + addr + SOFF_BPOS_U1_V2;
-      memcpy(&sblk->bpos, rp++, 1);
-    } else {
-      rp = mm + addr + SOFF_LK_V1;
-    }
+    rp = mm + addr + SOFF_BPOS_U1_V2;
+    memcpy(&sblk->bpos, rp++, 1);
     // Lower key
     memcpy(sblk->lk, rp, (size_t) sblk->lkl);
   } else { // Database tail
@@ -1712,7 +1699,7 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       uint8_t *wp = mm + sblk->addr;
       sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
       uint8_t uflags = flags;
-      assert(sblk->lkl <= lx->db->iwkv->pklen);
+      assert(sblk->lkl <= PREFIX_KEY_LEN_V2);
       // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
       wp += SOFF_FLAGS_U1;
       memcpy(wp++, &uflags, 1);
@@ -1732,13 +1719,8 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
       memcpy(wp, sblk->n, 4UL * (sblk->lvl + 1));
       wp += 4UL * (sblk->lvl + 1);
 #endif
-
-      if (lx->db->iwkv->fmt_version > 1) {
-        wp = mm + sblk->addr + SOFF_BPOS_U1_V2;
-        memcpy(wp++, &sblk->bpos, 1);
-      } else {
-        wp = mm + sblk->addr + SOFF_LK_V1;
-      }
+      wp = mm + sblk->addr + SOFF_BPOS_U1_V2;
+      memcpy(wp++, &sblk->bpos, 1);
       memcpy(wp, sblk->lk, (size_t) sblk->lkl);
       if (dlsnr) {
         rc = dlsnr->onwrite(dlsnr, sblk->addr, mm + sblk->addr, SOFF_END, 0);
@@ -1898,7 +1880,7 @@ static WUR iwrc _sblk_addkv2(
     if (compound) {
       ksize += IW_VNUMSIZE(key->compound);
     }
-    sblk->lkl = MIN(db->iwkv->pklen, ksize);
+    sblk->lkl = MIN(PREFIX_KEY_LEN_V2, ksize);
     uint8_t *wp = sblk->lk;
     if (compound) {
       int len;
@@ -1906,7 +1888,7 @@ static WUR iwrc _sblk_addkv2(
       wp += len;
     }
     memcpy(wp, key->data, sblk->lkl - (ksize - key->size));
-    if (ksize <= db->iwkv->pklen) {
+    if (ksize <= PREFIX_KEY_LEN_V2) {
       sblk->flags |= SBLK_FULL_LKEY;
     } else {
       sblk->flags &= ~SBLK_FULL_LKEY;
@@ -1960,7 +1942,7 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx) {
     if (compound) {
       ksize += IW_VNUMSIZE(key->compound);
     }
-    sblk->lkl = MIN(db->iwkv->pklen, ksize);
+    sblk->lkl = MIN(PREFIX_KEY_LEN_V2, ksize);
     uint8_t *wp = sblk->lk;
     if (compound) {
       int len;
@@ -1968,7 +1950,7 @@ static WUR iwrc _sblk_addkv(SBLK *sblk, IWLCTX *lx) {
       wp += len;
     }
     memcpy(wp, key->data, sblk->lkl - (ksize - key->size));
-    if (ksize <= db->iwkv->pklen) {
+    if (ksize <= PREFIX_KEY_LEN_V2) {
       sblk->flags |= SBLK_FULL_LKEY;
     } else {
       sblk->flags &= ~SBLK_FULL_LKEY;
@@ -2063,10 +2045,10 @@ static WUR iwrc _sblk_rmkv(SBLK *sblk, uint8_t idx) {
         fsm->release_mmap(fsm);
         return rc;
       }
-      sblk->lkl = MIN(db->iwkv->pklen, klen);
+      sblk->lkl = MIN(PREFIX_KEY_LEN_V2, klen);
       memcpy(sblk->lk, kbuf, sblk->lkl);
       fsm->release_mmap(fsm);
-      if (klen <= db->iwkv->pklen) {
+      if (klen <= PREFIX_KEY_LEN_V2) {
         sblk->flags |= SBLK_FULL_LKEY;
       } else {
         sblk->flags &= ~SBLK_FULL_LKEY;
@@ -3121,12 +3103,6 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
     iwlog_ecode_error3(rc);
     return rc;
   }
-  // Adjust lower key len accourding to database format version
-  if (iwkv->fmt_version < 2) {
-    iwkv->pklen = PREFIX_KEY_LEN_V1;
-  } else {
-    iwkv->pklen = PREFIX_KEY_LEN_V2;
-  }
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
@@ -3217,11 +3193,7 @@ iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp) {
       iwlog_ecode_error3(rc);
       goto finish;
     }
-    if (iwkv->fmt_version < 2) {
-      iwkv->pklen = PREFIX_KEY_LEN_V1;
-    } else {
-      iwkv->pklen = PREFIX_KEY_LEN_V2;
-    }
+
     RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
     RCC(rc, finish, _db_load_chain(iwkv, dbaddr, mm));
     fsm->release_mmap(fsm);
