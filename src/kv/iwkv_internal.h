@@ -66,10 +66,10 @@
 #define SBLK_LKLEN PREFIX_KEY_LEN_V2
 
 // Size of database start block in bytes
-#define DB_SZ (2U * (1U << IWKV_FSM_BPOW))
+#define DB_SZ (2UL * (1U << IWKV_FSM_BPOW))
 
 // Size of `SBLK` in bytes
-#define SBLK_SZ (2U * (1U << IWKV_FSM_BPOW))
+#define SBLK_SZ (2UL * (1U << IWKV_FSM_BPOW))
 
 // Number of SBLK blocks in one page
 #define SBLK_PAGE_SBLK_NUM_V2 16U

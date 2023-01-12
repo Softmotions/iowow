@@ -491,7 +491,7 @@ static iwrc _db_dispose_chain(DISPOSE_DB_CTX *dctx) {
       memcpy(&kvszpow, mm + BLK2ADDR(kvblkn) + KBLK_SZPOW_OFF, 1);
     }
     if (dctx->iwkv->fmt_version > 1) {
-      uint8_t bpos;
+      off_t bpos;
       memcpy(&bpos, mm + sba + SOFF_BPOS_U1_V2, 1);
       rc = fsm->release_mmap(fsm);
       RCBREAK(rc);
@@ -1637,8 +1637,8 @@ static WUR iwrc _sblk_at2(IWLCTX *lx, off_t addr, sblk_flags_t flgs, SBLK *sblk)
       rp += 4;
     }
 #else
-    memcpy(sblk->n, rp, 4 * (sblk->lvl + 1));
-    rp += 4 * (sblk->lvl + 1);
+    memcpy(sblk->n, rp, 4UL * (sblk->lvl + 1));
+    rp += 4UL * (sblk->lvl + 1);
 #endif
     if (db->iwkv->fmt_version > 1) {
       rp = mm + addr + SOFF_BPOS_U1_V2;
@@ -1729,8 +1729,8 @@ static WUR iwrc _sblk_sync_mm(IWLCTX *lx, SBLK *sblk, uint8_t *mm) {
         IW_WRITELV(wp, lv, sblk->n[i]);
       }
 #else
-      memcpy(wp, sblk->n, 4 * (sblk->lvl + 1));
-      wp += 4 * (sblk->lvl + 1);
+      memcpy(wp, sblk->n, 4UL * (sblk->lvl + 1));
+      wp += 4UL * (sblk->lvl + 1);
 #endif
 
       if (lx->db->iwkv->fmt_version > 1) {
@@ -2910,7 +2910,7 @@ static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx
       res <<= 1;
     }
   } else {
-    res = nsize + 10 * 1024 * 1024; // + 10M extra space
+    res = nsize + 10L * 1024 * 1024; // + 10M extra space
   }
   res = IW_ROUNDUP(res, aunit);
   return res;
@@ -4138,4 +4138,5 @@ finish:
   return rc;
 }
 
+// NOLINTNEXTLINE
 #include "./dbg/iwkvdbg.c"
