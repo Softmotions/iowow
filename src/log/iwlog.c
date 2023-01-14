@@ -288,6 +288,8 @@ static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
       return "IO error (IW_ERROR_IO)";
     case IW_ERROR_INVALID_CONFIG:
       return "Invalid configuration (IW_ERROR_INVALID_CONFIG)";
+    case IW_ERROR_OPERATION_TIMEOUT:
+      return "Operation timeout (IW_ERROR_OPERATION_TIMEOUT)";
     case IW_OK:
     default:
       return 0;

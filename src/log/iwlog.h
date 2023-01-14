@@ -101,6 +101,7 @@ typedef enum {
   IW_ERROR_UNEXPECTED_INPUT,      /**< Unexpected input/data (IW_ERROR_UNEXPECTED_INPUT) */
   IW_ERROR_IO,                    /**< IO error (IW_ERROR_IO) */
   IW_ERROR_INVALID_CONFIG,        /**< Invalid configuration (IW_ERROR_INVALID_CONFIG) */
+  IW_ERROR_OPERATION_TIMEOUT,     /**< Operation timeout (IW_ERROR_OPERATION_TIMEOUT) */
 } iw_ecode;
 
 /**
