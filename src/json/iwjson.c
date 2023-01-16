@@ -1458,7 +1458,7 @@ iwrc jbn_get(JBL_NODE node, const char *key, int index, JBL_NODE *res) {
     case JBV_OBJECT:
       if (key) {
         for (JBL_NODE n = node->child; n; n = n->next) {
-          if (n->vptr && strcmp(n->vptr, key) == 0) {
+          if (n->key && strcmp(n->key, key) == 0) {
             *res = n;
             return 0;
           }
