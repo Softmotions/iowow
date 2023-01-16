@@ -1449,6 +1449,38 @@ iwrc jbn_at(JBL_NODE node, const char *path, JBL_NODE *res) {
   return rc;
 }
 
+iwrc jbn_get(JBL_NODE node, const char *key, int index, JBL_NODE *res) {
+  if (!key || !res) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  *res = 0;
+  switch (node->type) {
+    case JBV_OBJECT:
+      if (key) {
+        for (JBL_NODE n = node->child; n; n = n->next) {
+          if (n->vptr && strcmp(n->vptr, key) == 0) {
+            *res = n;
+            return 0;
+          }
+        }
+      }
+      break;
+    case JBV_ARRAY: {
+      int i = 0;
+      for (JBL_NODE n = node->child; n; n = n->next) {
+        if (index == i++) {
+          *res = n;
+          return 0;
+        }
+      }
+      break;
+    }
+    default:
+      break;
+  }
+  return JBL_ERROR_PATH_NOTFOUND;
+}
+
 int jbn_paths_compare(JBL_NODE n1, const char *n1path, JBL_NODE n2, const char *n2path, jbl_type_t vtype, iwrc *rcp) {
   *rcp = 0;
   JBL_NODE v1 = 0, v2 = 0;

@@ -1,5 +1,6 @@
 iowow (1.4.17) UNRELEASED; urgency=medium
 
+  * Added jbn_get() (iwjson.h)
   * Added IW_ERROR_OPERATION_TIMEOUT common error code.
   * Removed support of legacy iwkv v1 data file format.
   * Fixed incorrect read of memory bytes (reported by valgrind)
