@@ -332,7 +332,7 @@ AFC Bournemouth: 27
 
 ## IWSTART
 
-IWSTART is an automatic CMake initial project generator for C projects based on iowow / [iwnet](https://github.com/Softmotions/iwnet) / [ejdb2](https://github.com/Softmotions/ejdb) libs.
+[IWSTART](https://github.com/Softmotions/iwstart) is an automatic CMake initial project generator for C projects based on iowow / [iwnet](https://github.com/Softmotions/iwnet) / [ejdb2](https://github.com/Softmotions/ejdb) libs.
 
 https://github.com/Softmotions/iwstart
 
