@@ -1,5 +1,5 @@
-cd ./build/src/fs/tests
-file ./iwfs_test2
+cd ./build/src/json/tests
+file ./jbl_test2
 #set args -c
 
 set confirm off

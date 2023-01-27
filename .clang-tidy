@@ -18,6 +18,7 @@ Checks:    >
   -clang-analyzer-security.insecureAPI.strcpy,
   -google-readability-todo,
   -misc-unused-parameters,
+  -misc-no-recursion,
   -performance-no-int-to-ptr,
 
 ...

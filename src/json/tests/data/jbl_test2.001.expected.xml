@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root attr="attrvalue" attr2="ss < &#39; xx">
+ <foo>bar</foo>
+ bo
+dy 1 &#60; 2 
+ <arr>
+  <item>1</item>
+  <item>2</item>
+  <item>3</item>
+  <item>
+  <item>
+   <obj>k&#38;k</obj>
+  </item>
+  </item>
+ </arr>
+ <nested>
+  <baz>
+   <zaz>true</zaz>
+   <arr>
+    <item>1</item>
+    <item>3.36</item>
+    <item>true</item>
+    <item>a</item>
+   </arr>
+  </baz>
+ </nested>
+</root>

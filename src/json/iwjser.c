@@ -196,7 +196,8 @@ static const char* _jbl_parse_key(const char **key, const char *p, JCTX *ctx) {
       if (ctx->rc) {
         return 0;
       }
-      if (len) {
+
+      {
         char *kptr = iwpool_alloc(len + 1, ctx->pool);
         if (!kptr) {
           ctx->rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -211,6 +212,7 @@ static const char* _jbl_parse_key(const char **key, const char *p, JCTX *ctx) {
         kptr[len] = '\0';
         *key = kptr;
       }
+
       while (*p && IS_WHITESPACE(*p)) p++;
       if (*p == ':') {
         return p + 1;
@@ -401,6 +403,8 @@ static const char* _jbl_parse_value(
 static iwrc _jbl_node_as_json(JBL_NODE node, jbl_json_printer pt, void *op, int lvl, jbl_print_flags_t pf) {
   iwrc rc = 0;
   bool pretty = pf & JBL_PRINT_PRETTY;
+  jbl_print_flags_t ppf = pf & ~JBL_PRINT_PRETTY;
+  const int indent = (ppf & JBL_PRINT_PRETTY_INDENT2) ? 2 : (ppf & JBL_PRINT_PRETTY_INDENT4) ? 4 : 1;
 
 #define PT(data_, size_, ch_, count_) do { \
     rc = pt(data_, size_, ch_, count_, op); \
@@ -415,7 +419,7 @@ static iwrc _jbl_node_as_json(JBL_NODE node, jbl_json_printer pt, void *op, int 
       }
       for (JBL_NODE n = node->child; n; n = n->next) {
         if (pretty) {
-          PT(0, 0, ' ', lvl + 1);
+          PT(0, 0, ' ', lvl * indent + indent);
         }
         rc = _jbl_node_as_json(n, pt, op, lvl + 1, pf);
         RCRET(rc);
@@ -427,7 +431,7 @@ static iwrc _jbl_node_as_json(JBL_NODE node, jbl_json_printer pt, void *op, int 
         }
       }
       if (node->child && pretty) {
-        PT(0, 0, ' ', lvl);
+        PT(0, 0, ' ', lvl * indent);
       }
       PT(0, 0, ']', 1);
       break;
@@ -438,9 +442,9 @@ static iwrc _jbl_node_as_json(JBL_NODE node, jbl_json_printer pt, void *op, int 
       }
       for (JBL_NODE n = node->child; n; n = n->next) {
         if (pretty) {
-          PT(0, 0, ' ', lvl + 1);
+          PT(0, 0, ' ', lvl * indent + indent);
         }
-        rc = _jbl_write_string(n->key, n->klidx, pt, op, pf);
+        rc = _jbl_write_json_string(n->key, n->klidx, pt, op, pf);
         RCRET(rc);
         if (pretty) {
           PT(": ", -1, 0, 0);
@@ -457,12 +461,12 @@ static iwrc _jbl_node_as_json(JBL_NODE node, jbl_json_printer pt, void *op, int 
         }
       }
       if (node->child && pretty) {
-        PT(0, 0, ' ', lvl);
+        PT(0, 0, ' ', lvl * indent);
       }
       PT(0, 0, '}', 1);
       break;
     case JBV_STR:
-      rc = _jbl_write_string(node->vptr, node->vsize, pt, op, pf);
+      rc = _jbl_write_json_string(node->vptr, node->vsize, pt, op, pf);
       break;
     case JBV_I64:
       rc = _jbl_write_int(node->vi64, pt, op);
@@ -494,6 +498,7 @@ static JBL_NODE _jbl_clone_node_struct(JBL_NODE src, IWPOOL *pool) {
   if (!n) {
     return 0;
   }
+
   n->vsize = src->vsize;
   n->type = src->type;
   n->klidx = src->klidx;
@@ -595,3 +600,256 @@ iwrc jbn_from_json(const char *json, JBL_NODE *node, IWPOOL *pool) {
   return ctx.rc;
 }
 
+#define _TAG_ATTR 0x01U
+#define _TAG_BODY 0x02U
+
+static iwrc _jbn_write_xml_string(
+  const struct jbn_as_xml_spec *spec, unsigned type,
+  jbl_json_printer pt, void *op,
+  const char *str, int len
+  ) {
+  iwrc rc = 0;
+#define PT(data_, size_, ch_, count_) do { \
+    rc = pt((const char*) (data_), size_, ch_, count_, op); \
+    RCRET(rc); \
+} while (0)
+
+  // Simplified xml escaping rules
+  static char *esc[63] = {
+    [9] = "&#09;",  // tab  |  Tag attr
+    [10] = "&#10;", // \n   |  Tag attr
+    [13] = "&#13;", // \r   |  Tag attr
+    [34] = "&#34;", // "    |  Tag attr
+    [38] = "&#38;", // &    |  Tag attr | body
+    [39] = "&#39;", // '    |  Tag attr
+    [60] = "&#60;", // <    |  Tag body
+    [62] = "&#62;"  // >    |  Tag body
+  };
+
+  if (len < 0) {
+    len = (int) strlen(str);
+  }
+
+  for (size_t i = 0; i < len; ++i) {
+    int ch = (unsigned char) str[i];
+    if (ch >= 9 && ch <= 62) {
+      const char *subst = esc[ch];
+      if (subst) {
+        if (type == _TAG_ATTR) {
+          if (ch <= 39) {
+            PT(subst, 5, 0, 0);
+          } else {
+            PT(0, 0, ch, 1);
+          }
+        } else if (type == _TAG_BODY) {
+          if (ch > 39 || ch == 38) {
+            PT(subst, 5, 0, 0);
+          } else {
+            PT(0, 0, ch, 1);
+          }
+        } else {
+          PT(0, 0, ch, 1);
+        }
+      } else {
+        PT(0, 0, ch, 1);
+      }
+    } else {
+      PT(0, 0, ch, 1);
+    }
+  }
+
+  return rc;
+#undef PT
+}
+
+static iwrc _jbn_node_write_xml_string(
+  const struct jbn_as_xml_spec *spec, unsigned type,
+  jbl_json_printer pt, void *op, JBL_NODE n
+  ) {
+  switch (n->type) {
+    case JBV_STR:
+      return _jbn_write_xml_string(spec, type, pt, op, n->vptr, n->vsize);
+    case JBV_I64:
+      return _jbl_write_int(n->vi64, pt, op);
+    case JBV_F64:
+      return _jbl_write_double(n->vf64, pt, op);
+    case JBV_BOOL:
+      if (n->vbool) {
+        return pt("true", 4, 0, 1, op);
+      } else {
+        return pt("false", 5, 0, 1, op);
+      }
+      break;
+    default:
+      break;
+  }
+  return 0;
+}
+
+static iwrc _jbn_as_xml(JBL_NODE node, const struct jbn_as_xml_spec *spec, int lvl) {
+  iwrc rc = 0;
+  int pf = spec->flags;
+  bool pretty = pf & JBL_PRINT_PRETTY;
+  pf &= ~JBL_PRINT_PRETTY;
+  const int indent = (pf & JBL_PRINT_PRETTY_INDENT2) ? 2 : (pf & JBL_PRINT_PRETTY_INDENT4) ? 4 : 1;
+  jbl_json_printer pt = spec->printer_fn;
+  void *op = spec->printer_fn_data;
+
+#define PT(data_, size_, ch_, count_) do { \
+    rc = pt(data_, size_, ch_, count_, op); \
+    RCRET(rc); \
+} while (0)
+
+  switch (node->type) {
+    case JBV_ARRAY:
+      if (pretty) {
+        PT(0, 0, '\n', 1);
+        PT(0, 0, ' ', lvl * indent);
+      }
+      const char *key = node->key;
+      if (!key) {
+        key = lvl ? spec->array_tag : spec->root_tag;
+      }
+      PT(0, 0, '<', 1);
+      PT(key, -1, 0, 0);
+      PT(0, 0, '>', 1);
+
+      for (JBL_NODE n = node->child; n; n = n->next) {
+        if (pretty) {
+          PT(0, 0, '\n', 1);
+          PT(0, 0, ' ', lvl * indent + indent);
+        }
+        PT(0, 0, '<', 1);
+        PT(spec->array_tag, -1, 0, 0);
+        PT(0, 0, '>', 1);
+        rc = _jbn_as_xml(n, spec, lvl + 1);
+        RCRET(rc);
+        if (pretty && n->child) {
+          PT(0, 0, '\n', 1);
+          PT(0, 0, ' ', lvl * indent + indent);
+        }
+        PT("</", 2, 0, 0);
+        PT(spec->array_tag, -1, 0, 0);
+        PT(0, 0, '>', 1);
+      }
+
+      if (pretty) {
+        PT(0, 0, '\n', 1);
+        PT(0, 0, ' ', lvl * indent);
+      }
+      PT("</", 2, 0, 0);
+      PT(key, -1, 0, 0);
+      PT(0, 0, '>', 1);
+      break;
+
+    case JBV_OBJECT: {
+      bool inattrs = true;
+      if (pretty) {
+        PT(0, 0, '\n', 1);
+        PT(0, 0, ' ', lvl * indent);
+      }
+      const char *key = node->key;
+      if (!key) {
+        key = lvl ? spec->array_tag : spec->root_tag;
+      }
+      PT(0, 0, '<', 1);
+      PT(key, -1, 0, 0);
+      if (!node->child) {
+        PT(0, 0, '>', 1);
+      } else {
+        for (JBL_NODE n = node->child; n; n = n->next) {
+          if (inattrs) {
+            if (n->key && n->klidx > 1 && *n->key == spec->attr_prefix && n->child == 0) {
+              PT(0, 0, ' ', 1);
+              PT(n->key + 1, n->klidx - 1, 0, 0);
+              PT("=\"", 2, 0, 0);
+              rc = _jbn_as_xml(n, spec, -1);
+              RCRET(rc);
+              PT(0, 0, '"', 1);
+              continue;
+            } else {
+              inattrs = false;
+              PT(0, 0, '>', 1);
+            }
+          }
+          if (pretty && !n->child) {
+            PT(0, 0, '\n', 1);
+            PT(0, 0, ' ', lvl * indent + indent);
+          }
+          rc = _jbn_as_xml(n, spec, lvl + 1);
+          RCRET(rc);
+        }
+      }
+      if (pretty) {
+        PT(0, 0, '\n', 1);
+        PT(0, 0, ' ', lvl * indent);
+      }
+      PT("</", 2, 0, 0);
+      PT(key, -1, 0, 0);
+      PT(0, 0, '>', 1);
+      break;
+    }
+
+    default:
+      if (lvl == -1) {
+        rc = _jbn_node_write_xml_string(spec, _TAG_ATTR, pt, op, node);
+        RCRET(rc);
+      } else {
+        const char *key = node->key;
+        if (!key || strcmp(key, spec->body_attr) == 0) {
+          rc = _jbn_node_write_xml_string(spec, _TAG_BODY, pt, op, node);
+          RCRET(rc);
+        } else {
+          PT(0, 0, '<', 1);
+          PT(key, -1, 0, 0);
+          PT(0, 0, '>', 1);
+          rc = _jbn_node_write_xml_string(spec, _TAG_BODY, pt, op, node);
+          RCRET(rc);
+          PT("</", 2, 0, 0);
+          PT(key, -1, 0, 0);
+          PT(0, 0, '>', 1);
+        }
+      }
+      break;
+  }
+
+  return rc;
+#undef PT
+}
+
+iwrc jbn_as_xml(JBL_NODE node, const struct jbn_as_xml_spec *spec_) {
+  if (!node || !spec_ || !spec_->print_xml_header) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+
+  struct jbn_as_xml_spec spec;
+  memcpy(&spec, spec_, sizeof(spec));
+
+  if (!spec.attr_prefix) {
+    spec.attr_prefix = '>';
+  }
+
+  if (!spec.array_tag) {
+    spec.array_tag = "item";
+  }
+
+  if (!spec.root_tag) {
+    spec.root_tag = "root";
+  }
+
+  if (!spec.body_attr) {
+    spec.body_attr = "";
+  }
+
+  if (spec.print_xml_header) {
+    iwrc rc = spec.printer_fn(
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+      IW_LLEN("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"),
+      0,
+      0,
+      spec.printer_fn_data);
+    RCRET(rc);
+  }
+
+  return _jbn_as_xml(node, &spec, 0);
+}

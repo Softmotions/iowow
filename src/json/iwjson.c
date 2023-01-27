@@ -582,11 +582,10 @@ iwrc _jbl_write_int(int64_t num, jbl_json_printer pt, void *op) {
   return pt(buf, sz, 0, 0, op);
 }
 
-iwrc _jbl_write_string(const char *str, int len, jbl_json_printer pt, void *op, jbl_print_flags_t pf) {
+iwrc _jbl_write_json_string(const char *str, int len, jbl_json_printer pt, void *op, jbl_print_flags_t pf) {
   iwrc rc = pt(0, 0, '"', 1, op);
   RCRET(rc);
   static const char *specials = "btnvfr";
-  const uint8_t *p = (const uint8_t*) str;
 
 #define PT(data_, size_, ch_, count_) do { \
     rc = pt((const char*) (data_), size_, ch_, count_, op); \
@@ -596,8 +595,8 @@ iwrc _jbl_write_string(const char *str, int len, jbl_json_printer pt, void *op, 
   if (len < 0) {
     len = (int) strlen(str);
   }
-  for (size_t i = 0; i < len; i++) {
-    uint8_t ch = p[i];
+  for (size_t i = 0; i < len; ++i) {
+    uint8_t ch = (uint8_t) str[i];
     if ((ch == '"') || (ch == '\\')) {
       PT(0, 0, '\\', 1);
       PT(0, 0, ch, 1);
@@ -609,7 +608,7 @@ iwrc _jbl_write_string(const char *str, int len, jbl_json_printer pt, void *op, 
     } else if (pf & JBL_PRINT_CODEPOINTS) {
       char sbuf[7]; // escaped unicode seq
       utf8proc_int32_t cp;
-      utf8proc_ssize_t sz = utf8proc_iterate(p + i, len - i, &cp);
+      utf8proc_ssize_t sz = utf8proc_iterate((const utf8proc_uint8_t*) str + i, len - i, &cp);
       if (sz < 0) {
         return JBL_ERROR_PARSE_INVALID_UTF8;
       }
@@ -695,7 +694,7 @@ static iwrc _jbl_as_json(binn *bn, jbl_json_printer pt, void *op, int lvl, jbl_p
           if (pretty) {
             PT(0, 0, ' ', lvl + 1);
           }
-          rc = _jbl_write_string(key, -1, pt, op, pf);
+          rc = _jbl_write_json_string(key, -1, pt, op, pf);
           RCGO(rc, finish);
           if (pretty) {
             PT(": ", -1, 0, 0);
@@ -742,7 +741,7 @@ static iwrc _jbl_as_json(binn *bn, jbl_json_printer pt, void *op, int lvl, jbl_p
       break;
 
     case BINN_STRING:
-      rc = _jbl_write_string(bn->ptr, -1, pt, op, pf);
+      rc = _jbl_write_json_string(bn->ptr, -1, pt, op, pf);
       break;
     case BINN_UINT8:
       llv = bn->vuint8;

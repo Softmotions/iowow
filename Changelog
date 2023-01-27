@@ -1,5 +1,7 @@
 iowow (1.4.17) UNRELEASED; urgency=medium
 
+  * Fixed incorrect parsing of empty JSON keys.
+  * Added jbn_as_xml() (iwjson.h)
   * Added jbn_get() (iwjson.h)
   * Added IW_ERROR_OPERATION_TIMEOUT common error code.
   * Removed support of legacy iwkv v1 data file format.

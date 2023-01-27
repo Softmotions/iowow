@@ -104,11 +104,15 @@ typedef struct _JBL_iterator {
   int current;
 } JBL_iterator;
 
-typedef uint8_t jbl_print_flags_t;
-#define JBL_PRINT_PRETTY     ((jbl_print_flags_t) 0x01U)
-#define JBL_PRINT_CODEPOINTS ((jbl_print_flags_t) 0x02U)
+typedef unsigned int jbl_print_flags_t;
+#define JBL_PRINT_PRETTY         ((jbl_print_flags_t) 0x01U)                    ///< Pretty print indented by one space.
+#define JBL_PRINT_CODEPOINTS     ((jbl_print_flags_t) 0x02U)                    ///< Print with utf codepoints.
+#define JBL_PRINT_PRETTY_INDENT2 ((jbl_print_flags_t) 0x04U | JBL_PRINT_PRETTY) ///< Pretty print indented by two
+                                                                                ///  spaces.
+#define JBL_PRINT_PRETTY_INDENT4 ((jbl_print_flags_t) 0x08U | JBL_PRINT_PRETTY) ///< Pretty print indented by four
+                                                                                ///  spaces.
 
-typedef uint8_t jbn_visitor_cmd_t;
+typedef unsigned int jbn_visitor_cmd_t;
 #define JBL_VCMD_OK          ((jbn_visitor_cmd_t) 0x00U)
 #define JBL_VCMD_TERMINATE   ((jbn_visitor_cmd_t) 0x01U)
 #define JBL_VCMD_SKIP_NESTED ((jbn_visitor_cmd_t) 0x02U)
@@ -667,6 +671,83 @@ IW_EXPORT iwrc jbn_from_json_printf_va(JBL_NODE *node, IWPOOL *pool, const char 
  * @param pf    JSON printing mode.
  */
 IW_EXPORT iwrc jbn_as_json(JBL_NODE node, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
+
+struct jbn_as_xml_spec {
+  /** JSON printer function. Required. */
+  jbl_json_printer printer_fn;
+
+  /** A pointer to the data for JSON printer function */
+  void *printer_fn_data;
+
+  /**
+   * A tag name which will be used for items in JSON array.
+   * Default: `item`.
+   */
+  const char *array_tag;
+
+  /**
+   * A default root tag name.
+   * Default: `root`
+   */
+  const char *root_tag;
+
+  /**
+   * If property starts with `attr_prefix` it will
+   * be treated as XML attribute.
+   *
+   * Default: `>`.
+   *
+   * Example:
+   *
+   *  {
+   *   "name": "John",
+   *   ">age": 30
+   *  }
+   *
+   * Will result in:
+   *
+   *  <root age="30">
+   *   <name>John</name>
+   *  </root>
+   */
+  char attr_prefix;
+
+  /**
+   * If property is equals to `body_attr` it will
+   * be treated as XML tag body.
+   *
+   * Default: `` (empty string)
+   *
+   * Example:
+   *  {
+   *    "": "Tag body",
+   *  }
+   *
+   * Will result in:
+   *
+   *  <root>Tag body</root>
+   *
+   */
+  char *body_attr;
+
+  /**
+   * Priting flags.
+   */
+  jbl_print_flags_t flags;
+
+  /**
+   *  If set the standard XML header will be at the beginning of output:
+   *
+   *  <?xml version="1.0" encoding="UTF-8"?>
+   *
+   */
+  bool print_xml_header;
+};
+
+/**
+ * @brief Prints JSON document as an XML markup.
+ */
+IW_EXPORT iwrc jbn_as_xml(JBL_NODE node, const struct jbn_as_xml_spec *spec);
 
 /**
  * @brief Fill `jbl` document by data from `node`.
