@@ -44,7 +44,7 @@ int clean_suite(void) {
   return 0;
 }
 
-void iwlog_test1() {
+void iwlog_test1(void) {
   uint32_t ec = (0xfffffffdU & 0x3fffffffU);
   uint64_t rc = 0xfafafafaULL;
   rc = iwrc_set_errno(rc, ec);
@@ -53,7 +53,7 @@ void iwlog_test1() {
   CU_ASSERT_EQUAL(rc, 0xfafafafaULL);
 }
 
-void iwlog_test2() {
+void iwlog_test2(void) {
   IWLOG_DEFAULT_OPTS opts = { 0 };
   int rv = 0;
   size_t sz;
@@ -103,7 +103,7 @@ void iwlog_test2() {
   unlink(fname);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

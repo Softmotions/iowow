@@ -38,7 +38,7 @@ void test_iwarr1(void) {
   }
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

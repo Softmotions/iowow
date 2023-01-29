@@ -701,7 +701,7 @@ void test_binn_read(void *objptr) {
 
 /*************************************************************************************/
 
-void init_udts() {
+void init_udts(void) {
   binn *obj = INVALID_BINN;
   unsigned short date;
   uint64 value;
@@ -822,7 +822,7 @@ void init_udts() {
 
 BOOL copy_int_value_tests(void *psource, void *pdest, int source_type, int dest_type);
 
-void test_int_conversion() {
+void test_int_conversion(void) {
   printf("testing integer conversion...");
 
   // copy negative value to unsigned integer
@@ -1325,7 +1325,7 @@ void test_int_conversion() {
 
 /*************************************************************************************/
 
-void test_binn_int_conversion() {
+void test_binn_int_conversion(void) {
   binn *obj = INVALID_BINN;
   void *ptr;
 
@@ -1395,7 +1395,7 @@ void test_binn_int_conversion() {
 
 /*************************************************************************************/
 
-void test_value_conversion() {
+void test_value_conversion(void) {
   binn *value;
   char *ptr, blob[64] = "test blob";
   void *pblob;
@@ -1834,7 +1834,7 @@ void test_value_conversion() {
 
 /*************************************************************************************/
 
-void test_value_copy() {
+void test_value_copy(void) {
   printf("testing binn value copy... ");
 
   //TODO
@@ -1844,7 +1844,7 @@ void test_value_copy() {
 
 /*************************************************************************************/
 
-void test_virtual_types() {
+void test_virtual_types(void) {
   binn *list = INVALID_BINN;
   void *ptr;
   int storage_type, extra_type;
@@ -1886,7 +1886,7 @@ void test_virtual_types() {
 
 /*************************************************************************************/
 
-void test_binn_iter() {
+void test_binn_iter(void) {
   binn *list, *map, *obj;
   binn *list2, *copy = NULL;
   binn_iter iter, iter2;
@@ -2409,7 +2409,7 @@ void test_binn_iter() {
 
 /*************************************************************************************/
 
-void test_binn2() {
+void test_binn2(void) {
   char *obj1ptr, *obj2ptr;
   int obj1size, obj2size;
 
@@ -2441,7 +2441,7 @@ void test_binn2() {
 
 /*************************************************************************************/
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
   if (CUE_SUCCESS != CU_initialize_registry()) {
     return CU_get_error();

@@ -29,7 +29,7 @@ int clean_suite(void) {
   return 0;
 }
 
-static void iwkv_test8_1() {
+static void iwkv_test8_1(void) {
   IWKV iwkv;
   IWDB db;
   IWKV_val key = { 0 };
@@ -174,7 +174,7 @@ static void *t82(void *ctx_) {
   return 0;
 }
 
-static void iwkv_test8_2() {
+static void iwkv_test8_2(void) {
   IWKV_OPTS opts = {
     .path      = "iwkv_test8_2.db",
     .oflags    = IWKV_TRUNC,
@@ -265,7 +265,7 @@ static void iwkv_test8_2() {
   pthread_barrier_destroy(&ctx.barrier);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

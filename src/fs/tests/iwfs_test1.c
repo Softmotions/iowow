@@ -41,18 +41,18 @@
   unlink("test_mmap1.dat"); \
   unlink("test_fibo_inc.dat")
 
-int init_suite() {
+int init_suite(void) {
   int rc = iw_init();
   UNLINK();
   return rc;
 }
 
-int clean_suite() {
+int clean_suite(void) {
   UNLINK();
   return 0;
 }
 
-void iwfs_exfile_test1() {
+void iwfs_exfile_test1(void) {
   iwrc rc = 0;
   IWFS_EXT ef;
 
@@ -120,7 +120,7 @@ void iwfs_exfile_test1() {
   CU_ASSERT_EQUAL(rc, 0);
 }
 
-void iwfs_exfile_test1_2() {
+void iwfs_exfile_test1_2(void) {
   iwrc rc = 0;
   IWFS_EXT f;
   const char *path = "exfile_test1_2-"; // Temp file prefix
@@ -339,7 +339,7 @@ void test_mmap1(void) {
   free(cdata);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

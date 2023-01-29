@@ -72,11 +72,11 @@ static void iwkv_test6_1_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-void iwkv_test6_1_v1() {
+void iwkv_test6_1_v1(void) {
   iwkv_test6_1_impl(1);
 }
 
-void iwkv_test6_1_v2() {
+void iwkv_test6_1_v2(void) {
   iwkv_test6_1_impl(2);
 }
 
@@ -116,15 +116,15 @@ static void iwkv_test6_2_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test6_2_v1() {
+static void iwkv_test6_2_v1(void) {
   iwkv_test6_2_impl(1);
 }
 
-static void iwkv_test6_2_v2() {
+static void iwkv_test6_2_v2(void) {
   iwkv_test6_2_impl(2);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

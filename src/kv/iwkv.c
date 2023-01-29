@@ -179,7 +179,7 @@ void iwkv_val_dispose(IWKV_val *v) {
   _kv_val_dispose(v);
 }
 
-void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val) {
+void iwkv_kv_dispose( IWKV_val *key, IWKV_val *val) {
   _kv_dispose(key, val);
 }
 

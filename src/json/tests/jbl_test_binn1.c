@@ -108,7 +108,7 @@ void pass_int64(int64 a) {
   CU_ASSERT(a > 9223372036854775806);
 }
 
-int64 return_int64() {
+int64 return_int64(void) {
   return 9223372036854775807;
 }
 
@@ -118,7 +118,7 @@ int64 return_passed_int64(int64 a) {
 
 /*************************************************************************************/
 
-void test_int64() {
+void test_int64(void) {
   int64 i64;
   //uint64 b;
   //long long int b;  -- did not work!
@@ -213,7 +213,7 @@ BOOL AlmostEqualDoubles(double a, double b) {
 
 /*************************************************************************************/
 
-void test_floating_point_numbers() {
+void test_floating_point_numbers(void) {
   char buf[256];
   float f1;
   double d1;
@@ -293,7 +293,7 @@ void test_floating_point_numbers() {
 
 /*************************************************************************************/
 
-void test1() {
+void test1(void) {
   static const int fix_size = 512;
   int i = 8768787, blobsize;
   char *ptr, *p2, *ptr2;
@@ -610,7 +610,7 @@ void test1() {
 
 /*************************************************************************************/
 
-void _test2() {
+void _test2(void) {
   binn *list = INVALID_BINN, *map = INVALID_BINN, *obj = INVALID_BINN;
   binn value;
   BOOL vbool;
@@ -1061,13 +1061,13 @@ void _test2() {
   printf("OK\n");
 }
 
-void test2() {
+void test2(void) {
   _test2();
 }
 
 /*************************************************************************************/
 
-void test4() {
+void test4(void) {
   static const int fix_size = 512;
   int i, id, type, count, size, header_size, blobsize;
   char *ptr, *p2, *pstr, key[256];
@@ -1759,7 +1759,7 @@ void test4() {
 
 /*************************************************************************************/
 
-void test_invalid_binn() {
+void test_invalid_binn(void) {
   unsigned char buffers[][20] = {
     { 0xE0 },
     { 0xE0, 0x7E},
@@ -1816,7 +1816,7 @@ void test_invalid_binn() {
   puts("OK");
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
   if (CUE_SUCCESS != CU_initialize_registry()) {
     return CU_get_error();

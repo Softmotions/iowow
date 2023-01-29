@@ -68,7 +68,7 @@ static void iwkv_test7_1_impl(int direction) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test7_1() {
+static void iwkv_test7_1(void) {
   iwkv_test7_1_impl(1);
   iwkv_test7_1_impl(-1);
   IWP_FILE_STAT fwd_s = { 0 };
@@ -80,7 +80,7 @@ static void iwkv_test7_1() {
   CU_ASSERT_TRUE((double) fwd_s.size / back_s.size < 1.1);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

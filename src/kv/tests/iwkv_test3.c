@@ -170,7 +170,7 @@ static void iwkv_test3_2(void) {
   iwkv_test3_impl(4, 30000, true);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

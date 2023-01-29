@@ -25,12 +25,12 @@ static int logstage2(FILE *f, const char *name, IWDB db) {
   return rci < 0 ? rci : 0;
 }
 
-int init_suite() {
+int init_suite(void) {
   iwrc rc = iwkv_init();
   return rc;
 }
 
-int clean_suite() {
+int clean_suite(void) {
   return 0;
 }
 
@@ -123,7 +123,7 @@ static void iwkv_test3_impl(int fmt_version) {
   fclose(r);
 }
 
-static void iwkv_test3_v2() {
+static void iwkv_test3_v2(void) {
   iwkv_test3_impl(2);
 }
 
@@ -243,7 +243,7 @@ static void iwkv_test2_impl(int fmt_version) {
   fclose(r);
 }
 
-static void iwkv_test2_v2() {
+static void iwkv_test2_v2(void) {
   iwkv_test2_impl(2);
 }
 
@@ -674,7 +674,7 @@ static void iwkv_test1_impl(int fmt_version) {
   fclose(f);
 }
 
-static void iwkv_test1_v2() {
+static void iwkv_test1_v2(void) {
   iwkv_test1_impl(2);
 }
 
@@ -762,7 +762,7 @@ static void iwkv_test8_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test8_v2() {
+static void iwkv_test8_v2(void) {
   iwkv_test1_impl(2);
 }
 
@@ -813,7 +813,7 @@ static void iwkv_test7_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test7_v2() {
+static void iwkv_test7_v2(void) {
   iwkv_test7_impl(2);
 }
 
@@ -854,7 +854,7 @@ static void iwkv_test6_impl(int fmt_version) {
   free(vbuf);
 }
 
-static void iwkv_test6_v2() {
+static void iwkv_test6_v2(void) {
   iwkv_test6_impl(2);
 }
 
@@ -870,7 +870,7 @@ static void iwkv_test9(void) {
   CU_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

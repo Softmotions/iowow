@@ -222,15 +222,15 @@ void test_stress(char *path, int bpow, bool mmap_all) {
   CU_ASSERT_FALSE_FATAL(fsm.close(&fsm));
 }
 
-static void test_stress1() {
+static void test_stress1(void) {
   test_stress("test_fsm_stress1.fsm", 6, true);
 }
 
-static void test_stress2() {
+static void test_stress2(void) {
   test_stress("test_fsm_stress2.fsm", 6, false);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

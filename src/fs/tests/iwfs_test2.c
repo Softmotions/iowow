@@ -427,14 +427,13 @@ static void* recordsthr(void *op) {
   char *rdata = malloc(maxrsize);
   char *rdata2 = malloc(maxrsize);
   int numrec;
-  int a, i = 0;
+  int a;
 
   pthread_mutex_lock(&records_mtx);
   numrec = task->numrecs;
   pthread_mutex_unlock(&records_mtx);
 
   while (numrec < task->maxrecs) {
-    ++i;
     rec = malloc(sizeof(*rec));
     memset(rec, 0, sizeof(*rec));
     rec->locked = 1;
@@ -471,9 +470,8 @@ static void* recordsthr(void *op) {
   }
 
   rec = task->reclist;
-  i = 0;
+
   while (rec && rec->prev) {
-    ++i;
     a = rand() % 3;
     if ((a == 0) || (a == 1)) { /* realloc */
       pthread_mutex_lock(&records_mtx);
@@ -732,11 +730,11 @@ void test_block_allocation1_impl(int mmap_all) {
 
 void test_block_allocation2_impl(int mmap_all);
 
-void test_block_allocation2() {
+void test_block_allocation2(void) {
   test_block_allocation2_impl(0);
 }
 
-void test_block_allocation2_mmap_all() {
+void test_block_allocation2_mmap_all(void) {
   test_block_allocation2_impl(1);
 }
 
@@ -745,7 +743,7 @@ void test_block_allocation2_impl(int mmap_all) {
   test_block_allocation_impl(mmap_all, 4, 50000, 5, 6, "test_block_allocation2.fsm");
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

@@ -4,16 +4,16 @@
 #include "iwcfg.h"
 #include "iwkv_tests.h"
 
-int init_suite() {
+int init_suite(void) {
   iwrc rc = iwkv_init();
   return rc;
 }
 
-int clean_suite() {
+int clean_suite(void) {
   return 0;
 }
 
-static void iwkv_test9_1() {
+static void iwkv_test9_1(void) {
   IWKV_OPTS opts = {
     .path   = "iwkv_test9_1.db",
     .oflags = IWKV_TRUNC
@@ -51,7 +51,7 @@ static void iwkv_test9_1() {
   iwkv_close(&kv);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

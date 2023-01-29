@@ -166,11 +166,11 @@ static void iwkv_test4_3_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void iwkv_test4_3_v1() {
+static void iwkv_test4_3_v1(void) {
   iwkv_test4_3_impl(1);
 }
 
-static void iwkv_test4_3_v2() {
+static void iwkv_test4_3_v2(void) {
   iwkv_test4_3_impl(2);
 }
 
@@ -309,7 +309,7 @@ static void iwkv_test4_1(void) {
   fclose(iw2);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

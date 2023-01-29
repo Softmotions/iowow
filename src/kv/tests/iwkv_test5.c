@@ -23,7 +23,7 @@ int clean_suite(void) {
   return 0;
 }
 
-static void iwkv_test5_2() {
+static void iwkv_test5_2(void) {
   iwrc rc;
   IWKV iwkv;
   IWDB db;
@@ -251,7 +251,7 @@ static void iwkv_test5_1(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */

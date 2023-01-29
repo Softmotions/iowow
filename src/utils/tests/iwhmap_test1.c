@@ -141,7 +141,7 @@ static void test_lru2(void) {
   iwhmap_destroy(hm);
 }
 
-int main() {
+int main(void) {
   CU_pSuite pSuite = NULL;
 
   /* Initialize the CUnit test registry */
