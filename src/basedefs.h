@@ -49,7 +49,7 @@
 #define IW_LLEN(l__)     (sizeof(l__) - 1)
 
 /* Is given c-ptr is not empty */
-#define IW_NES(l__) ((s__) && *(s__) != '\0')
+#define IW_NES(s__) ((s__) && *(s__) != '\0')
 
 #if (defined(_WIN32) || defined(_WIN64))
 #if (defined(IW_NODLL) || defined(IW_STATIC))
