@@ -48,6 +48,9 @@
 #define IW_MIN(x__, y__) ({ __typeof__(x__) x = (x__);  __typeof__(y__) y = (y__); x < y ? x : y; })
 #define IW_LLEN(l__)     (sizeof(l__) - 1)
 
+/* Is given c-ptr is not empty */
+#define IW_NES(l__) ((s__) && *(s__) != '\0')
+
 #if (defined(_WIN32) || defined(_WIN64))
 #if (defined(IW_NODLL) || defined(IW_STATIC))
 #define IW_EXPORT
