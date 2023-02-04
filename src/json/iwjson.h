@@ -275,7 +275,9 @@ IW_EXPORT iwrc jbl_set_f64(JBL jbl, const char *key, double v);
  */
 IW_EXPORT iwrc jbl_set_string(JBL jbl, const char *key, const char *v);
 
-IW_EXPORT iwrc jbl_set_string_printf(JBL jbl, const char *key, const char *format, ...);
+IW_EXPORT iwrc jbl_set_string_printf(
+  JBL jbl, const char *key, const char *format,
+  ...) __attribute__((format(__printf__, 3, 4)));
 
 /**
  * @brief Set bool JBL object property value
@@ -442,7 +444,7 @@ IW_EXPORT iwrc jbl_clone_into_pool(JBL src, JBL *targetp, IWPOOL *pool);
 IW_EXPORT iwrc jbl_from_json(JBL *jblp, const char *jsonstr);
 
 
-IW_EXPORT iwrc jbl_from_json_printf(JBL *jblp, const char *format, ...);
+IW_EXPORT iwrc jbl_from_json_printf(JBL *jblp, const char *format, ...) __attribute__((format(__printf__, 2, 3)));
 
 IW_EXPORT iwrc jbl_from_json_printf_va(JBL *jblp, const char *format, va_list va);
 
@@ -654,7 +656,9 @@ IW_EXPORT iwrc jbl_to_node(JBL jbl, JBL_NODE *node, bool clone_strings, IWPOOL *
  */
 IW_EXPORT iwrc jbn_from_json(const char *json, JBL_NODE *node, IWPOOL *pool);
 
-IW_EXPORT iwrc jbn_from_json_printf(JBL_NODE *node, IWPOOL *pool, const char *format, ...);
+IW_EXPORT iwrc jbn_from_json_printf(
+  JBL_NODE *node, IWPOOL *pool, const char *format,
+  ...) __attribute__((format(__printf__, 3, 4)));
 
 IW_EXPORT iwrc jbn_from_json_printf_va(JBL_NODE *node, IWPOOL *pool, const char *format, va_list va);
 
