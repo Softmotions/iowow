@@ -58,7 +58,7 @@ static void iwref_ref(struct iwref_holder *h) {
 static bool iwref_unref(struct iwref_holder **hp) {
   if (hp && *hp) {
     struct iwref_holder *h = *hp;
-    if (--h->refs < 1) {
+    if (--h->refs == 0) {
       *hp = 0;
       if (h->freefn) {
         h->freefn(h->data);
