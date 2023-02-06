@@ -147,30 +147,31 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfile.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/fs/iwfsmfile.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/iowow.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwbinn.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson_internal.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/kv/iwkv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/log/iwlog.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/platform/iwp.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/rdb/iwrdb.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/re/iwre.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwarr.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwavl.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwbits.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwconv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwhmap.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwini.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwpool.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrb.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwstw.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwth.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwtp.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwutils.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwuuid.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwxstr.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/murmur3.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwtp.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwrb.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwini.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/utf8proc.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwavl.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/re/iwre.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson_internal.h
-                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwbinn.h
                      )
 
 list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)
