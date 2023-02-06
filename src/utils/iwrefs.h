@@ -56,14 +56,16 @@ static void iwref_ref(struct iwref_holder *h) {
 }
 
 static bool iwref_unref(struct iwref_holder **hp) {
-  struct iwref_holder *h = *hp;
-  if (--h->refs < 1) {
-    *hp = 0;
-    if (h->freefn) {
-      h->freefn(h->data);
+  if (hp && *hp) {
+    struct iwref_holder *h = *hp;
+    if (--h->refs < 1) {
+      *hp = 0;
+      if (h->freefn) {
+        h->freefn(h->data);
+      }
+      free(h);
+      return true;
     }
-    free(h);
-    return true;
   }
   return false;
 }
