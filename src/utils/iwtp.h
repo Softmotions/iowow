@@ -56,7 +56,7 @@ struct iwtp_spec {
 
   /** If task queue is full and the `overflow_threads_factor` is not zero
    * then pool is allowed to spawn extra threads to process tasks as long
-   * as overall number of threads less of equal to `num_threads * overflow_threads_factor`
+   * as overall number of threads less of equal to `num_threads + num_threads * overflow_threads_factor`
    * @note Max: 2
    */
   int overflow_threads_factor;
