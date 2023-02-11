@@ -1,5 +1,6 @@
 iowow (1.4.17) UNRELEASED; urgency=medium
 
+  * Added iwchars.h replacing some ctype.h functions.
   * Added simple refcounting container iwrefs.h
   * Fixed incorrect parsing of empty JSON keys.
   * Added jbn_as_xml() (iwjson.h)

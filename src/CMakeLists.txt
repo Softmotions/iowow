@@ -158,6 +158,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwarr.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwavl.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwbits.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwchars.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwconv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwhmap.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/iwini.h
