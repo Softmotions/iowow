@@ -5,6 +5,10 @@
 #include "basedefs.h"
 
 IW_INLINE bool iwchars_is_blank(char c) {
+  return c == 32 || c == 9;
+}
+
+IW_INLINE bool iwchars_is_space(char c) {
   return c == 32 || (c >= 9 && c <= 13);
 }
 
