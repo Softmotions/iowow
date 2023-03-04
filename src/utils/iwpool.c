@@ -7,7 +7,7 @@
 #include <errno.h>
 #include <ctype.h>
 
-#define IWPOOL_UNIT_ALIGN_SIZE 8
+#define IWPOOL_UNIT_ALIGN_SIZE 8UL
 
 /** Atomic heap unit */
 typedef struct IWPOOL_UNIT {
