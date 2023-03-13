@@ -612,7 +612,7 @@ iwrc _jbl_write_json_string(const char *str, int len, jbl_json_printer pt, void 
       if (sz < 0) {
         return JBL_ERROR_PARSE_INVALID_UTF8;
       }
-      if (cp > 0x0010000UL) {
+      if (cp >= 0x0010000UL) {
         uint32_t hs = 0xD800, ls = 0xDC00; // surrogates
         cp -= 0x0010000UL;
         hs |= ((cp >> 10) & 0x3FF);
