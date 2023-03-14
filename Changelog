@@ -1,5 +1,6 @@
 iowow (1.4.17) UNRELEASED; urgency=medium
 
+  * Fixed Correct UCS-16 surrogate pair start code point. #51
   * Added iwchars.h replacing some ctype.h functions.
   * Added simple refcounting container iwrefs.h
   * Fixed incorrect parsing of empty JSON keys.
