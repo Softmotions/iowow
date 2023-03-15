@@ -1,11 +1,12 @@
 #include "iwpool.h"
 #include "iwutils.h"
 #include "iwlog.h"
+#include "iwchars.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
-#include <ctype.h>
 
 #define IWPOOL_UNIT_ALIGN_SIZE 8UL
 
@@ -202,8 +203,8 @@ const char** iwpool_split_string(
         ++ep;
       }
       if (ignore_whitespace) {
-        while (isspace(*sp)) ++sp;
-        while (isspace(*(ep - 1))) --ep;
+        while (iwchars_is_space(*sp)) ++sp;
+        while (iwchars_is_space(*(ep - 1))) --ep;
       }
       if (ep >= sp) {
         char *s = iwpool_alloc(ep - sp + 1, pool);

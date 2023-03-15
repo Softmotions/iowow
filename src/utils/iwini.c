@@ -16,9 +16,9 @@
 #endif
 
 #include "iwini.h"
+#include "iwchars.h"
 
 #include <stdio.h>
-#include <ctype.h>
 #include <string.h>
 
 
@@ -49,7 +49,7 @@ typedef struct {
 /* Strip whitespace chars off end of given string, in place. Return s. */
 static char* rstrip(char *s) {
   char *p = s + strlen(s);
-  while (p > s && isspace((unsigned char) (*--p))) {
+  while (p > s && iwchars_is_space(*--p)) {
     *p = '\0';
   }
   return s;
@@ -57,7 +57,7 @@ static char* rstrip(char *s) {
 
 /* Return pointer to first non-whitespace char in given string. */
 static char* lskip(const char *s) {
-  while (*s && isspace((unsigned char) (*s))) {
+  while (*s && iwchars_is_space(*s)) {
     s++;
   }
   return (char*) s;
@@ -71,7 +71,7 @@ static char* find_chars_or_comment(const char *s, const char *chars) {
   int was_space = 0;
   while (  *s && (!chars || !strchr(chars, *s))
         && !(was_space && strchr(IWINI_INLINE_COMMENT_PREFIXES, *s))) {
-    was_space = isspace((unsigned char) (*s));
+    was_space = iwchars_is_space(*s);
     s++;
   }
 #else

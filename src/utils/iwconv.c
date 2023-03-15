@@ -1,8 +1,9 @@
 #include "iwconv.h"
+#include "iwchars.h"
+
 #include <math.h>
 #include <string.h>
 #include <assert.h>
-#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -434,7 +435,7 @@ int iwafcmp(const char *aptr, int asiz, const char *bptr, int bsiz) {
 
 static const char* skipwhite(const char *q) {
   const char *p = q;
-  while (isspace(*p)) {
+  while (iwchars_is_space(*p)) {
     ++p;
   }
   return p;
@@ -456,9 +457,9 @@ double iwstrtod(const char *str, char **end) {
   } else if (*p == '+') {
     ++p;
   }
-  if (isdigit(*p)) {
+  if (iwchars_is_digit(*p)) {
     d = (double) (*p++ - '0');
-    while (*p && isdigit(*p)) {
+    while (*p && iwchars_is_digit(*p)) {
       d = d * 10.0 + (double) (*p - '0');
       ++p;
     }
@@ -474,8 +475,8 @@ double iwstrtod(const char *str, char **end) {
     double base = 0.1;
     ++p;
 
-    if (isdigit(*p)) {
-      while (*p && isdigit(*p)) {
+    if (iwchars_is_digit(*p)) {
+      while (*p && iwchars_is_digit(*p)) {
         f += base * (*p - '0');
         base /= 10.0;
         ++p;
@@ -498,7 +499,7 @@ double iwstrtod(const char *str, char **end) {
       ++p;
     }
 
-    if (isdigit(*p)) {
+    if (iwchars_is_digit(*p)) {
       while (*p == '0') {
         ++p;
       }
@@ -506,12 +507,12 @@ double iwstrtod(const char *str, char **end) {
         --p;
       }
       e = (*p++ - '0');
-      while (*p && isdigit(*p)) {
+      while (*p && iwchars_is_digit(*p)) {
         e = e * 10 + (*p - '0');
         ++p;
       }
       e *= sign;
-    } else if (!isdigit(*(a - 1))) {
+    } else if (!iwchars_is_digit(*(a - 1))) {
       a = str;
       goto done;
     } else if (*p == 0) {
@@ -531,7 +532,7 @@ double iwstrtod(const char *str, char **end) {
     }
     d *= pow(10.0, (double) e);
     a = p;
-  } else if (p > str && !isdigit(*(p - 1))) {
+  } else if (p > str && !iwchars_is_digit(*(p - 1))) {
     a = str;
     goto done;
   }
