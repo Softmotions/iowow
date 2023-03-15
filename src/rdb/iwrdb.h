@@ -3,6 +3,7 @@
 #define IWRDB_H
 
 #include "basedefs.h"
+
 #include <stdio.h>
 
 IW_EXTERN_C_START
@@ -25,6 +26,10 @@ IW_EXPORT iwrc iwrdb_close(IWRDB *db);
 IW_EXPORT iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len);
 
 IW_EXPORT HANDLE iwrdb_file_handle(IWRDB db);
+
+/// Returns logical data end offset including internal cache buffer.
+/// Returns `-1` int the case of error.
+IW_EXPORT off_t iwrdb_offset_end(IWRDB db);
 
 IW_EXTERN_C_END
 #endif

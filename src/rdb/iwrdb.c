@@ -289,3 +289,12 @@ HANDLE iwrdb_file_handle(IWRDB db) {
   }
   return INVALID_HANDLE_VALUE;
 }
+
+off_t iwrdb_offset_end(IWRDB db) {
+  if (!_rlock(db)) {
+    off_t ret = db->end + db->bp;
+    _unlock(db);
+    return ret;
+  }
+  return -1;
+}
