@@ -203,10 +203,10 @@ iwrc iwrdb_append(IWRDB db, const void *data, int len, uint64_t *oref) {
 iwrc iwrdb_patch(IWRDB db, uint64_t ref, off_t skip, const void *data, int len) {
   iwrc rc;
   size_t sz;
-  ssize_t sz2;
-  ssize_t tw = len;
+  off_t sz2;
+  off_t tw = len;
+  off_t off = ref - 1 + skip;
   uint8_t *rp = (uint8_t*) data;
-  ssize_t off = ref - 1 + skip;
 
   if (!ref || off < 0 || skip < 0) {
     return IW_ERROR_INVALID_ARGS;
@@ -238,9 +238,9 @@ finish:
 
 iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len) {
   iwrc rc;
-  ssize_t to_read = len;
   uint8_t *wp = buf;
-  ssize_t off = ref - 1 + skip;
+  off_t to_read = len;
+  off_t off = ref - 1 + skip;
 
   if (!ref || skip < 0 || len < 0) {
     return IW_ERROR_INVALID_ARGS;
@@ -268,7 +268,7 @@ iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len) {
   }
 
   if (to_read) {
-    size_t sz = off - db->end;
+    off_t sz = off - db->end;
     if (sz + to_read > db->bp) {
       rc = IW_ERROR_OUT_OF_BOUNDS;
       goto finish;
