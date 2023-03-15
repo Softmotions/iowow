@@ -22,7 +22,9 @@ IW_EXPORT iwrc iwrdb_patch(IWRDB db, uint64_t ref, off_t skip, const void *data,
 
 IW_EXPORT iwrc iwrdb_close(IWRDB *db);
 
-IW_EXPORT iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len, size_t *sp);
+IW_EXPORT iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len);
+
+IW_EXPORT HANDLE iwrdb_file_handle(IWRDB db);
 
 IW_EXTERN_C_END
 #endif
