@@ -264,14 +264,16 @@ iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len) {
     }
     to_read -= sz;
     wp += sz;
+    off += sz;
   }
 
   if (to_read) {
-    if (to_read > db->bp) {
+    size_t sz = off - db->end;
+    if (sz + to_read > db->bp) {
       rc = IW_ERROR_OUT_OF_BOUNDS;
       goto finish;
     }
-    memcpy(wp, db->buf, to_read);
+    memcpy(wp, db->buf + sz, to_read);
   }
 
 finish:
