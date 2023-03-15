@@ -31,6 +31,8 @@
  *************************************************************************************************/
 
 #include "basedefs.h"
+#include <stdarg.h>
+
 IW_EXTERN_C_START
 
 #ifndef IWPOOL_POOL_SIZ
@@ -108,6 +110,8 @@ IW_EXPORT char* iwpool_strndup2(IWPOOL *pool, const char *str, size_t len);
  * @return Pointer to resulted string of `zero` if operation is failed.
  */
 IW_EXPORT char* iwpool_printf(IWPOOL *pool, const char *format, ...) __attribute__((format(__printf__, 2, 3)));
+
+IW_EXPORT char* iwpool_printf_va(IWPOOL *pool, const char *format, va_list va);
 
 IW_EXPORT const char** iwpool_split_string(
   IWPOOL *pool, const char *haystack,

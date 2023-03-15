@@ -161,6 +161,16 @@ static char* _iwpool_printf_va(IWPOOL *pool, int size, const char *format, va_li
   return wbuf;
 }
 
+char* iwpool_printf_va(IWPOOL *pool, const char *format, va_list va) {
+  va_list cva;
+  va_copy(cva, va);
+  int size = _iwpool_printf_estimate_size(format, va);
+  va_end(va);
+  char *res = _iwpool_printf_va(pool, size, format, cva);
+  va_end(cva);
+  return res;
+}
+
 char* iwpool_printf(IWPOOL *pool, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
