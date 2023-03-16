@@ -270,7 +270,7 @@ iwrc iwxstr_insert_printf(IWXSTR *xstr, size_t pos, const char *format, ...) {
   return rc;
 }
 
-iwrc iwxstr_vaprintf(IWXSTR *xstr, const char *format, va_list va) {
+iwrc iwxstr_printf_va(IWXSTR *xstr, const char *format, va_list va) {
   iwrc rc = 0;
   char buf[1024];
   va_list cva;
@@ -298,7 +298,7 @@ finish:
 iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
-  iwrc rc = iwxstr_vaprintf(xstr, format, ap);
+  iwrc rc = iwxstr_printf_va(xstr, format, ap);
   va_end(ap);
   return rc;
 }
@@ -310,7 +310,7 @@ IWXSTR* iwxstr_new_printf(const char *format, ...) {
   }
   va_list ap;
   va_start(ap, format);
-  iwrc rc = iwxstr_vaprintf(xstr, format, ap);
+  iwrc rc = iwxstr_printf_va(xstr, format, ap);
   va_end(ap);
   if (rc) {
     iwxstr_destroy(xstr);
