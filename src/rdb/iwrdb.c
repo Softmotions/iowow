@@ -161,7 +161,7 @@ iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *od
 
 finish:
   if (rc && db) {
-    IWRC(iwrdb_close(&db), rc);
+    iwrdb_close(&db, false);
   }
   return rc;
 }
@@ -180,7 +180,7 @@ finish:
   return rc;
 }
 
-iwrc iwrdb_close(IWRDB *rdb) {
+iwrc iwrdb_close(IWRDB *rdb, bool no_sync) {
   iwrc rc = 0;
   IWRDB db;
   if (!rdb || !*rdb) {
@@ -192,8 +192,10 @@ iwrc iwrdb_close(IWRDB *rdb) {
     munmap(db->mm, db->msiz);
   }
   if (!INVALIDHANDLE(db->fh)) {
-    IWRC(iwrdb_sync(db), rc);
-    IWRC(iwp_closefh(db->fh), rc);
+    if (!no_sync) {
+      iwrdb_sync(db);
+    }
+    iwp_closefh(db->fh);
   }
   _destroy_locks(db);
   free(db->path);

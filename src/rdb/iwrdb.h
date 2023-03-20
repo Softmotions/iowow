@@ -21,7 +21,7 @@ IW_EXPORT iwrc iwrdb_append(IWRDB db, const void *data, int len, uint64_t *oref)
 
 IW_EXPORT iwrc iwrdb_patch(IWRDB db, uint64_t ref, off_t skip, const void *data, int len);
 
-IW_EXPORT iwrc iwrdb_close(IWRDB *db);
+IW_EXPORT iwrc iwrdb_close(IWRDB *db, bool no_sync);
 
 IW_EXPORT iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len);
 
