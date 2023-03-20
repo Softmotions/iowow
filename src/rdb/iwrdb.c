@@ -309,7 +309,7 @@ off_t iwrdb_offset_end(IWRDB db) {
   return -1;
 }
 
-uint8_t* iwrdb_mmap(IWRDB db, bool readonly, int madv, off_t *msiz) {
+uint8_t* iwrdb_mmap(IWRDB db, bool readonly, int madv, size_t *msiz) {
   *msiz = 0;
   if (_rlock(db)) {
     return 0;

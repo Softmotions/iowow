@@ -31,7 +31,7 @@ IW_EXPORT HANDLE iwrdb_file_handle(IWRDB db);
 /// Returns `-1` int the case of error.
 IW_EXPORT off_t iwrdb_offset_end(IWRDB db);
 
-IW_EXPORT uint8_t* iwrdb_mmap(IWRDB db, bool readonly, int madv, off_t *msiz);
+IW_EXPORT uint8_t* iwrdb_mmap(IWRDB db, bool readonly, int madv, size_t *msiz);
 
 IW_EXPORT void iwrdb_munmap(IWRDB db);
 
