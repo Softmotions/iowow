@@ -7,6 +7,12 @@
 #include <fcntl.h>
 #include <pthread.h>
 
+#ifdef _WIN32
+#include "win32/mman/mman.h"
+#else
+#include <sys/mman.h>
+#endif
+
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
 #endif
@@ -22,7 +28,9 @@ struct _IWRDB {
   pthread_rwlock_t *cwl;
   char    *path;
   uint8_t *buf;
+  uint8_t *mm;
   size_t   bufsz;
+  size_t   msiz;
   off_t    bp;
   off_t    end;
 };
@@ -179,16 +187,18 @@ iwrc iwrdb_close(IWRDB *rdb) {
     return 0;
   }
   db = *rdb;
+  *rdb = 0;
+  if (db->mm) {
+    munmap(db->mm, db->msiz);
+  }
   if (!INVALIDHANDLE(db->fh)) {
     IWRC(iwrdb_sync(db), rc);
     IWRC(iwp_closefh(db->fh), rc);
   }
-  db->fh = INVALID_HANDLE_VALUE;
   _destroy_locks(db);
   free(db->path);
   free(db->buf);
   free(db);
-  *rdb = 0;
   return rc;
 }
 
@@ -297,4 +307,63 @@ off_t iwrdb_offset_end(IWRDB db) {
     return ret;
   }
   return -1;
+}
+
+uint8_t* iwrdb_mmap(IWRDB db, bool readonly, int madv, off_t *msiz) {
+  *msiz = 0;
+  if (_rlock(db)) {
+    return 0;
+  }
+  if (db->mm) {
+    goto finish;
+  } else {
+    _unlock(db);
+    if (_wlock(db)) {
+      return 0;
+    }
+    if (db->mm) {
+      goto finish;
+    }
+  }
+
+  db->msiz = 0;
+  const size_t msize = IW_ROUNDUP(db->end, iwp_page_size());
+
+  int flags = MAP_SHARED;
+#ifdef MAP_NORESERVE
+  flags |= MAP_NORESERVE;
+#endif
+
+  uint8_t *mm = mmap(0, msize, (readonly ? PROT_READ : (PROT_READ | PROT_WRITE)), flags, db->fh, 0);
+  if (mm == MAP_FAILED) {
+    goto finish;
+  }
+
+  db->mm = mm;
+  db->msiz = msize;
+
+#ifndef _WIN32
+#ifdef MADV_DONTFORK
+  madv |= MADV_DONTFORK;
+#endif
+  if (madv) {
+    madvise(mm, msize, madv);
+  }
+#endif
+
+finish:
+  mm = db->mm;
+  *msiz = db->msiz;
+  _unlock(db);
+  return mm;
+}
+
+void iwrdb_munmap(IWRDB db) {
+  if (!_wlock(db)) {
+    if (db->mm) {
+      munmap(db->mm, db->msiz);
+      db->mm = 0;
+      db->msiz = 0;
+    }
+  }
 }
