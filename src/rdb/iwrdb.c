@@ -355,7 +355,7 @@ uint8_t* iwrdb_mmap(IWRDB db, bool readonly, int madv, size_t *msiz) {
 
 finish:
   mm = db->mm;
-  *msiz = db->msiz;
+  *msiz = db->end;
   _unlock(db);
   return mm;
 }
