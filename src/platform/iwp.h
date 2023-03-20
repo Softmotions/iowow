@@ -304,6 +304,8 @@ IW_EXPORT size_t iwp_tmpdir(char *out, size_t len);
  */
 IW_EXPORT char* iwp_allocate_tmpfile_path(const char *prefix);
 
+IW_EXPORT char* iwp_allocate_tmpfile_path2(const char *prefix, const char *dir);
+
 /**
  * Set name of the current thread. On some platforms
  * thread name canot be longer than 16 bytes including zero terminator.

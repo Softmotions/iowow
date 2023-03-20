@@ -133,17 +133,27 @@ iwrc iwp_copy_bytes(HANDLE fh, off_t off, size_t siz, off_t noff) {
   return rc;
 }
 
-char* iwp_allocate_tmpfile_path(const char *prefix) {
+char* iwp_allocate_tmpfile_path2(const char *prefix, const char *tmpdir) {
+  size_t tlen;
+  char path[PATH_MAX + 1];
   size_t plen = prefix ? strlen(prefix) : 0;
-  char tmpdir[PATH_MAX + 1];
-  size_t tlen = iwp_tmpdir(tmpdir, sizeof(tmpdir));
+
+  if (tmpdir && *tmpdir != '\0') {
+    tlen = strlen(tmpdir);
+  } else {
+    tlen = iwp_tmpdir(path, sizeof(path));
+    tmpdir = path;
+  }
+
   if (!tlen) {
     return 0;
   }
+
   char *res = malloc(tlen + sizeof(IW_PATH_STR) - 1 + plen + IW_UUID_STR_LEN + 1 /*NULL*/);
   if (!res) {
     return 0;
   }
+
   char *wp = res;
   memcpy(wp, tmpdir, tlen);
   wp += tlen;
@@ -157,6 +167,10 @@ char* iwp_allocate_tmpfile_path(const char *prefix) {
   wp += IW_UUID_STR_LEN;
   *wp = 0;
   return res;
+}
+
+char* iwp_allocate_tmpfile_path(const char *prefix) {
+  return iwp_allocate_tmpfile_path2(prefix, 0);
 }
 
 char* iwp_dirname(char *path) {
