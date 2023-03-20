@@ -64,7 +64,7 @@ IW_EXPORT off_t iwarr_sorted_find2(
   void* restrict eptr,
   void *op,
   bool *found,
-  iwrc (*cmp)(const void*, const void*, void*, int *res));
+  int (*cmp)(const void*, const void*, void*));
 
 ///////////////////////////////////////////////////////////////////////////
 //                     Fixed sized item list                             //
