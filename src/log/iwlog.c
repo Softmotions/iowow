@@ -190,6 +190,10 @@ const char* iwlog_ecode_explained(iwrc ecode) {
 
 iwrc iwlog_register_ecodefn(IWLOG_ECODE_FN fp) {
   assert(fp);
+  iwrc rc = iw_init();
+  if (rc) {
+    return rc;
+  }
   int success = 0;
   pthread_mutex_lock(&_mtx);
   for (int i = 0; i < _IWLOG_MAX_ECODE_FUN; ++i) {
