@@ -194,7 +194,7 @@ typedef struct _JBL_PTR {
 /** Prints JSON to some oputput specified by `op` */
 typedef iwrc (*jbl_json_printer)(const char *data, int size, char ch, int count, void *op);
 
-IW_EXPORT void iwjson_ftoa(long double val, char buf[static IWNUMBUF_SIZE], size_t *out_len);
+IW_EXPORT void iwjson_ftoa(long double val, char buf[IWNUMBUF_SIZE], size_t *out_len);
 
 /**
  * @brief Create empty binary JSON object.
