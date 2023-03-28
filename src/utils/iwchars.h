@@ -34,4 +34,13 @@ static bool iwchars_is_digits(const char *str, int len) {
   return true;
 }
 
+static bool iwchars_is_digits_or(const char *str, int len, char or_char) {
+  for (int i = 0; i < len; ++i) {
+    if (!iwchars_is_digit(str[i]) && str[i] != or_char) {
+      return false;
+    }
+  }
+  return true;
+}
+
 #endif
