@@ -38,32 +38,24 @@ struct iwref_holder {
   void (*freefn)(void*);
 };
 
-static struct iwref_holder* iwref_create(void *data, void (*freefn)(void*)) {
-  struct iwref_holder *h = malloc(sizeof(*h));
-  if (!h) {
-    return 0;
-  }
+static void iwref_init(struct iwref_holder *h, void *data, void (*freefn)(void*)) {
   *h = (struct iwref_holder) {
     .refs = 1,
     .data = data,
     .freefn = freefn,
   };
-  return h;
 }
 
 static void iwref_ref(struct iwref_holder *h) {
   ++h->refs;
 }
 
-static bool iwref_unref(struct iwref_holder **hp) {
-  if (hp && *hp) {
-    struct iwref_holder *h = *hp;
+static bool iwref_unref(struct iwref_holder *h) {
+  if (h) {
     if (--h->refs == 0) {
-      *hp = 0;
       if (h->freefn) {
         h->freefn(h->data);
       }
-      free(h);
       return true;
     }
   }
