@@ -277,7 +277,7 @@ typedef int HANDLE;
    | (((num_) & 0xff00000000000000ULL) >> 56))
 #endif
 
-#ifdef IW_BIGENDIAN
+#if defined(IW_BIGENDIAN) || defined(IW_NET_BIGENDIAN)
 #define IW_HTOIS(num_)  IW_SWAB16(num_)
 #define IW_HTOIL(num_)  IW_SWAB32(num_)
 #define IW_HTOILL(num_) IW_SWAB64(num_)
