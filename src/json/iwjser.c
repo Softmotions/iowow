@@ -16,6 +16,7 @@ typedef struct JCTX {
   JBL_NODE    root;
   const char *buf;
   const char *sp;
+  bool js; /**< If true parser will treat keys as js symbols */
   iwrc rc;
 } JCTX;
 
@@ -83,14 +84,13 @@ IW_INLINE int _jbl_hex(char c) {
   return -1;
 }
 
-static int _jbl_unescape_json_string(const char *p, char *d, int dlen, const char **end, iwrc *rcp) {
-  *rcp = 0;
+static int _jbl_unescape_json_string(JCTX *ctx, const char q, const char *p, char *d, int dlen, const char **end) {
   char c;
   char *ds = d;
   char *de = d + dlen;
 
   while ((c = *p++)) {
-    if (c == '"') { // string closing quotes
+    if (c == q) { // string closing quotes
       if (end) {
         *end = p;
       }
@@ -135,7 +135,7 @@ static int _jbl_unescape_json_string(const char *p, char *d, int dlen, const cha
           int h1, h2, h3, h4;
           if (  ((h1 = _jbl_hex(p[1])) < 0) || ((h2 = _jbl_hex(p[2])) < 0)
              || ((h3 = _jbl_hex(p[3])) < 0) || ((h4 = _jbl_hex(p[4])) < 0)) {
-            *rcp = JBL_ERROR_PARSE_INVALID_CODEPOINT;
+            ctx->rc = JBL_ERROR_PARSE_INVALID_CODEPOINT;
             return 0;
           }
           cp = h1 << 12 | h2 << 8 | h3 << 4 | h4;
@@ -144,18 +144,18 @@ static int _jbl_unescape_json_string(const char *p, char *d, int dlen, const cha
             if (  (p[-1] != '\\') || (*p != 'u')
                || ((h1 = _jbl_hex(p[1])) < 0) || ((h2 = _jbl_hex(p[2])) < 0)
                || ((h3 = _jbl_hex(p[3])) < 0) || ((h4 = _jbl_hex(p[4])) < 0)) {
-              *rcp = JBL_ERROR_PARSE_INVALID_CODEPOINT;
+              ctx->rc = JBL_ERROR_PARSE_INVALID_CODEPOINT;
               return 0;
             }
             cp2 = h1 << 12 | h2 << 8 | h3 << 4 | h4;
             if ((cp2 & 0xfc00) != 0xdc00) {
-              *rcp = JBL_ERROR_PARSE_INVALID_CODEPOINT;
+              ctx->rc = JBL_ERROR_PARSE_INVALID_CODEPOINT;
               return 0;
             }
             cp = 0x10000 + ((cp - 0xd800) << 10) + (cp2 - 0xdc00);
           }
           if (!utf8proc_codepoint_valid(cp)) {
-            *rcp = JBL_ERROR_PARSE_INVALID_CODEPOINT;
+            ctx->rc = JBL_ERROR_PARSE_INVALID_CODEPOINT;
             return 0;
           }
           uint8_t uchars[4];
@@ -183,16 +183,67 @@ static int _jbl_unescape_json_string(const char *p, char *d, int dlen, const cha
       ++d;
     }
   }
-  *rcp = JBL_ERROR_PARSE_UNQUOTED_STRING;
+  ctx->rc = JBL_ERROR_PARSE_UNQUOTED_STRING;
   return 0;
 }
 
-static const char* _jbl_parse_key(const char **key, const char *p, JCTX *ctx) {
+static const char* _jbl_parse_js_key(const char **key, const char *p, JCTX *ctx) {
+  char c, q = 0;
+  *key = "";
+
+  while ((c = *p++)) {
+    if (!q && (c == '\'' || c == '"')) {
+      q = c;
+    }
+    if (q || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+      if (!q) {
+        p--;
+      }
+      const char *sp = p;
+      while ((c = *p) && ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+        ++p;
+      }
+      if (q && c != q) {
+        ctx->rc = JBL_ERROR_PARSE_JSON;
+        return 0;
+      }
+      char *kptr = iwpool_alloc(p - sp + 1, ctx->pool);
+      if (!kptr) {
+        ctx->rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+        return 0;
+      }
+      memcpy(kptr, sp, p - sp);
+      kptr[p - sp] = '\0';
+      *key = kptr;
+
+      if (q) {
+        ++p;
+      }
+      while (*p && IS_WHITESPACE(*p)) p++;
+      if (*p == ':') {
+        return p + 1;
+      }
+      ctx->rc = JBL_ERROR_PARSE_JSON;
+      return 0;
+    } else if (c == '}') {
+      return p - 1;
+    } else if (IS_WHITESPACE(c) || (c == ',')) {
+      continue;
+    } else {
+      ctx->rc = JBL_ERROR_PARSE_JSON;
+      return 0;
+    }
+  }
+  ctx->rc = JBL_ERROR_PARSE_JSON;
+  return 0;
+}
+
+static const char* _jbl_parse_json_key(const char **key, const char *p, JCTX *ctx) {
   char c;
   *key = "";
   while ((c = *p++)) {
     if (c == '"') {
-      int len = _jbl_unescape_json_string(p, 0, 0, 0, &ctx->rc);
+      int len = _jbl_unescape_json_string(ctx, '"', p, 0, 0, 0);
       if (ctx->rc) {
         return 0;
       }
@@ -203,7 +254,7 @@ static const char* _jbl_parse_key(const char **key, const char *p, JCTX *ctx) {
           ctx->rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
           return 0;
         }
-        if ((len != _jbl_unescape_json_string(p, kptr, len, &p, &ctx->rc)) || ctx->rc) {
+        if ((len != _jbl_unescape_json_string(ctx, '"', p, kptr, len, &p)) || ctx->rc) {
           if (!ctx->rc) {
             ctx->rc = JBL_ERROR_PARSE_JSON;
           }
@@ -233,11 +284,11 @@ static const char* _jbl_parse_key(const char **key, const char *p, JCTX *ctx) {
 }
 
 static const char* _jbl_parse_value(
+  JCTX *ctx,
   int lvl,
   JBL_NODE parent,
   const char *key, int klidx,
-  const char *p,
-  JCTX *ctx
+  const char *p
   ) {
   if (lvl > JBL_MAX_NESTING_LEVEL) {
     ctx->rc = JBL_ERROR_MAX_NESTING_LEVEL_EXCEEDED;
@@ -289,10 +340,14 @@ static const char* _jbl_parse_value(
         }
         ctx->rc = JBL_ERROR_PARSE_JSON;
         return 0;
-      case '"':
-        ++p;
-        const char *end;
-        int len = _jbl_unescape_json_string(p, 0, 0, &end, &ctx->rc);
+      case '\'':
+      case '"': {
+        const char q = *p++, *end;
+        if (q == '\'' && !ctx->js) {
+          ctx->rc = JBL_ERROR_PARSE_JSON;
+          return 0;
+        }
+        int len = _jbl_unescape_json_string(ctx, q, p, 0, 0, &end);
         if (ctx->rc) {
           return 0;
         }
@@ -306,7 +361,7 @@ static const char* _jbl_parse_value(
             ctx->rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
             return 0;
           }
-          if ((len != _jbl_unescape_json_string(p, vptr, len, &p, &ctx->rc)) || ctx->rc) {
+          if ((len != _jbl_unescape_json_string(ctx, q, p, vptr, len, &p)) || ctx->rc) {
             if (!ctx->rc) {
               ctx->rc = JBL_ERROR_PARSE_JSON;
             }
@@ -321,6 +376,7 @@ static const char* _jbl_parse_value(
           node->vsize = 0;
         }
         return p;
+      }
       case '{':
         node = _jbl_json_create_node(JBV_OBJECT, key, klidx, parent, ctx);
         if (ctx->rc) {
@@ -329,14 +385,18 @@ static const char* _jbl_parse_value(
         ++p;
         while (1) {
           const char *nkey;
-          p = _jbl_parse_key(&nkey, p, ctx);
+          if (!ctx->js) {
+            p = _jbl_parse_json_key(&nkey, p, ctx);
+          } else {
+            p = _jbl_parse_js_key(&nkey, p, ctx);
+          }
           if (ctx->rc) {
             return 0;
           }
           if (*p == '}') {
             return p + 1;              // -V522
           }
-          p = _jbl_parse_value(lvl + 1, node, nkey, (int) strlen(nkey), p, ctx);
+          p = _jbl_parse_value(ctx, lvl + 1, node, nkey, (int) strlen(nkey), p);
           if (ctx->rc) {
             return 0;
           }
@@ -349,7 +409,7 @@ static const char* _jbl_parse_value(
         }
         ++p;
         for (int i = 0; ; ++i) {
-          p = _jbl_parse_value(lvl + 1, node, 0, i, p, ctx);
+          p = _jbl_parse_value(ctx, lvl + 1, node, 0, i, p);
           if (ctx->rc) {
             return 0;
           }
@@ -595,7 +655,20 @@ iwrc jbn_from_json(const char *json, JBL_NODE *node, IWPOOL *pool) {
     .buf  = json
   };
   _jbl_skip_bom(&ctx);
-  _jbl_parse_value(0, 0, 0, 0, ctx.buf, &ctx);
+  _jbl_parse_value(&ctx, 0, 0, 0, 0, ctx.buf);
+  *node = ctx.root;
+  return ctx.rc;
+}
+
+iwrc jbn_from_js(const char *json, JBL_NODE *node, IWPOOL *pool) {
+  *node = 0;
+  JCTX ctx = {
+    .pool = pool,
+    .buf  = json,
+    .js   = true
+  };
+  _jbl_skip_bom(&ctx);
+  _jbl_parse_value(&ctx, 0, 0, 0, 0, ctx.buf);
   *node = ctx.root;
   return ctx.rc;
 }

@@ -108,7 +108,7 @@ void jbl_test1_2(void) {
   iwxstr_destroy(xstr);
 }
 
-void jbl_test1_3(void) {
+static void jbl_test1_3(void) {
   JBL_PTR jp;
   iwrc rc = jbl_ptr_alloc("/", &jp);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -164,7 +164,7 @@ void jbl_test1_3(void) {
   free(jp);
 }
 
-void jbl_test1_4(void) {
+static void jbl_test1_4(void) {
   //  { "foo": "bar",
   //    "foo2": {
   //      "foo3": {
@@ -254,7 +254,7 @@ void jbl_test1_4(void) {
   free(data);
 }
 
-void jbl_test1_5(void) {
+static void jbl_test1_5(void) {
   IWXSTR *xstr = iwxstr_new();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
@@ -321,7 +321,7 @@ void jbl_test1_5(void) {
   free(data);
 }
 
-void apply_patch(const char *data, const char *patch, const char *result, IWXSTR *xstr, iwrc *rcp) {
+static void apply_patch(const char *data, const char *patch, const char *result, IWXSTR *xstr, iwrc *rcp) {
   CU_ASSERT_TRUE_FATAL(data && patch && xstr && rcp);
   JBL jbl = 0;
   char *data2 = iwu_replace_char(strdup(data), '\'', '"');
@@ -358,7 +358,7 @@ finish:
   *rcp = rc;
 }
 
-void apply_merge_patch(const char *data, const char *patch, const char *result, IWXSTR *xstr, iwrc *rcp) {
+static void apply_merge_patch(const char *data, const char *patch, const char *result, IWXSTR *xstr, iwrc *rcp) {
   CU_ASSERT_TRUE_FATAL(data && patch && xstr && rcp);
   JBL jbl = 0;
   char *data2 = iwu_replace_char(strdup(data), '\'', '"');
@@ -396,7 +396,7 @@ finish:
 }
 
 // Run tests: https://github.com/json-patch/json-patch-tests/blob/master/spec_tests.json
-void jbl_test1_6(void) {
+static void jbl_test1_6(void) {
   iwrc rc;
   IWXSTR *xstr = iwxstr_new();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
@@ -625,7 +625,7 @@ void jbl_test1_6(void) {
   iwxstr_destroy(xstr);
 }
 
-void jbl_test1_7(void) {
+static void jbl_test1_7(void) {
   iwrc rc;
   IWXSTR *xstr = iwxstr_new();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
@@ -720,7 +720,7 @@ void jbl_test1_7(void) {
   iwxstr_destroy(xstr);
 }
 
-void jbl_test1_8(void) {
+static void jbl_test1_8(void) {
   JBL jbl, nested, at;
   iwrc rc = jbl_create_empty_object(&jbl);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -762,7 +762,7 @@ void jbl_test1_8(void) {
   jbl_destroy(&nested);
 }
 
-void jbl_test1_9(void) {
+static void jbl_test1_9(void) {
   IWPOOL *pool = iwpool_create(512);
   IWPOOL *cpool = iwpool_create(512);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
@@ -796,7 +796,7 @@ void jbl_test1_9(void) {
   iwxstr_destroy(xstr);
 }
 
-void jbl_test1_10(void) {
+static void jbl_test1_10(void) {
   IWPOOL *pool = iwpool_create(512);
   IWPOOL *tpool = iwpool_create(512);
   IWXSTR *xstr = iwxstr_new();
@@ -834,7 +834,7 @@ void jbl_test1_10(void) {
   iwxstr_destroy(xstr);
 }
 
-void jbl_test1_11(void) {
+static void jbl_test1_11(void) {
   IWPOOL *pool = iwpool_create(512);
   IWXSTR *xstr = iwxstr_new();
 
@@ -873,6 +873,29 @@ void jbl_test1_12(void) {
   iwpool_destroy(pool);
 }
 
+void jbl_test1_13(void) {
+  IWPOOL *pool = iwpool_create_empty();
+  JBL_NODE n, n2;
+  iwrc rc = jbn_from_js("{foo:'bar', 'baz':1, \"gaz\":['one','two']}", &n, pool);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = jbn_at(n, "/foo", &n2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_STRING_EQUAL(n2->key, "foo");
+  CU_ASSERT_STRING_EQUAL(n2->vptr, "bar");
+
+  rc = jbn_at(n, "/baz", &n2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_STRING_EQUAL(n2->key, "baz");
+  CU_ASSERT_EQUAL(n2->type, JBV_I64);
+
+  rc = jbn_at(n, "/gaz/1", &n2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(n2->type, JBV_STR);
+  CU_ASSERT_STRING_EQUAL(n2->vptr, "two");
+
+  iwpool_destroy(pool);
+}
+
 int main(void) {
   CU_pSuite pSuite = NULL;
   if (CUE_SUCCESS != CU_initialize_registry()) {
@@ -894,7 +917,8 @@ int main(void) {
      || (NULL == CU_add_test(pSuite, "jbl_test1_9", jbl_test1_9))
      || (NULL == CU_add_test(pSuite, "jbl_test1_10", jbl_test1_10))
      || (NULL == CU_add_test(pSuite, "jbl_test1_11", jbl_test1_11))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_12", jbl_test1_12))) {
+     || (NULL == CU_add_test(pSuite, "jbl_test1_12", jbl_test1_12))
+     || (NULL == CU_add_test(pSuite, "jbl_test1_13", jbl_test1_13))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

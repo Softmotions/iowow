@@ -656,6 +656,12 @@ IW_EXPORT iwrc jbl_to_node(JBL jbl, JBL_NODE *node, bool clone_strings, IWPOOL *
  */
 IW_EXPORT iwrc jbn_from_json(const char *json, JBL_NODE *node, IWPOOL *pool);
 
+/**
+ * @brief Converts json-like js object (where keys as js symbols) to `JBL_NODE` tree.
+ * @warning Experimental. Does't conform to ECMA spec/
+ */
+IW_EXPORT iwrc jbn_from_js(const char *json, JBL_NODE *node, IWPOOL *pool);
+
 IW_EXPORT iwrc jbn_from_json_printf(
   JBL_NODE *node, IWPOOL *pool, const char *format,
   ...) __attribute__((format(__printf__, 3, 4)));

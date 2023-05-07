@@ -1,5 +1,5 @@
 cd ./build/src/json/tests
-file ./jbl_test2
+file ./jbl_test1
 #set args -c
 
 set confirm off
