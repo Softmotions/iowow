@@ -658,7 +658,7 @@ IW_EXPORT iwrc jbn_from_json(const char *json, JBL_NODE *node, IWPOOL *pool);
 
 /**
  * @brief Converts json-like js object (where keys as js symbols) to `JBL_NODE` tree.
- * @warning Experimental. Does't conform to ECMA spec/
+ * @warning Experimental. Doesn't conform to ECMA spec.
  */
 IW_EXPORT iwrc jbn_from_js(const char *json, JBL_NODE *node, IWPOOL *pool);
 
