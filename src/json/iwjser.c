@@ -421,6 +421,7 @@ static const char* _jbl_parse_value(
       case ']':
         return p;
         break;
+      case '.':
       case '-':
       case '0':
       case '1':
@@ -432,13 +433,17 @@ static const char* _jbl_parse_value(
       case '7':
       case '8':
       case '9': {
+        if (*p == '.' && !ctx->js) {
+          ctx->rc = JBL_ERROR_PARSE_JSON;
+          return 0;
+        }
         node = _jbl_json_create_node(JBV_I64, key, klidx, parent, ctx);
         if (ctx->rc) {
           return 0;
         }
         char *pe;
         node->vi64 = strtoll(p, &pe, 0);
-        if ((pe == p) || (errno == ERANGE)) {
+        if ((pe == p && *p != '.') || (errno == ERANGE)) {
           ctx->rc = JBL_ERROR_PARSE_JSON;
           return 0;
         }
