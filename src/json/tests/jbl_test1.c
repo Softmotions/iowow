@@ -876,7 +876,7 @@ void jbl_test1_12(void) {
 void jbl_test1_13(void) {
   IWPOOL *pool = iwpool_create_empty();
   JBL_NODE n, n2;
-  iwrc rc = jbn_from_js("{foo:'bar', z:null, x: .1, 'baz':1, \"gaz\":['one','two']}", &n, pool);
+  iwrc rc = jbn_from_js("{foo:'bar', z:null, x: .1, y:-.1, 'baz':1, \"gaz\":['one','two']}", &n, pool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbn_at(n, "/foo", &n2);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -897,6 +897,11 @@ void jbl_test1_13(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL(n2->type, JBV_F64);
   CU_ASSERT_DOUBLE_EQUAL(n2->vf64, .1, 0.001);
+
+  rc = jbn_at(n, "/y", &n2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(n2->type, JBV_F64);
+  CU_ASSERT_DOUBLE_EQUAL(n2->vf64, -.1, 0.001);
 
   iwpool_destroy(pool);
 }

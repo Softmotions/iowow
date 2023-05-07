@@ -443,11 +443,13 @@ static const char* _jbl_parse_value(
         }
         char *pe;
         node->vi64 = strtoll(p, &pe, 0);
-        if ((pe == p && *p != '.') || (errno == ERANGE)) {
-          ctx->rc = JBL_ERROR_PARSE_JSON;
-          return 0;
+        if ((pe == p) || (errno == ERANGE)) {
+          if (*p != '.' && !((*p == '-' || *p == '+') && *(p + 1) == '.')) {
+            ctx->rc = JBL_ERROR_PARSE_JSON;
+            return 0;
+          }
         }
-        if ((*pe == '.') || (*pe == 'e') || (*pe == 'E')) {
+        if ((*pe == '.') || (*pe == 'e') || (*pe == 'E') || (*pe == '-') || (*pe == '+')) {
           node->type = JBV_F64;
           node->vf64 = iwstrtod(p, &pe);
           if ((pe == p) || (errno == ERANGE)) {
