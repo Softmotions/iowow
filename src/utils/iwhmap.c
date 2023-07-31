@@ -109,13 +109,13 @@ IW_INLINE uint32_t _hash_uint64(uint64_t x) {
 }
 
 IW_INLINE uint32_t _hash_uint64_key(const void *key) {
-  if (sizeof(uintptr_t) >= sizeof(uint64_t)) {
+  #ifdef IW_64
     return _hash_uint64((uint64_t) key);
-  } else {
+  #else
     uint64_t lv;
     memcpy(&lv, key, sizeof(lv));
     return _hash_uint64(lv);
-  }
+  #endif
 }
 
 IW_INLINE uint32_t _hash_uint32_key(const void *key) {
