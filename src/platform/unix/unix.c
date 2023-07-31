@@ -348,6 +348,7 @@ iwrc iwp_exec_path(char *opath, size_t opath_maxlen) {
   if (ret < 0) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
+  return 0;
 #else
   // TODO:
   return IW_ERROR_NOT_IMPLEMENTED;
