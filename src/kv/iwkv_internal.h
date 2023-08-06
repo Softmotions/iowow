@@ -142,7 +142,7 @@ typedef uint8_t iwlctx_op_t;
 /** Put key value operation */
 #define IWLCTX_PUT ((iwlctx_op_t) 0x01U)
 /** Delete key operation */
-#define IWLCTX_DEL ((iwlctx_op_t) 0x01U)
+#define IWLCTX_DEL ((iwlctx_op_t) 0x02U)
 
 /* KVBLK: [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] */
 typedef struct KVBLK {
