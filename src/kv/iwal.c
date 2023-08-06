@@ -806,6 +806,8 @@ void iwal_shutdown(IWKV iwkv) {
 }
 
 static void* _cpt_worker_fn(void *op) {
+  iwp_set_current_thread_name("IWAL::CPT");
+
   int rci;
   iwrc rc = 0;
   IWAL *wal = op;
