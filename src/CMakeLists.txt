@@ -186,7 +186,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
                     -Wno-sign-compare -Wno-unused-parameter \
                     -Wno-implicit-fallthrough -Wno-unknown-pragmas -Wno-unused-function -Wno-missing-field-initializers \
                     -Wno-missing-braces")
-if (APPLE)
+if (APPLE AND CMAKE_C_COMPILER_ID MATCHES "Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-shorten-64-to-32")
 endif()
 
