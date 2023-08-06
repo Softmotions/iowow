@@ -1,6 +1,6 @@
 #include "iwhmap.h"
 #include "iwlog.h"
-#include "murmur3.h"
+#include "wyhash32.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -123,7 +123,7 @@ IW_INLINE uint32_t _hash_uint32_key(const void *key) {
 }
 
 IW_INLINE uint32_t _hash_buf_key(const void *key) {
-  return murmur3(key, strlen(key));
+  return wyhash32(key, strlen(key), 0x3017f643);
 }
 
 IWHMAP* iwhmap_create(
