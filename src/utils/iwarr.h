@@ -138,6 +138,11 @@ IW_EXPORT void* iwulist_at(IWULIST *list, size_t index, iwrc *orc);
 IW_EXPORT void* iwulist_at2(IWULIST *list, size_t index);
 
 /**
+ * Alias for iwulist_at2()
+ */
+IW_EXPORT void* iwulist_get(IWULIST *list, size_t index);
+
+/**
  * @brief Inserts new element at given index.
  *
  * @param index Index of element
@@ -285,6 +290,11 @@ IW_EXPORT void* iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
  * @return Elements data buffer or zero if element is not found
  */
 IW_EXPORT void* iwlist_at2(IWLIST *list, size_t index, size_t *osize);
+
+/**
+ * Alias of iwlist_at2()
+ */
+IW_EXPORT void* iwlist_get(IWLIST *list, size_t index, size_t *osize);
 
 /**
  * @brief Add element to end of list.

@@ -276,6 +276,14 @@ void* iwulist_at2(IWULIST *list, size_t index) {
   return list->array + index * list->usize;
 }
 
+void* iwulist_get(IWULIST *list, size_t index) {
+  if (index >= list->num) {
+    return 0;
+  }
+  index += list->start;
+  return list->array + index * list->usize;
+}
+
 iwrc iwulist_push(IWULIST *list, const void *data) {
   size_t index = list->start + list->num;
   if (index >= list->anum) {
@@ -544,6 +552,17 @@ void* iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
 }
 
 void* iwlist_at2(IWLIST *list, size_t index, size_t *osize) {
+  if (index >= list->num) {
+    return 0;
+  }
+  index += list->start;
+  if (osize) {
+    *osize = list->array[index].size;
+  }
+  return list->array[index].val;
+}
+
+void* iwlist_get(IWLIST *list, size_t index, size_t *osize) {
   if (index >= list->num) {
     return 0;
   }
