@@ -120,12 +120,12 @@ IW_EXPORT void iwulist_destroy_keep(IWULIST *list);
 /**
  * @brief Get number of stored elements.
  */
-IW_EXPORT size_t iwulist_length(IWULIST *list);
+IW_EXPORT size_t iwulist_length(const IWULIST *list);
 
 /**
  * @brief Clones a given list.
  */
-IW_EXPORT IW_ALLOC IWULIST* iwulist_clone(IWULIST *list);
+IW_EXPORT IW_ALLOC IWULIST* iwulist_clone(const IWULIST *list);
 
 /**
  * @brief Gets pinter to element at given `index`
@@ -133,14 +133,14 @@ IW_EXPORT IW_ALLOC IWULIST* iwulist_clone(IWULIST *list);
  * @param index Index of element
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if index is invalid
  */
-IW_EXPORT void* iwulist_at(IWULIST *list, size_t index, iwrc *orc);
+IW_EXPORT void* iwulist_at(const IWULIST *list, size_t index, iwrc *orc);
 
-IW_EXPORT void* iwulist_at2(IWULIST *list, size_t index);
+IW_EXPORT void* iwulist_at2(const IWULIST *list, size_t index);
 
 /**
  * Alias for iwulist_at2()
  */
-IW_EXPORT void* iwulist_get(IWULIST *list, size_t index);
+IW_EXPORT void* iwulist_get(const IWULIST *list, size_t index);
 
 /**
  * @brief Inserts new element at given index.
@@ -182,7 +182,7 @@ IW_EXPORT bool iwulist_remove_first_by(IWULIST *list, void *data_ptr);
  * @param data_ptr Pointer to data buffer list items will be matched against.
  * @return Index of first matched element or `-1` if item not found.
  */
-IW_EXPORT ssize_t iwulist_find_first(IWULIST *list, void *data_ptr);
+IW_EXPORT ssize_t iwulist_find_first(const IWULIST *list, void *data_ptr);
 
 /**
  * @brief Adds new element to end of list.
@@ -265,13 +265,13 @@ IW_EXPORT void iwlist_destroy_keep(IWLIST *list);
 /**
  * @brief Returns number of elements stored in list.
  */
-IW_EXPORT size_t iwlist_length(IWLIST *list);
+IW_EXPORT size_t iwlist_length(const IWLIST *list);
 
 /**
  * @brief Clone a given list.
  * @return Zero if allocation failed, `errno` will be set.
  */
-IW_EXPORT IW_ALLOC IWLIST* iwlist_clone(IWLIST *list);
+IW_EXPORT IW_ALLOC IWLIST* iwlist_clone(const IWLIST *list);
 
 /**
  * @brief Get element at specified index.
@@ -281,7 +281,7 @@ IW_EXPORT IW_ALLOC IWLIST* iwlist_clone(IWLIST *list);
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if index is invalid
  * @return Elements data buffer
  */
-IW_EXPORT void* iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_at(const IWLIST *list, size_t index, size_t *osize, iwrc *orc);
 
 /**
  * @brief Get element at specified index.
@@ -289,12 +289,12 @@ IW_EXPORT void* iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
  * @param [out] osize Optional size of returned element data in bytes
  * @return Elements data buffer or zero if element is not found
  */
-IW_EXPORT void* iwlist_at2(IWLIST *list, size_t index, size_t *osize);
+IW_EXPORT void* iwlist_at2(const IWLIST *list, size_t index, size_t *osize);
 
 /**
  * Alias of iwlist_at2()
  */
-IW_EXPORT void* iwlist_get(IWLIST *list, size_t index, size_t *osize);
+IW_EXPORT void* iwlist_get(const IWLIST *list, size_t index, size_t *osize);
 
 /**
  * @brief Add element to end of list.

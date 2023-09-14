@@ -232,11 +232,11 @@ void iwulist_destroy(IWULIST **listp) {
   }
 }
 
-size_t iwulist_length(IWULIST *list) {
+size_t iwulist_length(const IWULIST *list) {
   return list->num;
 }
 
-IWULIST* iwulist_clone(IWULIST *list) {
+IWULIST* iwulist_clone(const IWULIST *list) {
   if (!list->num) {
     return iwulist_create(list->anum, list->usize);
   }
@@ -258,7 +258,7 @@ IWULIST* iwulist_clone(IWULIST *list) {
   return nlist;
 }
 
-void* iwulist_at(IWULIST *list, size_t index, iwrc *orc) {
+void* iwulist_at(const IWULIST *list, size_t index, iwrc *orc) {
   *orc = 0;
   if (index >= list->num) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
@@ -268,7 +268,7 @@ void* iwulist_at(IWULIST *list, size_t index, iwrc *orc) {
   return list->array + index * list->usize;
 }
 
-void* iwulist_at2(IWULIST *list, size_t index) {
+void* iwulist_at2(const IWULIST *list, size_t index) {
   if (index >= list->num) {
     return 0;
   }
@@ -276,7 +276,7 @@ void* iwulist_at2(IWULIST *list, size_t index) {
   return list->array + index * list->usize;
 }
 
-void* iwulist_get(IWULIST *list, size_t index) {
+void* iwulist_get(const IWULIST *list, size_t index) {
   if (index >= list->num) {
     return 0;
   }
@@ -411,7 +411,7 @@ bool iwulist_remove_first_by(IWULIST *list, void *data_ptr) {
   return false;
 }
 
-ssize_t iwulist_find_first(IWULIST *list, void *data_ptr) {
+ssize_t iwulist_find_first(const IWULIST *list, void *data_ptr) {
   for (size_t i = list->start; i < list->start + list->num; ++i) {
     void *ptr = list->array + i * list->usize;
     if (memcmp(data_ptr, ptr, list->usize) == 0) {
@@ -502,11 +502,11 @@ void iwlist_destroy(IWLIST **listp) {
   }
 }
 
-size_t iwlist_length(IWLIST *list) {
+size_t iwlist_length(const IWLIST *list) {
   return list->num;
 }
 
-IWLIST* iwlist_clone(IWLIST *list) {
+IWLIST* iwlist_clone(const IWLIST *list) {
   size_t num = list->num;
   if (!num) {
     return iwlist_create(0);
@@ -538,7 +538,7 @@ IWLIST* iwlist_clone(IWLIST *list) {
   return nlist;
 }
 
-void* iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
+void* iwlist_at(const IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
   *orc = 0;
   if (index >= list->num) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
@@ -551,7 +551,7 @@ void* iwlist_at(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
   return list->array[index].val;
 }
 
-void* iwlist_at2(IWLIST *list, size_t index, size_t *osize) {
+void* iwlist_at2(const IWLIST *list, size_t index, size_t *osize) {
   if (index >= list->num) {
     return 0;
   }
@@ -562,7 +562,7 @@ void* iwlist_at2(IWLIST *list, size_t index, size_t *osize) {
   return list->array[index].val;
 }
 
-void* iwlist_get(IWLIST *list, size_t index, size_t *osize) {
+void* iwlist_get(const IWLIST *list, size_t index, size_t *osize) {
   if (index >= list->num) {
     return 0;
   }
