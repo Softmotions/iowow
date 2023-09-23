@@ -225,6 +225,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/iwcfg.h ${PROJECT_GENERATED_DIR}
 file(GLOB PROJECT_GENERATED_HDRS ${PROJECT_GENERATED_DIR}/*.h)
 list(APPEND ALL_HDRS ${PROJECT_GENERATED_HDRS})
 
+cmake_path(APPEND includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
+cmake_path(APPEND libdir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_LIBDIR}")
+cmake_path(APPEND bindir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_BINDIR}")
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tmpl/libiowow.pc.in ${PROJECT_GENERATED_DIR}/libiowow.pc @ONLY)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
