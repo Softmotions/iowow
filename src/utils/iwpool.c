@@ -16,15 +16,19 @@ typedef struct IWPOOL_UNIT {
   struct IWPOOL_UNIT *next;
 } IWPOOL_UNIT;
 
+
 /** Memory pool */
 struct _IWPOOL {
-  size_t       usiz;                 /**< Used size */
-  size_t       asiz;                 /**< Allocated size */
-  IWPOOL_UNIT *unit;                 /**< Current heap unit */
-  void *user_data;                   /**< Associated user data */
-  void  (*user_data_free_fn)(void*); /**< User data dispose function */
-  int   numrefs;                     /**< Number of references if reached 0 a pool will destroyed by iwpool_destroy */
-  char *heap;                        /**< Current pool heap ptr */
+  size_t       usiz;                   /**< Used size */
+  size_t       asiz;                   /**< Allocated size */
+  IWPOOL_UNIT *unit;                   /**< Current heap unit */
+  void   *user_data;                   /**< Associated user data */
+  void    (*user_data_free_fn)(void*); /**< User data dispose function */
+  int     numrefs;                     /**< Number of references if reached 0 a pool will destroyed by iwpool_destroy */
+  char   *heap;                        /**< Current pool heap ptr */
+  IWPOOL *parent;                      /**< Optional parent pool */
+  IWPOOL *children;                    /**< Children pools */
+  IWPOOL *next;                        /**< Next child pool */
 };
 
 IWPOOL* iwpool_create(size_t siz) {
@@ -50,6 +54,10 @@ IWPOOL* iwpool_create(size_t siz) {
   pool->unit->next = 0;
   pool->user_data = 0;
   pool->user_data_free_fn = 0;
+  pool->parent = 0;
+  pool->children = 0;
+  pool->next = 0;
+
   return pool;
 
 error:
@@ -63,12 +71,42 @@ error:
   return 0;
 }
 
+IWPOOL* iwpool_create_attach(IWPOOL *parent, size_t siz) {
+  IWPOOL *res = iwpool_create(siz);
+  if (!res || !parent) {
+    return res;
+  }
+  res->parent = parent;
+  if (!parent->children) {
+    parent->children = res;
+  } else {
+    res->next = parent->children;
+    parent->children = res;
+  }
+  return res;
+}
+
 IWPOOL* iwpool_create_empty(void) {
   IWPOOL *ret = calloc(1, sizeof(struct _IWPOOL));
   if (ret) {
     ret->numrefs = 1;
   }
   return ret;
+}
+
+IWPOOL* iwpool_create_empty_attach(IWPOOL *parent) {
+  IWPOOL *res = iwpool_create_empty();
+  if (!res || !parent) {
+    return res;
+  }
+  res->parent = parent;
+  if (!parent->children) {
+    parent->children = res;
+  } else {
+    res->next = parent->children;
+    parent->children = res;
+  }
+  return res;
 }
 
 IW_INLINE int iwpool_extend(IWPOOL *pool, size_t siz) {
@@ -277,9 +315,30 @@ int iwpool_ref(IWPOOL *pool) {
   return ++pool->numrefs;
 }
 
+static void _parent_remove_child(IWPOOL *parent, IWPOOL *child) {
+  for (IWPOOL *c = parent->children, *p = 0; c; p = c, c = c->next) {
+    if (c == child) {
+      c->parent = 0;
+      if (p) {
+        p->next = c->next;
+      } else {
+        parent->children = 0;
+      }
+      break;
+    }
+  }
+}
+
 bool iwpool_destroy(IWPOOL *pool) {
   if (!pool || --pool->numrefs > 0) {
     return false;
+  }
+  if (pool->parent) {
+    _parent_remove_child(pool->parent, pool);
+  }
+  for (IWPOOL *c = pool->children; c; c = c->next) {
+    c->parent = 0;
+    iwpool_destroy(c);
   }
   for (IWPOOL_UNIT *u = pool->unit, *next; u; u = next) {
     next = u->next;

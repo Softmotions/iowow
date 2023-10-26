@@ -43,19 +43,35 @@ struct _IWPOOL;
 typedef struct _IWPOOL IWPOOL;
 
 /**
- * @brief Creates memory pool and preallocate initial buffer of size `siz` bytes.
+ * @brief Creates a memory pool and preallocate initial buffer of size `siz` bytes.
  * In the case if `siz` is zero then size of initial memory buffer will be `IWPOOL_POOL_SIZ` bytes.
  *
  * @param siz Initial memory buffer size. Can be zero.
  * @return Pointer to the new pool or `zero` if allocation is failed.
  */
-IW_EXPORT IW_ALLOC IWPOOL* iwpool_create(size_t siz);
+IW_EXPORT WUR IWPOOL* iwpool_create(size_t siz);
 
 /**
  * @brief Create empty pool with no preallocated buffer.
  * @return Pointer to the new pool or `zero` if allocation is failed.
  */
-IW_EXPORT IW_ALLOC IWPOOL* iwpool_create_empty(void);
+IW_EXPORT WUR IWPOOL* iwpool_create_empty(void);
+
+/**
+ * @brief Creates a memory pool within a given parent and preallocate initial buffer of `siz` bytes.
+ * In the case if `siz` is zero then size of initial memory buffer will be `IWPOOL_POOL_SIZ` bytes.
+ * If parent pool is destroyed this memory pool will be destroyed as well. It also allowed to
+ * destroy memory pool by `iwpool_destroy()`
+ */
+IW_EXPORT WUR IWPOOL* iwpool_create_attach(IWPOOL *parent, size_t siz);
+
+/**
+ * @brief Create empty pool within a given parent and no preallocated buffer.
+ * If parent pool is destroyed this memory pool will be destroyed as well. It also allowed to
+ * destroy memory pool by `iwpool_destroy()`
+ * @return Pointer to the new pool or `zero` if allocation is failed.
+ */
+IW_EXPORT WUR IWPOOL* iwpool_create_empty_attach(IWPOOL *parent);
 
 /**
  * @brief Allocates buffer of specified size.
