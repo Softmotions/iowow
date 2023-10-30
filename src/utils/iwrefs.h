@@ -48,6 +48,14 @@ static void iwref_init(struct iwref_holder *h, void *data, void (*freefn)(void*)
   };
 }
 
+static void iwref_reset(struct iwref_holder *h, void *data, void (*freefn)(void*)) {
+  h->refs = 1;
+  if (freefn) {
+    h->data = data;
+    h->freefn = freefn;
+  }
+}
+
 static void iwref_ref(struct iwref_holder *h) {
   ++h->refs;
 }
