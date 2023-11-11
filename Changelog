@@ -1,5 +1,6 @@
 iowow (1.4.17) UNRELEASED; urgency=medium
 
+  * Added void iwulist_reset(IWULIST *list) (iwarr.h)
   * Added experimental jbn_from_js() (iwjson.h)
   * Fixed C++ compilation errors https://github.com/Softmotions/ejdb/issues/381
   * Fixed Correct UCS-16 surrogate pair start code point. #51

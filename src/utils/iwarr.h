@@ -104,6 +104,12 @@ IW_EXPORT IW_ALLOC IWULIST* iwulist_create(size_t initial_length, size_t unit_si
 IW_EXPORT iwrc iwulist_clear(IWULIST *list);
 
 /**
+ * @brief Resets number of elements to zero.
+ * Underlying list array is not destroyed.
+ */
+IW_EXPORT void iwulist_reset(IWULIST *list);
+
+/**
  * @brief Destroys and deallocates a given unit list.
  *
  */

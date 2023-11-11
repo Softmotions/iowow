@@ -215,6 +215,13 @@ iwrc iwulist_clear(IWULIST *list) {
   return 0;
 }
 
+void iwulist_reset(IWULIST *list) {
+  if (list) {
+    list->start = 0;
+    list->num = 0;
+  }
+}
+
 void iwulist_destroy_keep(IWULIST *list) {
   if (list) {
     free(list->array);
