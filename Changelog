@@ -1,4 +1,4 @@
-iowow (1.4.17) UNRELEASED; urgency=medium
+iowow (1.4.17) testing; urgency=medium
 
   * Added void iwulist_reset(IWULIST *list) (iwarr.h)
   * Added experimental jbn_from_js() (iwjson.h)
@@ -15,7 +15,7 @@ iowow (1.4.17) UNRELEASED; urgency=medium
   * Fixed windows build
   * Added ref counting feature to iwpool (iwpool.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 05 Jan 2023 19:23:07 +0200
+ -- Anton Adamansky <adamansky@gmail.com>  Mon, 13 Nov 2023 23:29:35 +0700
 
 iowow (1.4.16) testing; urgency=medium
 
