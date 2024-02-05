@@ -175,6 +175,8 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/wyhash.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/wyhash32.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/utils/utf8proc.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/pthread_barrier_shim.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/utils/pthread_spin_lock_shim.h
                      )
 
 list(REMOVE_DUPLICATES PROJECT_LLIBRARIES)

@@ -1,11 +1,12 @@
+#pragma once
 // https://idea.popcount.org/2012-09-12-reinventing-spinlocks/
 // See https://stackoverflow.com/questions/8177031/does-mac-os-x-have-pthread-spinlock-t-type
 
-#include <errno.h>
-#include <sched.h>
-
 #ifndef PTHREAD_SPIN_LOCK_SHIM
 #define PTHREAD_SPIN_LOCK_SHIM
+
+#include <errno.h>
+#include <sched.h>
 
 typedef int pthread_spinlock_t;
 
