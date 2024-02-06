@@ -1,6 +1,6 @@
 iowow (1.4.18) UNRELEASED; urgency=medium
 
-  * Added pthread_barrier_shim.h for MacOS
+  *
 
  -- Anton Adamansky <adamansky@gmail.com>  Mon, 05 Feb 2024 19:28:56 +0700
 
