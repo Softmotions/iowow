@@ -13,7 +13,7 @@ typedef struct {
   int threshold;
 } pthread_barrier_t;
 
-typedef struct {} pthread_barrierattr_t;
+typedef int pthread_barrierattr_t;
 
 int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned count);
 int pthread_barrier_destroy(pthread_barrier_t *barrier);

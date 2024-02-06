@@ -37,7 +37,7 @@ int pthread_barrier_wait(pthread_barrier_t *barrier) {
     if (++barrier->canary == barrier->threshold) {
       barrier->canary = 0;
       pthread_cond_broadcast(&barrier->cond);
-      rc = PTHREAD_BARRIER_SERIAL_THREAD;
+      rc = -1;
     } else {
       pthread_cond_wait(&barrier->cond, &barrier->mutex);
     }
