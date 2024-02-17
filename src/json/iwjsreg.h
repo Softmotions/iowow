@@ -54,6 +54,8 @@ IW_EXPORT iwrc iwjsreg_set_str(struct iwjsreg*, const char *key, const char *val
 
 IW_EXPORT iwrc iwjsreg_set_i64(struct iwjsreg*, const char *key, int64_t value);
 
+IW_EXPORT iwrc iwjsreg_inc_i64(struct iwjsreg*, const char *key, int64_t inc);
+
 IW_EXPORT iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value);
 
 IW_EXPORT iwrc iwjsreg_get_str(struct iwjsreg*, const char *key, char **out);

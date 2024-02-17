@@ -313,6 +313,59 @@ finish:
   return rc;
 }
 
+iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc) {
+  iwrc rc = 0;
+  if (!reg || !reg->root || !key) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  JBL_NODE nn = 0;
+  char *nkey = 0;
+
+  iwref_ref(&reg->ref);
+  pthread_rwlock_wrlock(reg->rwl);
+
+  for (JBL_NODE n = reg->root->child; n; n = n->next) {
+    if (n->key && strncmp(n->key, key, n->klidx) == 0) {
+      nn = n;
+      break;
+    }
+  }
+
+  if (!nn) {
+    RCB(finish, nn = calloc(1, sizeof(*nn)));
+    nn->type = JBV_I64;
+    RCB(finish, nkey = strdup(key));
+  } else {
+    if (nn->type == JBV_STR) {
+      free((void*) nn->vptr);
+    }
+    if (nn->type != JBV_I64) {
+      nn->vi64 = 0;
+    }
+    nn->type = JBV_I64;
+  }
+  nn->vi64 += inc;
+  reg->dirty = true;
+
+finish:
+  if (rc) {
+    free(nkey);
+  } else {
+    if (nkey) {
+      nn->key = nkey;
+      nn->klidx = strlen(nkey);
+      jbn_add_item(reg->root, nn);
+    }
+  }
+
+  pthread_rwlock_unlock(reg->rwl);
+  if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
+    rc = iwjsreg_sync(reg);
+  }
+  iwref_unref(&reg->ref);
+  return rc;
+}
+
 iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value) {
   iwrc rc = 0;
   if (!reg || !reg->root || !key) {
