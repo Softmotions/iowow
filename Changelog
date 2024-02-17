@@ -1,6 +1,10 @@
 iowow (1.4.18) UNRELEASED; urgency=medium
 
-  *
+  * Copyright updated
+  * Added new iwjsreg.h module - simple JSON key-value file store with atomic
+  updates.
+  * Allowed to construct JBL_NODE without IWPOOL ini this case node data will
+  be allocated by malloc and should be freed by visitor.
 
  -- Anton Adamansky <adamansky@gmail.com>  Mon, 05 Feb 2024 19:28:56 +0700
 

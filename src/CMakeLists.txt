@@ -150,6 +150,7 @@ list(APPEND PUB_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/basedefs.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/json/iwbinn.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjson_internal.h
+                     ${CMAKE_CURRENT_SOURCE_DIR}/json/iwjsreg.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/kv/iwkv.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/log/iwlog.h
                      ${CMAKE_CURRENT_SOURCE_DIR}/platform/iwp.h

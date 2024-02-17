@@ -4,7 +4,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2022 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,16 +28,12 @@
 #include "iwcfg.h"
 #include "iwp.h"
 #include "iwlog.h"
-#include "iwutils.h"
 
 #include <assert.h>
-#include <errno.h>
 #include <inttypes.h>
-#include <math.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
-#include <limits.h>
 
 #ifdef __ANDROID__
 #define IW_ANDROID_LOG

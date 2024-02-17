@@ -4,8 +4,6 @@
 
 #include "basedefs.h"
 
-#include <stdio.h>
-
 IW_EXTERN_C_START
 
 typedef uint8_t iwrdb_oflags_t;

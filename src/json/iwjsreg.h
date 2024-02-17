@@ -1,11 +1,9 @@
 #pragma once
-#ifndef IWRB_H
-#define IWRB_H
+#ifndef IWJSREG_H
+#define IWJSREG_H
 
 /**************************************************************************************************
- * Ring buffer.
- *
- * IOWOW library
+ * IWOWOW A simple JSON registry stored in single file supporting atomic updates.
  *
  * MIT License
  *
@@ -34,38 +32,36 @@
 
 IW_EXTERN_C_START
 
-typedef struct {
-  ssize_t pos;
-  size_t  len;
-  size_t  usize;
-  char   *buf;
-} IWRB;
+#define IWJSREG_FORMAT_BINARY 0x01U
+#define IWJSREG_AUTOSYNC      0x02U
+#define IWJSREG_READONLY      0x04U
 
-typedef struct {
-  const IWRB *rb;
-  size_t      pos;
-  ssize_t     ipos;
-} IWRB_ITER;
+struct iwjsreg;
+struct iwjsreg_spec {
+  const char *path;
+  unsigned    flags;
+};
 
-IW_EXPORT IW_ALLOC IWRB* iwrb_create(size_t usize, size_t len);
+IW_EXPORT iwrc iwjsreg_open(struct iwjsreg_spec *spec, struct iwjsreg **out);
 
-IW_EXPORT void iwrb_clear(IWRB *rb);
+IW_EXPORT iwrc iwjsreg_close(struct iwjsreg**);
 
-IW_EXPORT void iwrb_destroy(IWRB **rbp);
+IW_EXPORT iwrc iwjsreg_sync(struct iwjsreg*);
 
-IW_EXPORT IWRB* iwrb_wrap(void *buf, size_t len, size_t usize);
+IW_EXPORT iwrc iwjsreg_remove(struct iwjsreg*, const char *key);
 
-IW_EXPORT void iwrb_put(IWRB *rb, const void *buf);
+IW_EXPORT iwrc iwjsreg_set_str(struct iwjsreg*, const char *key, const char *value);
 
-IW_EXPORT void iwrb_back(IWRB *rb);
+IW_EXPORT iwrc iwjsreg_set_i64(struct iwjsreg*, const char *key, int64_t value);
 
-IW_EXPORT void* iwrb_peek(const IWRB *rb);
+IW_EXPORT iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value);
 
-IW_EXPORT size_t iwrb_num_cached(const IWRB *rb);
+IW_EXPORT iwrc iwjsreg_get_str(struct iwjsreg*, const char *key, char **out);
 
-IW_EXPORT void iwrb_iter_init(const IWRB *rb, IWRB_ITER *iter);
+IW_EXPORT iwrc iwjsreg_get_i64(struct iwjsreg*, const char *key, int64_t *out);
 
-IW_EXPORT void* iwrb_iter_prev(IWRB_ITER *iter);
+IW_EXPORT iwrc iwjsreg_get_bool(struct iwjsreg*, const char *key, bool *out);
 
 IW_EXTERN_C_END
+
 #endif

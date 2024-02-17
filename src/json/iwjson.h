@@ -5,7 +5,7 @@
 /**************************************************************************************************
  * MIT License
  *
- * Copyright (c) 2012-2022 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -642,7 +642,7 @@ IW_EXPORT bool jbl_iterator_next(JBL_iterator *iter, JBL holder, char **pkey, in
  *                        otherwise only pointers to strings will be assigned.
  *                        Use `true` if you want to be completely safe when given `jbl`
  *                        object will be destroyed.
- * @param pool            Memory used to allocate new `JBL_NODE` tree. Not zero.
+ * @param pool            Memory used to allocate new `JBL_NODE` tree. Optional.
  */
 IW_EXPORT iwrc jbl_to_node(JBL jbl, JBL_NODE *node, bool clone_strings, IWPOOL *pool);
 
@@ -813,7 +813,7 @@ IW_EXPORT void jbn_add_item(JBL_NODE parent, JBL_NODE node);
  * @param vlen Langth of child node value.
  *             If `vlen` is lesser then zero length of `val` will be determined my `strlen`.
  * @param node_out Optional placeholder for new node.
- * @param pool Allocation pool.
+ * @param pool Allocation pool. Optional.
  */
 IW_EXPORT iwrc jbn_add_item_str(
   JBL_NODE parent, const char *key, const char *val, int vlen, JBL_NODE *node_out,
@@ -824,7 +824,7 @@ IW_EXPORT iwrc jbn_add_item_str(
  *
  * @param parent Parent holder.
  * @param key Child node key cloned into node. Can be zero if parent is an array.
- * @param pool Allocation pool.
+ * @param pool Allocation pool. Optional.
  */
 IW_EXPORT iwrc jbn_add_item_null(JBL_NODE parent, const char *key, IWPOOL *pool);
 
@@ -835,7 +835,7 @@ IW_EXPORT iwrc jbn_add_item_null(JBL_NODE parent, const char *key, IWPOOL *pool)
  * @param key Child node key cloned into node. Can be zero if parent is an array.
  * @param val Integer value.
  * @param node_out Optional placeholder for new node.
- * @param pool Allocation pool.
+ * @param pool Allocation pool. Optional.
  */
 IW_EXPORT iwrc jbn_add_item_i64(JBL_NODE parent, const char *key, int64_t val, JBL_NODE *node_out, IWPOOL *pool);
 
@@ -846,7 +846,7 @@ IW_EXPORT iwrc jbn_add_item_i64(JBL_NODE parent, const char *key, int64_t val, J
  * @param key Child node key cloned into node. Can be zero if parent is an array.
  * @param val Floating point value.
  * @param node_out Optional placeholder for new node.
- * @param pool Allocation pool.
+ * @param pool Allocation pool. Optional.
  */
 IW_EXPORT iwrc jbn_add_item_f64(JBL_NODE parent, const char *key, double val, JBL_NODE *node_out, IWPOOL *pool);
 
@@ -856,7 +856,7 @@ IW_EXPORT iwrc jbn_add_item_f64(JBL_NODE parent, const char *key, double val, JB
  * @param parent Parent holder
  * @param key Child node key cloned into node. Can be zero if parent is an array.
  * @param node_out [out] Pointer to new node, can be zero.
- * @param pool Allocation pool
+ * @param pool Allocation pool. Optional.
  * @return IW_EXPORT jbn_add_item_obj
  */
 IW_EXPORT iwrc jbn_add_item_obj(JBL_NODE parent, const char *key, JBL_NODE *node_out, IWPOOL *pool);
@@ -867,7 +867,7 @@ IW_EXPORT iwrc jbn_add_item_obj(JBL_NODE parent, const char *key, JBL_NODE *node
  * @param parent Parent holder
  * @param key Child node key cloned into node. Can be zero if parent is an array.
  * @param node_out [out] Pointer to new node, can be zero.
- * @param pool Allocation pool
+ * @param pool Allocation pool. Optional.
  * @return IW_EXPORT jbn_add_item_obj
  */
 IW_EXPORT iwrc jbn_add_item_arr(JBL_NODE parent, const char *key, JBL_NODE *node_out, IWPOOL *pool);
@@ -955,6 +955,8 @@ typedef struct _JBN_VCTX {
 typedef jbn_visitor_cmd_t (*JBN_VISITOR)(int lvl, JBL_NODE n, const char *key, int klidx, JBN_VCTX *vctx, iwrc *rc);
 
 IW_EXPORT iwrc jbn_visit(JBL_NODE node, int lvl, JBN_VCTX *vctx, JBN_VISITOR visitor);
+
+IW_EXPORT iwrc jbn_visit2(JBL_NODE node, int lvl, iwrc (*visitor)(int, JBL_NODE));
 
 //--- PATCHING
 

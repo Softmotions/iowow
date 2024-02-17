@@ -7,7 +7,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2022 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -110,10 +110,10 @@ typedef uint8_t iwfs_fsm_aflags;
 #define IWFSM_SYNC_BMAP ((iwfs_fsm_aflags) 0x20U)
 
 #define IWFSM_MAGICK 0x19cc7cc
-#define IWFSM_CUSTOM_HDR_DATA_OFFSET                                                                          \
-  (4 /*magic*/ + 1 /*block pow*/ + 8 /*fsm bitmap block offset */ + 8        /*fsm bitmap block length*/            \
-   + 8 /*all allocated block length sum */ + 4                               /*number of all allocated areas */                              \
-   + 8 /* allocated areas length standard variance (deviation^2 * N) */ + 32 /*reserved*/                      \
+#define IWFSM_CUSTOM_HDR_DATA_OFFSET                                                                              \
+  (4 /*magic*/ + 1 /*block pow*/ + 8 /*fsm bitmap block offset */ + 8        /*fsm bitmap block length*/          \
+   + 8 /*all allocated block length sum */ + 4                               /*number of all allocated areas */   \
+   + 8 /* allocated areas length standard variance (deviation^2 * N) */ + 32 /*reserved*/                         \
    + 4 /*custom hdr size*/)
 
 /** File cleanup flags used in `IWFS_FSM::clear` */

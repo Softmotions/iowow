@@ -12,7 +12,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TEST_DATA_DIR})
 foreach (TN IN ITEMS jbl_test1
                      jbl_test2
                      jbl_test_binn1
-                     jbl_test_binn2)
+                     jbl_test_binn2
+                     iwjsreg_test1)
   add_executable(${TN} ${TN}.c)
   set_target_properties(${TN} PROPERTIES
     COMPILE_FLAGS "-DIW_STATIC")

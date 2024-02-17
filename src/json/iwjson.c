@@ -587,9 +587,9 @@ iwrc _jbl_write_json_string(const char *str, int len, jbl_json_printer pt, void 
   RCRET(rc);
   static const char *specials = "btnvfr";
 
-#define PT(data_, size_, ch_, count_) do { \
-    rc = pt((const char*) (data_), size_, ch_, count_, op); \
-    RCRET(rc); \
+#define PT(data_, size_, ch_, count_) do {                        \
+          rc = pt((const char*) (data_), size_, ch_, count_, op); \
+          RCRET(rc);                                              \
 } while (0)
 
   if (len < 0) {
@@ -645,9 +645,9 @@ static iwrc _jbl_as_json(binn *bn, jbl_json_printer pt, void *op, int lvl, jbl_p
   char key[MAX_BIN_KEY_LEN + 1];
   bool pretty = pf & JBL_PRINT_PRETTY;
 
-#define PT(data_, size_, ch_, count_) do { \
-    rc = pt(data_, size_, ch_, count_, op); \
-    RCGO(rc, finish); \
+#define PT(data_, size_, ch_, count_) do {        \
+          rc = pt(data_, size_, ch_, count_, op); \
+          RCGO(rc, finish);                       \
 } while (0)
 
   switch (bn->type) {
@@ -1275,6 +1275,30 @@ iwrc jbn_visit(JBL_NODE node, int lvl, JBN_VCTX *vctx, JBN_VISITOR visitor) {
   return rc;
 }
 
+iwrc jbn_visit2(JBL_NODE node, int lvl, iwrc (*visitor)(int, JBL_NODE)) {
+  if (!node || !visitor) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  if (lvl > JBL_MAX_NESTING_LEVEL) {
+    return JBL_ERROR_MAX_NESTING_LEVEL_EXCEEDED;
+  }
+  JBL_NODE next = 0;
+  switch (node->type) {
+    case JBV_OBJECT:
+    case JBV_ARRAY: {
+      for (JBL_NODE n = node->child; n; n = next) {
+        next = n->next;
+        iwrc rc = jbn_visit2(n, lvl + 1, visitor);
+        RCRET(rc);
+      }
+      break;
+    }
+    default:
+      break;
+  }
+  return visitor(lvl, node);
+}
+
 IW_INLINE bool _jbl_visitor_update_jptr_cursor(JBL_VCTX *vctx, int lvl, const char *key, int idx) {
   JBL_PTR jp = vctx->op;
   if (lvl < jp->cnt) {
@@ -1360,9 +1384,9 @@ static jbl_visitor_cmd_t _jbl_get_visitor(int lvl, binn *bv, const char *key, in
 
 bool _jbl_at(JBL jbl, JBL_PTR jp, JBL res) {
   JBL_VCTX vctx = {
-    .bn     = &jbl->bn,
-    .op     = jp,
-    .pos    = -1,
+    .bn = &jbl->bn,
+    .op = jp,
+    .pos = -1,
     .result = res
   };
   _jbl_visit(0, 0, &vctx, _jbl_get_visitor2);
@@ -1371,8 +1395,8 @@ bool _jbl_at(JBL jbl, JBL_PTR jp, JBL res) {
 
 iwrc jbl_at2(JBL jbl, JBL_PTR jp, JBL *res) {
   JBL_VCTX vctx = {
-    .bn  = &jbl->bn,
-    .op  = jp,
+    .bn = &jbl->bn,
+    .op = jp,
     .pos = -1
   };
   iwrc rc = _jbl_visit(0, 0, &vctx, _jbl_get_visitor);
@@ -1419,8 +1443,8 @@ static jbn_visitor_cmd_t _jbn_get_visitor(int lvl, JBL_NODE n, const char *key, 
 iwrc jbn_at2(JBL_NODE node, JBL_PTR jp, JBL_NODE *res) {
   JBN_VCTX vctx = {
     .root = node,
-    .op   = jp,
-    .pos  = -1
+    .op = jp,
+    .pos = -1
   };
   iwrc rc = jbn_visit(node, 0, &vctx, _jbn_get_visitor);
   if (rc) {
@@ -1515,8 +1539,8 @@ int jbn_path_compare_str(JBL_NODE n, const char *path, const char *sv, iwrc *rcp
     return -2;
   }
   struct _JBL_NODE cn = {
-    .type  = JBV_STR,
-    .vptr  = sv,
+    .type = JBV_STR,
+    .vptr = sv,
     .vsize = (int) strlen(sv)
   };
   return _jbl_compare_nodes(v, &cn, rcp);
@@ -1561,7 +1585,7 @@ int jbn_path_compare_bool(JBL_NODE n, const char *path, bool bv, iwrc *rcp) {
     return -2;
   }
   struct _JBL_NODE cn = {
-    .type  = JBV_BOOL,
+    .type = JBV_BOOL,
     .vbool = bv
   };
   return _jbl_compare_nodes(v, &cn, rcp);
@@ -1649,11 +1673,16 @@ void jbn_add_item(JBL_NODE parent, JBL_NODE node) {
 }
 
 iwrc jbn_add_item_str(JBL_NODE parent, const char *key, const char *val, int vlen, JBL_NODE *node_out, IWPOOL *pool) {
-  if (!parent || !pool || (parent->type < JBV_OBJECT)) {
+  if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  JBL_NODE n = iwpool_calloc(sizeof(*n), pool);
+  JBL_NODE n;
+  if (IW_LIKELY(pool)) {
+    n = iwpool_calloc(sizeof(*n), pool);
+  } else {
+    n = calloc(1, sizeof(*n));
+  }
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -1661,8 +1690,12 @@ iwrc jbn_add_item_str(JBL_NODE parent, const char *key, const char *val, int vle
     if (!key) {
       return IW_ERROR_INVALID_ARGS;
     }
-    n->key = iwpool_strdup(pool, key, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(pool)) {
+      n->key = iwpool_strdup(pool, key, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->key = strdup(key));
+    }
     n->klidx = (int) strlen(n->key);
   }
   n->type = JBV_STR;
@@ -1670,8 +1703,12 @@ iwrc jbn_add_item_str(JBL_NODE parent, const char *key, const char *val, int vle
     if (vlen < 0) {
       vlen = (int) strlen(val);
     }
-    n->vptr = iwpool_strndup(pool, val, vlen, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(pool)) {
+      n->vptr = iwpool_strndup(pool, val, vlen, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->vptr = strndup(val, vlen));
+    }
     n->vsize = vlen;
   }
   jbn_add_item(parent, n);
@@ -1683,11 +1720,16 @@ finish:
 }
 
 iwrc jbn_add_item_null(JBL_NODE parent, const char *key, IWPOOL *pool) {
-  if (!parent || !pool || (parent->type < JBV_OBJECT)) {
+  if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  JBL_NODE n = iwpool_calloc(sizeof(*n), pool);
+  JBL_NODE n;
+  if (IW_LIKELY(pool)) {
+    n = iwpool_calloc(sizeof(*n), pool);
+  } else {
+    n = calloc(1, sizeof(*n));
+  }
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -1695,8 +1737,13 @@ iwrc jbn_add_item_null(JBL_NODE parent, const char *key, IWPOOL *pool) {
     if (!key) {
       return IW_ERROR_INVALID_ARGS;
     }
-    n->key = iwpool_strdup(pool, key, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(pool)) {
+      n->key = iwpool_strdup(pool, key, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->key = strdup(key));
+    }
+
     n->klidx = (int) strlen(n->key);
   }
   n->type = JBV_NULL;
@@ -1706,11 +1753,16 @@ finish:
 }
 
 iwrc jbn_add_item_i64(JBL_NODE parent, const char *key, int64_t val, JBL_NODE *node_out, IWPOOL *pool) {
-  if (!parent || !pool || (parent->type < JBV_OBJECT)) {
+  if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  JBL_NODE n = iwpool_calloc(sizeof(*n), pool);
+  JBL_NODE n;
+  if (IW_LIKELY(pool)) {
+    n = iwpool_calloc(sizeof(*n), pool);
+  } else {
+    n = calloc(1, sizeof(*n));
+  }
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -1718,8 +1770,12 @@ iwrc jbn_add_item_i64(JBL_NODE parent, const char *key, int64_t val, JBL_NODE *n
     if (!key) {
       return IW_ERROR_INVALID_ARGS;
     }
-    n->key = iwpool_strdup(pool, key, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(pool)) {
+      n->key = iwpool_strdup(pool, key, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->key = strdup(key));
+    }
     n->klidx = (int) strlen(n->key);
   }
   n->type = JBV_I64;
@@ -1733,11 +1789,16 @@ finish:
 }
 
 iwrc jbn_add_item_f64(JBL_NODE parent, const char *key, double val, JBL_NODE *node_out, IWPOOL *pool) {
-  if (!parent || !pool || (parent->type < JBV_OBJECT)) {
+  if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  JBL_NODE n = iwpool_calloc(sizeof(*n), pool);
+  JBL_NODE n;
+  if (IW_LIKELY(pool)) {
+    n = iwpool_calloc(sizeof(*n), pool);
+  } else {
+    n = calloc(1, sizeof(*n));
+  }
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -1745,8 +1806,12 @@ iwrc jbn_add_item_f64(JBL_NODE parent, const char *key, double val, JBL_NODE *no
     if (!key) {
       return IW_ERROR_INVALID_ARGS;
     }
-    n->key = iwpool_strdup(pool, key, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(pool)) {
+      n->key = iwpool_strdup(pool, key, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->key = strdup(key));
+    }
     n->klidx = (int) strlen(n->key);
   }
   n->type = JBV_F64;
@@ -1760,11 +1825,16 @@ finish:
 }
 
 iwrc jbn_add_item_bool(JBL_NODE parent, const char *key, bool val, JBL_NODE *node_out, IWPOOL *pool) {
-  if (!parent || !pool || (parent->type < JBV_OBJECT)) {
+  if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  JBL_NODE n = iwpool_calloc(sizeof(*n), pool);
+  JBL_NODE n;
+  if (IW_LIKELY(pool)) {
+    n = iwpool_calloc(sizeof(*n), pool);
+  } else {
+    n = calloc(1, sizeof(*n));
+  }
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -1772,8 +1842,12 @@ iwrc jbn_add_item_bool(JBL_NODE parent, const char *key, bool val, JBL_NODE *nod
     if (!key) {
       return IW_ERROR_INVALID_ARGS;
     }
-    n->key = iwpool_strdup(pool, key, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(pool)) {
+      n->key = iwpool_strdup(pool, key, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->key = strdup(key));
+    }
     n->klidx = (int) strlen(n->key);
   }
   n->type = JBV_BOOL;
@@ -1787,11 +1861,16 @@ finish:
 }
 
 iwrc jbn_add_item_obj(JBL_NODE parent, const char *key, JBL_NODE *out, IWPOOL *pool) {
-  if (!parent || !pool || (parent->type < JBV_OBJECT)) {
+  if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  JBL_NODE n = iwpool_calloc(sizeof(*n), pool);
+  JBL_NODE n;
+  if (IW_LIKELY(pool)) {
+    n = iwpool_calloc(sizeof(*n), pool);
+  } else {
+    n = calloc(1, sizeof(*n));
+  }
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -1799,8 +1878,12 @@ iwrc jbn_add_item_obj(JBL_NODE parent, const char *key, JBL_NODE *out, IWPOOL *p
     if (!key) {
       return IW_ERROR_INVALID_ARGS;
     }
-    n->key = iwpool_strdup(pool, key, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(pool)) {
+      n->key = iwpool_strdup(pool, key, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->key = strdup(key));
+    }
     n->klidx = (int) strlen(n->key);
   }
   n->type = JBV_OBJECT;
@@ -1813,11 +1896,16 @@ finish:
 }
 
 iwrc jbn_add_item_arr(JBL_NODE parent, const char *key, JBL_NODE *out, IWPOOL *pool) {
-  if (!parent || !pool || (parent->type < JBV_OBJECT)) {
+  if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  JBL_NODE n = iwpool_calloc(sizeof(*n), pool);
+  JBL_NODE n;
+  if (IW_LIKELY(pool)) {
+    n = iwpool_calloc(sizeof(*n), pool);
+  } else {
+    n = calloc(1, sizeof(*n));
+  }
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -1825,8 +1913,12 @@ iwrc jbn_add_item_arr(JBL_NODE parent, const char *key, JBL_NODE *out, IWPOOL *p
     if (!key) {
       return IW_ERROR_INVALID_ARGS;
     }
-    n->key = iwpool_strdup(pool, key, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(pool)) {
+      n->key = iwpool_strdup(pool, key, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->key = strdup(key));
+    }
     n->klidx = (int) strlen(n->key);
   }
   n->type = JBV_ARRAY;
@@ -1952,18 +2044,27 @@ static iwrc _jbl_create_node(
   JBL_NODE   *node,
   bool        clone_strings
   ) {
-  iwrc rc = 0;
-  JBL_NODE n = iwpool_alloc(sizeof(*n), ctx->pool);
   if (node) {
     *node = 0;
+  }
+  iwrc rc = 0;
+  JBL_NODE n;
+  if (IW_LIKELY(ctx->pool)) {
+    n = iwpool_alloc(sizeof(*n), ctx->pool);
+  } else {
+    n = malloc(sizeof(*n));
   }
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
   memset(n, 0, sizeof(*n));
   if (key && clone_strings) {
-    n->key = iwpool_strndup(ctx->pool, key, klidx, &rc);
-    RCGO(rc, finish);
+    if (IW_LIKELY(ctx->pool)) {
+      n->key = iwpool_strndup(ctx->pool, key, klidx, &rc);
+      RCGO(rc, finish);
+    } else {
+      RCB(finish, n->key = strndup(key, klidx));
+    }
   } else {
     n->key = key;
   }
@@ -1979,9 +2080,13 @@ static iwrc _jbl_create_node(
         n->vptr = bv->ptr;
         n->vsize = bv->size;
       } else {
-        n->vptr = iwpool_strndup(ctx->pool, bv->ptr, bv->size, &rc);
+        if (IW_LIKELY(ctx->pool)) {
+          n->vptr = iwpool_strndup(ctx->pool, bv->ptr, bv->size, &rc);
+          RCGO(rc, finish);
+        } else {
+          RCB(finish, n->vptr = strndup(bv->ptr, bv->size));
+        }
         n->vsize = bv->size;
-        RCGO(rc, finish);
       }
       break;
     case BINN_OBJECT:
@@ -2840,7 +2945,11 @@ static JBL_NODE _jbl_merge_patch_node(JBL_NODE target, JBL_NODE patch, IWPOOL *p
   }
   if (patch->type == JBV_OBJECT) {
     if (!target) {
-      target = iwpool_alloc(sizeof(*target), pool);
+      if (IW_LIKELY(pool)) {
+        target = iwpool_alloc(sizeof(*target), pool);
+      } else {
+        target = malloc(sizeof(*target));
+      }
       if (!target) {
         *rcp = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         return 0;
@@ -2963,7 +3072,7 @@ iwrc jbn_patch_auto(JBL_NODE root, JBL_NODE patch, IWPOOL *pool) {
 }
 
 iwrc jbn_merge_patch(JBL_NODE root, JBL_NODE patch, IWPOOL *pool) {
-  if (!root || !patch || !pool || (root->type != JBV_OBJECT)) {
+  if (!root || !patch || root->type != JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;

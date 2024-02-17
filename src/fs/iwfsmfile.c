@@ -3,7 +3,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2022 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -434,7 +434,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(
   fsm_bmopts_t bopts = FSM_BM_NONE;
   size_t aunit_blk = (fsm->aunit >> fsm->bpow);
   assert(fsm && length_blk > 0);
-  if (fsm->oflags & IWFSM_STRICT) {
+  if (IW_UNLIKELY(fsm->oflags & IWFSM_STRICT)) {
     bopts |= FSM_BM_STRICT;
   }
   *olength_blk = 0;
@@ -858,7 +858,7 @@ static iwrc _fsm_blk_deallocate_lw(
   fsm_bmopts_t bopts = FSM_BM_NONE;
 
 
-  if (fsm->oflags & IWFSM_STRICT) {
+  if (IW_UNLIKELY(fsm->oflags & IWFSM_STRICT)) {
     bopts |= FSM_BM_STRICT;
   }
   rc = _fsm_set_bit_status_lw(fsm, offset_blk, length_blk, 0, bopts);
@@ -1149,9 +1149,10 @@ start:
     goto start;
   }
 
-  if (fsm->oflags & IWFSM_STRICT) {
+  if (IW_UNLIKELY(fsm->oflags & IWFSM_STRICT)) {
     bopts |= FSM_BM_STRICT;
   }
+
   rc = _fsm_set_bit_status_lw(fsm, *offset_blk, *olength_blk, 1, bopts);
   if (!rc && !(opts & IWFSM_ALLOC_NO_STATS)) {
     double_t avg;
@@ -1469,7 +1470,7 @@ static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t si
   struct fsm *fsm = f->impl;
   iwrc rc = _fsm_ctrl_rlock(fsm);
   RCRET(rc);
-  if (fsm->oflags & IWFSM_STRICT) {
+  if (IW_UNLIKELY(fsm->oflags & IWFSM_STRICT)) {
     int allocated = 0;
     IWRC(_fsm_is_fully_allocated_lr(fsm,
                                     (uint64_t) off >> fsm->bpow,
@@ -1494,7 +1495,7 @@ static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size
   struct fsm *fsm = f->impl;
   iwrc rc = _fsm_ctrl_rlock(fsm);
   RCRET(rc);
-  if (fsm->oflags & IWFSM_STRICT) {
+  if (IW_UNLIKELY(fsm->oflags & IWFSM_STRICT)) {
     int allocated = 0;
     IWRC(_fsm_is_fully_allocated_lr(fsm, (uint64_t) off >> fsm->bpow,
                                     IW_ROUNDUP(siz, 1ULL << fsm->bpow) >> fsm->bpow,
