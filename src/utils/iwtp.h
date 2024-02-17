@@ -75,7 +75,7 @@ typedef void (*iwtp_task_f)(void *arg);
 /**
  * @brief Creates a new thread pool instance using provided `spec` config.
  */
-IW_EXPORT iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, IWTP *out_tp);
+IW_EXPORT iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, struct iwtp **out_tp);
 
 /**
  * @brief Creates a new thread pool instance.
@@ -83,7 +83,7 @@ IW_EXPORT iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, IWTP *out_tp);
  * @param queue_limit Maximum number of tasks in queue. Zero for unlimited queue.
  * @param [out] out_tp Holder for thread pool instance.
  */
-IW_EXPORT iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit, IWTP *out_tp);
+IW_EXPORT iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit, struct iwtp **out_tp);
 
 /**
  * @brief Submits new task into thread pool.
@@ -93,7 +93,7 @@ IW_EXPORT iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int q
  * @param task Task function
  * @param task_arg Argument for task function
  */
-IW_EXPORT iwrc iwtp_schedule(IWTP tp, iwtp_task_f task, void *task_arg);
+IW_EXPORT iwrc iwtp_schedule(struct iwtp *tp, iwtp_task_f task, void *task_arg);
 
 /**
  * @brief Shutdowns thread pool and disposes all nresources.
@@ -104,12 +104,12 @@ IW_EXPORT iwrc iwtp_schedule(IWTP tp, iwtp_task_f task, void *task_arg);
  * @param tpp Pointer to pool which should be disposed.
  * @param wait_for_all If true worker will wait for completion of all enqueued tasks before shutdown.
  */
-IW_EXPORT iwrc iwtp_shutdown(IWTP *tpp, bool wait_for_all);
+IW_EXPORT iwrc iwtp_shutdown(struct iwtp **tpp, bool wait_for_all);
 
 /**
  * @brief Returns size of tasks queue.
  */
-IW_EXPORT int iwtp_queue_size(IWTP tp);
+IW_EXPORT int iwtp_queue_size(struct iwtp *tp);
 
 IW_EXTERN_C_END
 #endif

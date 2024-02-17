@@ -33,16 +33,18 @@
 #include "basedefs.h"
 IW_EXTERN_C_START
 
-struct _IWHMAP;
-typedef struct _IWHMAP IWHMAP;
+struct iwhmap;
+struct iwhmap_iter;
+typedef struct iwhmap IWHMAP;
+typedef struct iwhmap_iter IWHMAP_ITER;
 
-typedef struct {
-  IWHMAP     *hm;
-  const void *key;
-  const void *val;
-  uint32_t    bucket;
-  int32_t     entry;
-} IWHMAP_ITER;
+struct iwhmap_iter {
+  struct iwhmap *hm;
+  const void    *key;
+  const void    *val;
+  uint32_t       bucket;
+  int32_t entry;
+};
 
 /**
  * @brief Key/Value free callback which uses standard `free()` deallocation.
@@ -52,61 +54,61 @@ typedef struct {
  */
 IW_EXPORT void iwhmap_kv_free(void *key, void *val);
 
-IW_EXPORT IWHMAP* iwhmap_create(
+IW_EXPORT struct iwhmap* iwhmap_create(
   int (*cmp_fn)(const void*, const void*),
   uint32_t (*hash_key_fn)(const void*),
   void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP* iwhmap_create_ptr(void (*kv_free_fn)(void*, void*));
+IW_EXPORT struct iwhmap* iwhmap_create_ptr(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP* iwhmap_create_u64(void (*kv_free_fn)(void*, void*));
+IW_EXPORT struct iwhmap* iwhmap_create_u64(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP* iwhmap_create_u32(void (*kv_free_fn)(void*, void*));
+IW_EXPORT struct iwhmap* iwhmap_create_u32(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT IWHMAP* iwhmap_create_str(void (*kv_free_fn)(void*, void*));
+IW_EXPORT struct iwhmap* iwhmap_create_str(void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT iwrc iwhmap_put(IWHMAP *hm, void *key, void *val);
+IW_EXPORT iwrc iwhmap_put(struct iwhmap *hm, void *key, void *val);
 
-IW_EXPORT iwrc iwhmap_put_u32(IWHMAP *hm, uint32_t key, void *val);
+IW_EXPORT iwrc iwhmap_put_u32(struct iwhmap *hm, uint32_t key, void *val);
 
-IW_EXPORT iwrc iwhmap_put_u64(IWHMAP *hm, uint64_t key, void *val);
+IW_EXPORT iwrc iwhmap_put_u64(struct iwhmap *hm, uint64_t key, void *val);
 
 /// Makes copy of key (strdup) then puts key value pair into map.
 /// @note Key memory expected to be released by `kv_free_fn` function given to iwhmap_create_xxx.
-IW_EXPORT iwrc iwhmap_put_str(IWHMAP *hm, const char *key, void *val);
+IW_EXPORT iwrc iwhmap_put_str(struct iwhmap *hm, const char *key, void *val);
 
-IW_EXPORT iwrc iwhmap_rename(IWHMAP *hm, const void *key_old, void *key_new);
+IW_EXPORT iwrc iwhmap_rename(struct iwhmap *hm, const void *key_old, void *key_new);
 
-IW_EXPORT bool iwhmap_remove(IWHMAP *hm, const void *key);
+IW_EXPORT bool iwhmap_remove(struct iwhmap *hm, const void *key);
 
-IW_EXPORT bool iwhmap_remove_u64(IWHMAP *hm, uint64_t key);
+IW_EXPORT bool iwhmap_remove_u64(struct iwhmap *hm, uint64_t key);
 
-IW_EXPORT bool iwhmap_remove_u32(IWHMAP *hm, uint32_t key);
+IW_EXPORT bool iwhmap_remove_u32(struct iwhmap *hm, uint32_t key);
 
-IW_EXPORT void* iwhmap_get(IWHMAP *hm, const void *key);
+IW_EXPORT void* iwhmap_get(struct iwhmap *hm, const void *key);
 
-IW_EXPORT void* iwhmap_get_u64(IWHMAP *hm, uint64_t key);
+IW_EXPORT void* iwhmap_get_u64(struct iwhmap *hm, uint64_t key);
 
-IW_EXPORT void* iwhmap_get_u32(IWHMAP *hm, uint32_t key);
+IW_EXPORT void* iwhmap_get_u32(struct iwhmap *hm, uint32_t key);
 
-IW_EXPORT uint32_t iwhmap_count(IWHMAP *hm);
+IW_EXPORT uint32_t iwhmap_count(struct iwhmap *hm);
 
-IW_EXPORT void iwhmap_clear(IWHMAP *hm);
+IW_EXPORT void iwhmap_clear(struct iwhmap *hm);
 
-IW_EXPORT void iwhmap_iter_init(IWHMAP *hm, IWHMAP_ITER *iter);
+IW_EXPORT void iwhmap_iter_init(struct iwhmap *hm, IWHMAP_ITER *iter);
 
 IW_EXPORT bool iwhmap_iter_next(IWHMAP_ITER *iter);
 
-IW_EXPORT void iwhmap_destroy(IWHMAP *hm);
+IW_EXPORT void iwhmap_destroy(struct iwhmap *hm);
 
-typedef bool (*iwhmap_lru_eviction_needed)(IWHMAP *hm, void *user_data);
+typedef bool (*iwhmap_lru_eviction_needed)(struct iwhmap *hm, void *user_data);
 
-IW_EXPORT bool iwhmap_lru_eviction_max_count(IWHMAP *hm, void *max_count_val);
+IW_EXPORT bool iwhmap_lru_eviction_max_count(struct iwhmap *hm, void *max_count_val);
 
 /// Init LRU eviction mode for given `hm` map.
 /// @param ev Returns `true` if needed to evict the next least recently used element.
 /// @param ev_user_data Arbitrary user data from `ev` function.
-IW_EXPORT void iwhmap_lru_init(IWHMAP *hm, iwhmap_lru_eviction_needed ev, void *ev_user_data);
+IW_EXPORT void iwhmap_lru_init(struct iwhmap *hm, iwhmap_lru_eviction_needed ev, void *ev_user_data);
 
 IW_EXTERN_C_END
 #endif

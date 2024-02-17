@@ -39,7 +39,7 @@ static void test_iwu_replace_into(void) {
 }
 
 static void test_iwpool_split_string(void) {
-  IWPOOL *pool = iwpool_create(128);
+  struct iwpool *pool = iwpool_create(128);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
   const char **res = iwpool_split_string(pool, " foo , bar:baz,,z,", ",:", true);
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
@@ -122,7 +122,7 @@ static void test_iwpool_split_string(void) {
 }
 
 static void test_iwpool_printf(void) {
-  IWPOOL *pool = iwpool_create(128);
+  struct iwpool *pool = iwpool_create(128);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
   const char *res = iwpool_printf(pool, "%s=%s", "foo", "bar");
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);

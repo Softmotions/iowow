@@ -69,7 +69,7 @@ iwrc iwtp_schedule(IWTP tp, iwtp_task_f fn, void *arg) {
 
   if (  tp->queue_size > 1
      && tp->num_threads_busy >= tp->num_threads
-     && iwulist_length(&tp->threads) < (size_t)(tp->num_threads * (1 + tp->overflow_threads_factor))) {
+     && iwulist_length(&tp->threads) < (size_t) (tp->num_threads * (1 + tp->overflow_threads_factor))) {
     pthread_t th;
     int rci = pthread_create(&th, 0, _worker_fn, tp);
     if (rci) {

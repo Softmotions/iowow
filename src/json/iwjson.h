@@ -43,7 +43,7 @@
  *  - @ref JBL Memory compact binary format [Binn](https://github.com/liteserver/binn)
  *    Used for JSON serialization but lacks of data modification flexibility.
  *
- *  - @ref JBL_NODE In memory JSON document presented as tree. Convenient for in-place
+ *  - @ref struct jbl_node* In memory JSON document presented as tree. Convenient for in-place
  *    document modification and patching.
  *
  * Library function allows conversion of JSON document between above formats.
@@ -59,14 +59,14 @@ IW_EXTERN_C_START
 /**
  * @brief JSON document in compact binary format [Binn](https://github.com/liteserver/binn)
  */
-struct _JBL;
-typedef struct _JBL*JBL;
+struct jbl;
+typedef struct jbl*JBL;
 
 typedef enum {
   _JBL_ERROR_START = (IW_ERROR_START + 6000UL),
-  JBL_ERROR_INVALID_BUFFER,             /**< Invalid JBL buffer (JBL_ERROR_INVALID_BUFFER) */
-  JBL_ERROR_CREATION,                   /**< Cannot create JBL object (JBL_ERROR_CREATION) */
-  JBL_ERROR_INVALID,                    /**< Invalid JBL object (JBL_ERROR_INVALID) */
+  JBL_ERROR_INVALID_BUFFER,             /**< Invalid struct jbl* buffer (JBL_ERROR_INVALID_BUFFER) */
+  JBL_ERROR_CREATION,                   /**< Cannot create struct jbl* object (JBL_ERROR_CREATION) */
+  JBL_ERROR_INVALID,                    /**< Invalid struct jbl* object (JBL_ERROR_INVALID) */
   JBL_ERROR_PARSE_JSON,                 /**< Failed to parse JSON string (JBL_ERROR_PARSE_JSON) */
   JBL_ERROR_PARSE_UNQUOTED_STRING,      /**< Unquoted JSON string (JBL_ERROR_PARSE_UNQUOTED_STRING) */
   JBL_ERROR_PARSE_INVALID_CODEPOINT,
@@ -85,9 +85,9 @@ typedef enum {
   JBL_ERROR_PATCH_INVALID_ARRAY_INDEX,
   /**< Invalid array index in JSON patch path
      (JBL_ERROR_PATCH_INVALID_ARRAY_INDEX) */
-  JBL_ERROR_NOT_AN_OBJECT,              /**< JBL is not an object (JBL_ERROR_NOT_AN_OBJECT) */
+  JBL_ERROR_NOT_AN_OBJECT,              /**< struct jbl* is not an object (JBL_ERROR_NOT_AN_OBJECT) */
   JBL_ERROR_TYPE_MISMATCHED,
-  /**< Type of JBL object mismatched user type constraints
+  /**< Type of struct jbl* object mismatched user type constraints
      (JBL_ERROR_TYPE_MISMATCHED) */
   JBL_ERROR_PATCH_TEST_FAILED,          /**< JSON patch test operation failed (JBL_ERROR_PATCH_TEST_FAILED) */
   JBL_ERROR_MAX_NESTING_LEVEL_EXCEEDED,
@@ -96,7 +96,7 @@ typedef enum {
   _JBL_ERROR_END,
 } jbl_ecode_t;
 
-typedef struct _JBL_iterator {
+typedef struct jbl_iterator {
   unsigned char *pnext;
   unsigned char *plimit;
   int type;
@@ -130,19 +130,22 @@ typedef enum {
   JBV_ARRAY,
 } jbl_type_t;
 
+struct jbl_node;
+typedef struct jbl_node*JBL_NODE;
+
 /**
  * @brief JSON document as in-memory tree (DOM tree).
  */
-typedef struct _JBL_NODE {
-  struct _JBL_NODE *next;
-  struct _JBL_NODE *prev;
-  struct _JBL_NODE *parent; /**< Optional parent */
-  const char       *key;
+struct jbl_node {
+  struct jbl_node *next;
+  struct jbl_node *prev;
+  struct jbl_node *parent; /**< Optional parent */
+  const char      *key;
   int      klidx;
   uint32_t flags;           /**< Utility node flags */
 
   // Do not sort/add members after this point (offsetof usage below)
-  struct _JBL_NODE *child;
+  struct jbl_node *child;
   int vsize;
   jbl_type_t type;
   union {
@@ -151,7 +154,7 @@ typedef struct _JBL_NODE {
     int64_t vi64;
     double  vf64;
   };
-} *JBL_NODE;
+};
 
 /**
  * @brief JSON Patch operation according to rfc6902
@@ -173,11 +176,11 @@ typedef enum {
  * @brief JSON patch specification
  */
 typedef struct _JBL_PATCH {
-  jbp_patch_t op;
-  const char *path;
-  const char *from;
-  const char *vjson;
-  JBL_NODE    vnode;
+  jbp_patch_t      op;
+  const char      *path;
+  const char      *from;
+  const char      *vjson;
+  struct jbl_node *vnode;
 } JBL_PATCH;
 
 /**
@@ -203,7 +206,7 @@ IW_EXPORT void iwjson_ftoa(long double val, char buf[IWNUMBUF_SIZE], size_t *out
  * @see `jbl_fill_from_node()`
  * @param [out] jblp Pointer to be initialized by new object.
  */
-IW_EXPORT WUR iwrc jbl_create_empty_object(JBL *jblp);
+IW_EXPORT WUR iwrc jbl_create_empty_object(struct jbl **jblp);
 
 /**
  * @brief Create empty binary JSON array.
@@ -212,163 +215,163 @@ IW_EXPORT WUR iwrc jbl_create_empty_object(JBL *jblp);
  * @see `jbl_fill_from_node()`
  * @param [out] jblp Pointer to be initialized by new object.
  */
-IW_EXPORT WUR iwrc jbl_create_empty_array(JBL *jblp);
+IW_EXPORT WUR iwrc jbl_create_empty_array(struct jbl **jblp);
 
 /**
- * @brief Sets arbitrary user data associated with JBL object.
+ * @brief Sets arbitrary user data associated with struct jbl* object.
  *
- * @param jbl JBL container
+ * @param jbl struct jbl* container
  * @param user_data User data pointer. Optional.
  * @param user_data_free_fn User data dispose function. Optional.
  */
-IW_EXPORT void jbl_set_user_data(JBL jbl, void *user_data, void (*user_data_free_fn)(void*));
+IW_EXPORT void jbl_set_user_data(struct jbl *jbl, void *user_data, void (*user_data_free_fn)(void*));
 
 /**
  * @brief Returns user data associated with given `jbl` container.
  *
- * @param jbl JBL container.
+ * @param jbl struct jbl* container.
  */
-IW_EXPORT void* jbl_get_user_data(JBL jbl);
+IW_EXPORT void* jbl_get_user_data(struct jbl *jbl);
 
 /**
- * @brief Set integer JBL object property value
- *        or add a new entry to end of array JBL object.
+ * @brief Set integer struct jbl* object property value
+ *        or add a new entry to end of array struct jbl* object.
  *
  * In the case when `jbl` object is array value will be added to end array.
  *
  * @warning `jbl` object must writable in other words created with
  *          `jbl_create_empty_object()` or `jbl_create_empty_array()`
  *
- * @param jbl JBL container
+ * @param jbl struct jbl* container
  * @param key Object key. Does't makes sense for array objects.
  * @param v   Value to set
  */
-IW_EXPORT iwrc jbl_set_int64(JBL jbl, const char *key, int64_t v);
+IW_EXPORT iwrc jbl_set_int64(struct jbl *jbl, const char *key, int64_t v);
 
 /**
- * @brief Set double JBL object property value
- *        or add a new entry to end of array JBL object.
+ * @brief Set double struct jbl* object property value
+ *        or add a new entry to end of array struct jbl* object.
  *
  * In the case when `jbl` object is array value will be added to end array.
  *
  * @warning `jbl` object must writable in other words created with
  *          `jbl_create_empty_object()` or `jbl_create_empty_array()`
  *
- * @param jbl JBL container
+ * @param jbl struct jbl* container
  * @param key Object key. Does't makes sense for array objects.
  * @param v   Value to set
  */
-IW_EXPORT iwrc jbl_set_f64(JBL jbl, const char *key, double v);
+IW_EXPORT iwrc jbl_set_f64(struct jbl *jbl, const char *key, double v);
 
 /**
- * @brief Set string JBL object property value
- *        or add a new entry to end of array JBL object.
+ * @brief Set string struct jbl* object property value
+ *        or add a new entry to end of array struct jbl* object.
  *
  * In the case when `jbl` object is array value will be added to end array.
  *
  * @warning `jbl` object must writable in other words created with
  *          `jbl_create_empty_object()` or `jbl_create_empty_array()`
  *
- * @param jbl JBL container
+ * @param jbl struct jbl* container
  * @param key Object key. Does't makes sense for array objects.
  * @param v   Value to set
  */
-IW_EXPORT iwrc jbl_set_string(JBL jbl, const char *key, const char *v);
+IW_EXPORT iwrc jbl_set_string(struct jbl *jbl, const char *key, const char *v);
 
 IW_EXPORT iwrc jbl_set_string_printf(
-  JBL jbl, const char *key, const char *format,
+  struct jbl *jbl, const char *key, const char *format,
   ...) __attribute__((format(__printf__, 3, 4)));
 
 /**
- * @brief Set bool JBL object property value
- *        or add a new entry to end of array JBL object.
+ * @brief Set bool struct jbl* object property value
+ *        or add a new entry to end of array struct jbl* object.
  *
  * In the case when `jbl` object is array value will be added to end array.
  *
  * @warning `jbl` object must writable in other words created with
  *          `jbl_create_empty_object()` or `jbl_create_empty_array()`
  *
- * @param jbl JBL container
+ * @param jbl struct jbl* container
  * @param key Object key. Does't makes sense for array objects.
  * @param v   Value to set
  */
-IW_EXPORT iwrc jbl_set_bool(JBL jbl, const char *key, bool v);
+IW_EXPORT iwrc jbl_set_bool(struct jbl *jbl, const char *key, bool v);
 
 
 /**
- * @brief Set null JBL object property value
- *        or add a new entry to end of array JBL object.
+ * @brief Set null struct jbl* object property value
+ *        or add a new entry to end of array struct jbl* object.
  *
  * In the case when `jbl` object is array value will be added to end array.
  *
  * @warning `jbl` object must writable in other words created with
  *          `jbl_create_empty_object()` or `jbl_create_empty_array()`
  *
- * @param jbl JBL container
+ * @param jbl struct jbl* container
  * @param key Object key. Does't makes sense for array objects.
  * @param v   Value to set
  */
-IW_EXPORT iwrc jbl_set_null(JBL jbl, const char *key);
+IW_EXPORT iwrc jbl_set_null(struct jbl *jbl, const char *key);
 
-IW_EXPORT iwrc jbl_set_empty_array(JBL jbl, const char *key);
+IW_EXPORT iwrc jbl_set_empty_array(struct jbl *jbl, const char *key);
 
-IW_EXPORT iwrc jbl_set_empty_object(JBL jbl, const char *key);
+IW_EXPORT iwrc jbl_set_empty_object(struct jbl *jbl, const char *key);
 
 /**
- * @brief Set nested JBL object property value
- *        or add a new entry to end of array JBL object.
+ * @brief Set nested struct jbl* object property value
+ *        or add a new entry to end of array struct jbl* object.
  *
  * In the case when `jbl` object is array value will be added to end array.
  *
  * @warning `jbl` object must writable in other words created with
  *          `jbl_create_empty_object()` or `jbl_create_empty_array()`
  *
- * @param jbl JBL container
+ * @param jbl struct jbl* container
  * @param key Object key. Does't makes sense for array objects.
  * @param v   Value to set
  */
-IW_EXPORT iwrc jbl_set_nested(JBL jbl, const char *key, JBL nested);
+IW_EXPORT iwrc jbl_set_nested(struct jbl *jbl, const char *key, struct jbl *nested);
 
 /**
- * @brief Initialize new `JBL` document by `binn` data from buffer.
+ * @brief Initialize new `struct jbl*` document by `binn` data from buffer.
  * @note Created document will be allocated by `malloc()`
  * and should be destroyed by `jbl_destroy()`.
  *
- * @param [out] jblp        Pointer initialized by created JBL document. Not zero.
+ * @param [out] jblp        Pointer initialized by created struct jbl* document. Not zero.
  * @param buf               Memory buffer with `binn` data. Not zero.
  * @param bufsz             Size of `buf`
  * @param keep_on_destroy   If true `buf` not will be freed by `jbl_destroy()`
  */
-IW_EXPORT iwrc jbl_from_buf_keep(JBL *jblp, void *buf, size_t bufsz, bool keep_on_destroy);
+IW_EXPORT iwrc jbl_from_buf_keep(struct jbl **jblp, void *buf, size_t bufsz, bool keep_on_destroy);
 
 /**
- * @brief Clones the given `src` JBL object into newly allocated `targetp` object.
+ * @brief Clones the given `src` struct jbl* object into newly allocated `targetp` object.
  *
- * JBL object stored into `targetp` should be disposed by `jbl_destroy()`.
+ * struct jbl* object stored into `targetp` should be disposed by `jbl_destroy()`.
  *
  * @param src Source object to clone
  * @param targetp Pointer on target object.
  */
-IW_EXPORT iwrc jbl_clone(JBL src, JBL *targetp);
+IW_EXPORT iwrc jbl_clone(struct jbl *src, struct jbl **targetp);
 
 /**
  * @brief Copy all keys from `src` object into `target` object.
  * @note Function does not care about keys duplication.
  *
- * @param src Source JBL object. Must be object.
- * @param target Target JBL object. Must be object.
+ * @param src Source struct jbl* object. Must be object.
+ * @param target Target struct jbl* object. Must be object.
  */
-IW_EXPORT iwrc jbl_object_copy_to(JBL src, JBL target);
+IW_EXPORT iwrc jbl_object_copy_to(struct jbl *src, struct jbl *target);
 
 /**
- * @brief Clones the given `src` JBL_NODE object into new `targetp` instance.
+ * @brief Clones the given `src` struct jbl_node* object into new `targetp` instance.
  *        Memory allocateted by given memor `pool` instance.
  *
  * @param src Source object to clone
  * @param target Pointer on new instance
  * @param pool Memory pool used for allocations during clone object construction
  */
-IW_EXPORT iwrc jbn_clone(JBL_NODE src, JBL_NODE *targetp, IWPOOL *pool);
+IW_EXPORT iwrc jbn_clone(struct jbl_node *src, struct jbl_node **targetp, struct iwpool *pool);
 
 /**
  * @brief Assign a JSON node value from `from` node into `target` node.
@@ -378,7 +381,7 @@ IW_EXPORT iwrc jbn_clone(JBL_NODE src, JBL_NODE *targetp, IWPOOL *pool);
  * @param from
  * @return IW_EXPORT jbn_apply_from
  */
-IW_EXPORT void jbn_apply_from(JBL_NODE target, JBL_NODE from);
+IW_EXPORT void jbn_apply_from(struct jbl_node *target, struct jbl_node *from);
 
 /**
  * @brief Copies JSON subtree under given `src_path` into `target` object under `target_path`.
@@ -397,13 +400,13 @@ IW_EXPORT void jbn_apply_from(JBL_NODE target, JBL_NODE from);
  * @param pool Memory pool used for allocations
  */
 IW_EXPORT iwrc jbn_copy_path(
-  JBL_NODE    src,
-  const char *src_path,
-  JBL_NODE    target,
-  const char *target_path,
-  bool        overwrite_on_nulls,
-  bool        no_src_clone,
-  IWPOOL     *pool);
+  struct jbl_node *src,
+  const char      *src_path,
+  struct jbl_node *target,
+  const char      *target_path,
+  bool             overwrite_on_nulls,
+  bool             no_src_clone,
+  IWPOOL          *pool);
 
 /**
  * @brief Copies a set of values pointed by `paths` zero terminated array
@@ -419,127 +422,129 @@ IW_EXPORT iwrc jbn_copy_path(
  * @param pool Memory pool used for allocations
  */
 IW_EXPORT iwrc jbn_copy_paths(
-  JBL_NODE     src,
-  JBL_NODE     target,
-  const char **paths,
-  bool         overwrite_on_nulls,
-  bool         no_src_clone,
-  IWPOOL      *pool);
+  struct jbl_node *src,
+  struct jbl_node *target,
+  const char     **paths,
+  bool             overwrite_on_nulls,
+  bool             no_src_clone,
+  IWPOOL          *pool);
 
 /**
- * @brief Clones a given `src` JBL object and stores it in memory allocated from `pool`.
+ * @brief Clones a given `src` struct jbl* object and stores it in memory allocated from `pool`.
  *
  * @param src Source object to clone
  * @param targetp Pointer on target object
  * @param pool  Memory pool
  */
-IW_EXPORT iwrc jbl_clone_into_pool(JBL src, JBL *targetp, IWPOOL *pool);
+IW_EXPORT iwrc jbl_clone_into_pool(struct jbl *src, struct jbl **targetp, struct iwpool *pool);
 
 /**
- * @brief Constructs new `JBL` object from JSON string.
+ * @brief Constructs new `struct jbl*` object from JSON string.
  * @note `jblp` should be disposed by `jbl_destroy()`
- * @param [out] jblp  Pointer initialized by created JBL document. Not zero.
+ * @param [out] jblp  Pointer initialized by created struct jbl* document. Not zero.
  * @param jsonstr     JSON string to be converted
  */
-IW_EXPORT iwrc jbl_from_json(JBL *jblp, const char *jsonstr);
+IW_EXPORT iwrc jbl_from_json(struct jbl **jblp, const char *jsonstr);
 
 
-IW_EXPORT iwrc jbl_from_json_printf(JBL *jblp, const char *format, ...) __attribute__((format(__printf__, 2, 3)));
+IW_EXPORT iwrc jbl_from_json_printf(
+  struct jbl **jblp, const char *format,
+  ...) __attribute__((format(__printf__, 2, 3)));
 
-IW_EXPORT iwrc jbl_from_json_printf_va(JBL *jblp, const char *format, va_list va);
+IW_EXPORT iwrc jbl_from_json_printf_va(struct jbl **jblp, const char *format, va_list va);
 
 /**
  * @brief Get type of `jbl` value.
  */
-IW_EXPORT jbl_type_t jbl_type(JBL jbl);
+IW_EXPORT jbl_type_t jbl_type(struct jbl *jbl);
 
 /**
  * @brief Get number of child elements in `jbl` container (object/array) or zero.
  */
-IW_EXPORT size_t jbl_count(JBL jbl);
+IW_EXPORT size_t jbl_count(struct jbl *jbl);
 
 /**
  * @brief Get size of undelying data buffer of `jbl` value passed.
  */
-IW_EXPORT size_t jbl_size(JBL jbl);
+IW_EXPORT size_t jbl_size(struct jbl *jbl);
 
 /**
- * @brief Returns size of JBL underlying data structure
+ * @brief Returns size of struct jbl* underlying data structure
  */
 IW_EXPORT size_t jbl_structure_size(void);
 
-IW_EXPORT iwrc jbl_from_buf_keep_onstack(JBL jbl, void *buf, size_t bufsz);
+IW_EXPORT iwrc jbl_from_buf_keep_onstack(struct jbl *jbl, void *buf, size_t bufsz);
 
 /**
  * @brief Interpret `jbl` value as `int32_t`.
  * Returns zero if value cannot be converted.
  */
-IW_EXPORT int32_t jbl_get_i32(JBL jbl);
+IW_EXPORT int32_t jbl_get_i32(struct jbl *jbl);
 
 /**
  * @brief Interpret `jbl` value as `int64_t`.
  * Returns zero if value cannot be converted.
  */
-IW_EXPORT int64_t jbl_get_i64(JBL jbl);
+IW_EXPORT int64_t jbl_get_i64(struct jbl *jbl);
 
 /**
  * @brief Interpret `jbl` value as `double` value.
  * Returns zero if value cannot be converted.
  */
-IW_EXPORT double jbl_get_f64(JBL jbl);
+IW_EXPORT double jbl_get_f64(struct jbl *jbl);
 
 /**
  * @brief Interpret `jbl` value as `\0` terminated character array.
  * Returns zero if value cannot be converted.
  */
-IW_EXPORT const char* jbl_get_str(JBL jbl);
+IW_EXPORT const char* jbl_get_str(struct jbl *jbl);
 
-IW_EXPORT iwrc jbl_object_get_i64(JBL jbl, const char *key, int64_t *out);
+IW_EXPORT iwrc jbl_object_get_i64(struct jbl *jbl, const char *key, int64_t *out);
 
-IW_EXPORT iwrc jbl_object_get_f64(JBL jbl, const char *key, double *out);
+IW_EXPORT iwrc jbl_object_get_f64(struct jbl *jbl, const char *key, double *out);
 
-IW_EXPORT iwrc jbl_object_get_bool(JBL jbl, const char *key, bool *out);
+IW_EXPORT iwrc jbl_object_get_bool(struct jbl *jbl, const char *key, bool *out);
 
-IW_EXPORT iwrc jbl_object_get_str(JBL jbl, const char *key, const char **out);
+IW_EXPORT iwrc jbl_object_get_str(struct jbl *jbl, const char *key, const char **out);
 
-IW_EXPORT iwrc jbl_object_get_fill_jbl(JBL jbl, const char *key, JBL out);
+IW_EXPORT iwrc jbl_object_get_fill_jbl(struct jbl *jbl, const char *key, struct jbl *out);
 
-IW_EXPORT jbl_type_t jbl_object_get_type(JBL jbl, const char *key);
+IW_EXPORT jbl_type_t jbl_object_get_type(struct jbl *jbl, const char *key);
 
 /**
  * @brief Same as `jbl_get_str()` but copies at most `bufsz` into target `buf`.
  * Target buffer not touched if `jbl` value cannot be converted.
  */
-IW_EXPORT size_t jbl_copy_strn(JBL jbl, char *buf, size_t bufsz);
+IW_EXPORT size_t jbl_copy_strn(struct jbl *jbl, char *buf, size_t bufsz);
 
 /**
  * @brief Finds value in `jbl` document pointed by rfc6901 `path` and store it into `res`.
  *
  * @note `res` should be disposed by `jbl_destroy()`.
  * @note If value is not fount `res` will be set to zero.
- * @param jbl         JBL document. Not zero.
+ * @param jbl         struct jbl* document. Not zero.
  * @param path        rfc6901 JSON pointer. Not zero.
  * @param [out] res   Output value holder
  */
-IW_EXPORT iwrc jbl_at(JBL jbl, const char *path, JBL *res);
+IW_EXPORT iwrc jbl_at(struct jbl *jbl, const char *path, struct jbl **res);
 
-IW_EXPORT iwrc jbn_at(JBL_NODE node, const char *path, JBL_NODE *res);
+IW_EXPORT iwrc jbn_at(struct jbl_node *node, const char *path, struct jbl_node **res);
 
-IW_EXPORT iwrc jbn_get(JBL_NODE node, const char *key, int index, JBL_NODE *res);
+IW_EXPORT iwrc jbn_get(struct jbl_node *node, const char *key, int index, struct jbl_node **res);
 
-IW_EXPORT int jbn_path_compare(JBL_NODE n1, JBL_NODE n2, const char *path, jbl_type_t vtype, iwrc *rcp);
+IW_EXPORT int jbn_path_compare(struct jbl_node *n1, struct jbl_node *n2, const char *path, jbl_type_t vtype, iwrc *rcp);
 
 IW_EXPORT int jbn_paths_compare(
-  JBL_NODE n1, const char *n1path, JBL_NODE n2, const char *n2path, jbl_type_t vtype,
+  struct jbl_node *n1, const char *n1path, struct jbl_node *n2, const char *n2path, jbl_type_t vtype,
   iwrc *rcp);
 
-IW_EXPORT int jbn_path_compare_str(JBL_NODE n, const char *path, const char *sv, iwrc *rcp);
+IW_EXPORT int jbn_path_compare_str(struct jbl_node *n, const char *path, const char *sv, iwrc *rcp);
 
-IW_EXPORT int jbn_path_compare_i64(JBL_NODE n, const char *path, int64_t iv, iwrc *rcp);
+IW_EXPORT int jbn_path_compare_i64(struct jbl_node *n, const char *path, int64_t iv, iwrc *rcp);
 
-IW_EXPORT int jbn_path_compare_f64(JBL_NODE n, const char *path, double fv, iwrc *rcp);
+IW_EXPORT int jbn_path_compare_f64(struct jbl_node *n, const char *path, double fv, iwrc *rcp);
 
-IW_EXPORT int jbn_path_compare_bool(JBL_NODE n, const char *path, bool bv, iwrc *rcp);
+IW_EXPORT int jbn_path_compare_bool(struct jbl_node *n, const char *path, bool bv, iwrc *rcp);
 
 /**
  * @brief @brief Finds value in `jbl` document pointed by `jp` structure and store it into `res`.
@@ -547,37 +552,37 @@ IW_EXPORT int jbn_path_compare_bool(JBL_NODE n, const char *path, bool bv, iwrc 
  * @note `res` should be disposed by `jbl_destroy()`.
  * @note If value is not fount `res` will be set to zero.
  * @see `jbl_ptr_alloc()`
- * @param jbl         JBL document. Not zero.
+ * @param jbl         struct jbl* document. Not zero.
  * @param jp          JSON pointer.
  * @param [out] res   Output value holder
  */
-IW_EXPORT iwrc jbl_at2(JBL jbl, JBL_PTR jp, JBL *res);
+IW_EXPORT iwrc jbl_at2(struct jbl *jbl, JBL_PTR jp, struct jbl **res);
 
-IW_EXPORT iwrc jbn_at2(JBL_NODE node, JBL_PTR jp, JBL_NODE *res);
+IW_EXPORT iwrc jbn_at2(struct jbl_node *node, JBL_PTR jp, struct jbl_node **res);
 
 /**
  * @brief Represent `jbl` document as raw data buffer.
  *
  * @note Caller do not require release `buf` explicitly.
- * @param jbl         JBL document. Not zero.
+ * @param jbl         struct jbl* document. Not zero.
  * @param [out] buf   Pointer to data buffer. Not zero.
  * @param [out] size  Pointer to data buffer size. Not zero.
  */
-IW_EXPORT iwrc jbl_as_buf(JBL jbl, void **buf, size_t *size);
+IW_EXPORT iwrc jbl_as_buf(struct jbl *jbl, void **buf, size_t *size);
 
 /**
- * @brief Prints JBL document as JSON string.
+ * @brief Prints struct jbl* document as JSON string.
  *
  * @see jbl_fstream_json_printer()
  * @see jbl_xstr_json_printer()
  * @see jbl_count_json_printer()
  *
- * @param jbl  JBL document. Not zero.
+ * @param jbl  struct jbl* document. Not zero.
  * @param pt   JSON printer function pointer. Not zero.
  * @param op   Pointer to user data for JSON printer function.
  * @param pf   JSON printing mode.
  */
-IW_EXPORT iwrc jbl_as_json(JBL jbl, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
+IW_EXPORT iwrc jbl_as_json(struct jbl *jbl, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
 
 /**
  * @brief JSON printer to stdlib `FILE*`pointer. Eg: `stderr`, `stdout`
@@ -598,26 +603,26 @@ IW_EXPORT iwrc jbl_xstr_json_printer(const char *data, int size, char ch, int co
 IW_EXPORT iwrc jbl_count_json_printer(const char *data, int size, char ch, int count, void *op);
 
 /**
- * @brief Destroys JBL document and releases its heap resources.
+ * @brief Destroys struct jbl* document and releases its heap resources.
  * @note Will set `jblp` to zero.
- * @param jblp Pointer holder of JBL document. Not zero.
+ * @param jblp Pointer holder of struct jbl* document. Not zero.
  */
-IW_EXPORT void jbl_destroy(JBL *jblp);
+IW_EXPORT void jbl_destroy(struct jbl **jblp);
 
 /**
  * @brief Initializes placeholder for jbl iteration.
  *        Must be freed by `jbl_destroy()` after iteration.
  * @param [out] jblp Pointer to be initialized by new object.
  */
-IW_EXPORT iwrc jbl_create_iterator_holder(JBL *jblp);
+IW_EXPORT iwrc jbl_create_iterator_holder(struct jbl **jblp);
 
 /**
  * @brief Initialize allocated iterator over given `jbl` object.
  *
- * @param jbl JBL object to iterate
+ * @param jbl struct jbl* object to iterate
  * @param iter Iterator state placeholder allocated by `jbl_create_iter_placeholder()`
  */
-IW_EXPORT iwrc jbl_iterator_init(JBL jbl, JBL_iterator *iter);
+IW_EXPORT iwrc jbl_iterator_init(struct jbl *jbl, JBL_iterator *iter);
 
 /**
  * @brief Get next value from JBL_iterator.
@@ -628,59 +633,59 @@ IW_EXPORT iwrc jbl_iterator_init(JBL jbl, JBL_iterator *iter);
  * @param pkey    Key value holder. Zero in the case of iteration over array.
  * @param klen    Key length or array index in the case of iteration over array.
  */
-IW_EXPORT bool jbl_iterator_next(JBL_iterator *iter, JBL holder, char **pkey, int *klen);
+IW_EXPORT bool jbl_iterator_next(JBL_iterator *iter, struct jbl *holder, char **pkey, int *klen);
 
-//--- JBL_NODE
+//--- struct jbl_node*
 
 /**
- * @brief Converts `jbl` value to `JBL_NODE` tree.
+ * @brief Converts `jbl` value to `struct jbl_node*` tree.
  * @note `node` resources will be released when `pool` destroyed.
  *
  * @param jbl             JSON document in compact `binn` format. Not zero.
- * @param [out] node      Holder of new `JBL_NODE` value. Not zero.
+ * @param [out] node      Holder of new `struct jbl_node*` value. Not zero.
  * @param clone_strings   If `true` JSON keys and string values will be cloned into given `pool`
  *                        otherwise only pointers to strings will be assigned.
  *                        Use `true` if you want to be completely safe when given `jbl`
  *                        object will be destroyed.
- * @param pool            Memory used to allocate new `JBL_NODE` tree. Optional.
+ * @param pool            Memory used to allocate new `struct jbl_node*` tree. Optional.
  */
-IW_EXPORT iwrc jbl_to_node(JBL jbl, JBL_NODE *node, bool clone_strings, IWPOOL *pool);
+IW_EXPORT iwrc jbl_to_node(struct jbl *jbl, struct jbl_node **node, bool clone_strings, struct iwpool *pool);
 
 /**
- * @brief Converts `json` text to `JBL_NODE` tree.
+ * @brief Converts `json` text to `struct jbl_node*` tree.
  * @note `node` resources will be released when `pool` destroyed.
  *
  * @param json        JSON text
- * @param [out] node  Holder of new `JBL_NODE` value. Not zero.
- * @param pool        Memory used to allocate new `JBL_NODE` tree. Not zero.
+ * @param [out] node  Holder of new `struct jbl_node*` value. Not zero.
+ * @param pool        Memory used to allocate new `struct jbl_node*` tree. Not zero.
  */
-IW_EXPORT iwrc jbn_from_json(const char *json, JBL_NODE *node, IWPOOL *pool);
+IW_EXPORT iwrc jbn_from_json(const char *json, struct jbl_node **node, struct iwpool *pool);
 
 /**
- * @brief Converts json-like js object (where keys as js symbols) to `JBL_NODE` tree.
+ * @brief Converts json-like js object (where keys as js symbols) to `struct jbl_node*` tree.
  * @warning Experimental. Doesn't conform to ECMA spec.
  */
-IW_EXPORT iwrc jbn_from_js(const char *json, JBL_NODE *node, IWPOOL *pool);
+IW_EXPORT iwrc jbn_from_js(const char *json, struct jbl_node **node, struct iwpool *pool);
 
 IW_EXPORT iwrc jbn_from_json_printf(
-  JBL_NODE *node, IWPOOL *pool, const char *format,
+  struct jbl_node **node, struct iwpool *pool, const char *format,
   ...) __attribute__((format(__printf__, 3, 4)));
 
-IW_EXPORT iwrc jbn_from_json_printf_va(JBL_NODE *node, IWPOOL *pool, const char *format, va_list va);
+IW_EXPORT iwrc jbn_from_json_printf_va(struct jbl_node **node, struct iwpool *pool, const char *format, va_list va);
 
 /**
- * @brief Prints JBL_NODE document as JSON string.
+ * @brief Prints struct jbl_node* document as JSON string.
  *
  * @see jbl_fstream_json_printer()
  * @see jbl_xstr_json_printer()
  * @see jbl_count_json_printer()
  *
- * @param node `JBL_NODE` document. Not zero.
+ * @param node `struct jbl_node*` document. Not zero.
  * @param pt    JSON printer function. Not zero.
  * @param op    Pointer to user data for JSON printer function.
  * @param pf    JSON printing mode.
  */
-IW_EXPORT iwrc jbn_as_json(JBL_NODE node, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
+IW_EXPORT iwrc jbn_as_json(struct jbl_node *node, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
 
 struct jbn_as_xml_spec {
   /** JSON printer function. Required. */
@@ -757,7 +762,7 @@ struct jbn_as_xml_spec {
 /**
  * @brief Prints JSON document as an XML markup.
  */
-IW_EXPORT iwrc jbn_as_xml(JBL_NODE node, const struct jbn_as_xml_spec *spec);
+IW_EXPORT iwrc jbn_as_xml(struct jbl_node *node, const struct jbn_as_xml_spec *spec);
 
 /**
  * @brief Fill `jbl` document by data from `node`.
@@ -766,19 +771,19 @@ IW_EXPORT iwrc jbn_as_xml(JBL_NODE node, const struct jbn_as_xml_spec *spec);
  *  Create empty document with `jbl_create_empty_object()` `jbl_create_empty_array()`
  *  then fill it with `jbl_fill_from_node()`
  *
- * @param jbl   JBL document to be filled. Not zero.
+ * @param jbl   struct jbl* document to be filled. Not zero.
  * @param node  Source tree node. Not zero.
  */
-IW_EXPORT iwrc jbl_fill_from_node(JBL jbl, JBL_NODE node);
+IW_EXPORT iwrc jbl_fill_from_node(struct jbl *jbl, struct jbl_node *node);
 
 /**
- * @brief Converts `node` object into JBL form.
+ * @brief Converts `node` object into struct jbl* form.
  *
- * @param jblp  JBL pointer holder. Not zero.
+ * @param jblp  struct jbl* pointer holder. Not zero.
  * @param node  Source tree node. Not zero.
  * @return IW_EXPORT jbl_from_node
  */
-IW_EXPORT iwrc jbl_from_node(JBL *jblp, JBL_NODE node);
+IW_EXPORT iwrc jbl_from_node(struct jbl **jblp, struct jbl_node *node);
 
 /**
  * @brief Compares JSON tree nodes.
@@ -796,12 +801,12 @@ IW_EXPORT iwrc jbl_from_node(JBL *jblp, JBL_NODE node);
  *         - Greater than zero  if `n1` greater than `n2`
  *         - Lesser than zero if `n1` lesser than `n2`
  */
-IW_EXPORT int jbn_compare_nodes(JBL_NODE n1, JBL_NODE n2, iwrc *rcp);
+IW_EXPORT int jbn_compare_nodes(struct jbl_node *n1, struct jbl_node *n2, iwrc *rcp);
 
 /**
  * @brief Add item to the `parent` container.
  */
-IW_EXPORT void jbn_add_item(JBL_NODE parent, JBL_NODE node);
+IW_EXPORT void jbn_add_item(struct jbl_node *parent, struct jbl_node *node);
 
 /**
  * @brief Adds string JSON node to the given `parent` node.
@@ -816,8 +821,8 @@ IW_EXPORT void jbn_add_item(JBL_NODE parent, JBL_NODE node);
  * @param pool Allocation pool. Optional.
  */
 IW_EXPORT iwrc jbn_add_item_str(
-  JBL_NODE parent, const char *key, const char *val, int vlen, JBL_NODE *node_out,
-  IWPOOL *pool);
+  struct jbl_node *parent, const char *key, const char *val, int vlen, struct jbl_node **node_out,
+  struct iwpool *pool);
 
 /**
  * @brief Adds null JSON value to the given `parent` node.
@@ -826,7 +831,7 @@ IW_EXPORT iwrc jbn_add_item_str(
  * @param key Child node key cloned into node. Can be zero if parent is an array.
  * @param pool Allocation pool. Optional.
  */
-IW_EXPORT iwrc jbn_add_item_null(JBL_NODE parent, const char *key, IWPOOL *pool);
+IW_EXPORT iwrc jbn_add_item_null(struct jbl_node *parent, const char *key, struct iwpool *pool);
 
 /**
  * @brief Adds integer JSON node to the given `parent` node.
@@ -837,7 +842,12 @@ IW_EXPORT iwrc jbn_add_item_null(JBL_NODE parent, const char *key, IWPOOL *pool)
  * @param node_out Optional placeholder for new node.
  * @param pool Allocation pool. Optional.
  */
-IW_EXPORT iwrc jbn_add_item_i64(JBL_NODE parent, const char *key, int64_t val, JBL_NODE *node_out, IWPOOL *pool);
+IW_EXPORT iwrc jbn_add_item_i64(
+  struct jbl_node  *parent,
+  const char       *key,
+  int64_t           val,
+  struct jbl_node **node_out,
+  IWPOOL           *pool);
 
 /**
  * @brief Adds fp number JSON node to the given `parent` node.
@@ -848,7 +858,12 @@ IW_EXPORT iwrc jbn_add_item_i64(JBL_NODE parent, const char *key, int64_t val, J
  * @param node_out Optional placeholder for new node.
  * @param pool Allocation pool. Optional.
  */
-IW_EXPORT iwrc jbn_add_item_f64(JBL_NODE parent, const char *key, double val, JBL_NODE *node_out, IWPOOL *pool);
+IW_EXPORT iwrc jbn_add_item_f64(
+  struct jbl_node  *parent,
+  const char       *key,
+  double            val,
+  struct jbl_node **node_out,
+  IWPOOL           *pool);
 
 /**
  * @brief Add nested object under the given `key`
@@ -859,7 +874,7 @@ IW_EXPORT iwrc jbn_add_item_f64(JBL_NODE parent, const char *key, double val, JB
  * @param pool Allocation pool. Optional.
  * @return IW_EXPORT jbn_add_item_obj
  */
-IW_EXPORT iwrc jbn_add_item_obj(JBL_NODE parent, const char *key, JBL_NODE *node_out, IWPOOL *pool);
+IW_EXPORT iwrc jbn_add_item_obj(struct jbl_node *parent, const char *key, struct jbl_node **node_out, struct iwpool *pool);
 
 /**
  * @brief Add nested array under the given `key`
@@ -870,7 +885,7 @@ IW_EXPORT iwrc jbn_add_item_obj(JBL_NODE parent, const char *key, JBL_NODE *node
  * @param pool Allocation pool. Optional.
  * @return IW_EXPORT jbn_add_item_obj
  */
-IW_EXPORT iwrc jbn_add_item_arr(JBL_NODE parent, const char *key, JBL_NODE *node_out, IWPOOL *pool);
+IW_EXPORT iwrc jbn_add_item_arr(struct jbl_node *parent, const char *key, struct jbl_node **node_out, struct iwpool *pool);
 
 /**
  * @brief Adds boolean JSON node to the given `parent` node.
@@ -881,31 +896,36 @@ IW_EXPORT iwrc jbn_add_item_arr(JBL_NODE parent, const char *key, JBL_NODE *node
  * @param node_out [out] Pointer to new node, can be zero.
  * @param pool Allocation pool.
  */
-IW_EXPORT iwrc jbn_add_item_bool(JBL_NODE parent, const char *key, bool val, JBL_NODE *node_out, IWPOOL *pool);
+IW_EXPORT iwrc jbn_add_item_bool(
+  struct jbl_node  *parent,
+  const char       *key,
+  bool              val,
+  struct jbl_node **node_out,
+  IWPOOL           *pool);
 
 /**
  * @brief Add item from the `parent` container.
  */
-IW_EXPORT void jbn_remove_item(JBL_NODE parent, JBL_NODE child);
+IW_EXPORT void jbn_remove_item(struct jbl_node *parent, struct jbl_node *child);
 
 /**
  * @brief Remove subtree from `target` node pointed by `path`
  */
-IW_EXPORT JBL_NODE jbn_detach2(JBL_NODE target, JBL_PTR path);
+IW_EXPORT struct jbl_node* jbn_detach2(struct jbl_node *target, JBL_PTR path);
 
-IW_EXPORT JBL_NODE jbn_detach(JBL_NODE target, const char *path);
+IW_EXPORT struct jbl_node* jbn_detach(struct jbl_node *target, const char *path);
 
 /**
  * @brief Reset tree `node` data.
  */
-IW_EXPORT void jbn_data(JBL_NODE node);
+IW_EXPORT void jbn_data(struct jbl_node *node);
 
 /**
  * @brief Returns number of child elements of given node.
  *
- * @param node JBL node
+ * @param node struct jbl* node
  */
-IW_EXPORT int jbn_length(JBL_NODE node);
+IW_EXPORT int jbn_length(struct jbl_node *node);
 
 /**
  * @brief Parses rfc6901 JSON path.
@@ -923,7 +943,7 @@ IW_EXPORT iwrc jbl_ptr_alloc(const char *path, JBL_PTR *jpp);
  * @param [out] jpp JSON path string. Not zero.
  * @param pool  Pool used for memory allocation. Not zero.
  */
-IW_EXPORT iwrc jbl_ptr_alloc_pool(const char *path, JBL_PTR *jpp, IWPOOL *pool);
+IW_EXPORT iwrc jbl_ptr_alloc_pool(const char *path, JBL_PTR *jpp, struct iwpool *pool);
 
 /**
  * @brief Compare JSON pointers.
@@ -938,43 +958,45 @@ IW_EXPORT int jbl_ptr_cmp(JBL_PTR p1, JBL_PTR p2);
 IW_EXPORT iwrc jbl_ptr_serialize(JBL_PTR ptr, IWXSTR *xstr);
 
 /**
- * @brief JBL_NODE visitor context
+ * @brief struct jbl_node* visitor context
  */
 typedef struct _JBN_VCTX {
-  JBL_NODE root;  /**< Root node from which started visitor */
-  void    *op;    /**< Arbitrary opaque data */
-  void    *result;
-  IWPOOL  *pool;      /**< Pool placeholder, initialization is responsibility of `JBN_VCTX` creator */
-  int      pos;       /**< Aux position, not actually used by visitor core */
-  bool     terminate; /**< It `true` document traversal will be terminated immediately. */
+  struct jbl_node *root; /**< Root node from which started visitor */
+  void   *op;            /**< Arbitrary opaque data */
+  void   *result;
+  struct iwpool *pool;       /**< Pool placeholder, initialization is responsibility of `JBN_VCTX` creator */
+  int     pos;        /**< Aux position, not actually used by visitor core */
+  bool    terminate;  /**< It `true` document traversal will be terminated immediately. */
 } JBN_VCTX;
 
 /**
  * Call with lvl: `-1` means end of visiting whole object tree.
  */
-typedef jbn_visitor_cmd_t (*JBN_VISITOR)(int lvl, JBL_NODE n, const char *key, int klidx, JBN_VCTX *vctx, iwrc *rc);
+typedef jbn_visitor_cmd_t (*JBN_VISITOR)(
+  int lvl, struct jbl_node *n, const char *key, int klidx, JBN_VCTX *vctx,
+  iwrc *rc);
 
-IW_EXPORT iwrc jbn_visit(JBL_NODE node, int lvl, JBN_VCTX *vctx, JBN_VISITOR visitor);
+IW_EXPORT iwrc jbn_visit(struct jbl_node *node, int lvl, JBN_VCTX *vctx, JBN_VISITOR visitor);
 
-IW_EXPORT iwrc jbn_visit2(JBL_NODE node, int lvl, iwrc (*visitor)(int, JBL_NODE));
+IW_EXPORT iwrc jbn_visit2(struct jbl_node *node, int lvl, iwrc (*visitor)(int, struct jbl_node*));
 
 //--- PATCHING
 
-IW_EXPORT iwrc jbn_patch_auto(JBL_NODE root, JBL_NODE patch, IWPOOL *pool);
+IW_EXPORT iwrc jbn_patch_auto(struct jbl_node *root, struct jbl_node *patch, struct iwpool *pool);
 
-IW_EXPORT iwrc jbn_merge_patch(JBL_NODE root, JBL_NODE patch, IWPOOL *pool);
+IW_EXPORT iwrc jbn_merge_patch(struct jbl_node *root, struct jbl_node *patch, struct iwpool *pool);
 
-IW_EXPORT iwrc jbn_patch(JBL_NODE root, const JBL_PATCH *patch, size_t cnt, IWPOOL *pool);
+IW_EXPORT iwrc jbn_patch(struct jbl_node *root, const JBL_PATCH *patch, size_t cnt, struct iwpool *pool);
 
-IW_EXPORT iwrc jbn_merge_patch_from_json(JBL_NODE root, const char *patchjson, IWPOOL *pool);
+IW_EXPORT iwrc jbn_merge_patch_from_json(struct jbl_node *root, const char *patchjson, struct iwpool *pool);
 
-IW_EXPORT iwrc jbl_patch(JBL jbl, const JBL_PATCH *patch, size_t cnt);
+IW_EXPORT iwrc jbl_patch(struct jbl *jbl, const JBL_PATCH *patch, size_t cnt);
 
-IW_EXPORT iwrc jbl_patch_from_json(JBL jbl, const char *patchjson);
+IW_EXPORT iwrc jbl_patch_from_json(struct jbl *jbl, const char *patchjson);
 
-IW_EXPORT iwrc jbl_merge_patch(JBL jbl, const char *patchjson);
+IW_EXPORT iwrc jbl_merge_patch(struct jbl *jbl, const char *patchjson);
 
-IW_EXPORT iwrc jbl_merge_patch_jbl(JBL jbl, JBL patch);
+IW_EXPORT iwrc jbl_merge_patch_jbl(struct jbl *jbl, struct jbl *patch);
 
 
 IW_EXPORT iwrc jbl_init(void);

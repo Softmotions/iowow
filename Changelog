@@ -392,7 +392,7 @@ iowow (1.3.12) testing; urgency=medium
 
 iowow (1.3.11) testing; urgency=medium
 
-  * Added size_t iwpool_allocated_size(IWPOOL *pool) (iwpool.h)
+  * Added size_t iwpool_allocated_size(struct iwpool *pool) (iwpool.h)
   * Added `file_lock_fail_fast` iwkv open option.
     If `true` - do not wait and raise error if database is locked by another process
   * Fixed meaningful PVP studio errors:

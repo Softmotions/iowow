@@ -3,10 +3,9 @@
 #define IWARRAYS_H
 
 #include "basedefs.h"
-IW_EXTERN_C_START
-
-#include <stdio.h>
 #include <stdbool.h>
+
+IW_EXTERN_C_START
 
 /**
  * @brief Insert new element into sorted array.
@@ -70,13 +69,16 @@ IW_EXPORT off_t iwarr_sorted_find2(
 //                     Fixed sized item list                             //
 ///////////////////////////////////////////////////////////////////////////
 
-typedef struct {
+struct iwulist;
+typedef struct iwulist IWULIST;
+
+struct iwulist {
   char  *array;   /**< Continuous units array */
   size_t usize;   /**< Unit size */
   size_t num;     /**< Number of elements in units array */
   size_t anum;    /**< Actual number of allocated units */
   size_t start;   /**< Offset of units data */
-} IWULIST;
+};
 
 /**
  * @brief Initialize units list.
@@ -85,7 +87,7 @@ typedef struct {
  * @param initial_length Number of preallocated units
  * @param unit_size      Unit size
  */
-IW_EXPORT iwrc iwulist_init(IWULIST *list, size_t initial_length, size_t unit_size);
+IW_EXPORT iwrc iwulist_init(struct iwulist *list, size_t initial_length, size_t unit_size);
 
 /**
  * @brief Create new units list.
@@ -94,26 +96,26 @@ IW_EXPORT iwrc iwulist_init(IWULIST *list, size_t initial_length, size_t unit_si
  * @param unit_size      Unit size
  * @return Zero if memory allocation failed `errno` will be set respectively
  */
-IW_EXPORT IW_ALLOC IWULIST* iwulist_create(size_t initial_length, size_t unit_size);
+IW_EXPORT IW_ALLOC struct iwulist* iwulist_create(size_t initial_length, size_t unit_size);
 
 /**
  * @brief Cleanup units list.
  *
  * @param list Unit list
  */
-IW_EXPORT iwrc iwulist_clear(IWULIST *list);
+IW_EXPORT iwrc iwulist_clear(struct iwulist *list);
 
 /**
  * @brief Resets number of elements to zero.
  * Underlying list array is not destroyed.
  */
-IW_EXPORT void iwulist_reset(IWULIST *list);
+IW_EXPORT void iwulist_reset(struct iwulist *list);
 
 /**
  * @brief Destroys and deallocates a given unit list.
  *
  */
-IW_EXPORT void iwulist_destroy(IWULIST **listp);
+IW_EXPORT void iwulist_destroy(struct iwulist **listp);
 
 /**
  * @brief Destroys internal unit list buffers,
@@ -121,17 +123,17 @@ IW_EXPORT void iwulist_destroy(IWULIST **listp);
  *
  * @see iwulist_destroy()
  */
-IW_EXPORT void iwulist_destroy_keep(IWULIST *list);
+IW_EXPORT void iwulist_destroy_keep(struct iwulist *list);
 
 /**
  * @brief Get number of stored elements.
  */
-IW_EXPORT size_t iwulist_length(const IWULIST *list);
+IW_EXPORT size_t iwulist_length(const struct iwulist *list);
 
 /**
  * @brief Clones a given list.
  */
-IW_EXPORT IW_ALLOC IWULIST* iwulist_clone(const IWULIST *list);
+IW_EXPORT IW_ALLOC struct iwulist* iwulist_clone(const struct iwulist *list);
 
 /**
  * @brief Gets pinter to element at given `index`
@@ -139,14 +141,14 @@ IW_EXPORT IW_ALLOC IWULIST* iwulist_clone(const IWULIST *list);
  * @param index Index of element
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if index is invalid
  */
-IW_EXPORT void* iwulist_at(const IWULIST *list, size_t index, iwrc *orc);
+IW_EXPORT void* iwulist_at(const struct iwulist *list, size_t index, iwrc *orc);
 
-IW_EXPORT void* iwulist_at2(const IWULIST *list, size_t index);
+IW_EXPORT void* iwulist_at2(const struct iwulist *list, size_t index);
 
 /**
  * Alias for iwulist_at2()
  */
-IW_EXPORT void* iwulist_get(const IWULIST *list, size_t index);
+IW_EXPORT void* iwulist_get(const struct iwulist *list, size_t index);
 
 /**
  * @brief Inserts new element at given index.
@@ -154,7 +156,7 @@ IW_EXPORT void* iwulist_get(const IWULIST *list, size_t index);
  * @param index Index of element
  * @param data Pointer to unit data to copy
  */
-IW_EXPORT iwrc iwulist_insert(IWULIST *list, size_t index, const void *data);
+IW_EXPORT iwrc iwulist_insert(struct iwulist *list, size_t index, const void *data);
 
 /**
  * @brief Overwrite element at given index with new data.
@@ -162,7 +164,7 @@ IW_EXPORT iwrc iwulist_insert(IWULIST *list, size_t index, const void *data);
  * @param index Index of element
  * @param data Pointer to unit data to copy
  */
-IW_EXPORT iwrc iwulist_set(IWULIST *list, size_t index, const void *data);
+IW_EXPORT iwrc iwulist_set(struct iwulist *list, size_t index, const void *data);
 
 /**
  * @brief Removes element at specified index.
@@ -170,7 +172,7 @@ IW_EXPORT iwrc iwulist_set(IWULIST *list, size_t index, const void *data);
  * @param index Index of element
  * @param orc Output error code
  */
-IW_EXPORT iwrc iwulist_remove(IWULIST *list, size_t index);
+IW_EXPORT iwrc iwulist_remove(struct iwulist *list, size_t index);
 
 /**
  * @brief Removes first element matches the given `data_ptr` content.
@@ -179,7 +181,7 @@ IW_EXPORT iwrc iwulist_remove(IWULIST *list, size_t index);
  * @param data_ptr Pointer to data buffer list items will be matched against.
  * @return True if matched element was found.
  */
-IW_EXPORT bool iwulist_remove_first_by(IWULIST *list, void *data_ptr);
+IW_EXPORT bool iwulist_remove_first_by(struct iwulist *list, void *data_ptr);
 
 /**
  * @brief Finds first element matched the given `data_ptr` content.
@@ -188,56 +190,61 @@ IW_EXPORT bool iwulist_remove_first_by(IWULIST *list, void *data_ptr);
  * @param data_ptr Pointer to data buffer list items will be matched against.
  * @return Index of first matched element or `-1` if item not found.
  */
-IW_EXPORT ssize_t iwulist_find_first(const IWULIST *list, void *data_ptr);
+IW_EXPORT ssize_t iwulist_find_first(const struct iwulist *list, void *data_ptr);
 
 /**
  * @brief Adds new element to end of list.
  *
  * @param data Pointer to unit data to copy
  */
-IW_EXPORT iwrc iwulist_push(IWULIST *list, const void *data);
+IW_EXPORT iwrc iwulist_push(struct iwulist *list, const void *data);
 
 /**
  * @brief Removes element from end of list.
  */
-IW_EXPORT iwrc iwulist_pop(IWULIST *list);
+IW_EXPORT iwrc iwulist_pop(struct iwulist *list);
 
 /**
  * @brief Adds element to front of list.
  */
-IW_EXPORT iwrc iwulist_unshift(IWULIST *list, const void *data);
+IW_EXPORT iwrc iwulist_unshift(struct iwulist *list, const void *data);
 
 /**
  * @brief Removes element from front of list.
  *
  * @param orc Output error code
  */
-IW_EXPORT iwrc iwulist_shift(IWULIST *list);
+IW_EXPORT iwrc iwulist_shift(struct iwulist *list);
 
 /**
  * @brief Sorts list using given `compar` function.
  *
- * @param list IWULIST
+ * @param list struct iwulist
  * @param compar Elements comparator accepts user data as last argument
  * @param op User data
  */
-IW_EXPORT void iwulist_sort(IWULIST *list, int (*compar)(const void*, const void*, void*), void *op);
+IW_EXPORT void iwulist_sort(struct iwulist *list, int (*compar)(const void*, const void*, void*), void *op);
 
 ///////////////////////////////////////////////////////////////////////////
 //                    Array list implementation                          //
 ///////////////////////////////////////////////////////////////////////////
 
-typedef struct {
+struct iwlistitem;
+struct iwlist;
+typedef struct iwlistitem IWLISTITEM;
+typedef struct iwlist IWLIST;
+
+struct iwlistitem {
   char  *val;
   size_t size;
-} IWLISTITEM;
+};
 
-typedef struct {
-  IWLISTITEM *array;
-  size_t      anum;  /**< Number of elements allocated */
-  size_t      start; /**< Index of first element */
-  size_t      num;   /**< Actual number of elements */
-} IWLIST;
+struct iwlist {
+  struct iwlistitem *array;
+  size_t anum;       /**< Number of elements allocated */
+  size_t start;      /**< Index of first element */
+  size_t num;        /**< Actual number of elements */
+};
 
 /**
  * @brief Initialize allocated empty list object.
@@ -246,7 +253,7 @@ typedef struct {
  * @param anum Number of elements to allocate or zero to use defaults
  * @return IW_EXPORT iwlist_init
  */
-IW_EXPORT iwrc iwlist_init(IWLIST *list, size_t anum);
+IW_EXPORT iwrc iwlist_init(struct iwlist *list, size_t anum);
 
 /**
  * @brief Constructs new list instance and preallocate `anum` elements.
@@ -254,30 +261,30 @@ IW_EXPORT iwrc iwlist_init(IWLIST *list, size_t anum);
  * @param anum Number of elements to allocate or zero to use defaults
  * @return Zero if allocation failed, `errno` will be set.
  */
-IW_EXPORT IW_ALLOC IWLIST* iwlist_create(size_t anum);
+IW_EXPORT IW_ALLOC struct iwlist* iwlist_create(size_t anum);
 
 /**
  * @brief Destroys a given list object.
  */
-IW_EXPORT void iwlist_destroy(IWLIST **listp);
+IW_EXPORT void iwlist_destroy(struct iwlist **listp);
 
 /**
  * @brief Destroys internal list buffers,
  *        but keep and doesn't free `list` pointer.
  * @see iwilist_destroy()
  */
-IW_EXPORT void iwlist_destroy_keep(IWLIST *list);
+IW_EXPORT void iwlist_destroy_keep(struct iwlist *list);
 
 /**
  * @brief Returns number of elements stored in list.
  */
-IW_EXPORT size_t iwlist_length(const IWLIST *list);
+IW_EXPORT size_t iwlist_length(const struct iwlist *list);
 
 /**
  * @brief Clone a given list.
  * @return Zero if allocation failed, `errno` will be set.
  */
-IW_EXPORT IW_ALLOC IWLIST* iwlist_clone(const IWLIST *list);
+IW_EXPORT IW_ALLOC struct iwlist* iwlist_clone(const struct iwlist *list);
 
 /**
  * @brief Get element at specified index.
@@ -287,7 +294,7 @@ IW_EXPORT IW_ALLOC IWLIST* iwlist_clone(const IWLIST *list);
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if index is invalid
  * @return Elements data buffer
  */
-IW_EXPORT void* iwlist_at(const IWLIST *list, size_t index, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_at(const struct iwlist *list, size_t index, size_t *osize, iwrc *orc);
 
 /**
  * @brief Get element at specified index.
@@ -295,17 +302,17 @@ IW_EXPORT void* iwlist_at(const IWLIST *list, size_t index, size_t *osize, iwrc 
  * @param [out] osize Optional size of returned element data in bytes
  * @return Elements data buffer or zero if element is not found
  */
-IW_EXPORT void* iwlist_at2(const IWLIST *list, size_t index, size_t *osize);
+IW_EXPORT void* iwlist_at2(const struct iwlist *list, size_t index, size_t *osize);
 
 /**
  * Alias of iwlist_at2()
  */
-IW_EXPORT void* iwlist_get(const IWLIST *list, size_t index, size_t *osize);
+IW_EXPORT void* iwlist_get(const struct iwlist *list, size_t index, size_t *osize);
 
 /**
  * @brief Add element to end of list.
  */
-IW_EXPORT iwrc iwlist_push(IWLIST *list, const void *data, size_t data_size);
+IW_EXPORT iwrc iwlist_push(struct iwlist *list, const void *data, size_t data_size);
 
 /**
  * @brief Removes last element from list.
@@ -314,12 +321,12 @@ IW_EXPORT iwrc iwlist_push(IWLIST *list, const void *data, size_t data_size);
  * @param [out] orc Set to `IW_ERROR_OUT_OF_BOUNDS` if list is empty
  * @return IW_EXPORT* iwlist_pop
  */
-IW_EXPORT void* iwlist_pop(IWLIST *list, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_pop(struct iwlist *list, size_t *osize, iwrc *orc);
 
 /**
  * @brief Add element to start of list
  */
-IW_EXPORT iwrc iwlist_unshift(IWLIST *list, const void *data, size_t data_size);
+IW_EXPORT iwrc iwlist_unshift(struct iwlist *list, const void *data, size_t data_size);
 
 /**
  * @brief Removes element at start of list.
@@ -328,33 +335,33 @@ IW_EXPORT iwrc iwlist_unshift(IWLIST *list, const void *data, size_t data_size);
  * @param orc Set to `IW_ERROR_OUT_OF_BOUNDS` if list is empty
  * @return IW_EXPORT* iwlist_shift
  */
-IW_EXPORT void* iwlist_shift(IWLIST *list, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_shift(struct iwlist *list, size_t *osize, iwrc *orc);
 
 /**
  * @brief Inserts element at given position.
  */
-IW_EXPORT iwrc iwlist_insert(IWLIST *list, size_t index, const void *data, size_t data_size);
+IW_EXPORT iwrc iwlist_insert(struct iwlist *list, size_t index, const void *data, size_t data_size);
 
 /**
  * @brief Set/overwrite element at given position.
  */
-IW_EXPORT iwrc iwlist_set(IWLIST *list, size_t index, const void *data, size_t data_size);
+IW_EXPORT iwrc iwlist_set(struct iwlist *list, size_t index, const void *data, size_t data_size);
 
 /**
  * @brief Remove element at given index.
  *
  * @param osize Optional size of removed element
  */
-IW_EXPORT void* iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc);
+IW_EXPORT void* iwlist_remove(struct iwlist *list, size_t index, size_t *osize, iwrc *orc);
 
 /**
  * @brief Sorts list using given `compar` function.
  *
- * @param list IWLIST
+ * @param list struct iwlist
  * @param compar Elements comparator accepts user data as last argument
  * @param op User data
  */
-IW_EXPORT void iwlist_sort(IWLIST *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*), void *op);
+IW_EXPORT void iwlist_sort(struct iwlist *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*), void *op);
 
 IW_EXTERN_C_END
 #endif

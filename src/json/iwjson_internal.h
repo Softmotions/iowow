@@ -36,22 +36,22 @@
 
 #define JBL_MAX_NESTING_LEVEL 999
 
-struct _JBL {
-  binn     bn;
-  JBL_NODE node;
+struct jbl {
+  binn bn;
+  struct jbl_node *node;
 };
 
 /**
- * @brief JBL visitor context
+ * @brief struct jbl* visitor context
  */
 typedef struct _JBL_VCTX {
-  binn   *bn;       /**< Root node from which started visitor */
-  void   *op;       /**< Arbitrary opaque data */
-  void   *result;
-  IWPOOL *pool;     /**< Pool placeholder, initialization is responsibility of `JBL_VCTX` creator */
-  int     pos;      /**< Aux position, not actually used by visitor core */
-  bool    terminate;
-  bool    found;    /**< Used in _jbl_at() */
+  binn *bn;         /**< Root node from which started visitor */
+  void *op;         /**< Arbitrary opaque data */
+  void *result;
+  struct iwpool *pool; /**< Pool placeholder, initialization is responsibility of `JBL_VCTX` creator */
+  int  pos;            /**< Aux position, not actually used by visitor core */
+  bool terminate;
+  bool found;       /**< Used in _jbl_at() */
 } JBL_VCTX;
 
 typedef jbn_visitor_cmd_t jbl_visitor_cmd_t;
@@ -63,27 +63,27 @@ typedef struct _JBL_PATCHEXT {
 } JBL_PATCHEXT;
 
 typedef struct _JBLDRCTX {
-  IWPOOL  *pool;
-  JBL_NODE root;
+  struct iwpool   *pool;
+  struct jbl_node *root;
 } JBLDRCTX;
 
-iwrc jbl_from_buf_keep_onstack(JBL jbl, void *buf, size_t bufsz);
-iwrc jbl_from_buf_keep_onstack2(JBL jbl, void *buf);
+iwrc jbl_from_buf_keep_onstack(struct jbl *jbl, void *buf, size_t bufsz);
+iwrc jbl_from_buf_keep_onstack2(struct jbl *jbl, void *buf);
 
 iwrc _jbl_write_double(double num, jbl_json_printer pt, void *op);
 iwrc _jbl_write_int(int64_t num, jbl_json_printer pt, void *op);
 iwrc _jbl_write_json_string(const char *str, int len, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
-iwrc _jbl_node_from_binn(const binn *bn, JBL_NODE *node, bool clone_strings, IWPOOL *pool);
-iwrc _jbl_binn_from_node(binn *res, JBL_NODE node);
-iwrc _jbl_from_node(JBL jbl, JBL_NODE node);
-bool _jbl_at(JBL jbl, JBL_PTR jp, JBL res);
-int _jbl_compare_nodes(JBL_NODE n1, JBL_NODE n2, iwrc *rcp);
+iwrc _jbl_node_from_binn(const binn *bn, struct jbl_node **node, bool clone_strings, struct iwpool *pool);
+iwrc _jbl_binn_from_node(binn *res, struct jbl_node *node);
+iwrc _jbl_from_node(struct jbl *jbl, struct jbl_node *node);
+bool _jbl_at(struct jbl *jbl, JBL_PTR jp, struct jbl *res);
+int _jbl_compare_nodes(struct jbl_node *n1, struct jbl_node *n2, iwrc *rcp);
 
 typedef jbl_visitor_cmd_t (*JBL_VISITOR)(int lvl, binn *bv, const char *key, int idx, JBL_VCTX *vctx, iwrc *rc);
 iwrc _jbl_visit(binn_iter *iter, int lvl, JBL_VCTX *vctx, JBL_VISITOR visitor);
 
-bool _jbl_is_eq_atomic_values(JBL v1, JBL v2);
-int _jbl_cmp_atomic_values(JBL v1, JBL v2);
+bool _jbl_is_eq_atomic_values(struct jbl *v1, struct jbl *v2);
+int _jbl_cmp_atomic_values(struct jbl *v1, struct jbl *v2);
 
 BOOL binn_read_next_pair2(int expected_type, binn_iter *iter, int *klidx, char **pkey, binn *value);
 

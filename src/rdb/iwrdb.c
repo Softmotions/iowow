@@ -22,7 +22,7 @@
 #define _ENSURE_OPEN(db_) \
   if (!(db_) || INVALIDHANDLE((db_)->fh)) return IW_ERROR_INVALID_STATE
 
-struct _IWRDB {
+struct iwrdb {
   HANDLE fh;
   iwrdb_oflags_t    oflags;
   pthread_rwlock_t *cwl;

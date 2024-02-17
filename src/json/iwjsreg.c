@@ -70,7 +70,7 @@ iwrc iwjsreg_open(struct iwjsreg_spec *spec, struct iwjsreg **out) {
   if (!spec || !spec->path || !out) {
     return IW_ERROR_INVALID_ARGS;
   }
-  IWPOOL *pool;
+  struct iwpool *pool;
   struct iwjsreg *reg = 0;
   RCB(finish, pool = iwpool_create_empty());
   RCB(finish, reg = iwpool_calloc(sizeof(*reg), pool));

@@ -21,7 +21,7 @@ void _jbl_test1_1(int num, iwrc expected, jbl_print_flags_t pf) {
   char path[64];
   char path_expected[64];
   JBL_NODE node = 0;
-  IWPOOL *pool;
+  struct iwpool *pool;
   char *data;
   char *edata = 0;
   IWXSTR *res = iwxstr_new();
@@ -763,8 +763,8 @@ static void jbl_test1_8(void) {
 }
 
 static void jbl_test1_9(void) {
-  IWPOOL *pool = iwpool_create(512);
-  IWPOOL *cpool = iwpool_create(512);
+  struct iwpool *pool = iwpool_create(512);
+  struct iwpool *cpool = iwpool_create(512);
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
   CU_ASSERT_PTR_NOT_NULL_FATAL(cpool);
   const char *data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
@@ -797,8 +797,8 @@ static void jbl_test1_9(void) {
 }
 
 static void jbl_test1_10(void) {
-  IWPOOL *pool = iwpool_create(512);
-  IWPOOL *tpool = iwpool_create(512);
+  struct iwpool *pool = iwpool_create(512);
+  struct iwpool *tpool = iwpool_create(512);
   IWXSTR *xstr = iwxstr_new();
 
   const char *src_data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
@@ -835,7 +835,7 @@ static void jbl_test1_10(void) {
 }
 
 static void jbl_test1_11(void) {
-  IWPOOL *pool = iwpool_create(512);
+  struct iwpool *pool = iwpool_create(512);
   IWXSTR *xstr = iwxstr_new();
 
   const char *src_data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
@@ -866,7 +866,7 @@ static void jbl_test1_11(void) {
 }
 
 void jbl_test1_12(void) {
-  IWPOOL *pool = iwpool_create_empty();
+  struct iwpool *pool = iwpool_create_empty();
   JBL_NODE n;
   iwrc rc = jbn_from_json("{\"foo\":1.1}", &n, pool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -874,7 +874,7 @@ void jbl_test1_12(void) {
 }
 
 void jbl_test1_13(void) {
-  IWPOOL *pool = iwpool_create_empty();
+  struct iwpool *pool = iwpool_create_empty();
   JBL_NODE n, n2;
   iwrc rc = jbn_from_js("{foo:'bar', z:null, x: .1, y:-.1, 'baz':1, \"gaz\":['one','two']}", &n, pool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);

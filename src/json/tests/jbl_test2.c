@@ -16,7 +16,7 @@ int clean_suite(void) {
 
 static void test_jbn_xml(void) {
   IWXSTR *xstr = iwxstr_new();
-  IWPOOL *pool = iwpool_create_empty();
+  struct iwpool *pool = iwpool_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
 
   JBL_NODE n;

@@ -31,7 +31,7 @@ typedef struct lru_node {
   void *key;
 } lru_node_t;
 
-typedef struct _IWHMAP {
+typedef struct iwhmap {
   uint32_t  count;
   uint32_t  buckets_mask;
   bucket_t *buckets;
