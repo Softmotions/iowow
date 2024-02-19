@@ -319,6 +319,15 @@ IWXSTR* iwxstr_new_printf(const char *format, ...) {
   return xstr;
 }
 
+char* iwxstr_printf_alloc(const char *format, ...) {
+  IWXSTR xstr = { 0 };
+  va_list ap;
+  va_start(ap, format);
+  iwrc rc = iwxstr_printf_va(&xstr, format, ap);
+  va_end(ap);
+  return rc ? 0 : xstr.ptr;
+}
+
 char* iwxstr_ptr(IWXSTR *xstr) {
   return xstr->ptr;
 }

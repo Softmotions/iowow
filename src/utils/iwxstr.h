@@ -44,6 +44,8 @@ IW_EXPORT struct iwxstr*iwxstr_new_printf(const char *format, ...) __attribute__
 
 IW_EXPORT struct iwxstr* iwxstr_new_clone(const struct iwxstr *xstr);
 
+IW_EXPORT IW_ALLOC char* iwxstr_printf_alloc(const char *format, ...) __attribute__((format(__printf__, 1, 2)));
+
 IW_EXPORT struct iwxstr* iwxstr_wrap(char *buf, size_t size, size_t asize);
 
 IW_EXPORT void iwxstr_destroy(struct iwxstr *xstr);
