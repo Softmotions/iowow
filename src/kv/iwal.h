@@ -97,21 +97,21 @@ typedef struct WBSAVEPOINT {
 } WBSAVEPOINT;
 #pragma pack(pop)
 
-iwrc iwal_create(IWKV iwkv, const IWKV_OPTS *opts, IWFS_FSM_OPTS *fsmopts, bool recover_backup);
+iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, IWFS_FSM_OPTS *fsmopts, bool recover_backup);
 
-iwrc iwal_sync(IWKV iwkv);
+iwrc iwal_sync(struct iwkv *iwkv);
 
-iwrc iwal_poke_checkpoint(IWKV iwkv, bool force);
+iwrc iwal_poke_checkpoint(struct iwkv *iwkv, bool force);
 
-iwrc iwal_poke_savepoint(IWKV iwkv);
+iwrc iwal_poke_savepoint(struct iwkv *iwkv);
 
-iwrc iwal_savepoint_exl(IWKV iwkv, bool sync);
+iwrc iwal_savepoint_exl(struct iwkv *iwkv, bool sync);
 
-void iwal_shutdown(IWKV iwkv);
+void iwal_shutdown(struct iwkv *iwkv);
 
-bool iwal_synched(IWKV iwkv);
+bool iwal_synched(struct iwkv *iwkv);
 
-iwrc iwal_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file);
+iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file);
 
 IW_EXTERN_C_END
 #endif

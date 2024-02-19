@@ -57,7 +57,7 @@ IW_EXTERN_C_START
 #define IWKV_MAX_KVSZ 0xfffffff
 
 /**
- * @brief IWKV error codes.
+ * @brief struct iwkv* error codes.
  */
 typedef enum {
   _IWKV_ERROR_START = (IW_ERROR_START + 5000UL),
@@ -112,7 +112,7 @@ typedef uint8_t iwdb_flags_t;
 /**
  * Enable compound database keys. Keys stored in the following format: `<key value prefix><numeric key suffix>`
  * Allows associate one `key value` with many references represented as VNUM64 (eg.: Non unique table indexes).
- * @see IWKV_val.compound
+ * @see struct iwkv_val.compound
  */
 #define IWDB_COMPOUND_KEYS ((iwdb_flags_t) 0x40U)
 
@@ -130,35 +130,37 @@ typedef uint8_t iwkv_opflags;
     `IWKV_ERROR_KEY_EXISTS` does not makes sense if this flag set. */
 #define IWKV_VAL_INCREMENT ((iwkv_opflags) 0x10U)
 
-struct _IWKV;
-typedef struct _IWKV*IWKV;
+struct iwkv;
+typedef struct iwkv*IWKV;
 
-struct _IWDB;
-typedef struct _IWDB*IWDB;
+struct iwdb;
+typedef struct iwdb*IWDB;
 
 /**
  * @brief Write ahead log (WAL) options.
  */
-typedef struct IWKV_WAL_OPTS {
+struct iwkv_wal_opts {
   bool     enabled;                 /**< WAL enabled */
   bool     check_crc_on_checkpoint; /**< Check CRC32 sum of data blocks during checkpoint. Default: false */
   uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds. Default: 10 sec */
   uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 300 sec (5 min); */
   size_t   wal_buffer_sz;           /**< WAL file intermediate buffer size. Default: 8Mb */
   uint64_t checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. Default: 1Gb */
-  iwrc (*wal_lock_interceptor)(bool, void*);
+  iwrc     (*wal_lock_interceptor)(bool, void*);
   /**< Optional function called
        - before acquiring
        - after releasing
        exclusive database lock by WAL checkpoint thread.
        In the case of `before lock` first argument will be set to true */
   void *wal_lock_interceptor_opaque;/**< Opaque data for `wal_lock_interceptor` */
-} IWKV_WAL_OPTS;
+};
+
+typedef struct iwkv_wal_opts IWKV_WAL_OPTS;
 
 /**
- * @brief IWKV storage open options.
+ * @brief struct iwkv* storage open options.
  */
-typedef struct IWKV_OPTS {
+struct iwkv_opts {
   const char *path;                 /**< Path to database file */
   uint32_t    random_seed;          /**< Random seed used for iwu random generator */
   /**
@@ -169,13 +171,15 @@ typedef struct IWKV_OPTS {
   int32_t fmt_version;
   iwkv_openflags oflags;            /**< Bitmask of database file open modes */
   bool file_lock_fail_fast;         /**< Do not wait and raise error if database is locked by another process */
-  IWKV_WAL_OPTS wal;                /**< WAL options */
-} IWKV_OPTS;
+  struct iwkv_wal_opts wal;         /**< WAL options */
+};
+
+typedef struct iwkv_opts IWKV_OPTS;
 
 /**
  * @brief Data container for key/value.
  */
-typedef struct IWKV_val {
+struct iwkv_val {
   void  *data;           /**< Data buffer */
   size_t size;           /**< Data buffer size */
   /** Extra key part used for key comparison.
@@ -184,25 +188,29 @@ typedef struct IWKV_val {
    *  `compound` field ignored if db not in `IWDB_COMPOUND_KEYS` mode.
    */
   int64_t compound;
-} IWKV_val;
+};
+
+typedef struct iwkv_val IWKV_val;
 
 /**
  * @brief Cursor opaque handler.
  */
-struct _IWKV_cursor;
-typedef struct _IWKV_cursor*IWKV_cursor;
+struct iwkv_cursor;
+typedef struct iwkv_cursor*IWKV_cursor;
 
 /**
  * @brief Database cursor operations and position flags.
  */
-typedef enum IWKV_cursor_op {
+enum iwkv_cursor_op {
   IWKV_CURSOR_BEFORE_FIRST = 1, /**< Set cursor to position before first record */
   IWKV_CURSOR_AFTER_LAST,       /**< Set cursor to position after last record */
   IWKV_CURSOR_NEXT,             /**< Move cursor to the next record */
   IWKV_CURSOR_PREV,             /**< Move cursor to the previous record */
   IWKV_CURSOR_EQ,               /**< Set cursor to the specified key value */
   IWKV_CURSOR_GE,               /**< Set cursor to the key which greater or equal key specified */
-} IWKV_cursor_op;
+};
+
+typedef enum iwkv_cursor_op IWKV_cursor_op;
 
 /**
  * @brief Initialize iwkv storage.
@@ -214,17 +222,17 @@ IW_EXPORT WUR iwrc iwkv_init(void);
 /**
  * @brief Open iwkv storage.
  * @code {.c}
- *  IWKV iwkv;
- *  IWKV_OPTS opts = {
+ *  struct iwkv* iwkv;
+ *  struct iwkv_opts opts = {
  *    .path = "mystore.db"
  *  };
  *  iwrc rc = iwkv_open(&opts, &iwkv);
  * @endcode
  * @note Any opened iwkv storage must be closed by `iwkv_close()` after usage.
  * @param opts Database open options.
- * @param [out] iwkvp Pointer to @ref IWKV structure.
+ * @param [out] iwkvp Pointer to @ref struct iwkv* structure.
  */
-IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
+IW_EXPORT WUR iwrc iwkv_open(const struct iwkv_opts *opts, struct iwkv **iwkvp);
 
 /**
  * @brief Get iwkv database handler identified by specified `dbid` number.
@@ -236,12 +244,12 @@ IW_EXPORT WUR iwrc iwkv_open(const IWKV_OPTS *opts, IWKV *iwkvp);
  *       calls after first call for particular database,
  *       otherwise `IWKV_ERROR_INCOMPATIBLE_DB_MODE` will be reported.
  *
- * @param iwkv Pointer to @ref IWKV handler
+ * @param iwkv Pointer to @ref struct iwkv* handler
  * @param dbid Database identifier
  * @param flags Database initialization flags
  * @param [out] dbp Pointer to database opaque structure
  */
-IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *dbp);
+IW_EXPORT WUR iwrc iwkv_db(struct iwkv *iwkv, uint32_t dbid, iwdb_flags_t flags, struct iwdb **dbp);
 
 /**
  * @brief Create new database with next available database id.
@@ -251,14 +259,14 @@ IW_EXPORT WUR iwrc iwkv_db(IWKV iwkv, uint32_t dbid, iwdb_flags_t flags, IWDB *d
  * @param [out] dbidp Database identifier placeholder will be filled with next available id.
  * @param [out] dbp Pointer to database opaque structure
  */
-IW_EXPORT WUR iwrc iwkv_new_db(IWKV iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, IWDB *dbp);
+IW_EXPORT WUR iwrc iwkv_new_db(struct iwkv *iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, struct iwdb **dbp);
 
 /**
  * @brief Destroy(drop) existing database and cleanup all of its data.
  *
  * @param dbp Pointer to database opened.
  */
-IW_EXPORT iwrc iwkv_db_destroy(IWDB *dbp);
+IW_EXPORT iwrc iwkv_db_destroy(struct iwdb **dbp);
 
 /**
  * @brief Sync iwkv storage state with disk.
@@ -266,10 +274,10 @@ IW_EXPORT iwrc iwkv_db_destroy(IWDB *dbp);
  * @note It will cause deadlock if current thread holds opened cursors and WAL is enabled,
  *       use method with caution.
  *
- * @param iwkv IWKV handler.
+ * @param iwkv struct iwkv* handler.
  * @param flags Sync flags.
  */
-IW_EXPORT iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags flags);
+IW_EXPORT iwrc iwkv_sync(struct iwkv *iwkv, iwfs_sync_flags flags);
 
 /**
  * @brief Close iwkv storage.
@@ -278,7 +286,7 @@ IW_EXPORT iwrc iwkv_sync(IWKV iwkv, iwfs_sync_flags flags);
  *
  * @param iwkvp
  */
-IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
+IW_EXPORT iwrc iwkv_close(struct iwkv **iwkvp);
 
 /**
  * @brief Store record in database.
@@ -295,7 +303,7 @@ IW_EXPORT iwrc iwkv_close(IWKV *iwkvp);
  * @param val Value data container
  * @param opflags Put options used
  */
-IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_opflags opflags);
+IW_EXPORT iwrc iwkv_put(struct iwdb *db, const struct iwkv_val *key, const struct iwkv_val *val, iwkv_opflags opflags);
 
 /**
  * @brief Intercepts old(replaced) value in put operation.
@@ -307,14 +315,16 @@ IW_EXPORT iwrc iwkv_put(IWDB db, const IWKV_val *key, const IWKV_val *val, iwkv_
  * @param oldval Old value which will be replaced by `val` may be `NULL`
  * @param op Arbitrary opaqued data passed to this handler
  */
-typedef iwrc (*IWKV_PUT_HANDLER)(const IWKV_val *key, const IWKV_val *val, IWKV_val *oldval, void *op);
+typedef iwrc (*IWKV_PUT_HANDLER)(
+  const struct iwkv_val *key, const struct iwkv_val *val, struct iwkv_val *oldval,
+  void *op);
 
 /**
  * @brief Store record in database.
  * @see iwkv_put()
  */
 IW_EXPORT iwrc iwkv_puth(
-  IWDB db, const IWKV_val *key, const IWKV_val *val,
+  struct iwdb *db, const struct iwkv_val *key, const struct iwkv_val *val,
   iwkv_opflags opflags, IWKV_PUT_HANDLER ph, void *phop);
 
 /**
@@ -327,7 +337,7 @@ IW_EXPORT iwrc iwkv_puth(
  * @param key Key data
  * @param [out] oval Value associated with `key` or `NULL`
  */
-IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
+IW_EXPORT iwrc iwkv_get(struct iwdb *db, const struct iwkv_val *key, struct iwkv_val *oval);
 
 /**
  * @brief Get value for given `key` and copy it into provided `vbuf` using up to `vbufsz` bytes.
@@ -338,7 +348,7 @@ IW_EXPORT iwrc iwkv_get(IWDB db, const IWKV_val *key, IWKV_val *oval);
  * @param vbufsz Value buffer size
  * @param [out] vsz Actual value size
  */
-IW_EXPORT iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vbufsz, size_t *vsz);
+IW_EXPORT iwrc iwkv_get_copy(struct iwdb *db, const struct iwkv_val *key, void *vbuf, size_t vbufsz, size_t *vsz);
 
 /**
  * @brief Set arbitrary data associated with database.
@@ -348,7 +358,7 @@ IW_EXPORT iwrc iwkv_get_copy(IWDB db, const IWKV_val *key, void *vbuf, size_t vb
  * @param buf Data buffer
  * @param sz  Size of data buffer
  */
-IW_EXPORT iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz);
+IW_EXPORT iwrc iwkv_db_set_meta(struct iwdb *db, void *buf, size_t sz);
 
 /**
  * @brief Get arbitrary data associated with database.
@@ -357,7 +367,7 @@ IW_EXPORT iwrc iwkv_db_set_meta(IWDB db, void *buf, size_t sz);
  * @param sz Size of target buffer
  * @param [out] rsz Number of bytes read actually
  */
-IW_EXPORT iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz, size_t *rsz);
+IW_EXPORT iwrc iwkv_db_get_meta(struct iwdb *db, void *buf, size_t sz, size_t *rsz);
 
 /**
  * @brief Remove record identified by `key`.
@@ -366,13 +376,13 @@ IW_EXPORT iwrc iwkv_db_get_meta(IWDB db, void *buf, size_t sz, size_t *rsz);
  * @param db Database handler
  * @param key Key data container
  */
-IW_EXPORT iwrc iwkv_del(IWDB db, const IWKV_val *key, iwkv_opflags opflags);
+IW_EXPORT iwrc iwkv_del(struct iwdb *db, const struct iwkv_val *key, iwkv_opflags opflags);
 
 /**
  * @brief Destroy key/value data container.
  *
  */
-IW_EXPORT void iwkv_val_dispose(IWKV_val *kval);
+IW_EXPORT void iwkv_val_dispose(struct iwkv_val *kval);
 
 /**
  * @brief Dispose data containers for key and value respectively.
@@ -386,7 +396,7 @@ IW_EXPORT void iwkv_val_dispose(IWKV_val *kval);
  * @param key Key data containers
  * @param val Value data containers
  */
-IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
+IW_EXPORT void iwkv_kv_dispose(struct iwkv_val *key, struct iwkv_val *val);
 
 /**
  * @brief Open database cursor.
@@ -397,10 +407,10 @@ IW_EXPORT void iwkv_kv_dispose(IWKV_val *key, IWKV_val *val);
  * @param key Optional key argument, required to point cursor to the given key.
  */
 IW_EXPORT WUR iwrc iwkv_cursor_open(
-  IWDB            db,
-  IWKV_cursor    *cur,
-  IWKV_cursor_op  op,
-  const IWKV_val *key);
+  struct iwdb           *db,
+  struct iwkv_cursor   **cur,
+  IWKV_cursor_op         op,
+  const struct iwkv_val *key);
 
 /**
  * @brief Move cursor to the next position.
@@ -408,7 +418,7 @@ IW_EXPORT WUR iwrc iwkv_cursor_open(
  * @param cur Opened cursor object
  * @param op Cursor position operation
  */
-IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op);
+IW_EXPORT WUR iwrc iwkv_cursor_to(struct iwkv_cursor *cur, IWKV_cursor_op op);
 
 /**
  * @brief Move cursor to the next position.
@@ -417,7 +427,7 @@ IW_EXPORT WUR iwrc iwkv_cursor_to(IWKV_cursor cur, IWKV_cursor_op op);
  * @param op Cursor position operation
  * @param key Optional key argument used to move cursor to the given key.
  */
-IW_EXPORT WUR iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const IWKV_val *key);
+IW_EXPORT WUR iwrc iwkv_cursor_to_key(struct iwkv_cursor *cur, IWKV_cursor_op op, const struct iwkv_val *key);
 
 /**
  * @brief Get key and value at current cursor position.
@@ -427,7 +437,7 @@ IW_EXPORT WUR iwrc iwkv_cursor_to_key(IWKV_cursor cur, IWKV_cursor_op op, const 
  * @param okey Key container to be initialized by key at current position. Can be null.
  * @param oval Value container to be initialized by value at current position. Can be null.
  */
-IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor cur, IWKV_val *okey, IWKV_val *oval);
+IW_EXPORT iwrc iwkv_cursor_get(struct iwkv_cursor *cur, struct iwkv_val *okey, struct iwkv_val *oval);
 
 /**
  * @brief Get value at current cursor position.
@@ -435,7 +445,7 @@ IW_EXPORT iwrc iwkv_cursor_get(IWKV_cursor cur, IWKV_val *okey, IWKV_val *oval);
  * @param cur Opened cursor object
  * @param oval Value holder to be initialized by value at current position
  */
-IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor cur, IWKV_val *oval);
+IW_EXPORT iwrc iwkv_cursor_val(struct iwkv_cursor *cur, struct iwkv_val *oval);
 
 /**
  * @brief Copy value data to the specified buffer at the current cursor position.
@@ -446,7 +456,7 @@ IW_EXPORT iwrc iwkv_cursor_val(IWKV_cursor cur, IWKV_val *oval);
  * @param vbufsz Value buffer size
  * @param [out] vsz Actual value size
  */
-IW_EXPORT iwrc iwkv_cursor_copy_val(IWKV_cursor cur, void *vbuf, size_t vbufsz, size_t *vsz);
+IW_EXPORT iwrc iwkv_cursor_copy_val(struct iwkv_cursor *cur, void *vbuf, size_t vbufsz, size_t *vsz);
 
 /**
  * @brief Get key at current cursor position.
@@ -455,7 +465,7 @@ IW_EXPORT iwrc iwkv_cursor_copy_val(IWKV_cursor cur, void *vbuf, size_t vbufsz, 
  * @param cur Opened cursor object
  * @param oval Key holder to be initialized by key at current position
  */
-IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
+IW_EXPORT iwrc iwkv_cursor_key(struct iwkv_cursor *cur, struct iwkv_val *okey);
 
 /**
  * @brief Copy key data to the specified buffer at the current cursor position.
@@ -467,9 +477,13 @@ IW_EXPORT iwrc iwkv_cursor_key(IWKV_cursor cur, IWKV_val *okey);
  * @param [out] ksz Actual key size
  * @param [out] compound Compound key part value, can be zero.
  */
-IW_EXPORT iwrc iwkv_cursor_copy_key(IWKV_cursor cur, void *kbuf, size_t kbufsz, size_t *ksz, int64_t *compound);
+IW_EXPORT iwrc iwkv_cursor_copy_key(struct iwkv_cursor *cur, void *kbuf, size_t kbufsz, size_t *ksz, int64_t *compound);
 
-IW_EXPORT iwrc iwkv_cursor_is_matched_key(IWKV_cursor cur, const IWKV_val *key, bool *ores, int64_t *ocompound);
+IW_EXPORT iwrc iwkv_cursor_is_matched_key(
+  struct iwkv_cursor    *cur,
+  const struct iwkv_val *key,
+  bool                  *ores,
+  int64_t               *ocompound);
 
 /**
  * @brief Set record value at current cursor position.
@@ -486,23 +500,23 @@ IW_EXPORT iwrc iwkv_cursor_is_matched_key(IWKV_cursor cur, const IWKV_val *key, 
  * @param val Value holder
  * @param opflags Update value mode
  */
-IW_EXPORT iwrc iwkv_cursor_set(IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags);
+IW_EXPORT iwrc iwkv_cursor_set(struct iwkv_cursor *cur, struct iwkv_val *val, iwkv_opflags opflags);
 
 IW_EXPORT iwrc iwkv_cursor_seth(
-  IWKV_cursor cur, IWKV_val *val, iwkv_opflags opflags,
+  struct iwkv_cursor *cur, struct iwkv_val *val, iwkv_opflags opflags,
   IWKV_PUT_HANDLER ph, void *phop);
 
 /**
  * @brief Remove record value at current cursor position.
  * @param cur Opened cursor object
  */
-IW_EXPORT iwrc iwkv_cursor_del(IWKV_cursor cur, iwkv_opflags opflags);
+IW_EXPORT iwrc iwkv_cursor_del(struct iwkv_cursor *cur, iwkv_opflags opflags);
 
 /**
  * @brief Close cursor object.
  * @param cur Opened cursor
  */
-IW_EXPORT iwrc iwkv_cursor_close(IWKV_cursor *cur);
+IW_EXPORT iwrc iwkv_cursor_close(struct iwkv_cursor **cur);
 
 /**
  * Creates an online database backup image and copies it into the specified `target_file`.
@@ -520,7 +534,7 @@ IW_EXPORT iwrc iwkv_cursor_close(IWKV_cursor *cur);
  * @param [out] ts Backup completion timestamp
  * @param target_file backup file path
  */
-IW_EXPORT iwrc iwkv_online_backup(IWKV iwkv, uint64_t *ts, const char *target_file);
+IW_EXPORT iwrc iwkv_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file);
 
 /**
  * @brief Get database file status info.
@@ -530,7 +544,7 @@ IW_EXPORT iwrc iwkv_online_backup(IWKV iwkv, uint64_t *ts, const char *target_fi
  * @param db Database handler
  * @param [out] out IWFS_FSM_STATE placeholder iwkv file state
  */
-IW_EXPORT iwrc iwkv_state(IWKV iwkv, IWFS_FSM_STATE *out);
+IW_EXPORT iwrc iwkv_state(struct iwkv *iwkv, IWFS_FSM_STATE *out);
 
 // Do not print random levels of skiplist blocks
 #define IWKVD_PRINT_NO_LEVEVELS 0x1
@@ -538,7 +552,7 @@ IW_EXPORT iwrc iwkv_state(IWKV iwkv, IWFS_FSM_STATE *out);
 // Print record values
 #define IWKVD_PRINT_VALS 0x2
 
-void iwkvd_db(FILE *f, IWDB db, int flags, int plvl);
+void iwkvd_db(FILE *f, struct iwdb *db, int flags, int plvl);
 
 IW_EXTERN_C_END
 

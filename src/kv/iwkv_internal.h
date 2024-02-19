@@ -22,16 +22,16 @@
 #include "pthread_spin_lock_shim.h"
 #endif
 
-// IWKV magic number
+// struct iwkv* magic number
 #define IWKV_MAGIC 0x69776b76U
 
-// IWKV backup magic number
+// struct iwkv* backup magic number
 #define IWKV_BACKUP_MAGIC 0xBACBAC69U
 
-// IWKV file format version
+// struct iwkv* file format version
 #define IWKV_FORMAT 2U
 
-// IWDB magic number
+// struct iwdb* magic number
 #define IWDB_MAGIC 0x69776462U
 
 #ifdef IW_32
@@ -76,13 +76,13 @@
 // Data format version: v2
 #define SBLK_PAGE_SZ_V2 (SBLK_PAGE_SBLK_NUM_V2 * SBLK_SZ)
 
-// Number of `KV` blocks in KVBLK
+// Number of `KV` blocks in struct kvblk
 #define KVBLK_IDXNUM 32U
 
-// Initial `KVBLK` size power of 2
+// Initial `struct kvblk` size power of 2
 #define KVBLK_INISZPOW 9U
 
-// KVBLK header size: blen:u1,idxsz:u2
+// struct kvblk header size: blen:u1,idxsz:u2
 #define KVBLK_HDRSZ 3U
 
 // Max kvp offset bytes
@@ -100,30 +100,34 @@
 
 #define BLK2ADDR(blk_) (((uint64_t) (blk_)) << IWKV_FSM_BPOW)
 
-struct _IWKV;
-struct _IWDB;
+struct iwkv;
+struct iwdb;
 
 typedef uint32_t blkn_t;
 typedef uint32_t dbid_t;
 
-/* Key/Value pair stored in `KVBLK` */
-typedef struct KV {
+/* Key/Value pair stored in `struct kvblk` */
+struct kv {
   size_t   keysz;
   size_t   valsz;
   uint8_t *key;
   uint8_t *val;
-} KV;
+};
+
+typedef struct kv KV;
 
 /* Ket/Value (KV) index: Offset and length. */
-typedef struct KVP {
-  off_t    off;   /**< KV block offset relative to `end` of KVBLK */
+struct kvp {
+  off_t    off;   /**< KV block offset relative to `end` of struct kvblk */
   uint32_t len;   /**< Length of kv pair block */
-  uint8_t  ridx;  /**< Position of the actually persisted slot in `KVBLK` */
-} KVP;
+  uint8_t  ridx;  /**< Position of the actually persisted slot in `struct kvblk` */
+};
+
+typedef struct kvp KVP;
 
 typedef uint8_t kvblk_flags_t;
 #define KVBLK_DEFAULT ((kvblk_flags_t) 0x00U)
-/** KVBLK data is durty and should be flushed to mm */
+/** struct kvblk data is durty and should be flushed to mm */
 #define KVBLK_DURTY ((kvblk_flags_t) 0x01U)
 
 typedef uint8_t kvblk_rmkv_opts_t;
@@ -144,9 +148,9 @@ typedef uint8_t iwlctx_op_t;
 /** Delete key operation */
 #define IWLCTX_DEL ((iwlctx_op_t) 0x02U)
 
-/* KVBLK: [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] */
-typedef struct KVBLK {
-  IWDB     db;
+/* struct kvblk: [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] */
+struct kvblk {
+  struct iwdb *db;
   off_t    addr;              /**< Block address */
   off_t    maxoff;            /**< Max pair offset */
   uint16_t idxsz;             /**< Size of KV pairs index in bytes */
@@ -154,199 +158,205 @@ typedef struct KVBLK {
   uint8_t  szpow;             /**< Block size as power of 2 */
   kvblk_flags_t flags;        /**< Flags */
   KVP pidx[KVBLK_IDXNUM];     /**< KV pairs index */
-} KVBLK;
+};
+
+typedef struct kvblk KVBLK;
 
 #define SBLK_PERSISTENT_FLAGS (SBLK_FULL_LKEY)
 #define SBLK_CACHE_FLAGS      (SBLK_CACHE_UPDATE | SBLK_CACHE_PUT | SBLK_CACHE_REMOVE)
 
-struct _IWKV_cursor;
+struct iwkv_cursor;
 
 /* Database: [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4]:209 */
-struct _IWDB {
+struct iwdb {
   // SBH
-  IWDB  db;                       /**< Database ref */
+  struct iwdb *db;                /**< Database ref */
   off_t addr;                     /**< Database block address */
   sblk_flags_t flags;             /**< Flags */
   // !SBH
-  IWKV iwkv;
+  struct iwkv       *iwkv;
   pthread_rwlock_t   rwl;             /**< Database API RW lock */
   pthread_spinlock_t cursors_slk;     /**< Cursors set guard lock */
-  off_t next_db_addr;                 /**< Next IWDB addr */
-  struct _IWKV_cursor *cursors;       /**< Active (currently in-use) database cursors */
-  struct _IWDB *next;                 /**< Next IWDB meta */
-  struct _IWDB *prev;                 /**< Prev IWDB meta */
-  dbid_t id;                          /**< Database ID */
+  off_t next_db_addr;                 /**< Next struct iwdb* addr */
+  struct iwkv_cursor *cursors;        /**< Active (currently in-use) database cursors */
+  struct iwdb *next;                  /**< Next struct iwdb* meta */
+  struct iwdb *prev;                  /**< Prev struct iwdb* meta */
+  dbid_t       id;                    /**< Database ID */
   volatile int32_t wk_count;          /**< Number of active database workers */
   blkn_t       meta_blk;              /**< Database meta block number */
   blkn_t       meta_blkn;             /**< Database meta length (number of blocks) */
   iwdb_flags_t dbflg;                 /**< Database specific flags */
   atomic_bool  open;                  /**< True if DB is in OPEN state */
-  volatile bool wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWDB */
+  volatile bool wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on struct iwdb* */
   uint32_t      lcnt[SLEVELS];        /**< SBLK count per level */
 };
 
 /* Skiplist block: [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256 // SBLK */
-typedef struct SBLK {
+struct sblk {
   // SBH
-  IWDB  db;                   /**< Database ref */
+  struct iwdb *db;            /**< Database ref */
   off_t addr;                 /**< Block address */
   sblk_flags_t flags;         /**< Flags */
   uint8_t      lvl;           /**< Skip list node level */
   uint8_t      bpos;          /**< Position of SBLK in a page block starting with 1 (zero means SBLK deleted) */
-  blkn_t       p0;            /**< Prev node, if IWDB it is the last node */
+  blkn_t       p0;            /**< Prev node, if struct iwdb* it is the last node */
   blkn_t       n[SLEVELS];    /**< Next nodes */
   // !SBH
-  KVBLK  *kvblk;                 /**< Associated KVBLK */
-  blkn_t  kvblkn;                /**< Associated KVBLK block number */
-  int8_t  pnum;                  /**< Number of active kv indexes in `SBLK::pi` */
-  uint8_t lkl;                   /**< Lower key length within a buffer */
-  uint8_t pi[KVBLK_IDXNUM];      /**< Sorted KV slots, value is an index of kv slot in `KVBLK` */
+  struct kvblk *kvblk;               /**< Associated struct kvblk */
+  blkn_t  kvblkn;                    /**< Associated struct kvblk block number */
+  int8_t  pnum;                      /**< Number of active kv indexes in `SBLK::pi` */
+  uint8_t lkl;                       /**< Lower key length within a buffer */
+  uint8_t pi[KVBLK_IDXNUM];          /**< Sorted KV slots, value is an index of kv slot in `struct kvblk` */
   uint8_t lk[PREFIX_KEY_LEN_V2 + 1]; /**< Lower key buffer */
-} SBLK;
+};
 
-/** IWKV instance */
-struct _IWKV {
+typedef struct sblk SBLK;
+
+/** struct iwkv* instance */
+struct iwkv {
   IWFS_FSM fsm;                          /**< FSM pool */
   pthread_rwlock_t rwl;                  /**< API RW lock */
-  iwrc     fatalrc;                      /**< Fatal error occuried, no farther operations can be performed */
-  IWDB     first_db;                     /**< First database in chain */
-  IWDB     last_db;                      /**< Last database in chain */
-  IWDLSNR *dlsnr;                        /**< WAL data events listener */
-  IWHMAP  *dbs;                          /**< Database id -> IWDB mapping */
-  iwkv_openflags  oflags;                /**< Open flags */
-  pthread_cond_t  wk_cond;               /**< Workers cond variable */
+  iwrc fatalrc;                          /**< Fatal error occuried, no farther operations can be performed */
+  struct iwdb   *first_db;               /**< First database in chain */
+  struct iwdb   *last_db;                /**< Last database in chain */
+  struct iwhmap *dbs;                    /**< Database id -> struct iwdb* mapping */
+  IWDLSNR       *dlsnr;                  /**< WAL data events listener */
+  iwkv_openflags oflags;                 /**< Open flags */
+  pthread_cond_t wk_cond;                /**< Workers cond variable */
   pthread_mutex_t wk_mtx;                /**< Workers cond mutext */
   int32_t fmt_version;                   /**< Database format version */
   volatile int32_t wk_count;             /**< Number of active workers */
-  volatile bool    wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on IWKV */
+  volatile bool    wk_pending_exclusive; /**< If true someone wants to acquire exclusive lock on struct iwkv* */
   volatile bool    open;                 /**< True if kvstore is in the operable state */
 };
 
 /** Database lookup context */
-typedef struct IWLCTX {
-  IWDB db;
-  const IWKV_val *key;        /**< Search key */
-  IWKV_val       *val;        /**< Update value */
-  SBLK *lower;                /**< Next to upper bound block */
-  SBLK *upper;                /**< Upper bound block */
-  SBLK *nb;                   /**< New block */
+struct iwlctx {
+  struct iwdb *db;
+  const struct iwkv_val *key; /**< Search key */
+  struct iwkv_val       *val; /**< Update value */
+  struct sblk *lower;         /**< Next to upper bound block */
+  struct sblk *upper;         /**< Upper bound block */
+  struct sblk *nb;            /**< New block */
   off_t destroy_addr;         /**< Block to destroy address */
   off_t upper_addr;           /**< Upper block address used in `_lx_del_lr()` */
 #ifndef NDEBUG
   uint32_t num_cmps;
 #endif
-  iwkv_opflags opflags;       /**< Operation flags */
-  sblk_flags_t sbflags;       /**< `SBLK` flags applied to all new/looked blocks in this context */
-  iwlctx_op_t  op;            /**< Context operation */
-  uint8_t      saan;          /**< Position of next free `SBLK` element in the `saa` area */
-  uint8_t      kaan;          /**< Position of next free `KVBLK` element in the `kaa` area */
-  int8_t       nlvl;          /**< Level of new inserted/deleted `SBLK` node. -1 if no new node inserted/deleted */
-  IWKV_PUT_HANDLER ph;        /**< Optional put handler */
-  void    *phop;              /**< Put handler opaque data */
-  SBLK    *plower[SLEVELS];   /**< Pinned lower nodes per level */
-  SBLK    *pupper[SLEVELS];   /**< Pinned upper nodes per level */
-  IWKV_val ekey;
-  SBLK     dblk;              /**< First database block */
-  SBLK     saa[AANUM];        /**< `SBLK` allocation area */
-  KVBLK    kaa[AANUM];        /**< `KVBLK` allocation area */
-  uint8_t  nbuf[IW_VNUMBUFSZ];
-  uint8_t  incbuf[8];         /**< Buffer used to store incremented/decremented values `IWKV_VAL_INCREMENT` opflag */
-} IWLCTX;
-
-/** Cursor context */
-struct _IWKV_cursor {
-  uint8_t cnpos;              /**< Position in the current `SBLK` node */
-  bool    closed;             /**< Cursor closed */
-  int8_t  skip_next;          /**< When to skip next IWKV_CURSOR_NEXT|IWKV_CURSOR_PREV cursor move
-                                   due to the side effect of `iwkv_cursor_del()` call.
-                                   If `skip_next > 0` `IWKV_CURSOR_NEXT` will be skipped
-                                   If `skip_next < 0` `IWKV_CURSOR_PREV` will be skipped */
-  SBLK *cn;                   /**< Current `SBLK` node */
-  struct _IWKV_cursor *next;  /**< Next cursor in active db cursors chain */
-  off_t  dbaddr;              /**< Database address used as `cn` */
-  IWLCTX lx;                  /**< Lookup context */
+  iwkv_opflags opflags;            /**< Operation flags */
+  sblk_flags_t sbflags;            /**< `SBLK` flags applied to all new/looked blocks in this context */
+  iwlctx_op_t  op;                 /**< Context operation */
+  uint8_t      saan;               /**< Position of next free `SBLK` element in the `saa` area */
+  uint8_t      kaan;               /**< Position of next free `struct kvblk` element in the `kaa` area */
+  int8_t       nlvl;               /**< Level of new inserted/deleted `SBLK` node. -1 if no new node inserted/deleted */
+  IWKV_PUT_HANDLER ph;             /**< Optional put handler */
+  void *phop;                      /**< Put handler opaque data */
+  struct sblk    *plower[SLEVELS]; /**< Pinned lower nodes per level */
+  struct sblk    *pupper[SLEVELS]; /**< Pinned upper nodes per level */
+  struct iwkv_val ekey;
+  struct sblk     dblk;       /**< First database block */
+  struct sblk     saa[AANUM]; /**< `SBLK` allocation area */
+  struct kvblk    kaa[AANUM]; /**< `struct kvblk` allocation area */
+  uint8_t nbuf[IW_VNUMBUFSZ];
+  uint8_t incbuf[8];          /**< Buffer used to store incremented/decremented values `IWKV_VAL_INCREMENT` opflag */
 };
 
-#define ENSURE_OPEN(iwkv_) \
-  if (!(iwkv_) || !((iwkv_)->open)) return IW_ERROR_INVALID_STATE; \
-  if ((iwkv_)->fatalrc) return (iwkv_)->fatalrc
+typedef struct iwlctx IWLCTX;
+
+/** Cursor context */
+struct iwkv_cursor {
+  uint8_t cnpos;             /**< Position in the current `SBLK` node */
+  bool    closed;            /**< Cursor closed */
+  int8_t  skip_next;         /**< When to skip next IWKV_CURSOR_NEXT|IWKV_CURSOR_PREV cursor move
+                                  due to the side effect of `iwkv_cursor_del()` call.
+                                  If `skip_next > 0` `IWKV_CURSOR_NEXT` will be skipped
+                                  If `skip_next < 0` `IWKV_CURSOR_PREV` will be skipped */
+  struct sblk *cn;           /**< Current `SBLK` node */
+  struct iwkv_cursor *next;  /**< Next cursor in active db cursors chain */
+  struct iwlctx lx;                 /**< Lookup context */
+  off_t  dbaddr;             /**< Database address used as `cn` */
+};
+
+#define ENSURE_OPEN(iwkv_)                                               \
+        if (!(iwkv_) || !((iwkv_)->open)) return IW_ERROR_INVALID_STATE; \
+        if ((iwkv_)->fatalrc) return (iwkv_)->fatalrc
 
 #define ENSURE_OPEN_DB(db_) \
-  if (!(db_) || !(db_)->iwkv || !(db_)->open || !((db_)->iwkv->open)) return IW_ERROR_INVALID_STATE
+        if (!(db_) || !(db_)->iwkv || !(db_)->open || !((db_)->iwkv->open)) return IW_ERROR_INVALID_STATE
 
-#define API_RLOCK(iwkv_, rci_) \
-  ENSURE_OPEN(iwkv_);  \
-  (rci_) = pthread_rwlock_rdlock(&(iwkv_)->rwl); \
-  if (rci_) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_)
+#define API_RLOCK(iwkv_, rci_)                         \
+        ENSURE_OPEN(iwkv_);                            \
+        (rci_) = pthread_rwlock_rdlock(&(iwkv_)->rwl); \
+        if (rci_) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_)
 
-IW_INLINE iwrc _api_rlock(IWKV iwkv) {
+IW_INLINE iwrc _api_rlock(struct iwkv *iwkv) {
   int rci;
   API_RLOCK(iwkv, rci);
   return 0;
 }
 
-#define API_WLOCK(iwkv_, rci_) \
-  ENSURE_OPEN(iwkv_);  \
-  (rci_) = pthread_rwlock_wrlock(&(iwkv_)->rwl); \
-  if (rci_) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_)
+#define API_WLOCK(iwkv_, rci_)                         \
+        ENSURE_OPEN(iwkv_);                            \
+        (rci_) = pthread_rwlock_wrlock(&(iwkv_)->rwl); \
+        if (rci_) return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_)
 
-IW_INLINE iwrc _api_wlock(IWKV iwkv) {
+IW_INLINE iwrc _api_wlock(struct iwkv *iwkv) {
   int rci;
   API_WLOCK(iwkv, rci);
   return 0;
 }
 
-#define API_UNLOCK(iwkv_, rci_, rc_)  \
-  rci_ = pthread_rwlock_unlock(&(iwkv_)->rwl); \
-  if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_)
+#define API_UNLOCK(iwkv_, rci_, rc_)                 \
+        rci_ = pthread_rwlock_unlock(&(iwkv_)->rwl); \
+        if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_)
 
-#define API_DB_RLOCK(db_, rci_)                               \
-  do {                                                        \
-    API_RLOCK((db_)->iwkv, rci_);                             \
-    (rci_) = pthread_rwlock_rdlock(&(db_)->rwl);                \
-    if (rci_) {                                               \
-      pthread_rwlock_unlock(&(db_)->iwkv->rwl);               \
-      return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_);  \
-    }                                                         \
-  } while (0)
+#define API_DB_RLOCK(db_, rci_)                                    \
+        do {                                                       \
+          API_RLOCK((db_)->iwkv, rci_);                            \
+          (rci_) = pthread_rwlock_rdlock(&(db_)->rwl);             \
+          if (rci_) {                                              \
+            pthread_rwlock_unlock(&(db_)->iwkv->rwl);              \
+            return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_); \
+          }                                                        \
+        } while (0)
 
-IW_INLINE iwrc _api_db_rlock(IWDB db) {
+IW_INLINE iwrc _api_db_rlock(struct iwdb *db) {
   int rci;
   API_DB_RLOCK(db, rci);
   return 0;
 }
 
-#define API_DB_WLOCK(db_, rci_)                               \
-  do {                                                        \
-    API_RLOCK((db_)->iwkv, rci_);                             \
-    (rci_) = pthread_rwlock_wrlock(&(db_)->rwl);                \
-    if (rci_) {                                               \
-      pthread_rwlock_unlock(&(db_)->iwkv->rwl);               \
-      return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_);  \
-    }                                                         \
-  } while (0)
+#define API_DB_WLOCK(db_, rci_)                                    \
+        do {                                                       \
+          API_RLOCK((db_)->iwkv, rci_);                            \
+          (rci_) = pthread_rwlock_wrlock(&(db_)->rwl);             \
+          if (rci_) {                                              \
+            pthread_rwlock_unlock(&(db_)->iwkv->rwl);              \
+            return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_); \
+          }                                                        \
+        } while (0)
 
-IW_INLINE iwrc _api_db_wlock(IWDB db) {
+IW_INLINE iwrc _api_db_wlock(struct iwdb *db) {
   int rci;
   API_DB_WLOCK(db, rci);
   return 0;
 }
 
-#define API_DB_UNLOCK(db_, rci_, rc_)                                     \
-  do {                                                                    \
-    (rci_) = pthread_rwlock_unlock(&(db_)->rwl);                            \
-    if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_);  \
-    API_UNLOCK((db_)->iwkv, rci_, rc_);                                   \
-  } while (0)
+#define API_DB_UNLOCK(db_, rci_, rc_)                                          \
+        do {                                                                   \
+          (rci_) = pthread_rwlock_unlock(&(db_)->rwl);                         \
+          if (rci_) IWRC(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci_), rc_); \
+          API_UNLOCK((db_)->iwkv, rci_, rc_);                                  \
+        } while (0)
 
-#define AAPOS_INC(aan_)         \
-  do {                          \
-    if ((aan_) < AANUM - 1) {   \
-      (aan_) = (aan_) + 1;      \
-    } else {                    \
-      (aan_) = 0;               \
-    }                           \
-  } while (0)
+#define AAPOS_INC(aan_)             \
+        do {                        \
+          if ((aan_) < AANUM - 1) { \
+            (aan_) = (aan_) + 1;    \
+          } else {                  \
+            (aan_) = 0;             \
+          }                         \
+        } while (0)
 
 
 // SBLK
@@ -382,17 +392,17 @@ static_assert(SBLK_SZ >= SOFF_END, "SBLK_SZ >= SOFF_END");
 static_assert(DOFF_END == 217, "DOFF_END == 217");
 static_assert(DB_SZ >= DOFF_END, "DB_SZ >= DOFF_END");
 
-// KVBLK
-// [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps32,pl32]____[[_KV],...]] // KVBLK
+// struct kvblk
+// [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps32,pl32]____[[_KV],...]] // struct kvblk
 #define KBLK_SZPOW_OFF 0
 
 
-iwrc iwkv_exclusive_lock(IWKV iwkv);
-iwrc iwkv_exclusive_unlock(IWKV iwkv);
+iwrc iwkv_exclusive_lock(struct iwkv *iwkv);
+iwrc iwkv_exclusive_unlock(struct iwkv *iwkv);
 void iwkvd_trigger_xor(uint64_t val);
-void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen);
-iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags);
-void iwkvd_db(FILE *f, IWDB db, int flags, int plvl);
+void iwkvd_kvblk(FILE *f, struct kvblk *kb, int maxvlen);
+iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, struct sblk *sb, int flags);
+void iwkvd_db(FILE *f, struct iwdb *db, int flags, int plvl);
 
 // IWKVD Trigger commands
 #ifdef IW_TESTS
