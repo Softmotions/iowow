@@ -313,7 +313,7 @@ finish:
   return rc;
 }
 
-iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc) {
+iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t *out) {
   iwrc rc = 0;
   if (!reg || !reg->root || !key) {
     return IW_ERROR_INVALID_ARGS;
@@ -345,6 +345,9 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc) {
     nn->type = JBV_I64;
   }
   nn->vi64 += inc;
+  if (*out) {
+    *out = nn->vi64;
+  }
   reg->dirty = true;
 
 finish:
