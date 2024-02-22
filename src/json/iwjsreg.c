@@ -80,7 +80,7 @@ iwrc iwjsreg_open(struct iwjsreg_spec *spec, struct iwjsreg **out) {
   RCN(finish, pthread_rwlock_init(&reg->_rwl, 0));
   reg->rwl = &reg->_rwl;
   RCB(finish, reg->path = iwpool_strdup2(pool, spec->path));
-  RCB(finish, reg->path_tmp = iwpool_printf(pool, ".%s.tmp", spec->path));
+  RCB(finish, reg->path_tmp = iwpool_printf(pool, "%s.tmp", spec->path));
 
   rc = _load(reg);
   if (rc) {
