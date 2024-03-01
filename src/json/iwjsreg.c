@@ -38,7 +38,7 @@ static void _destroy(void *op) {
   if (reg->root) {
     jbn_visit2(reg->root, 0, _destroy_visitor);
   }
-  if (reg->rwl) {
+  if (reg->rwl == &reg->_rwl) {
     pthread_rwlock_destroy(reg->rwl);
   }
   iwpool_destroy(reg->pool);
@@ -77,8 +77,14 @@ iwrc iwjsreg_open(struct iwjsreg_spec *spec, struct iwjsreg **out) {
   reg->pool = pool;
   iwref_init(&reg->ref, reg, _destroy);
   reg->flags = spec->flags;
-  RCN(finish, pthread_rwlock_init(&reg->_rwl, 0));
-  reg->rwl = &reg->_rwl;
+
+  if (spec->rwl) {
+    reg->rwl = spec->rwl;
+  } else {
+    RCN(finish, pthread_rwlock_init(&reg->_rwl, 0));
+    reg->rwl = &reg->_rwl;
+  }
+
   RCB(finish, reg->path = iwpool_strdup2(pool, spec->path));
   RCB(finish, reg->path_tmp = iwpool_printf(pool, "%s.tmp", spec->path));
 

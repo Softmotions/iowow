@@ -29,6 +29,7 @@
  *************************************************************************************************/
 
 #include "basedefs.h"
+#include <pthread.h>
 
 IW_EXTERN_C_START
 
@@ -38,8 +39,10 @@ IW_EXTERN_C_START
 
 struct iwjsreg;
 struct iwjsreg_spec {
-  const char *path;
-  unsigned    flags;
+  const char       *path;
+  pthread_rwlock_t *rwl; ///< Optional RWL used for locking (Useful for shared-mem interprocess locks)
+                         ///  If not set, and internal in-process pthread_rwlock_t will be created.
+  unsigned flags;
 };
 
 IW_EXPORT iwrc iwjsreg_open(struct iwjsreg_spec *spec, struct iwjsreg **out);
