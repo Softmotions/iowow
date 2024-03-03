@@ -28,12 +28,12 @@
 #include "iwcfg.h"
 #include "log/iwlog.h"
 #include "platform/iwp.h"
-#include "utils/iwutils.h"
 
 #include <time.h>
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <ftw.h>
@@ -135,8 +135,11 @@ iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode) {
   if (lmode == IWP_NOLOCK) {
     return 0;
   }
-  struct flock lock = { .l_type = (lmode & IWP_WLOCK) ? F_WRLCK : F_RDLCK, .l_whence = SEEK_SET };
-  while (fcntl(fh, (lmode & IWP_NBLOCK) ? F_SETLK : F_SETLKW, &lock) == -1) {
+  int lf = (lmode & IWP_WLOCK) ? LOCK_EX : LOCK_SH;
+  if (lmode & IWP_NBLOCK) {
+    lf |= LOCK_NB;
+  }
+  while (flock(fh, lf) == -1) {
     if (errno != EINTR) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
@@ -149,7 +152,7 @@ iwrc iwp_unlock(HANDLE fh) {
     return IW_ERROR_INVALID_HANDLE;
   }
   struct flock lock = { .l_type = F_UNLCK, .l_whence = SEEK_SET };
-  while (fcntl(fh, F_SETLKW, &lock) == -1) {
+  while (flock(fh, LOCK_UN) == -1) {
     if (errno != EINTR) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
@@ -284,9 +287,9 @@ iwrc iwp_ftruncate(HANDLE fh, off_t len) {
 iwrc iwp_fallocate(HANDLE fh, off_t len) {
 #if defined(__APPLE__)
   fstore_t fstore = {
-    .fst_flags   = F_ALLOCATECONTIG,
+    .fst_flags = F_ALLOCATECONTIG,
     .fst_posmode = F_PEOFPOSMODE,
-    .fst_length  = len
+    .fst_length = len
   };
   fcntl(fh, F_PREALLOCATE, &fstore);
 #endif

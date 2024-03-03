@@ -1,5 +1,6 @@
 iowow (1.4.18) UNRELEASED; urgency=medium
 
+  * Chore: iwp_{lock,unlock} fcnt replaced by more convenient and reliable flock()
   * Added iwxstr_printf_alloc() (iwxstr.h)
   * Copyright updated
   * Added new iwjsreg.h module - simple JSON key-value file store with atomic
