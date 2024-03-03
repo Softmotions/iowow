@@ -132,9 +132,6 @@ iwrc iwp_flock(HANDLE fh, iwp_lockmode lmode) {
   if (INVALIDHANDLE(fh)) {
     return IW_ERROR_INVALID_HANDLE;
   }
-  if (lmode == IWP_NOLOCK) {
-    return 0;
-  }
   int lf = (lmode & IWP_WLOCK) ? LOCK_EX : LOCK_SH;
   if (lmode & IWP_NBLOCK) {
     lf |= LOCK_NB;
@@ -151,7 +148,6 @@ iwrc iwp_unlock(HANDLE fh) {
   if (INVALIDHANDLE(fh)) {
     return IW_ERROR_INVALID_HANDLE;
   }
-  struct flock lock = { .l_type = F_UNLCK, .l_whence = SEEK_SET };
   while (flock(fh, LOCK_UN) == -1) {
     if (errno != EINTR) {
       return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
