@@ -18,9 +18,40 @@ struct iwjsreg {
   pthread_rwlock_t   *rwl;
   pthread_rwlock_t    _rwl;
   struct iwref_holder ref;
+  iwrc     (*rlock_fn)(void*);
+  iwrc     (*wlock_fn)(void*);
+  iwrc     (*unlock_fn)(void*);
+  void    *fn_data;
   unsigned flags;
   bool     dirty;
 };
+
+static iwrc _rlock(void *d) {
+  struct iwjsreg *reg = d;
+  int rci = pthread_rwlock_rdlock(reg->rwl);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  return 0;
+}
+
+static iwrc _wlock(void *d) {
+  struct iwjsreg *reg = d;
+  int rci = pthread_rwlock_wrlock(reg->rwl);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  return 0;
+}
+
+static iwrc _unlock(void *d) {
+  struct iwjsreg *reg = d;
+  int rci = pthread_rwlock_unlock(reg->rwl);
+  if (rci) {
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  return 0;
+}
 
 static iwrc _destroy_visitor(int lvl, JBL_NODE n) {
   if (n->key) {
@@ -72,17 +103,29 @@ iwrc iwjsreg_open(struct iwjsreg_spec *spec, struct iwjsreg **out) {
   }
   struct iwpool *pool;
   struct iwjsreg *reg = 0;
+
   RCB(finish, pool = iwpool_create_empty());
   RCB(finish, reg = iwpool_calloc(sizeof(*reg), pool));
   reg->pool = pool;
   iwref_init(&reg->ref, reg, _destroy);
   reg->flags = spec->flags;
 
-  if (spec->rwl) {
-    reg->rwl = spec->rwl;
+  if (spec->wlock_fn && spec->rlock_fn && spec->unlock_fn) {
+    reg->wlock_fn = spec->wlock_fn;
+    reg->rlock_fn = spec->rlock_fn;
+    reg->unlock_fn = spec->unlock_fn;
+    reg->fn_data = spec->fn_data;
   } else {
-    RCN(finish, pthread_rwlock_init(&reg->_rwl, 0));
-    reg->rwl = &reg->_rwl;
+    if (spec->rwl) {
+      reg->rwl = spec->rwl;
+    } else {
+      RCN(finish, pthread_rwlock_init(&reg->_rwl, 0));
+      reg->rwl = &reg->_rwl;
+    }
+    reg->wlock_fn = _wlock;
+    reg->rlock_fn = _rlock;
+    reg->unlock_fn = _unlock;
+    reg->fn_data = reg;
   }
 
   RCB(finish, reg->path = iwpool_strdup2(pool, spec->path));
@@ -120,17 +163,18 @@ iwrc iwjsreg_sync(struct iwjsreg *reg) {
 
   iwrc rc = 0;
   JBL jbl = 0;
+  FILE *file = 0;
 
+  RCRET(reg->wlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_wrlock(reg->rwl);
 
   if (!reg->dirty) {
+    rc = reg->unlock_fn(reg->fn_data);
     iwref_unref(&reg->ref);
-    pthread_rwlock_unlock(reg->rwl);
-    return 0;
+    return rc;
   }
 
-  FILE *file = fopen(reg->path_tmp, "w");
+  file = fopen(reg->path_tmp, "w");
   if (!file) {
     rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);
     goto finish;
@@ -157,7 +201,7 @@ iwrc iwjsreg_sync(struct iwjsreg *reg) {
   reg->dirty = false;
 
 finish:
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   iwref_unref(&reg->ref);
 
   if (jbl) {
@@ -192,8 +236,8 @@ iwrc iwjsreg_remove(struct iwjsreg *reg, const char *key) {
     return IW_ERROR_INVALID_ARGS;
   }
 
+  RCRET(reg->wlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_wrlock(reg->rwl);
 
   for (JBL_NODE n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
@@ -208,9 +252,8 @@ iwrc iwjsreg_remove(struct iwjsreg *reg, const char *key) {
     }
   }
 
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   iwref_unref(&reg->ref);
-
   return rc;
 }
 
@@ -222,8 +265,8 @@ iwrc iwjsreg_set_str(struct iwjsreg *reg, const char *key, const char *value) {
   JBL_NODE nn = 0;
   char *nkey = 0, *nvalue = 0;
 
+  RCRET(reg->wlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_wrlock(reg->rwl);
 
   for (JBL_NODE n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
@@ -260,7 +303,7 @@ finish:
     }
   }
 
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
@@ -276,8 +319,8 @@ iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
   JBL_NODE nn = 0;
   char *nkey = 0;
 
+  RCRET(reg->wlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_wrlock(reg->rwl);
 
   for (JBL_NODE n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
@@ -311,7 +354,7 @@ finish:
     }
   }
 
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
@@ -327,8 +370,8 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t 
   JBL_NODE nn = 0;
   char *nkey = 0;
 
+  RCRET(reg->wlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_wrlock(reg->rwl);
 
   for (JBL_NODE n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
@@ -367,7 +410,7 @@ finish:
     }
   }
 
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
@@ -383,8 +426,8 @@ iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value) {
   JBL_NODE nn = 0;
   char *nkey = 0;
 
+  RCRET(reg->wlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_wrlock(reg->rwl);
 
   for (JBL_NODE n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
@@ -418,7 +461,7 @@ finish:
     }
   }
 
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
@@ -433,8 +476,8 @@ iwrc iwjsreg_get_str(struct iwjsreg *reg, const char *key, char **out) {
   }
   bool found = false;
   *out = 0;
+  RCRET(reg->rlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_rdlock(reg->rwl);
   for (JBL_NODE n = reg->root->child; n; n = n->next) {
     if (n->key && strcmp(n->key, key) == 0) {
       if (n->type == JBV_STR) {
@@ -444,7 +487,7 @@ iwrc iwjsreg_get_str(struct iwjsreg *reg, const char *key, char **out) {
       }
     }
   }
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   iwref_unref(&reg->ref);
   if (!rc && !found) {
     rc = IW_ERROR_NOT_EXISTS;
@@ -459,8 +502,8 @@ iwrc iwjsreg_get_i64(struct iwjsreg *reg, const char *key, int64_t *out) {
   }
   bool found = false;
   *out = 0;
+  RCRET(reg->rlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_rdlock(reg->rwl);
   for (JBL_NODE n = reg->root->child; n; n = n->next) {
     if (n->key && strcmp(n->key, key) == 0) {
       if (n->type == JBV_I64) {
@@ -470,7 +513,7 @@ iwrc iwjsreg_get_i64(struct iwjsreg *reg, const char *key, int64_t *out) {
       }
     }
   }
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   iwref_unref(&reg->ref);
   if (!rc && !found) {
     rc = IW_ERROR_NOT_EXISTS;
@@ -485,8 +528,8 @@ iwrc iwjsreg_get_bool(struct iwjsreg *reg, const char *key, bool *out) {
   }
   bool found = false;
   *out = 0;
+  RCRET(reg->rlock_fn(reg->fn_data));
   iwref_ref(&reg->ref);
-  pthread_rwlock_rdlock(reg->rwl);
   for (JBL_NODE n = reg->root->child; n; n = n->next) {
     if (n->key && strcmp(n->key, key) == 0) {
       if (n->type == JBV_BOOL) {
@@ -496,7 +539,7 @@ iwrc iwjsreg_get_bool(struct iwjsreg *reg, const char *key, bool *out) {
       }
     }
   }
-  pthread_rwlock_unlock(reg->rwl);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   iwref_unref(&reg->ref);
   if (!rc && !found) {
     rc = IW_ERROR_NOT_EXISTS;

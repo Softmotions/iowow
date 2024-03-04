@@ -40,8 +40,11 @@ IW_EXTERN_C_START
 struct iwjsreg;
 struct iwjsreg_spec {
   const char       *path;
-  pthread_rwlock_t *rwl; ///< Optional RWL used for locking (Useful for shared-mem interprocess locks)
-                         ///  If not set, and internal in-process pthread_rwlock_t will be created.
+  pthread_rwlock_t *rwl;        ///< Optional RWL provided for locking.
+  iwrc     (*wlock_fn)(void*);  ///< Optional exclusive write lock function to set read/write registry lock.
+  iwrc     (*rlock_fn)(void*);  ///< Optional shared read lock function to set the lock.
+  iwrc     (*unlock_fn)(void*); ///< Optional unlock function releasing the lock
+  void    *fn_data;             ///< Arbitrary user data used in wlock_fn,rlock_fn,unlock_fn
   unsigned flags;
 };
 
