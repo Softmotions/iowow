@@ -92,19 +92,19 @@
 
 #define IW_CLEANUP(func__) __attribute__(cleanup(func__))
 
-#define IW_CLEANUP_FUNC(type__, func__)             \
-  static inline void func__ ## _cc(type__ * p) {    \
-    if (*p) {                                       \
-      *p = func__(*p);                              \
-    }                                               \
-  }
+#define IW_CLEANUP_FUNC(type__, func__)                \
+        static inline void func__ ## _cc(type__ * p) { \
+          if (*p) {                                    \
+            *p = func__(*p);                           \
+          }                                            \
+        }
 
-#define IW_CLEANUP_DESTROY_FUNC(type__, func__)     \
-  static inline void func__ ## _cc(type__ * p) {    \
-    if (*p) {                                       \
-      func__(*p);                                   \
-    }                                               \
-  }
+#define IW_CLEANUP_DESTROY_FUNC(type__, func__)        \
+        static inline void func__ ## _cc(type__ * p) { \
+          if (*p) {                                    \
+            func__(*p);                                \
+          }                                            \
+        }
 
 
 #define IW_SENTINEL __attribute__((sentinel))
@@ -115,7 +115,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #define INVALIDHANDLE(h__) \
-  (((h__) == INVALID_HANDLE_VALUE) || (h__) == NULL)
+        (((h__) == INVALID_HANDLE_VALUE) || (h__) == NULL)
 #else
 typedef int HANDLE;
 #define INVALID_HANDLE_VALUE (-1)
@@ -136,15 +136,15 @@ typedef int HANDLE;
 #define IW_LINE_SEP "\n"
 #endif
 
-#define ZGO(label__, val__)           \
-  ({ __typeof__(val__) v__ = (val__); \
-     if (!v__) goto label__;           \
-     v__; })
+#define ZGO(label__, val__)                 \
+        ({ __typeof__(val__) v__ = (val__); \
+           if (!v__) goto label__;          \
+           v__; })
 
-#define ZRET(ret__, val__)            \
-  ({ __typeof__(val__) v__ = (val__); \
-     if (!v__) return ret__;           \
-     v__; })
+#define ZRET(ret__, val__)                  \
+        ({ __typeof__(val__) v__ = (val__); \
+           if (!v__) return ret__;          \
+           v__; })
 
 #ifdef __GNUC__
 #define RCGO(rc__, label__) if (__builtin_expect((!!(rc__)), 0)) goto label__
@@ -152,24 +152,24 @@ typedef int HANDLE;
 #define RCGO(rc__, label__) if (rc__) goto label__
 #endif
 
-#define RCIF(res__, rc__, rcv__, label__)   \
-  if (res__) {                              \
-    rc__ = (rcv__);                         \
-    goto label__;                           \
-  }
+#define RCIF(res__, rc__, rcv__, label__) \
+        if (res__) {                      \
+          rc__ = (rcv__);                 \
+          goto label__;                   \
+        }
 
 #define RCHECK(rc__, label__, expr__) \
-  rc__ = expr__;                       \
-  RCGO(rc__, label__)
+        rc__ = expr__;                \
+        RCGO(rc__, label__)
 
 #define RCC(rc__, label__, expr__) RCHECK(rc__, label__, expr__)
 
 #ifndef RCGA
-#define RCGA(v__, label__)                        \
-  if (!(v__)) {                                   \
-    rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);  \
-    goto label__;                                 \
-  }
+#define RCGA(v__, label__)                            \
+        if (!(v__)) {                                 \
+          rc = iwrc_set_errno(IW_ERROR_ALLOC, errno); \
+          goto label__;                               \
+        }
 #endif
 
 #ifndef RCA
@@ -181,21 +181,33 @@ typedef int HANDLE;
 #endif
 
 #ifndef RCN
-#define RCN(label__, v__)                       \
-  if ((v__) < 0) {                                \
-    rc = iwrc_set_errno(IW_ERROR_ERRNO, errno);   \
-    goto label__;                                 \
-  }
+#define RCN(label__, v__)                             \
+        if ((v__) < 0) {                              \
+          rc = iwrc_set_errno(IW_ERROR_ERRNO, errno); \
+          goto label__;                               \
+        }
 #endif
 
 #ifndef RCT
-#define RCT(label__, val__)                                         \
-  ({ __typeof__(val__) v__ = (val__);                               \
-     if (v__) {                                                     \
-       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, v__);          \
-       goto label__;                                                \
-     }                                                              \
-   })
+#define RCT(label__, val__)                                      \
+        ({ __typeof__(val__) v__ = (val__);                      \
+           if (v__) {                                            \
+             rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, v__); \
+             goto label__;                                       \
+           }                                                     \
+         })
+#endif
+
+#ifndef RCTM
+#define RCTM(label__, mtx__)                                     \
+        ({ int v__ = pthread_mutex_lock(mtx__);                  \
+           if (v__ == EOWNERDEAD) {                              \
+             pthread_mutex_consistent(mtx__);                    \
+           } else if (v__) {                                     \
+             rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, v__); \
+             goto label__;                                       \
+           }                                                     \
+         })
 #endif
 
 #ifdef __GNUC__
@@ -205,7 +217,7 @@ typedef int HANDLE;
 #endif
 
 #define RCR(expr__) \
-  ({ iwrc rc__ = (expr__); RCRET(rc__); 0; })
+        ({ iwrc rc__ = (expr__); RCRET(rc__); 0; })
 
 #ifdef __GNUC__
 #define RCBREAK(rc__) if (__builtin_expect((!!(rc__)), 0)) break
@@ -245,36 +257,36 @@ typedef int HANDLE;
 #define IW_DODEBUG(IW_expr_)
 #else
 #define IW_DODEBUG(IW_expr_) \
-  { IW_expr_; }
+        { IW_expr_; }
 #endif
 
 #if __GNUC__ >= 5
 #define IW_SWAB16(num_) __builtin_bswap16(num_)
 #else
 #define IW_SWAB16(num_) \
-  ((((num_) & 0x00ffU) << 8) | (((num_) & 0xff00U) >> 8))
+        ((((num_) & 0x00ffU) << 8) | (((num_) & 0xff00U) >> 8))
 #endif
 
 #if __GNUC__ >= 4
 #define IW_SWAB32(num_) __builtin_bswap32(num_)
 #else
-#define IW_SWAB32(num_)                                              \
-  ((((num_) & 0x000000ffUL) << 24) | (((num_) & 0x0000ff00UL) << 8)   \
-   | (((num_) & 0x00ff0000UL) >> 8) | (((num_) & 0xff000000UL) >> 24))
+#define IW_SWAB32(num_)                                                   \
+        ((((num_) & 0x000000ffUL) << 24) | (((num_) & 0x0000ff00UL) << 8) \
+         | (((num_) & 0x00ff0000UL) >> 8) | (((num_) & 0xff000000UL) >> 24))
 #endif
 
 #if __GNUC__ >= 4
 #define IW_SWAB64(num_) __builtin_bswap64(num_)
 #else
-#define IW_SWAB64(num_)                     \
-  ((((num_) & 0x00000000000000ffULL) << 56)   \
-   | (((num_) & 0x000000000000ff00ULL) << 40)   \
-   | (((num_) & 0x0000000000ff0000ULL) << 24)   \
-   | (((num_) & 0x00000000ff000000ULL) << 8)    \
-   | (((num_) & 0x000000ff00000000ULL) >> 8)    \
-   | (((num_) & 0x0000ff0000000000ULL) >> 24)   \
-   | (((num_) & 0x00ff000000000000ULL) >> 40)   \
-   | (((num_) & 0xff00000000000000ULL) >> 56))
+#define IW_SWAB64(num_)                             \
+        ((((num_) & 0x00000000000000ffULL) << 56)   \
+         | (((num_) & 0x000000000000ff00ULL) << 40) \
+         | (((num_) & 0x0000000000ff0000ULL) << 24) \
+         | (((num_) & 0x00000000ff000000ULL) << 8)  \
+         | (((num_) & 0x000000ff00000000ULL) >> 8)  \
+         | (((num_) & 0x0000ff0000000000ULL) >> 24) \
+         | (((num_) & 0x00ff000000000000ULL) >> 40) \
+         | (((num_) & 0xff00000000000000ULL) >> 56))
 #endif
 
 #if defined(IW_BIGENDIAN) || defined(IW_NET_BIGENDIAN)
@@ -293,60 +305,60 @@ typedef int HANDLE;
 #define IW_ITOHLL(num_) (num_)
 #endif
 
-#define IW_WRITEBV(ptr_, v_, m_)  \
-  static_assert(sizeof(v_) == 1, "Mismatch v_ size"); \
-  (v_) = (m_);                          \
-  memcpy(ptr_, &(v_), 1); \
-  (ptr_) += 1
+#define IW_WRITEBV(ptr_, v_, m_)                            \
+        static_assert(sizeof(v_) == 1, "Mismatch v_ size"); \
+        (v_) = (m_);                                        \
+        memcpy(ptr_, &(v_), 1);                             \
+        (ptr_) += 1
 
-#define IW_WRITESV(ptr_, v_, m_)  \
-  static_assert(sizeof(v_) == 2, "Mismatch v_ size"); \
-  (v_) = (m_);                          \
-  (v_) = IW_HTOIS(v_);                \
-  memcpy(ptr_, &(v_), 2); \
-  (ptr_) += 2
+#define IW_WRITESV(ptr_, v_, m_)                            \
+        static_assert(sizeof(v_) == 2, "Mismatch v_ size"); \
+        (v_) = (m_);                                        \
+        (v_) = IW_HTOIS(v_);                                \
+        memcpy(ptr_, &(v_), 2);                             \
+        (ptr_) += 2
 
-#define IW_WRITELV(ptr_, v_, m_)  \
-  static_assert(sizeof(v_) == 4, "Mismatch v_ size"); \
-  (v_) = (m_);                          \
-  (v_) = IW_HTOIL(v_);                \
-  memcpy(ptr_, &(v_), 4); \
-  (ptr_) += 4
+#define IW_WRITELV(ptr_, v_, m_)                            \
+        static_assert(sizeof(v_) == 4, "Mismatch v_ size"); \
+        (v_) = (m_);                                        \
+        (v_) = IW_HTOIL(v_);                                \
+        memcpy(ptr_, &(v_), 4);                             \
+        (ptr_) += 4
 
-#define IW_WRITELLV(ptr_, v_, m_) \
-  static_assert(sizeof(v_) == 8, "Mismatch v_ size"); \
-  (v_) = (m_);                          \
-  (v_) = IW_HTOILL(v_);               \
-  memcpy((ptr_), &(v_), 8); \
-  (ptr_) += 8
+#define IW_WRITELLV(ptr_, v_, m_)                           \
+        static_assert(sizeof(v_) == 8, "Mismatch v_ size"); \
+        (v_) = (m_);                                        \
+        (v_) = IW_HTOILL(v_);                               \
+        memcpy((ptr_), &(v_), 8);                           \
+        (ptr_) += 8
 
-#define IW_READBV(ptr_, t_, m_)   \
-  static_assert(sizeof(t_) == 1, "Mismatch t_ size"); \
-  (t_) = 0; \
-  memcpy(&(t_), ptr_, 1);  \
-  (m_) = (t_);   \
-  (ptr_) += 1
+#define IW_READBV(ptr_, t_, m_)                             \
+        static_assert(sizeof(t_) == 1, "Mismatch t_ size"); \
+        (t_) = 0;                                           \
+        memcpy(&(t_), ptr_, 1);                             \
+        (m_) = (t_);                                        \
+        (ptr_) += 1
 
-#define IW_READSV(ptr_, t_, m_)   \
-  static_assert(sizeof(t_) == 2, "Mismatch t_ size"); \
-  (t_) = 0; \
-  memcpy(&(t_), ptr_, 2);  \
-  (m_) = IW_ITOHS(t_);  \
-  (ptr_) += 2
+#define IW_READSV(ptr_, t_, m_)                             \
+        static_assert(sizeof(t_) == 2, "Mismatch t_ size"); \
+        (t_) = 0;                                           \
+        memcpy(&(t_), ptr_, 2);                             \
+        (m_) = IW_ITOHS(t_);                                \
+        (ptr_) += 2
 
-#define IW_READLV(ptr_, t_, m_)   \
-  static_assert(sizeof(t_) == 4, "Mismatch t_ size"); \
-  (t_) = 0; \
-  memcpy(&(t_), ptr_, 4);  \
-  (m_) = IW_ITOHL(t_);  \
-  (ptr_) += 4
+#define IW_READLV(ptr_, t_, m_)                             \
+        static_assert(sizeof(t_) == 4, "Mismatch t_ size"); \
+        (t_) = 0;                                           \
+        memcpy(&(t_), ptr_, 4);                             \
+        (m_) = IW_ITOHL(t_);                                \
+        (ptr_) += 4
 
-#define IW_READLLV(ptr_, t_, m_)  \
-  static_assert(sizeof(t_) == 8, "Mismatch t_ size"); \
-  (t_) = 0; \
-  memcpy(&(t_), ptr_, 8);  \
-  (m_) = IW_ITOHLL(t_); \
-  (ptr_) += 8
+#define IW_READLLV(ptr_, t_, m_)                            \
+        static_assert(sizeof(t_) == 8, "Mismatch t_ size"); \
+        (t_) = 0;                                           \
+        memcpy(&(t_), ptr_, 8);                             \
+        (m_) = IW_ITOHLL(t_);                               \
+        (ptr_) += 8
 
 #ifndef SIZE_T_MAX
 #define SIZE_T_MAX ((size_t) -1)
