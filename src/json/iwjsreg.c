@@ -11,12 +11,12 @@
 #include <string.h>
 
 struct iwjsreg {
-  IWPOOL     *pool;
-  JBL_NODE    root;
-  const char *path;
-  const char *path_tmp;
-  pthread_rwlock_t   *rwl;
-  pthread_rwlock_t    _rwl;
+  struct iwpool    *pool;
+  struct jbl_node  *root;
+  const char       *path;
+  const char       *path_tmp;
+  pthread_rwlock_t *rwl;
+  pthread_rwlock_t  _rwl;
   struct iwref_holder ref;
   iwrc     (*rlock_fn)(void*);
   iwrc     (*wlock_fn)(void*);
@@ -309,6 +309,14 @@ finish:
   }
   iwref_unref(&reg->ref);
   return rc;
+}
+
+iwrc iwjsreg_merge(struct iwjsreg *reg, struct jbl_node *json) {
+  return jbn_merge_patch(reg->root, json, 0);
+}
+
+iwrc iwjsreg_at(struct iwjsreg *reg, const char *path, struct jbl_node **out) {
+  return jbn_at(reg->root, path, out);
 }
 
 iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
