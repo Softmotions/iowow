@@ -1,11 +1,13 @@
 #include "iwconv.h"
 #include "iwchars.h"
+#include "iwlog.h"
 
 #include <math.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // mapping of ASCII characters to hex values
 static const uint8_t ascii2hex[] = {
@@ -95,8 +97,8 @@ char* iwbin2hex(
 
 int iwitoa(int64_t v, char *buf, int max) {
 #define ITOA_SZSTEP(_step) if ((ret += (_step)) >= max) { \
-    *ptr = 0; \
-    return ret; \
+          *ptr = 0;                                       \
+          return ret;                                     \
 }
   int ret = 0;
   char c, *ptr = buf, *p, *p1;
@@ -542,4 +544,64 @@ done:
     *end = (char*) a;
   }
   return d;
+}
+
+long double iw_strtold(const char *v, iwrc *rcp) {
+  char *ep = 0;
+  long double ret = strtold(v, &ep);
+  if (*ep != '\0' || errno == ERANGE) {
+    *rcp = IW_ERROR_INVALID_ARGS;
+    return 0;
+  }
+  return ret;
+}
+
+double iw_strtod(const char *v, iwrc *rcp) {
+  char *ep = 0;
+  double ret = strtod(v, &ep);
+  if (*ep != '\0' || errno == ERANGE) {
+    *rcp = IW_ERROR_INVALID_ARGS;
+    return 0;
+  }
+  return ret;
+}
+
+long int iw_strtol(const char *v, int base, iwrc *rcp) {
+  char *ep = 0;
+  long int ret = strtol(v, &ep, base);
+  if (*ep != '\0' || errno == ERANGE) {
+    *rcp = IW_ERROR_INVALID_ARGS;
+    return 0;
+  }
+  return ret;
+}
+
+long long iw_strtoll(const char *v, int base, iwrc *rcp) {
+  char *ep = 0;
+  long long ret = strtoll(v, &ep, base);
+  if (*ep != '\0' || errno == ERANGE) {
+    *rcp = IW_ERROR_INVALID_ARGS;
+    return 0;
+  }
+  return ret;
+}
+
+long int iw_strtoul(const char *v, int base, iwrc *rcp) {
+  char *ep = 0;
+  long int ret = strtoul(v, &ep, base);
+  if (*ep != '\0' || errno == ERANGE) {
+    *rcp = IW_ERROR_INVALID_ARGS;
+    return 0;
+  }
+  return ret;
+}
+
+long long iw_strtoull(const char *v, int base, iwrc *rcp) {
+  char *ep = 0;
+  long long ret = strtoull(v, &ep, base);
+  if (*ep != '\0' || errno == ERANGE) {
+    *rcp = IW_ERROR_INVALID_ARGS;
+    return 0;
+  }
+  return ret;
 }

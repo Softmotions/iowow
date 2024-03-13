@@ -65,6 +65,18 @@ IW_EXPORT char* iwbin2hex(
   const unsigned char* const bin,
   const size_t               bin_len);
 
+IW_EXPORT long double iw_strtold(const char *v, iwrc *rcp);
+
+IW_EXPORT double iw_strtod(const char *v, iwrc *rcp);
+
+IW_EXPORT long int iw_strtol(const char *v, int base, iwrc *rcp);
+
+IW_EXPORT long long iw_strtoll(const char *v, int base, iwrc *rcp);
+
+IW_EXPORT long int iw_strtoul(const char *v, int base, iwrc *rcp);
+
+IW_EXPORT long long iw_strtoull(const char *v, int base, iwrc *rcp);
+
 IW_EXTERN_C_END
 
 #endif
