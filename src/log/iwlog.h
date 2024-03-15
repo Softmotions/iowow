@@ -315,8 +315,8 @@ IW_EXPORT iwrc iwlog_va(
 #else
 #define iwlog_ecode_debug3(IW_ecode)
 #endif
-#define iwlog_ecode_verbose3(IW_ecode) iwlog3(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, ""))
-#define iwlog_ecode_info3(IW_ecode)    iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, ""))
+#define iwlog_ecode_verbose3(IW_ecode) iwlog3(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, "")
+#define iwlog_ecode_info3(IW_ecode)    iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, "")
 #define iwlog_ecode_warn3(IW_ecode) \
   iwlog3(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, "")
 #define iwlog_ecode_error3(IW_ecode) \
