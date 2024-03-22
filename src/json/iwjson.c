@@ -1672,7 +1672,14 @@ void jbn_add_item(JBL_NODE parent, JBL_NODE node) {
   _jbn_add_item(parent, node);
 }
 
-iwrc jbn_add_item_str(JBL_NODE parent, const char *key, const char *val, int vlen, JBL_NODE *node_out, struct iwpool *pool) {
+iwrc jbn_add_item_str(
+  JBL_NODE       parent,
+  const char    *key,
+  const char    *val,
+  int            vlen,
+  JBL_NODE      *node_out,
+  struct iwpool *pool
+  ) {
   if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -2978,6 +2985,9 @@ static JBL_NODE _jbl_merge_patch_node(JBL_NODE target, JBL_NODE patch, struct iw
         JBL_NODE node = target->child;
         while (node) {
           if ((node->klidx == patch->klidx) && !strncmp(node->key, patch->key, node->klidx)) {
+            if (pool == 0 && node->type == JBV_STR) {
+              free((void*) node->vptr);
+            }
             _jbl_copy_node_data(node, _jbl_merge_patch_node(node, patch, pool, rcp));
             break;
           }
