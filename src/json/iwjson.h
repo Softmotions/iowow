@@ -585,6 +585,14 @@ IW_EXPORT iwrc jbl_as_buf(struct jbl *jbl, void **buf, size_t *size);
 IW_EXPORT iwrc jbl_as_json(struct jbl *jbl, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
 
 /**
+ * @brief Serializes struct jbl* as memory allocate c-string `out`
+ *
+ * @param node `struct jbl_node*` document. Not zero.
+ * @param [out] out Pointer holder for memory allocated string.
+ */
+IW_EXPORT iwrc jbl_as_json_alloc(struct jbl *jbl, jbl_print_flags_t pf, char **out);
+
+/**
  * @brief JSON printer to stdlib `FILE*`pointer. Eg: `stderr`, `stdout`
  * @param op `FILE*` pointer
  */
@@ -686,6 +694,14 @@ IW_EXPORT iwrc jbn_from_json_printf_va(struct jbl_node **node, struct iwpool *po
  * @param pf    JSON printing mode.
  */
 IW_EXPORT iwrc jbn_as_json(struct jbl_node *node, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
+
+/**
+ * @brief Serializes struct jbl_node* as memory allocate c-string `out`
+ *
+ * @param node `struct jbl_node*` document. Not zero.
+ * @param [out] out Pointer holder for memory allocated string.
+ */
+IW_EXPORT iwrc jbn_as_json_alloc(struct jbl_node *node, jbl_print_flags_t pf, char **out);
 
 struct jbn_as_xml_spec {
   /** JSON printer function. Required. */
@@ -874,7 +890,11 @@ IW_EXPORT iwrc jbn_add_item_f64(
  * @param pool Allocation pool. Optional.
  * @return IW_EXPORT jbn_add_item_obj
  */
-IW_EXPORT iwrc jbn_add_item_obj(struct jbl_node *parent, const char *key, struct jbl_node **node_out, struct iwpool *pool);
+IW_EXPORT iwrc jbn_add_item_obj(
+  struct jbl_node  *parent,
+  const char       *key,
+  struct jbl_node **node_out,
+  struct iwpool    *pool);
 
 /**
  * @brief Add nested array under the given `key`
@@ -885,7 +905,11 @@ IW_EXPORT iwrc jbn_add_item_obj(struct jbl_node *parent, const char *key, struct
  * @param pool Allocation pool. Optional.
  * @return IW_EXPORT jbn_add_item_obj
  */
-IW_EXPORT iwrc jbn_add_item_arr(struct jbl_node *parent, const char *key, struct jbl_node **node_out, struct iwpool *pool);
+IW_EXPORT iwrc jbn_add_item_arr(
+  struct jbl_node  *parent,
+  const char       *key,
+  struct jbl_node **node_out,
+  struct iwpool    *pool);
 
 /**
  * @brief Adds boolean JSON node to the given `parent` node.
@@ -962,11 +986,11 @@ IW_EXPORT iwrc jbl_ptr_serialize(JBL_PTR ptr, IWXSTR *xstr);
  */
 typedef struct _JBN_VCTX {
   struct jbl_node *root; /**< Root node from which started visitor */
-  void   *op;            /**< Arbitrary opaque data */
-  void   *result;
-  struct iwpool *pool;       /**< Pool placeholder, initialization is responsibility of `JBN_VCTX` creator */
-  int     pos;        /**< Aux position, not actually used by visitor core */
-  bool    terminate;  /**< It `true` document traversal will be terminated immediately. */
+  void *op;              /**< Arbitrary opaque data */
+  void *result;
+  struct iwpool *pool; /**< Pool placeholder, initialization is responsibility of `JBN_VCTX` creator */
+  int  pos;            /**< Aux position, not actually used by visitor core */
+  bool terminate;      /**< It `true` document traversal will be terminated immediately. */
 } JBN_VCTX;
 
 /**
