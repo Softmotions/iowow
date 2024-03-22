@@ -312,11 +312,19 @@ finish:
 }
 
 iwrc iwjsreg_merge(struct iwjsreg *reg, struct jbl_node *json) {
-  return jbn_merge_patch(reg->root, json, 0);
+  iwrc rc = 0;
+  RCRET(reg->wlock_fn(reg->fn_data));
+  rc = jbn_merge_patch(reg->root, json, 0);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
+  return rc;
 }
 
 iwrc iwjsreg_at(struct iwjsreg *reg, const char *path, struct jbl_node **out) {
-  return jbn_at(reg->root, path, out);
+  iwrc rc = 0;
+  RCRET(reg->rlock_fn(reg->fn_data));
+  rc = jbn_at(reg->root, path, out);
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
+  return rc;
 }
 
 iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
