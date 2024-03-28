@@ -265,6 +265,17 @@ IWULIST* iwulist_clone(const IWULIST *list) {
   return nlist;
 }
 
+iwrc iwulist_copy(const struct iwulist *list, struct iwulist *tgt) {
+  for (int i = 0, l = iwulist_length(list); i < l; ++i) {
+    void *p = iwulist_get(list, i);
+    iwrc rc = iwulist_push(tgt, p);
+    if (rc) {
+      return rc;
+    }
+  }
+  return 0;
+}
+
 void* iwulist_at(const IWULIST *list, size_t index, iwrc *orc) {
   *orc = 0;
   if (index >= list->num) {

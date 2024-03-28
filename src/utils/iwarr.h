@@ -136,6 +136,11 @@ IW_EXPORT size_t iwulist_length(const struct iwulist *list);
 IW_EXPORT IW_ALLOC struct iwulist* iwulist_clone(const struct iwulist *list);
 
 /**
+ * @brief Copies all element of `list` into `tgt` list
+ */
+IW_EXPORT iwrc iwulist_copy(const struct iwulist *list, struct iwulist *tgt);
+
+/**
  * @brief Gets pinter to element at given `index`
  *
  * @param index Index of element
