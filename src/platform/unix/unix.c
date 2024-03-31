@@ -422,3 +422,22 @@ static iwrc _iwp_init_impl(void) {
   iwp_page_size(); // init statics
   return 0;
 }
+
+iwrc iwp_random_fill(char *out, int len, bool ascii) {
+  static const char cset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  FILE *f = fopen("/dev/urandom", "r");
+  if (!f) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  }
+  if (fread(out, len, 1, f) != 1) {
+    fclose(f);
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  }
+  fclose(f);
+  if (ascii) {
+    for (int i = 0; i < len; ++i) {
+      out[i] = cset[out[i] % (sizeof(cset) - 1)];
+    }
+  }
+  return 0;
+}

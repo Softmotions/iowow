@@ -318,3 +318,7 @@ static iwrc _iwp_init_impl(void) {
   _iwp_getsysinfo();
   return 0;
 }
+
+iwrc iwp_random_fill(char *out, int len, bool ascii) {
+  return IW_ERROR_NOT_IMPLEMENTED;
+}

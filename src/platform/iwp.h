@@ -312,4 +312,11 @@ IW_EXPORT char* iwp_allocate_tmpfile_path2(const char *prefix, const char *dir);
  */
 IW_EXPORT void iwp_set_current_thread_name(const char *name);
 
+
+/**
+ * Fills a given out buffer by random data of `len` bytes.
+ * If ascii is true only [a-zA-Z0-9] aphabet for random bytes will be used.
+ */
+IW_EXPORT iwrc iwp_random_fill(char *out, int len, bool ascii);
+
 #endif
