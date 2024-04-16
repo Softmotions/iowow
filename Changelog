@@ -1,4 +1,4 @@
-iowow (1.4.18) UNRELEASED; urgency=medium
+iowow (1.4.18) testing; urgency=medium
 
   * Added iwp_random_fill() (iwp.h)
   * Added convenient numeric conversion functions (iwconv.h)
@@ -10,7 +10,7 @@ iowow (1.4.18) UNRELEASED; urgency=medium
   * Allowed to construct JBL_NODE without IWPOOL ini this case node data will
   be allocated by malloc and should be freed by visitor.
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 05 Feb 2024 19:28:56 +0700
+ -- Anton Adamansky <adamansky@gmail.com>  Tue, 16 Apr 2024 11:02:51 +0700
 
 iowow (1.4.17) testing; urgency=medium
 
