@@ -180,6 +180,11 @@ typedef int HANDLE;
 #define RCB(label__, v__) RCGA(v__, label__)
 #endif
 
+#ifndef RCRA
+#define RCRA(v__) \
+        if (!v__) return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+#endif
+
 #ifndef RCN
 #define RCN(label__, v__)                             \
         if ((v__) < 0) {                              \
@@ -375,6 +380,7 @@ typedef int HANDLE;
 #include <stddef.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <errno.h>
 
 #ifdef _WIN32
 typedef _locale_t locale_t;
