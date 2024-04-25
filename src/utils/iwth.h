@@ -31,6 +31,12 @@
 #include "basedefs.h"
 #include <pthread.h>
 
+/**
+ * Timed condition wait.
+ * NOTE: Condition `cond` must be initialized with CLOCK_MONOTONIC attribute if system supports monotonic clock.
+ *
+ *   pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
+ */
 IW_EXPORT iwrc iw_cond_timed_wait_ms(
   pthread_cond_t  *cond,
   pthread_mutex_t *mtx,
