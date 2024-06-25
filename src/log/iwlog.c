@@ -290,6 +290,8 @@ static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
       return "Invalid configuration (IW_ERROR_INVALID_CONFIG)";
     case IW_ERROR_OPERATION_TIMEOUT:
       return "Operation timeout (IW_ERROR_OPERATION_TIMEOUT)";
+    case IW_ERROR_EXISTS:
+      return "Resource exists (IW_ERROR_EXISTS)";
     case IW_OK:
     default:
       return 0;

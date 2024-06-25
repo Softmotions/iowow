@@ -102,6 +102,7 @@ typedef enum {
   IW_ERROR_IO,                    /**< IO error (IW_ERROR_IO) */
   IW_ERROR_INVALID_CONFIG,        /**< Invalid configuration (IW_ERROR_INVALID_CONFIG) */
   IW_ERROR_OPERATION_TIMEOUT,     /**< Operation timeout (IW_ERROR_OPERATION_TIMEOUT) */
+  IW_ERROR_EXISTS,                /**< Resource exists (IW_ERROR_EXISTS) */
 } iw_ecode;
 
 /**
