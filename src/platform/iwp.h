@@ -275,6 +275,8 @@ IW_EXPORT char* iwp_dirname(char *path);
  */
 IW_EXPORT iwrc iwp_exec_path(char *opath, size_t opath_maxlen);
 
+IW_EXPORT IW_ALLOC char* iwp_path_join(const char *parent, const char *path);
+
 /**
  * @brief Return number of CPU cores.
  */

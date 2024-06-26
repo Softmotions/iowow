@@ -30,7 +30,7 @@
 #include "platform/iwp.h"
 #include "utils/iwutils.h"
 #include "utils/iwuuid.h"
-#include <stdio.h>
+#include "utils/iwxstr.h"
 
 #if defined(_WIN32)
 #include <direct.h>
@@ -171,6 +171,27 @@ char* iwp_allocate_tmpfile_path2(const char *prefix, const char *tmpdir) {
 
 char* iwp_allocate_tmpfile_path(const char *prefix) {
   return iwp_allocate_tmpfile_path2(prefix, 0);
+}
+
+IW_ALLOC char* iwp_path_join(const char *parent, const char *path) {
+  if (!path) {
+    return 0;
+  }
+  if (!parent || *parent == '\0' || *path == '\0') {
+    return strdup(path);
+  }
+  int len = strlen(parent);
+  while (len > 0 && parent[len - 1] == IW_PATH_CHR) {
+    --len;
+  }
+  if (!len) {
+    return strdup(path);
+  }
+  const char *rp = path;
+  while (*rp == IW_PATH_CHR) {
+    ++rp;
+  }
+  return iwxstr_printf_alloc("%.*s" IW_PATH_STR "%s", len, path, rp);
 }
 
 char* iwp_dirname(char *path) {
