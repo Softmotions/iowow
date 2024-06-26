@@ -191,7 +191,7 @@ IW_ALLOC char* iwp_path_join(const char *parent, const char *path) {
   while (*rp == IW_PATH_CHR) {
     ++rp;
   }
-  return iwxstr_printf_alloc("%.*s" IW_PATH_STR "%s", len, path, rp);
+  return iwxstr_printf_alloc("%.*s" IW_PATH_STR "%s", len, parent, rp);
 }
 
 char* iwp_dirname(char *path) {
