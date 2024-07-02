@@ -260,6 +260,7 @@ iwrc iwstw_schedule_empty_only(IWSTW stw, iwstw_task_f fn, void *arg, bool *out_
   }
   if (stw->head) {
     pthread_mutex_unlock(&stw->mtx);
+    free(task);
     goto finish;
   }
   *out_scheduled = true;
