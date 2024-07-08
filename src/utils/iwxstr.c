@@ -44,7 +44,7 @@ IWXSTR* iwxstr_create_empty(void) {
   return iwxstr_create(IWXSTR_AUNIT);
 }
 
-IWXSTR* iwxstr_new_clone(const IWXSTR *xstr) {
+IWXSTR* iwxstr_clone(const IWXSTR *xstr) {
   IWXSTR *ret = malloc(sizeof(*ret));
   if (!ret) {
     return 0;

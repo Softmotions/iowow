@@ -45,7 +45,9 @@ IW_EXPORT struct iwxstr* iwxstr_create(size_t siz);
 
 IW_EXPORT struct iwxstr*iwxstr_new_printf(const char *format, ...) __attribute__((format(__printf__, 1, 2)));
 
-IW_EXPORT struct iwxstr* iwxstr_new_clone(const struct iwxstr *xstr);
+IW_EXPORT struct iwxstr* iwxstr_clone(const struct iwxstr *xstr);
+
+#define iwxstr_new_clone iwxstr_clone
 
 IW_EXPORT IW_ALLOC char* iwxstr_printf_alloc(const char *format, ...) __attribute__((format(__printf__, 1, 2)));
 
