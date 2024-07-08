@@ -681,7 +681,7 @@ iwrc jbn_as_json(struct jbl_node *node, jbl_json_printer pt, void *op, jbl_print
 
 iwrc jbn_as_json_alloc(struct jbl_node *node, jbl_print_flags_t pf, char **out) {
   iwrc rc = 0;
-  struct iwxstr *xstr = iwxstr_new();
+  struct iwxstr *xstr = iwxstr_create();
   if (!xstr) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -697,7 +697,7 @@ iwrc jbn_as_json_alloc(struct jbl_node *node, jbl_print_flags_t pf, char **out) 
 
 iwrc jbl_as_json_alloc(struct jbl *jbl, jbl_print_flags_t pf, char **out) {
   iwrc rc = 0;
-  struct iwxstr *xstr = iwxstr_new();
+  struct iwxstr *xstr = iwxstr_create();
   if (!xstr) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }

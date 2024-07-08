@@ -226,7 +226,7 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
 }
 
 char* iwu_file_read_as_buf_len(const char *path, size_t *out_len) {
-  IWXSTR *xstr = iwxstr_new();
+  IWXSTR *xstr = iwxstr_create();
   if (!xstr) {
     *out_len = 0;
     return 0;
@@ -297,7 +297,7 @@ iwrc iwu_replace(
 
   iwrc rc = 0;
   if ((datalen < 1) || (keysz < 1)) {
-    *result = iwxstr_new2(datalen < 1 ? 1 : datalen);
+    *result = iwxstr_create2(datalen < 1 ? 1 : datalen);
     if (datalen > 0) {
       rc = iwxstr_cat(*result, data, datalen);
     }
@@ -309,9 +309,9 @@ iwrc iwu_replace(
 
   IWXSTR *bbuf = 0;
   IWXSTR *inter = 0;
-  bbuf = iwxstr_new2(datalen);
+  bbuf = iwxstr_create2(datalen);
   RCA(bbuf, finish);
-  inter = iwxstr_new2(datalen);
+  inter = iwxstr_create2(datalen);
   RCA(inter, finish);
 
   for (int i = 0; i < keysz; ++i) {

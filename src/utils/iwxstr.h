@@ -36,9 +36,12 @@ IW_EXTERN_C_START
 
 typedef struct iwxstr IWXSTR;
 
-IW_EXPORT IW_ALLOC struct iwxstr* iwxstr_new(void);
+IW_EXPORT IW_ALLOC struct iwxstr* iwxstr_create(void);
 
-IW_EXPORT struct iwxstr* iwxstr_new2(size_t siz);
+IW_EXPORT struct iwxstr* iwxstr_create2(size_t siz);
+
+#define iwxstr_new  iwxstr_create
+#define iwxstr_new2 iwxstr_create2
 
 IW_EXPORT struct iwxstr*iwxstr_new_printf(const char *format, ...) __attribute__((format(__printf__, 1, 2)));
 
