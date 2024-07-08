@@ -3050,7 +3050,7 @@ finish:
 }
 
 iwrc jbl_merge_patch_jbl(JBL jbl, JBL patch) {
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
   if (!xstr) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }

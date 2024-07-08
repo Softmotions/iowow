@@ -24,7 +24,7 @@ void _jbl_test1_1(int num, iwrc expected, jbl_print_flags_t pf) {
   struct iwpool *pool;
   char *data;
   char *edata = 0;
-  IWXSTR *res = iwxstr_create();
+  IWXSTR *res = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
 
   snprintf(path, sizeof(path), "data%c%03d.json", IW_PATH_CHR, num);
@@ -89,7 +89,7 @@ void jbl_test1_2(void) {
   iwrc rc = jbl_from_json(&jbl, data);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   rc = jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false);
@@ -255,7 +255,7 @@ static void jbl_test1_4(void) {
 }
 
 static void jbl_test1_5(void) {
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   //  { "foo": "bar",
@@ -398,7 +398,7 @@ finish:
 // Run tests: https://github.com/json-patch/json-patch-tests/blob/master/spec_tests.json
 static void jbl_test1_6(void) {
   iwrc rc;
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   apply_patch("{'foo':'bar','foo2':{'foo3':{'foo4':'bar4'},'foo5':'bar5'},'num1':1,'list1':['one','two',{'three':3}]}",
@@ -627,7 +627,7 @@ static void jbl_test1_6(void) {
 
 static void jbl_test1_7(void) {
   iwrc rc;
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   // #233
@@ -779,7 +779,7 @@ static void jbl_test1_9(void) {
   rc = jbn_clone(n, &cn, cpool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   iwpool_destroy(pool);
@@ -799,7 +799,7 @@ static void jbl_test1_9(void) {
 static void jbl_test1_10(void) {
   struct iwpool *pool = iwpool_create(512);
   struct iwpool *tpool = iwpool_create(512);
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
 
   const char *src_data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
                          "\"n\\\"um2\":10.1226222, "
@@ -836,7 +836,7 @@ static void jbl_test1_10(void) {
 
 static void jbl_test1_11(void) {
   struct iwpool *pool = iwpool_create(512);
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
 
   const char *src_data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
                          "\"n\\\"um2\":10.1226222, "

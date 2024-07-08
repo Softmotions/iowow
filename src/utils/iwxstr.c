@@ -19,7 +19,7 @@ struct iwxstr {
   void  *user_data;
 };
 
-IWXSTR* iwxstr_create2(size_t siz) {
+IWXSTR* iwxstr_create(size_t siz) {
   if (!siz) {
     siz = IWXSTR_AUNIT;
   }
@@ -40,8 +40,8 @@ IWXSTR* iwxstr_create2(size_t siz) {
   return xstr;
 }
 
-IWXSTR* iwxstr_create(void) {
-  return iwxstr_create2(IWXSTR_AUNIT);
+IWXSTR* iwxstr_create_empty(void) {
+  return iwxstr_create(IWXSTR_AUNIT);
 }
 
 IWXSTR* iwxstr_new_clone(const IWXSTR *xstr) {
@@ -304,7 +304,7 @@ iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) {
 }
 
 IWXSTR* iwxstr_new_printf(const char *format, ...) {
-  IWXSTR *xstr = iwxstr_create();
+  IWXSTR *xstr = iwxstr_create_empty();
   if (!xstr) {
     return 0;
   }
