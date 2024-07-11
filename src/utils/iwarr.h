@@ -230,6 +230,9 @@ IW_EXPORT iwrc iwulist_shift(struct iwulist *list);
  */
 IW_EXPORT void iwulist_sort(struct iwulist *list, int (*compar)(const void*, const void*, void*), void *op);
 
+
+IW_EXPORT void* iwulist_array(struct iwulist *list);
+
 ///////////////////////////////////////////////////////////////////////////
 //                    Array list implementation                          //
 ///////////////////////////////////////////////////////////////////////////

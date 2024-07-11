@@ -463,6 +463,10 @@ void iwulist_sort(IWULIST *list, int (*compar)(const void*, const void*, void*),
   sort_r(list->array + list->start * list->usize, list->num, list->usize, compar, op);
 }
 
+void* iwulist_array(struct iwulist *list) {
+  return list->array + list->start * list->usize;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 //                      Array list implementation                        //
 ///////////////////////////////////////////////////////////////////////////
