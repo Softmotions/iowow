@@ -42,165 +42,165 @@
 IW_EXTERN_C_START
 
 #define IW_RANGES_OVERLAP(IW_s1_, IW_e1_, IW_s2_, IW_e2_) \
-  (  ((IW_e1_) > (IW_s2_) && (IW_e1_) <= (IW_e2_))          \
-  || ((IW_s1_) >= (IW_s2_) && (IW_s1_) < (IW_e2_))          \
-  || ((IW_s1_) <= (IW_s2_) && (IW_e1_) >= (IW_e2_)))
+        (  ((IW_e1_) > (IW_s2_) && (IW_e1_) <= (IW_e2_))  \
+        || ((IW_s1_) >= (IW_s2_) && (IW_s1_) < (IW_e2_))  \
+        || ((IW_s1_) <= (IW_s2_) && (IW_e1_) >= (IW_e2_)))
 
 ///////////////////////////////////////////////////////////////////////////
 //                    Variable length number encoding                    //
 ///////////////////////////////////////////////////////////////////////////
 
 /* set a buffer for a variable length 32 bit number */
-#define IW_SETVNUMBUF(len_, buf_, num_) \
-  do { \
-    int32_t _num_ = (num_); \
-    if (_num_ == 0) { \
-      ((signed char*) (buf_))[0] = 0; \
-      (len_) = 1; \
-    } else { \
-      (len_) = 0; \
-      while (_num_ > 0) { \
-        int _rem_ = _num_ & 0x7f; \
-        _num_ >>= 7; \
-        if (_num_ > 0) { \
-          ((signed char*) (buf_))[(len_)] = ~(_rem_); \
-        } else { \
-          ((signed char*) (buf_))[(len_)] = _rem_; \
-        } \
-        (len_)++; \
-      } \
-    } \
-  } while (0)
+#define IW_SETVNUMBUF(len_, buf_, num_)                     \
+        do {                                                \
+          int32_t _num_ = (num_);                           \
+          if (_num_ == 0) {                                 \
+            ((signed char*) (buf_))[0] = 0;                 \
+            (len_) = 1;                                     \
+          } else {                                          \
+            (len_) = 0;                                     \
+            while (_num_ > 0) {                             \
+              int _rem_ = _num_ & 0x7f;                     \
+              _num_ >>= 7;                                  \
+              if (_num_ > 0) {                              \
+                ((signed char*) (buf_))[(len_)] = ~(_rem_); \
+              } else {                                      \
+                ((signed char*) (buf_))[(len_)] = _rem_;    \
+              }                                             \
+              (len_)++;                                     \
+            }                                               \
+          }                                                 \
+        } while (0)
 
 /* set a buffer for a variable length 64 number */
-#define IW_SETVNUMBUF64(len_, buf_, num_) \
-  do { \
-    int64_t _num_ = (num_); \
-    if (_num_ == 0) { \
-      ((signed char*) (buf_))[0] = 0; \
-      (len_) = 1; \
-    } else { \
-      (len_) = 0; \
-      while (_num_ > 0) { \
-        int _rem_ = _num_ & 0x7f; \
-        _num_ >>= 7; \
-        if (_num_ > 0) { \
-          ((signed char*) (buf_))[(len_)] = ~(_rem_); \
-        } else { \
-          ((signed char*) (buf_))[(len_)] = _rem_; \
-        } \
-        (len_)++; \
-      } \
-    } \
-  } while (0)
+#define IW_SETVNUMBUF64(len_, buf_, num_)                   \
+        do {                                                \
+          int64_t _num_ = (num_);                           \
+          if (_num_ == 0) {                                 \
+            ((signed char*) (buf_))[0] = 0;                 \
+            (len_) = 1;                                     \
+          } else {                                          \
+            (len_) = 0;                                     \
+            while (_num_ > 0) {                             \
+              int _rem_ = _num_ & 0x7f;                     \
+              _num_ >>= 7;                                  \
+              if (_num_ > 0) {                              \
+                ((signed char*) (buf_))[(len_)] = ~(_rem_); \
+              } else {                                      \
+                ((signed char*) (buf_))[(len_)] = _rem_;    \
+              }                                             \
+              (len_)++;                                     \
+            }                                               \
+          }                                                 \
+        } while (0)
 
 
 /* read a 32 bit variable length buffer */
-#define IW_READVNUMBUF(buf_, num_, step_) \
-  do { \
-    (num_) = 0; \
-    int32_t _base_ = 1; \
-    int _i_ = 0; \
-    while (1) { \
-      if (((const signed char*) (buf_))[_i_] >= 0) { \
-        (num_) += _base_ * ((const signed char*) (buf_))[_i_]; \
-        break; \
-      } \
-      (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
-      _base_ <<= 7; \
-      _i_++; \
-    } \
-    (step_) = _i_ + 1; \
-  } while (0)
+#define IW_READVNUMBUF(buf_, num_, step_)                             \
+        do {                                                          \
+          (num_) = 0;                                                 \
+          int32_t _base_ = 1;                                         \
+          int _i_ = 0;                                                \
+          while (1) {                                                 \
+            if (((const signed char*) (buf_))[_i_] >= 0) {            \
+              (num_) += _base_ * ((const signed char*) (buf_))[_i_];  \
+              break;                                                  \
+            }                                                         \
+            (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
+            _base_ <<= 7;                                             \
+            _i_++;                                                    \
+          }                                                           \
+          (step_) = _i_ + 1;                                          \
+        } while (0)
 
 /* read a 64 bit variable length buffer */
-#define IW_READVNUMBUF64(buf_, num_, step_) \
-  do { \
-    (num_) = 0; \
-    int64_t _base_ = 1; \
-    int _i_ = 0; \
-    while (1) { \
-      if (((const signed char*) (buf_))[_i_] >= 0) { \
-        (num_) += _base_ * ((const signed char*) (buf_))[_i_]; \
-        break; \
-      } \
-      (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
-      _base_ <<= 7; \
-      _i_++; \
-    } \
-    (step_) = _i_ + 1; \
-  } while (0)
+#define IW_READVNUMBUF64(buf_, num_, step_)                           \
+        do {                                                          \
+          (num_) = 0;                                                 \
+          int64_t _base_ = 1;                                         \
+          int _i_ = 0;                                                \
+          while (1) {                                                 \
+            if (((const signed char*) (buf_))[_i_] >= 0) {            \
+              (num_) += _base_ * ((const signed char*) (buf_))[_i_];  \
+              break;                                                  \
+            }                                                         \
+            (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
+            _base_ <<= 7;                                             \
+            _i_++;                                                    \
+          }                                                           \
+          (step_) = _i_ + 1;                                          \
+        } while (0)
 
 
 /* read a 64 bit variable length buffer */
-#define IW_READVNUMBUF64_2(buf_, num_) \
-  do { \
-    (num_) = 0; \
-    int64_t _base_ = 1; \
-    int _i_ = 0; \
-    while (1) { \
-      if (((const signed char*) (buf_))[_i_] >= 0) { \
-        (num_) += _base_ * ((const signed char*) (buf_))[_i_]; \
-        break; \
-      } \
-      (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
-      _base_ <<= 7; \
-      _i_++; \
-    } \
-  } while (0)
+#define IW_READVNUMBUF64_2(buf_, num_)                                \
+        do {                                                          \
+          (num_) = 0;                                                 \
+          int64_t _base_ = 1;                                         \
+          int _i_ = 0;                                                \
+          while (1) {                                                 \
+            if (((const signed char*) (buf_))[_i_] >= 0) {            \
+              (num_) += _base_ * ((const signed char*) (buf_))[_i_];  \
+              break;                                                  \
+            }                                                         \
+            (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
+            _base_ <<= 7;                                             \
+            _i_++;                                                    \
+          }                                                           \
+        } while (0)
 
 
 #define IW_VNUMBUFSZ 10
 
-#define IW_VNUMSIZE32(num_) \
-  ((num_) < 0x80ULL ? 1   \
-   : (num_) < 0x4000ULL ? 2   \
-   : (num_) < 0x200000ULL ? 3   \
-   : (num_) < 0x10000000ULL ? 4 : 5)
+#define IW_VNUMSIZE32(num_)         \
+        ((num_) < 0x80ULL ? 1       \
+         : (num_) < 0x4000ULL ? 2   \
+         : (num_) < 0x200000ULL ? 3 \
+         : (num_) < 0x10000000ULL ? 4 : 5)
 
 /* Size of variable number in bytes */
 #ifdef IW_32
 #define IW_VNUMSIZE IW_VNUMSIZE32
 #else
-#define IW_VNUMSIZE(num_) \
-  ((num_) < 0x80ULL ? 1   \
-   : (num_) < 0x4000ULL ? 2   \
-   : (num_) < 0x200000ULL ? 3   \
-   : (num_) < 0x10000000ULL ? 4   \
-   : (num_) < 0x800000000ULL ? 5   \
-   : (num_) < 0x40000000000ULL ? 6   \
-   : (num_) < 0x2000000000000ULL ? 7   \
-   : (num_) < 0x100000000000000ULL ? 8   \
-   : (num_) < 0x8000000000000000ULL ? 9 : 10)
+#define IW_VNUMSIZE(num_)                    \
+        ((num_) < 0x80ULL ? 1                \
+         : (num_) < 0x4000ULL ? 2            \
+         : (num_) < 0x200000ULL ? 3          \
+         : (num_) < 0x10000000ULL ? 4        \
+         : (num_) < 0x800000000ULL ? 5       \
+         : (num_) < 0x40000000000ULL ? 6     \
+         : (num_) < 0x2000000000000ULL ? 7   \
+         : (num_) < 0x100000000000000ULL ? 8 \
+         : (num_) < 0x8000000000000000ULL ? 9 : 10)
 #endif
 
 /* Lexicographic comparison of values */
-#define IW_CMP(rv_, vp1_, vp1sz_, vp2_, vp2sz_) \
-  do { \
-    (rv_) = 0; \
-    int min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
-    for (int i = 0; i < min_; i++) { \
-      (rv_) = (int) (((const uint8_t*) (vp1_))[i] - ((const uint8_t*) (vp2_))[i]); \
-      if (rv_) { \
-        break; \
-      } \
-    } \
-    if ((rv_) == 0) (rv_) = (vp1sz_) - (vp2sz_); \
-  } while (0)
+#define IW_CMP(rv_, vp1_, vp1sz_, vp2_, vp2sz_)                                          \
+        do {                                                                             \
+          (rv_) = 0;                                                                     \
+          int min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_);                          \
+          for (int i = 0; i < min_; i++) {                                               \
+            (rv_) = (int) (((const uint8_t*) (vp1_))[i] - ((const uint8_t*) (vp2_))[i]); \
+            if (rv_) {                                                                   \
+              break;                                                                     \
+            }                                                                            \
+          }                                                                              \
+          if ((rv_) == 0)(rv_) = (vp1sz_) - (vp2sz_);                                    \
+        } while (0)
 
 
 /* Lexicographic comparison common prefix of values */
-#define IW_CMP2(rv_, vp1_, vp1sz_, vp2_, vp2sz_) \
-  do { \
-    (rv_) = 0; \
-    int min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_); \
-    for (int i = 0; i < min_; i++) { \
-      (rv_) = (int) (((const uint8_t*) (vp1_))[i] - ((const uint8_t*) (vp2_))[i]); \
-      if (rv_) { \
-        break; \
-      } \
-    } \
-  } while (0)
+#define IW_CMP2(rv_, vp1_, vp1sz_, vp2_, vp2sz_)                                         \
+        do {                                                                             \
+          (rv_) = 0;                                                                     \
+          int min_ = (vp1sz_) < (vp2sz_) ? (vp1sz_) : (vp2sz_);                          \
+          for (int i = 0; i < min_; i++) {                                               \
+            (rv_) = (int) (((const uint8_t*) (vp1_))[i] - ((const uint8_t*) (vp2_))[i]); \
+            if (rv_) {                                                                   \
+              break;                                                                     \
+            }                                                                            \
+          }                                                                              \
+        } while (0)
 
 IW_EXPORT iwrc iwu_init(void);
 
@@ -275,6 +275,15 @@ IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 IW_EXPORT char* iwu_file_read_as_buf(const char *path);
 
 IW_EXPORT char* iwu_file_read_as_buf_len(const char *path, size_t *out_len);
+
+/**
+ * Read file to memory allocated buffer.
+ * @param path File path
+ * @param len_max Maxim number of bytes to read. If -1 then no limit set.
+ * @param [out] Number of of bytes read actually.
+ * @returns Zero(\0) terminated file data buffer. Or NULL in the case of error.
+ */
+IW_EXPORT char* iwu_file_read_as_buf_max(const char *path, ssize_t len_max, size_t *out_len);
 
 /**
  * @brief Create X31 hash value.

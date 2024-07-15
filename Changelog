@@ -1,5 +1,6 @@
 iowow (1.4.19) UNRELEASED; urgency=medium
 
+  * Added iwu_file_read_as_buf_max() (iwutils.h)
   * Fixed memory leak in iwstw_schedule_empty_only()
 
  -- Anton Adamansky <adamansky@gmail.com>  Tue, 02 Jul 2024 18:50:56 +0700

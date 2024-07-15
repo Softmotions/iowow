@@ -76,10 +76,10 @@ uint32_t iwu_rand_inorm(int range) {
 
 int iwlog2_32(uint32_t val) {
   static const int tab32[32] = {
-    0,  9,  1,  10, 13, 21, 2,  29,
-    11, 14, 16, 18, 22, 25, 3,  30,
-    8,  12, 20, 28, 15, 17, 24, 7,
-    19, 27, 23, 6,  26, 5,  4,  31
+    0, 9, 1, 10, 13, 21, 2, 29,
+    11, 14, 16, 18, 22, 25, 3, 30,
+    8, 12, 20, 28, 15, 17, 24, 7,
+    19, 27, 23, 6, 26, 5, 4, 31
   };
   val |= val >> 1;
   val |= val >> 2;
@@ -91,10 +91,10 @@ int iwlog2_32(uint32_t val) {
 
 int iwlog2_64(uint64_t val) {
   static const int table[64] = {
-    0,  58, 1,  59, 47, 53, 2,  60, 39, 48, 27, 54, 33, 42, 3,  61,
-    51, 37, 40, 49, 18, 28, 20, 55, 30, 34, 11, 43, 14, 22, 4,  62,
+    0, 58, 1, 59, 47, 53, 2, 60, 39, 48, 27, 54, 33, 42, 3, 61,
+    51, 37, 40, 49, 18, 28, 20, 55, 30, 34, 11, 43, 14, 22, 4, 62,
     57, 46, 52, 38, 26, 32, 41, 50, 36, 17, 19, 29, 10, 13, 21, 56,
-    45, 25, 31, 35, 16, 9,  12, 44, 24, 15, 8,  23, 7,  6,  5,  63
+    45, 25, 31, 35, 16, 9, 12, 44, 24, 15, 8, 23, 7, 6, 5, 63
   };
   val |= val >> 1;
   val |= val >> 2;
@@ -225,26 +225,31 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   return (c1 - c2);
 }
 
-char* iwu_file_read_as_buf_len(const char *path, size_t *out_len) {
+char* iwu_file_read_as_buf_max(const char *path, ssize_t len_max, size_t *out_len) {
   IWXSTR *xstr = iwxstr_create_empty();
   if (!xstr) {
-    *out_len = 0;
     return 0;
   }
-  ssize_t rb, rc = 0;
+
   char buf[8192];
   int fd = open(path, O_RDONLY | O_CLOEXEC);
   if (fd < 0) {
     iwxstr_destroy(xstr);
     return 0;
   }
-  while (1) {
-    rb = read(fd, buf, sizeof(buf));
+
+  while (len_max != 0) {
+    ssize_t rb = read(fd, buf, sizeof(buf));
     if (rb > 0) {
+      if (len_max > -1) {
+        if (rb > len_max) {
+          rb = len_max;
+        }
+        len_max -= rb;
+      }
       if (iwxstr_cat(xstr, buf, rb)) {
         goto error;
       }
-      rc += rb;
     } else if (rb < 0) {
       if (errno != EINTR) {
         goto error;
@@ -254,13 +259,17 @@ char* iwu_file_read_as_buf_len(const char *path, size_t *out_len) {
     }
   }
 
-  *out_len = rc;
+  *out_len = iwxstr_size(xstr);
   return iwxstr_destroy_keep_ptr(xstr);
 
 error:
   *out_len = 0;
   iwxstr_destroy(xstr);
   return 0;
+}
+
+char* iwu_file_read_as_buf_len(const char *path, size_t *out_len) {
+  return iwu_file_read_as_buf_max(path, -1, out_len);
 }
 
 char* iwu_file_read_as_buf(const char *path) {
