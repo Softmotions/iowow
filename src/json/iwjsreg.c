@@ -235,10 +235,7 @@ iwrc iwjsreg_remove(struct iwjsreg *reg, const char *key) {
   if (!reg || !reg->root || !key) {
     return IW_ERROR_INVALID_ARGS;
   }
-
   RCRET(reg->wlock_fn(reg->fn_data));
-  iwref_ref(&reg->ref);
-
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
       jbn_remove_item(reg->root, n);
@@ -251,9 +248,7 @@ iwrc iwjsreg_remove(struct iwjsreg *reg, const char *key) {
       break;
     }
   }
-
   IWRC(reg->unlock_fn(reg->fn_data), rc);
-  iwref_unref(&reg->ref);
   return rc;
 }
 
@@ -266,8 +261,6 @@ iwrc iwjsreg_set_str(struct iwjsreg *reg, const char *key, const char *value) {
   char *nkey = 0, *nvalue = 0;
 
   RCRET(reg->wlock_fn(reg->fn_data));
-  iwref_ref(&reg->ref);
-
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
       nn = n;
@@ -307,22 +300,33 @@ finish:
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
-  iwref_unref(&reg->ref);
   return rc;
 }
 
-iwrc iwjsreg_merge(struct iwjsreg *reg, struct jbl_node *json) {
+iwrc iwjsreg_merge(struct iwjsreg *reg, const char *path, struct jbl_node *json) {
   iwrc rc = 0;
+  struct jbl_node *root;
   RCRET(reg->wlock_fn(reg->fn_data));
-  rc = jbn_merge_patch(reg->root, json, 0);
+  rc = jbn_merge_patch_path(reg->root, path, json, 0);
+  if (!rc) {
+    reg->dirty = true;
+  }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
   return rc;
 }
 
-iwrc iwjsreg_at(struct iwjsreg *reg, const char *path, struct jbl_node **out) {
+iwrc iwjsreg_copy(struct iwjsreg *reg, const char *path, struct iwpool *pool, struct jbl_node **out) {
   iwrc rc = 0;
+  struct jbl_node *root;
   RCRET(reg->rlock_fn(reg->fn_data));
-  rc = jbn_at(reg->root, path, out);
+  if (path) {
+    RCC(rc, finish, jbn_at(reg->root, path, &root));
+  } else {
+    root = reg->root;
+  }
+  rc = jbn_clone(root, out, pool);
+
+finish:
   IWRC(reg->unlock_fn(reg->fn_data), rc);
   return rc;
 }
@@ -336,8 +340,6 @@ iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
   char *nkey = 0;
 
   RCRET(reg->wlock_fn(reg->fn_data));
-  iwref_ref(&reg->ref);
-
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
       nn = n;
@@ -369,12 +371,10 @@ finish:
       jbn_add_item(reg->root, nn);
     }
   }
-
   IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
-  iwref_unref(&reg->ref);
   return rc;
 }
 
@@ -387,8 +387,6 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t 
   char *nkey = 0;
 
   RCRET(reg->wlock_fn(reg->fn_data));
-  iwref_ref(&reg->ref);
-
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
       nn = n;
@@ -425,12 +423,10 @@ finish:
       jbn_add_item(reg->root, nn);
     }
   }
-
   IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
-  iwref_unref(&reg->ref);
   return rc;
 }
 
@@ -443,8 +439,6 @@ iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value) {
   char *nkey = 0;
 
   RCRET(reg->wlock_fn(reg->fn_data));
-  iwref_ref(&reg->ref);
-
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strncmp(n->key, key, n->klidx) == 0) {
       nn = n;
@@ -476,12 +470,10 @@ finish:
       jbn_add_item(reg->root, nn);
     }
   }
-
   IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
-  iwref_unref(&reg->ref);
   return rc;
 }
 
@@ -493,7 +485,6 @@ iwrc iwjsreg_get_str(struct iwjsreg *reg, const char *key, char **out) {
   bool found = false;
   *out = 0;
   RCRET(reg->rlock_fn(reg->fn_data));
-  iwref_ref(&reg->ref);
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strcmp(n->key, key) == 0) {
       if (n->type == JBV_STR) {
@@ -504,7 +495,6 @@ iwrc iwjsreg_get_str(struct iwjsreg *reg, const char *key, char **out) {
     }
   }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
-  iwref_unref(&reg->ref);
   if (!rc && !found) {
     rc = IW_ERROR_NOT_EXISTS;
   }
@@ -519,7 +509,6 @@ iwrc iwjsreg_get_i64(struct iwjsreg *reg, const char *key, int64_t *out) {
   bool found = false;
   *out = 0;
   RCRET(reg->rlock_fn(reg->fn_data));
-  iwref_ref(&reg->ref);
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strcmp(n->key, key) == 0) {
       if (n->type == JBV_I64) {
@@ -530,7 +519,6 @@ iwrc iwjsreg_get_i64(struct iwjsreg *reg, const char *key, int64_t *out) {
     }
   }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
-  iwref_unref(&reg->ref);
   if (!rc && !found) {
     rc = IW_ERROR_NOT_EXISTS;
   }
@@ -545,7 +533,6 @@ iwrc iwjsreg_get_bool(struct iwjsreg *reg, const char *key, bool *out) {
   bool found = false;
   *out = 0;
   RCRET(reg->rlock_fn(reg->fn_data));
-  iwref_ref(&reg->ref);
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strcmp(n->key, key) == 0) {
       if (n->type == JBV_BOOL) {
@@ -556,7 +543,6 @@ iwrc iwjsreg_get_bool(struct iwjsreg *reg, const char *key, bool *out) {
     }
   }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
-  iwref_unref(&reg->ref);
   if (!rc && !found) {
     rc = IW_ERROR_NOT_EXISTS;
   }

@@ -118,6 +118,54 @@ static void _iwjsreg_basic2(void) {
   CU_ASSERT_EQUAL(rc, 0);
 }
 
+static void _iwjsreg_merge(void) {
+  const char *path = "iwjsreg_merge.dat";
+  unlink(path);
+
+  struct iwxstr *xstr = iwxstr_create_empty();
+  struct iwpool *pool = iwpool_create_empty();
+
+  struct iwjsreg *reg;
+  iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) {
+    .path = path,
+    .flags = IWJSREG_FORMAT_BINARY,
+  }, &reg);
+
+  struct jbl_node *n, *n2;
+  rc = jbn_from_json("{\"vaz\":1, \"gaz\":\"val\"}", &n, pool);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwjsreg_merge(reg, "/foo/bar", n);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwjsreg_merge(reg, "/foo/bar", n);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwjsreg_merge(reg, "/foo/bar/zaz", n);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = jbn_from_json("{\"gaz\":null}", &n2, pool);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwjsreg_merge(reg, "/foo/bar/zaz", n2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwjsreg_copy(reg, "", pool, &n2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  fprintf(stderr, "\n");
+  jbn_as_json(n2, jbl_xstr_json_printer, xstr, 0);
+
+  CU_ASSERT_STRING_EQUAL(iwxstr_ptr(xstr), "{\"foo\":{\"bar\":{\"vaz\":1,\"gaz\":\"val\",\"zaz\":{\"vaz\":1}}}}");
+
+  rc = iwjsreg_sync(reg);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwjsreg_close(&reg);
+  CU_ASSERT_EQUAL(rc, 0);
+  iwpool_destroy(pool);
+  iwxstr_destroy(xstr);
+}
+
 int main(void) {
   CU_pSuite pSuite = NULL;
   if (CUE_SUCCESS != CU_initialize_registry()) {
@@ -130,7 +178,8 @@ int main(void) {
   }
   int ret = 0;
   if (  NULL == CU_add_test(pSuite, "iwjsreg_basic1", _iwjsreg_basic1)
-     || NULL == CU_add_test(pSuite, "iwjsreg_basic2", _iwjsreg_basic2)) {
+     || NULL == CU_add_test(pSuite, "iwjsreg_basic2", _iwjsreg_basic2)
+     || NULL == CU_add_test(pSuite, "iwjsreg_merge", _iwjsreg_merge)) {
     CU_cleanup_registry();
     return CU_get_error();
   }

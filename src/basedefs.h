@@ -182,7 +182,7 @@ typedef int HANDLE;
 
 #ifndef RCRA
 #define RCRA(v__) \
-        if (!v__) return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+        if (!(v__)) return iwrc_set_errno(IW_ERROR_ALLOC, errno);
 #endif
 
 #ifndef RCN

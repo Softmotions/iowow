@@ -156,7 +156,7 @@ static void jbl_test1_3(void) {
   free(jp);
 
   rc = jbl_ptr_alloc("", &jp);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
+  CU_ASSERT_EQUAL(rc, 0);
   free(jp);
 
   rc = jbl_ptr_alloc("~", &jp);

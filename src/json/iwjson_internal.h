@@ -44,7 +44,7 @@ struct jbl {
 /**
  * @brief struct jbl* visitor context
  */
-typedef struct _JBL_VCTX {
+typedef struct jbl_vctx {
   binn *bn;         /**< Root node from which started visitor */
   void *op;         /**< Arbitrary opaque data */
   void *result;
@@ -56,13 +56,13 @@ typedef struct _JBL_VCTX {
 
 typedef jbn_visitor_cmd_t jbl_visitor_cmd_t;
 
-typedef struct _JBL_PATCHEXT {
-  const JBL_PATCH *p;
-  JBL_PTR path;
-  JBL_PTR from;
+typedef struct jbl_patch_ext {
+  const struct jbl_patch *p;
+  struct jbl_ptr *path;
+  struct jbl_ptr *from;
 } JBL_PATCHEXT;
 
-typedef struct _JBLDRCTX {
+typedef struct jbl_ldr_ctx {
   struct iwpool   *pool;
   struct jbl_node *root;
 } JBLDRCTX;
@@ -79,8 +79,8 @@ iwrc _jbl_from_node(struct jbl *jbl, struct jbl_node *node);
 bool _jbl_at(struct jbl *jbl, JBL_PTR jp, struct jbl *res);
 int _jbl_compare_nodes(struct jbl_node *n1, struct jbl_node *n2, iwrc *rcp);
 
-typedef jbl_visitor_cmd_t (*JBL_VISITOR)(int lvl, binn *bv, const char *key, int idx, JBL_VCTX *vctx, iwrc *rc);
-iwrc _jbl_visit(binn_iter *iter, int lvl, JBL_VCTX *vctx, JBL_VISITOR visitor);
+typedef jbl_visitor_cmd_t (*jbl_visitor)(int lvl, binn *bv, const char *key, int idx, struct jbl_vctx *vctx, iwrc *rc);
+iwrc _jbl_visit(binn_iter *iter, int lvl, struct jbl_vctx *vctx, jbl_visitor visitor);
 
 bool _jbl_is_eq_atomic_values(struct jbl *v1, struct jbl *v2);
 int _jbl_cmp_atomic_values(struct jbl *v1, struct jbl *v2);

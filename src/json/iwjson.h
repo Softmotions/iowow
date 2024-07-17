@@ -133,6 +133,8 @@ typedef enum {
 struct jbl_node;
 typedef struct jbl_node*JBL_NODE;
 
+
+
 /**
  * @brief JSON document as in-memory tree (DOM tree).
  */
@@ -175,7 +177,7 @@ typedef enum {
 /**
  * @brief JSON patch specification
  */
-typedef struct _JBL_PATCH {
+typedef struct jbl_patch {
   jbp_patch_t      op;
   const char      *path;
   const char      *from;
@@ -187,7 +189,7 @@ typedef struct _JBL_PATCH {
  * @brief JSON pointer rfc6901
  * @see jbl_ptr_alloc()
  */
-typedef struct _JBL_PTR {
+typedef struct jbl_ptr {
   uint64_t op;      /**< Opaque data associated with pointer */
   int      cnt;     /**< Number of nodes */
   int      sz;      /**< Size of JBL_PTR allocated area */
@@ -1008,11 +1010,7 @@ IW_EXPORT iwrc jbn_visit2(struct jbl_node *node, int lvl, iwrc (*visitor)(int, s
 
 IW_EXPORT iwrc jbn_patch_auto(struct jbl_node *root, struct jbl_node *patch, struct iwpool *pool);
 
-IW_EXPORT iwrc jbn_merge_patch(struct jbl_node *root, struct jbl_node *patch, struct iwpool *pool);
-
 IW_EXPORT iwrc jbn_patch(struct jbl_node *root, const JBL_PATCH *patch, size_t cnt, struct iwpool *pool);
-
-IW_EXPORT iwrc jbn_merge_patch_from_json(struct jbl_node *root, const char *patchjson, struct iwpool *pool);
 
 IW_EXPORT iwrc jbl_patch(struct jbl *jbl, const JBL_PATCH *patch, size_t cnt);
 
@@ -1021,6 +1019,16 @@ IW_EXPORT iwrc jbl_patch_from_json(struct jbl *jbl, const char *patchjson);
 IW_EXPORT iwrc jbl_merge_patch(struct jbl *jbl, const char *patchjson);
 
 IW_EXPORT iwrc jbl_merge_patch_jbl(struct jbl *jbl, struct jbl *patch);
+
+IW_EXPORT iwrc jbn_merge_patch(struct jbl_node *root, struct jbl_node *patch, struct iwpool *pool);
+
+IW_EXPORT iwrc jbn_merge_patch_path(struct jbl_node *root, const char *path, struct jbl_node *val, struct iwpool *pool);
+
+IW_EXPORT iwrc jbn_merge_patch_from_json(struct jbl_node *root, const char *patchjson, struct iwpool *pool);
+
+IW_EXPORT iwrc jbn_merge_patch_create(
+  const char *path, struct jbl_node *val, struct iwpool *pool,
+  struct jbl_node **out);
 
 
 IW_EXPORT iwrc jbl_init(void);
