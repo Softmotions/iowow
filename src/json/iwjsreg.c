@@ -305,7 +305,6 @@ finish:
 
 iwrc iwjsreg_merge(struct iwjsreg *reg, const char *path, struct jbl_node *json) {
   iwrc rc = 0;
-  struct jbl_node *root;
   RCRET(reg->wlock_fn(reg->fn_data));
   rc = jbn_merge_patch_path(reg->root, path, json, 0);
   if (!rc) {
