@@ -311,6 +311,9 @@ iwrc iwjsreg_merge(struct iwjsreg *reg, const char *path, struct jbl_node *json)
     reg->dirty = true;
   }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
+  if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
+    rc = iwjsreg_sync(reg);
+  }
   return rc;
 }
 
@@ -344,6 +347,9 @@ iwrc iwjsreg_replace(struct iwjsreg *reg, const char *path, struct jbl_node *jso
 
 finish:
   IWRC(reg->unlock_fn(reg->fn_data), rc);
+  if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
+    rc = iwjsreg_sync(reg);
+  }
   return rc;
 }
 
