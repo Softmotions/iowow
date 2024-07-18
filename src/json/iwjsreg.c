@@ -314,6 +314,39 @@ iwrc iwjsreg_merge(struct iwjsreg *reg, const char *path, struct jbl_node *json)
   return rc;
 }
 
+iwrc iwjsreg_replace(struct iwjsreg *reg, const char *path, struct jbl_node *json) {
+  iwrc rc = 0;
+  struct jbl_node *n;
+  RCRET(reg->wlock_fn(reg->fn_data));
+
+  // Remove subtree
+  rc = jbn_at(reg->root, path, &n);
+  if (rc == 0) {
+    struct jbl_node *p = n->parent;
+    if (n != reg->root) {
+      jbn_remove_item(p, n);
+      jbn_visit2(n, 0, _destroy_visitor);
+    } else { // Remove the whoole tree keeping the reg->root
+      for (struct jbl_node *n = reg->root->child; n; n = n->next) {
+        jbn_visit2(n, 0, _destroy_visitor);
+      }
+      reg->root->child = 0;
+    }
+  } else if (rc == JBL_ERROR_PATH_NOTFOUND) {
+    rc = 0;
+  } else {
+    goto finish;
+  }
+
+  // Perform insertion
+  RCC(rc, finish, jbn_merge_patch_path(reg->root, path, json, 0));
+  reg->dirty = true;
+
+finish:
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
+  return rc;
+}
+
 iwrc iwjsreg_copy(struct iwjsreg *reg, const char *path, struct iwpool *pool, struct jbl_node **out) {
   iwrc rc = 0;
   struct jbl_node *root;

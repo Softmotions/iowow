@@ -1,7 +1,7 @@
 iowow (1.4.19) UNRELEASED; urgency=medium
 
   * Naming refactoring, minor fixes
-  * Added iwjsreg_merge()
+  * Added iwjsreg_merge(), iwjsreg_replace()
   * Added jbn_merge_patch_path()
   * Fixed json pointer error for empty path.
   * Added iwu_file_read_as_buf_max() (iwutils.h)

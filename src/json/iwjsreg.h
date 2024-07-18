@@ -75,6 +75,8 @@ IW_EXPORT iwrc iwjsreg_copy(struct iwjsreg*, const char *path, struct iwpool *po
 
 IW_EXPORT iwrc iwjsreg_merge(struct iwjsreg*, const char *path, struct jbl_node *json);
 
+IW_EXPORT iwrc iwjsreg_replace(struct iwjsreg*, const char *path, struct jbl_node *json);
+
 IW_EXTERN_C_END
 
 #endif
