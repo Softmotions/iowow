@@ -3,6 +3,7 @@
 #include "iwutils.h"
 #include "iwpool.h"
 #include "iwjson.h"
+#include "iwconv.h"
 
 #include <pthread.h>
 #include <errno.h>
@@ -375,6 +376,141 @@ finish:
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
   }
+  return rc;
+}
+
+iwrc iwjsreg_at_i64(struct iwjsreg *reg, const char *path, int64_t *out) {
+  iwrc rc = 0;
+  struct jbl_node *n;
+
+  RCRET(reg->rlock_fn(reg->fn_data));
+  RCC(rc, finish, jbn_at(reg->root, path, &n));
+
+  switch (n->type) {
+    case JBV_I64:
+      *out = n->vi64;
+      break;
+    case JBV_F64:
+      *out = (int64_t) n->vf64;
+      break;
+    case JBV_NULL:
+      *out = 0;
+      break;
+    case JBV_BOOL:
+      *out = n->vbool;
+      break;
+    case JBV_STR:
+      *out = iw_strtoll(n->vptr, 10, &rc);
+      break;
+    default:
+      rc = IW_ERROR_TYPE_NOT_COMPATIBLE;
+      break;
+  }
+
+finish:
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
+  return rc;
+}
+
+iwrc iwjsreg_at_f64(struct iwjsreg *reg, const char *path, double *out) {
+  iwrc rc = 0;
+  struct jbl_node *n;
+
+  RCRET(reg->rlock_fn(reg->fn_data));
+  RCC(rc, finish, jbn_at(reg->root, path, &n));
+
+  switch (n->type) {
+    case JBV_F64:
+      *out = n->vf64;
+      break;
+    case JBV_I64:
+      *out = (double) n->vi64;
+      break;
+    case JBV_NULL:
+      *out = 0;
+      break;
+    case JBV_BOOL:
+      *out = (double) n->vbool;
+      break;
+    case JBV_STR:
+      *out = iw_strtod(n->vptr, &rc);
+      break;
+    default:
+      rc = IW_ERROR_TYPE_NOT_COMPATIBLE;
+      break;
+  }
+
+finish:
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
+  return rc;
+}
+
+iwrc iwjsreg_at_bool(struct iwjsreg *reg, const char *path, bool *out) {
+  iwrc rc = 0;
+  struct jbl_node *n;
+
+  RCRET(reg->rlock_fn(reg->fn_data));
+  RCC(rc, finish, jbn_at(reg->root, path, &n));
+
+  switch (n->type) {
+    case JBV_BOOL:
+      *out = n->vbool;
+      break;
+    case JBV_F64:
+      *out = n->vf64 != 0;
+      break;
+    case JBV_I64:
+      *out = (double) n->vi64 != 0.0;
+      break;
+    case JBV_NULL:
+      *out = 0;
+      break;
+    case JBV_STR:
+      *out = strcmp(n->vptr, "true") == 0;
+      break;
+    default:
+      rc = IW_ERROR_TYPE_NOT_COMPATIBLE;
+      break;
+  }
+
+finish:
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
+  return rc;
+}
+
+iwrc iwjsreg_at_str_alloc(struct iwjsreg *reg, const char *path, char *out) {
+  iwrc rc = 0;
+  struct jbl_node *n;
+  char buf[IWNUMBUF_SIZE];
+
+  RCRET(reg->rlock_fn(reg->fn_data));
+  RCC(rc, finish, jbn_at(reg->root, path, &n));
+
+  switch (n->type) {
+    case JBV_STR:
+      RCB(finish, out = strdup(n->vptr));
+      break;
+    case JBV_BOOL:
+      RCB(finish, out = strdup(n->vbool ? "true" : "false"));
+      break;
+    case JBV_NULL:
+      RCB(finish, out = strdup("null"));
+      break;
+    case JBV_I64:
+      iwitoa(n->vi64, buf, IWNUMBUF_SIZE);
+      RCB(finish, out = strdup(buf));
+      break;
+    case JBV_F64:
+      iwftoa(n->vf64, buf);
+      RCB(finish, out = strdup(buf));
+      break;
+    default:
+      rc = IW_ERROR_TYPE_NOT_COMPATIBLE;
+      break;
+  }
+
+finish:
+  IWRC(reg->unlock_fn(reg->fn_data), rc);
   return rc;
 }
 

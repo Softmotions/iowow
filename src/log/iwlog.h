@@ -78,31 +78,33 @@ typedef enum {
   IW_ERROR_ERRNO,                 /**< Error with expected errno status set. */
   IW_ERROR_IO_ERRNO,              /**< IO error with expected errno status set. */
   IW_ERROR_AGAIN,
-  IW_ERROR_NOT_EXISTS,            /**< Resource is not exists. */
-  IW_ERROR_READONLY,              /**< Resource is readonly. */
-  IW_ERROR_ALREADY_OPENED,        /**< Resource is already opened. */
-  IW_ERROR_THREADING,             /**< Threading error. */
-  IW_ERROR_THREADING_ERRNO,       /**< Threading error with errno status set. */
-  IW_ERROR_ASSERTION,             /**< Generic assertion error. */
-  IW_ERROR_INVALID_HANDLE,        /**< Invalid HANDLE value. */
-  IW_ERROR_OUT_OF_BOUNDS,         /**< Invalid bounds specified. */
-  IW_ERROR_NOT_IMPLEMENTED,       /**< Method is not implemented. */
-  IW_ERROR_ALLOC,                 /**< Memory allocation failed. */
-  IW_ERROR_INVALID_STATE,         /**< Illegal state error. */
-  IW_ERROR_NOT_ALIGNED,           /**< Argument is not aligned properly. */
-  IW_ERROR_FALSE,                 /**< Request rejection/false response. */
-  IW_ERROR_INVALID_ARGS,          /**< Invalid function arguments. */
-  IW_ERROR_OVERFLOW,              /**< Overflow. */
-  IW_ERROR_INVALID_VALUE,         /**< Invalid value. */
-  IW_ERROR_UNEXPECTED_RESPONSE,   /**< Unexpected response (IW_ERROR_UNEXPECTED_RESPONSE) */
-  IW_ERROR_NOT_ALLOWED,           /**< Action is not allowed. (IW_ERROR_NOT_ALLOWED) */
-  IW_ERROR_UNSUPPORTED,           /**< Unsupported opration. (IW_ERROR_UNSUPPORTED) */
-  IW_ERROR_EOF,                   /**< End of IO stream/file (IW_ERROR_EOF) */
-  IW_ERROR_UNEXPECTED_INPUT,      /**< Unexpected input/data (IW_ERROR_UNEXPECTED_INPUT) */
-  IW_ERROR_IO,                    /**< IO error (IW_ERROR_IO) */
-  IW_ERROR_INVALID_CONFIG,        /**< Invalid configuration (IW_ERROR_INVALID_CONFIG) */
-  IW_ERROR_OPERATION_TIMEOUT,     /**< Operation timeout (IW_ERROR_OPERATION_TIMEOUT) */
-  IW_ERROR_EXISTS,                /**< Resource exists (IW_ERROR_EXISTS) */
+  IW_ERROR_NOT_EXISTS,           /**< Resource is not exists. */
+  IW_ERROR_READONLY,             /**< Resource is readonly. */
+  IW_ERROR_ALREADY_OPENED,       /**< Resource is already opened. */
+  IW_ERROR_THREADING,            /**< Threading error. */
+  IW_ERROR_THREADING_ERRNO,      /**< Threading error with errno status set. */
+  IW_ERROR_ASSERTION,            /**< Generic assertion error. */
+  IW_ERROR_INVALID_HANDLE,       /**< Invalid HANDLE value. */
+  IW_ERROR_OUT_OF_BOUNDS,        /**< Invalid bounds specified. */
+  IW_ERROR_NOT_IMPLEMENTED,      /**< Method is not implemented. */
+  IW_ERROR_ALLOC,                /**< Memory allocation failed. */
+  IW_ERROR_INVALID_STATE,        /**< Illegal state error. */
+  IW_ERROR_NOT_ALIGNED,          /**< Argument is not aligned properly. */
+  IW_ERROR_FALSE,                /**< Request rejection/false response. */
+  IW_ERROR_INVALID_ARGS,         /**< Invalid function arguments. */
+  IW_ERROR_OVERFLOW,             /**< Overflow. */
+  IW_ERROR_INVALID_VALUE,        /**< Invalid value. */
+  IW_ERROR_UNEXPECTED_RESPONSE,  /**< Unexpected response (IW_ERROR_UNEXPECTED_RESPONSE) */
+  IW_ERROR_NOT_ALLOWED,          /**< Action is not allowed. (IW_ERROR_NOT_ALLOWED) */
+  IW_ERROR_UNSUPPORTED,          /**< Unsupported opration. (IW_ERROR_UNSUPPORTED) */
+  IW_ERROR_EOF,                  /**< End of IO stream/file (IW_ERROR_EOF) */
+  IW_ERROR_UNEXPECTED_INPUT,     /**< Unexpected input/data (IW_ERROR_UNEXPECTED_INPUT) */
+  IW_ERROR_IO,                   /**< IO error (IW_ERROR_IO) */
+  IW_ERROR_INVALID_CONFIG,       /**< Invalid configuration (IW_ERROR_INVALID_CONFIG) */
+  IW_ERROR_OPERATION_TIMEOUT,    /**< Operation timeout (IW_ERROR_OPERATION_TIMEOUT) */
+  IW_ERROR_EXISTS,               /**< Resource exists (IW_ERROR_EXISTS) */
+  IW_ERROR_TYPE_NOT_COMPATIBLE,  /**< Value type is not compatible to the requested one (IW_ERROR_TYPE_NOT_COMPATIBLE)
+                                 */
 } iw_ecode;
 
 /**
@@ -255,22 +257,22 @@ IW_EXPORT iwrc iwlog_va(
 
 #ifdef _DEBUG
 #define iwlog_debug(IW_fmt, ...) \
-  iwlog2(IWLOG_DEBUG, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_DEBUG, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #else
 #define iwlog_debug(IW_fmt, ...)
 #endif
 #define iwlog_verbose(IW_fmt, ...) \
-  iwlog2(IWLOG_VERBOSE, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_VERBOSE, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_info(IW_fmt, ...) \
-  iwlog2(IWLOG_INFO, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_INFO, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_warn(IW_fmt, ...) \
-  iwlog2(IWLOG_WARN, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_WARN, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_error(IW_fmt, ...) \
-  iwlog2(IWLOG_ERROR, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_ERROR, 0, __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 
 #ifdef _DEBUG
 #define iwlog_debug2(IW_fmt) \
-  iwlog3(IWLOG_DEBUG, 0, __FILE__, __LINE__, (IW_fmt))
+        iwlog3(IWLOG_DEBUG, 0, __FILE__, __LINE__, (IW_fmt))
 #else
 #define iwlog_debug2(IW_fmt)
 #endif
@@ -278,80 +280,80 @@ IW_EXPORT iwrc iwlog_va(
 #define iwlog_info2(IW_fmt)    iwlog3(IWLOG_INFO, 0, __FILE__, __LINE__, (IW_fmt))
 #define iwlog_warn2(IW_fmt)    iwlog3(IWLOG_WARN, 0, __FILE__, __LINE__, (IW_fmt))
 #define iwlog_error2(IW_fmt) \
-  iwlog3(IWLOG_ERROR, 0, __FILE__, __LINE__, (IW_fmt))
+        iwlog3(IWLOG_ERROR, 0, __FILE__, __LINE__, (IW_fmt))
 
 #ifdef _DEBUG
 #define iwlog_ecode_debug(IW_ecode, IW_fmt, ...) \
-  iwlog2(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #else
 #define iwlog_ecode_debug(IW_ecode, IW_fmt, ...)
 #endif
 #define iwlog_ecode_verbose(IW_ecode, IW_fmt, ...) \
-  iwlog2(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_ecode_info(IW_ecode, IW_fmt, ...) \
-  iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_ecode_warn(IW_ecode, IW_fmt, ...) \
-  iwlog2(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 #define iwlog_ecode_error(IW_ecode, IW_fmt, ...) \
-  iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
+        iwlog2(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt), ## __VA_ARGS__)
 
 #ifdef _DEBUG
 #define iwlog_ecode_debug2(IW_ecode, IW_fmt) \
-  iwlog3(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+        iwlog3(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #else
 #define iwlog_ecode_debug2(IW_ecode, IW_fmt)
 #endif
 #define iwlog_ecode_verbose2(IW_ecode, IW_fmt) \
-  iwlog3(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+        iwlog3(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_info2(IW_ecode, IW_fmt) \
-  iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+        iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_warn2(IW_ecode, IW_fmt) \
-  iwlog3(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+        iwlog3(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 #define iwlog_ecode_error2(IW_ecode, IW_fmt) \
-  iwlog3(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
+        iwlog3(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, (IW_fmt))
 
 #ifdef _DEBUG
 #define iwlog_ecode_debug3(IW_ecode) \
-  iwlog3(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, "")
+        iwlog3(IWLOG_DEBUG, (IW_ecode), __FILE__, __LINE__, "")
 #else
 #define iwlog_ecode_debug3(IW_ecode)
 #endif
 #define iwlog_ecode_verbose3(IW_ecode) iwlog3(IWLOG_VERBOSE, (IW_ecode), __FILE__, __LINE__, "")
 #define iwlog_ecode_info3(IW_ecode)    iwlog3(IWLOG_INFO, (IW_ecode), __FILE__, __LINE__, "")
 #define iwlog_ecode_warn3(IW_ecode) \
-  iwlog3(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, "")
+        iwlog3(IWLOG_WARN, (IW_ecode), __FILE__, __LINE__, "")
 #define iwlog_ecode_error3(IW_ecode) \
-  iwlog3(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, "")
+        iwlog3(IWLOG_ERROR, (IW_ecode), __FILE__, __LINE__, "")
 
-#define IWRC(IW_act, IW_rc)                                   \
-  {                                                           \
-    iwrc __iwrc = (IW_act);                                   \
-    if (__iwrc) {                                             \
-      if (!(IW_rc))                                           \
-      (IW_rc) = __iwrc;                                       \
-      else                                                    \
-      iwlog3(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, "");    \
-    }                                                         \
-  }
+#define IWRC(IW_act, IW_rc)                                      \
+        {                                                        \
+          iwrc __iwrc = (IW_act);                                \
+          if (__iwrc) {                                          \
+            if (!(IW_rc))                                        \
+            (IW_rc) = __iwrc;                                    \
+            else                                                 \
+            iwlog3(IWLOG_ERROR, __iwrc, __FILE__, __LINE__, ""); \
+          }                                                      \
+        }
 
-#define IWRC2(IW_act, IW_lvl)                                   \
-  {                                                             \
-    iwrc __iwrc = (IW_act);                                     \
-    if (__iwrc) {                                               \
-      iwlog3(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
-    }                                                           \
-  }
+#define IWRC2(IW_act, IW_lvl)                                         \
+        {                                                             \
+          iwrc __iwrc = (IW_act);                                     \
+          if (__iwrc) {                                               \
+            iwlog3(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+          }                                                           \
+        }
 
-#define IWRC3(IW_act, IW_rc, IW_lvl)                            \
-  {                                                             \
-    iwrc __iwrc = (IW_act);                                     \
-    if (__iwrc) {                                               \
-      if (!(IW_rc))                                             \
-      (IW_rc) = __iwrc;                                         \
-      else                                                      \
-      iwlog3(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
-    }                                                           \
-  }
+#define IWRC3(IW_act, IW_rc, IW_lvl)                                  \
+        {                                                             \
+          iwrc __iwrc = (IW_act);                                     \
+          if (__iwrc) {                                               \
+            if (!(IW_rc))                                             \
+            (IW_rc) = __iwrc;                                         \
+            else                                                      \
+            iwlog3(IWLOG_ ## IW_lvl, __iwrc, __FILE__, __LINE__, ""); \
+          }                                                           \
+        }
 
 /**
  * @brief Initiate this submodule.

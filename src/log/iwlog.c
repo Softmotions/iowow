@@ -292,6 +292,8 @@ static const char* _default_ecodefn(locale_t locale, uint32_t ecode) {
       return "Operation timeout (IW_ERROR_OPERATION_TIMEOUT)";
     case IW_ERROR_EXISTS:
       return "Resource exists (IW_ERROR_EXISTS)";
+    case IW_ERROR_TYPE_NOT_COMPATIBLE:
+      return "Value type is not compatible to the requested one (IW_ERROR_TYPE_NOT_COMPATIBLE)";
     case IW_OK:
     default:
       return 0;

@@ -986,7 +986,7 @@ IW_EXPORT iwrc jbl_ptr_serialize(JBL_PTR ptr, IWXSTR *xstr);
 /**
  * @brief struct jbl_node* visitor context
  */
-typedef struct _JBN_VCTX {
+typedef struct jbn_vctx {
   struct jbl_node *root; /**< Root node from which started visitor */
   void *op;              /**< Arbitrary opaque data */
   void *result;
