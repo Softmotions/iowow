@@ -317,6 +317,31 @@ iwrc iwjsreg_merge(struct iwjsreg *reg, const char *path, struct jbl_node *json)
   return rc;
 }
 
+iwrc iwjsreg_merge_str(struct iwjsreg *reg, const char *path, const char *value, int len) {
+  struct jbl_node n = { .type = JBV_STR, .vptr = value, .vsize = len > -1 ? len : strlen(value) };
+  return iwjsreg_merge(reg, path, &n);
+}
+
+iwrc iwjsreg_merge_i64(struct iwjsreg *reg, const char *path, int64_t value) {
+  struct jbl_node n = { .type = JBV_I64, .vi64 = value };
+  return iwjsreg_merge(reg, path, &n);
+}
+
+iwrc iwjsreg_merge_f64(struct iwjsreg *reg, const char *path, double value) {
+  struct jbl_node n = { .type = JBV_F64, .vf64 = value };
+  return iwjsreg_merge(reg, path, &n);
+}
+
+iwrc iwjsreg_merge_bool(struct iwjsreg *reg, const char *path, bool value) {
+  struct jbl_node n = { .type = JBV_BOOL, .vbool = value };
+  return iwjsreg_merge(reg, path, &n);
+}
+
+iwrc iwjsreg_merge_remove(struct iwjsreg *reg, const char *path) {
+  struct jbl_node n = { .type = JBV_NULL };
+  return iwjsreg_merge(reg, path, &n);
+}
+
 iwrc iwjsreg_replace(struct iwjsreg *reg, const char *path, struct jbl_node *json) {
   iwrc rc = 0;
   struct jbl_node *n;
