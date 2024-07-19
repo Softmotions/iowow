@@ -3121,15 +3121,11 @@ static struct jbl_node* _jbl_merge_patch_node(
   } else if (pool) {
     return patch;
   } else {
-    struct jbl_node *np = malloc(sizeof(*target));
-    if (!np) {
-      *rcp = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+    struct jbl_node *np;
+    iwrc rc = jbn_clone(patch, &np, 0);
+    if (rc) {
+      *rcp = rc;
       return 0;
-    }
-    memcpy(np, patch, sizeof(*np));
-    np->key = strdup(np->key);
-    if (patch->type == JBV_STR) {
-      np->vptr = strdup(patch->vptr);
     }
     return np;
   }

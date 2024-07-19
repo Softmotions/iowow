@@ -584,8 +584,7 @@ static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *
 }
 
 static struct jbl_node* _jbl_clone_node_struct(struct jbl_node *src, struct iwpool *pool) {
-  iwrc rc;
-  struct jbl_node *n = iwpool_calloc(sizeof(*n), pool);
+  struct jbl_node *n = pool ? iwpool_calloc(sizeof(*n), pool) : calloc(1, sizeof(*n));
   if (!n) {
     return 0;
   }
@@ -596,14 +595,14 @@ static struct jbl_node* _jbl_clone_node_struct(struct jbl_node *src, struct iwpo
   n->flags = src->flags;
 
   if (src->key) {
-    n->key = iwpool_strndup(pool, src->key, src->klidx, &rc);
+    n->key = pool ? iwpool_strndup2(pool, src->key, src->klidx) : strndup(src->key, src->klidx);
     if (!n->key) {
       return 0;
     }
   }
   switch (src->type) {
     case JBV_STR: {
-      n->vptr = iwpool_strndup(pool, src->vptr, src->vsize, &rc);
+      n->vptr = pool ? iwpool_strndup2(pool, src->vptr, src->vsize) : strndup(src->vptr, src->vsize);
       if (!n->vptr) {
         return 0;
       }
@@ -621,7 +620,7 @@ static struct jbl_node* _jbl_clone_node_struct(struct jbl_node *src, struct iwpo
     default:
       break;
   }
-  ;
+
   return n;
 }
 
