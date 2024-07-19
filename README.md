@@ -4,7 +4,7 @@ IOWOW — `C11` utility library and persistent key/value storage engine
 **NOTE: Issues tracker is disabled. You are welcome to contribute, pull requests accepted.**
 
 [![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/iowow/blob/master/LICENSE)
-![Maintained](https://img.shields.io/maintenance/yes/2023.svg)
+![Maintained](https://img.shields.io/maintenance/yes/2024.svg)
 
 Website https://iowow.softmotions.com
 
@@ -343,7 +343,7 @@ https://github.com/Softmotions/iwstart
 
 MIT License
 
-Copyright (c) 2012-2023 Softmotions Ltd <info@softmotions.com>
+Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
