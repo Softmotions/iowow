@@ -20,7 +20,7 @@
 #include "iwcfg.h"
 
 #define _ENSURE_OPEN(db_) \
-  if (!(db_) || INVALIDHANDLE((db_)->fh)) return IW_ERROR_INVALID_STATE
+        if (!(db_) || INVALIDHANDLE((db_)->fh)) return IW_ERROR_INVALID_STATE
 
 struct iwrdb {
   HANDLE fh;
@@ -269,14 +269,19 @@ iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len) {
   if (off < db->end) {
     size_t sz, sz2;
     sz2 = MIN(len, db->end - off);
-    RCC(rc, finish, iwp_pread(db->fh, off, wp, sz2, &sz));
-    if (sz != sz2) {
-      rc = IW_ERROR_OUT_OF_BOUNDS;
-      goto finish;
+    if (db->mm && off + sz2 <= db->msiz) {
+      memcpy(wp, db->mm + off, sz2);
+      sz = sz2;
+    } else {
+      RCC(rc, finish, iwp_pread(db->fh, off, wp, sz2, &sz));
+      if (sz != sz2) {
+        rc = IW_ERROR_OUT_OF_BOUNDS;
+        goto finish;
+      }
     }
-    to_read -= sz;
     wp += sz;
     off += sz;
+    to_read -= sz;
   }
 
   if (to_read) {
@@ -314,14 +319,14 @@ off_t iwrdb_offset_end(IWRDB db) {
 uint8_t* iwrdb_mmap(IWRDB db, bool readonly, int madv, size_t *msiz) {
   *msiz = 0;
   if (_rlock(db)) {
-    return 0;
+    return MAP_FAILED;
   }
   if (db->mm) {
     goto finish;
   } else {
     _unlock(db);
     if (_wlock(db)) {
-      return 0;
+      return MAP_FAILED;
     }
     if (db->mm) {
       goto finish;
