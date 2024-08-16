@@ -88,6 +88,8 @@ IW_EXPORT iwrc iwxstr_set_size(struct iwxstr *xstr, size_t size);
  */
 IW_EXPORT size_t iwxstr_size(struct iwxstr *xstr);
 
+#define iwxstr_len(x) iwxstr_size(x)
+
 /**
  * @brief Returns allocated size of @a xstr buffer.
  */
