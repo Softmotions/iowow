@@ -33,6 +33,8 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 
+IW_EXTERN_C_START
+
 struct iwref_holder {
   void       *data;
   atomic_long refs;
@@ -70,3 +72,5 @@ static bool iwref_unref(struct iwref_holder *h) {
   }
   return false;
 }
+
+IW_EXTERN_C_END
