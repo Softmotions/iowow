@@ -22,10 +22,10 @@ IW_EXTERN_C_START
  * @return Index of inserted element
  */
 IW_EXPORT off_t iwarr_sorted_insert(
-  void* restrict els,
+  void *els,
   size_t nels,
   size_t elsize,
-  void* restrict eptr,
+  void *eptr,
   int (*cmp)(const void*, const void*),
   bool skipeq);
 
@@ -41,26 +41,26 @@ IW_EXPORT off_t iwarr_sorted_insert(
  * @return Index of removed element or -1
  */
 IW_EXPORT off_t iwarr_sorted_remove(
-  void* restrict els,
+  void* els,
   size_t nels,
   size_t elsize,
-  void* restrict eptr,
+  void* eptr,
   int (*cmp)(const void*, const void*));
 
 
 IW_EXPORT off_t iwarr_sorted_find(
-  void* restrict els,
+  void* els,
   size_t nels,
   size_t elsize,
-  void* restrict eptr,
+  void* eptr,
   int (*cmp)(const void*, const void*));
 
 
 IW_EXPORT off_t iwarr_sorted_find2(
-  void* restrict els,
+  void* els,
   size_t nels,
   size_t elsize,
-  void* restrict eptr,
+  void* eptr,
   void *op,
   bool *found,
   int (*cmp)(const void*, const void*, void*));
