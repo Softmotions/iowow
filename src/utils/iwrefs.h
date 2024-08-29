@@ -42,11 +42,9 @@ struct iwref_holder {
 };
 
 static void iwref_init(struct iwref_holder *h, void *data, void (*freefn)(void*)) {
-  *h = (struct iwref_holder) {
-    .data = data,
-    .refs = 1,
-    .freefn = freefn,
-  };
+  h->data = data;
+  h->refs = 1;
+  h->freefn = freefn;
 }
 
 static void iwref_reset(struct iwref_holder *h, void *data, void (*freefn)(void*)) {
