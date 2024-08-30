@@ -31,7 +31,7 @@
  *************************************************************************************************/
 
 #include "basedefs.h"
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 struct iwhmap;
 struct iwhmap_iter;
@@ -110,5 +110,5 @@ IW_EXPORT bool iwhmap_lru_eviction_max_count(struct iwhmap *hm, void *max_count_
 /// @param ev_user_data Arbitrary user data from `ev` function.
 IW_EXPORT void iwhmap_lru_init(struct iwhmap *hm, iwhmap_lru_eviction_needed ev, void *ev_user_data);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

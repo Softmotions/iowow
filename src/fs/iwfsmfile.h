@@ -79,7 +79,7 @@
 #include <stdbool.h>
 #include <math.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 /** Free space allocation flags
  *  @see IWFS_FSM::allocate
@@ -409,6 +409,6 @@ IW_EXPORT WUR iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts);
  */
 IW_EXPORT WUR iwrc iwfs_fsmfile_init(void);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 
 #endif

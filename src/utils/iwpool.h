@@ -33,7 +33,7 @@
 #include "basedefs.h"
 #include <stdarg.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 #ifndef IWPOOL_POOL_SIZ
 #define IWPOOL_POOL_SIZ (8UL * 1024)
@@ -198,5 +198,5 @@ IW_EXPORT size_t iwpool_allocated_size(struct iwpool *pool);
  */
 IW_EXPORT size_t iwpool_used_size(struct iwpool *pool);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

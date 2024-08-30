@@ -29,7 +29,7 @@
  *************************************************************************************************/
 
 #include "basedefs.h"
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 /**
  * @brief Init iowow subsystem.
@@ -45,6 +45,5 @@ IW_EXPORT unsigned int iowow_version_minor(void);
 
 IW_EXPORT unsigned int iowow_version_patch(void);
 
-
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

@@ -4,7 +4,7 @@
 
 #include "basedefs.h"
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 typedef uint8_t iwrdb_oflags_t;
 #define IWRDB_NOLOCKS ((iwrdb_oflags_t) 0x01U)
@@ -33,5 +33,5 @@ IW_EXPORT uint8_t* iwrdb_mmap(struct iwrdb *db, bool readonly, int madv, size_t 
 
 IW_EXPORT void iwrdb_munmap(struct iwrdb *db);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

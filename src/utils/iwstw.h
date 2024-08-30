@@ -32,7 +32,7 @@
 
 #include "basedefs.h"
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 struct iwstw;
 typedef struct iwstw*IWSTW;
@@ -98,5 +98,5 @@ IW_EXPORT void iwstw_set_on_task_discard(IWSTW stw, iwstw_on_task_discard_f on_t
  */
 IW_EXPORT int iwstw_queue_size(IWSTW stw);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

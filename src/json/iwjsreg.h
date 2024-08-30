@@ -32,7 +32,7 @@
 #include "iwjson.h"
 #include <pthread.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 #define IWJSREG_FORMAT_BINARY 0x01U
 #define IWJSREG_AUTOSYNC      0x02U
@@ -95,6 +95,6 @@ IW_EXPORT iwrc iwjsreg_at_bool(struct iwjsreg*, const char *path, bool *out);
 
 IW_EXPORT iwrc iwjsreg_at_str_alloc(struct iwjsreg*, const char *path, char *out);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 
 #endif

@@ -32,7 +32,7 @@
 
 #include "basedefs.h"
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 struct iwtp;
 typedef struct iwtp*IWTP;
@@ -111,5 +111,5 @@ IW_EXPORT iwrc iwtp_shutdown(struct iwtp **tpp, bool wait_for_all);
  */
 IW_EXPORT int iwtp_queue_size(struct iwtp *tp);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

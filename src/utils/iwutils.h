@@ -39,7 +39,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 #define IW_RANGES_OVERLAP(IW_s1_, IW_e1_, IW_s2_, IW_e2_) \
         (  ((IW_e1_) > (IW_s2_) && (IW_e1_) <= (IW_e2_))  \
@@ -290,6 +290,6 @@ IW_EXPORT char* iwu_file_read_as_buf_max(const char *path, ssize_t len_max, size
  */
 IW_EXPORT uint32_t iwu_x31_u32_hash(const char *data);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 
 #endif

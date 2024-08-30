@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <strings.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 #define IWINI_PARSE_BOOL(var__) { \
     if (!strcasecmp(value, "true") || !strcasecmp(value, "on") || !strcasecmp(value, "yes")) { \
@@ -169,5 +169,5 @@ IW_EXPORT int iwini_parse_string(const char*string, iwini_handler handler, void*
 }
 #endif
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif /* IWINI_H */

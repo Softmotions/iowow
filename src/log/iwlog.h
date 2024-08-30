@@ -66,7 +66,7 @@
 #include <locale.h>
 #endif
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 /**
  * @enum iw_ecode
@@ -365,5 +365,5 @@ IW_EXPORT iwrc iwlog_init(void);
 #pragma clang diagnostic pop
 #endif
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

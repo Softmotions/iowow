@@ -54,7 +54,7 @@
 #include "iwxstr.h"
 #include <stdbool.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 /**
  * @brief JSON document in compact binary format [Binn](https://github.com/liteserver/binn)
@@ -1033,5 +1033,5 @@ IW_EXPORT iwrc jbn_merge_patch_create(
 
 IW_EXPORT iwrc jbl_init(void);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

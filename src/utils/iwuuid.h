@@ -4,7 +4,7 @@
 
 #include "basedefs.h"
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 #define IW_UUID_STR_LEN 36
 
@@ -17,6 +17,6 @@ IW_EXPORT void iwu_uuid4_fill(char dest[IW_UUID_STR_LEN]);
 
 IW_EXPORT bool iwu_uuid_valid(const char *uuid);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 
 #endif

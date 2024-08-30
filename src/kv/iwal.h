@@ -34,7 +34,7 @@
 #include "iwkv.h"
 #include "iwfsmfile.h"
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 typedef enum {
   WOP_SET = 1,
@@ -113,5 +113,5 @@ bool iwal_synched(struct iwkv *iwkv);
 
 iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

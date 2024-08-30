@@ -5,7 +5,7 @@
 #include "basedefs.h"
 #include <stdbool.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 /**
  * @brief File data events listener.
@@ -56,6 +56,6 @@ struct iwdlsnr {
 
 typedef struct iwdlsnr IWDLSNR;
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 
 #endif // !IWDLSNR_H

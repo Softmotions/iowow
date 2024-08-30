@@ -51,7 +51,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 // Max key + value size: 255Mb
 #define IWKV_MAX_KVSZ 0xfffffff
@@ -554,6 +554,6 @@ IW_EXPORT iwrc iwkv_state(struct iwkv *iwkv, IWFS_FSM_STATE *out);
 
 void iwkvd_db(FILE *f, struct iwdb *db, int flags, int plvl);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 
 #endif

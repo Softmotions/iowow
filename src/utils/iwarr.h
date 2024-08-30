@@ -5,7 +5,7 @@
 #include "basedefs.h"
 #include <stdbool.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 /**
  * @brief Insert new element into sorted array.
@@ -371,5 +371,5 @@ IW_EXPORT void* iwlist_remove(struct iwlist *list, size_t index, size_t *osize, 
  */
 IW_EXPORT void iwlist_sort(struct iwlist *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*), void *op);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

@@ -32,7 +32,7 @@
 
 #include "basedefs.h"
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 struct iwrp;
 struct iwrp_iter;
@@ -72,5 +72,5 @@ IW_EXPORT void iwrb_iter_init(const struct iwrp *rb, IWRB_ITER *iter);
 
 IW_EXPORT void* iwrb_iter_prev(IWRB_ITER *iter);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

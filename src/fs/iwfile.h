@@ -66,7 +66,7 @@
 #include "iwp.h"
 #include "iwdlsnr.h"
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 /** File open mode */
 typedef uint8_t iwfs_omode;
@@ -219,5 +219,5 @@ IW_EXPORT WUR iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts);
  */
 IW_EXPORT WUR iwrc iwfs_file_init(void);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

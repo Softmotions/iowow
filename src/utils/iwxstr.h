@@ -32,7 +32,7 @@
 
 #include <stdarg.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 typedef struct iwxstr IWXSTR;
 
@@ -103,5 +103,5 @@ IW_EXPORT void* iwxstr_user_data_detach(struct iwxstr *xstr);
 
 IW_EXPORT void iwxstr_clear(struct iwxstr *xstr);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

@@ -64,7 +64,7 @@
 
 #include "iwfile.h"
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 struct IWFS_EXT_OPTS;
 struct IWFS_EXT;
@@ -351,6 +351,6 @@ IW_EXPORT WUR iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts);
  */
 IW_EXPORT WUR iwrc iwfs_exfile_init(void);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 
 #endif

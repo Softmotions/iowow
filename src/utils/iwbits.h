@@ -36,7 +36,7 @@
 #include "basedefs.h"
 #include <stdint.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
@@ -129,5 +129,5 @@ IW_INLINE uint64_t iwbits_reverse_64(uint64_t x) {
 #pragma GCC diagnostic pop
 #endif
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 #endif

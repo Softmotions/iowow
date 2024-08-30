@@ -33,7 +33,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-IW_EXTERN_C_START
+IW_EXTERN_C_START;
 
 IW_EXPORT int64_t iwatoi(const char *str);
 
@@ -77,6 +77,6 @@ IW_EXPORT long int iw_strtoul(const char *v, int base, iwrc *rcp);
 
 IW_EXPORT long long iw_strtoull(const char *v, int base, iwrc *rcp);
 
-IW_EXTERN_C_END
+IW_EXTERN_C_END;
 
 #endif
