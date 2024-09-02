@@ -92,25 +92,24 @@ static void* _worker_fn(void *op) {
   assert(tp);
 
   pthread_t st = pthread_self();
-
   pthread_mutex_lock(&tp->mtx);
-  size_t idx = iwulist_length(&tp->threads);
-  if (iwulist_push(&tp->threads, &st)) {
-    pthread_mutex_unlock(&tp->mtx);
+  int idx = iwulist_find_first(&tp->threads, &st);
+  pthread_mutex_unlock(&tp->mtx);
+
+  if (idx == -1) { // should never be happen
     return 0;
   }
-  pthread_mutex_unlock(&tp->mtx);
 
   if (tp->thread_name_prefix) {
     char nbuf[64];
     if (idx >= tp->num_threads) {
-      snprintf(nbuf, sizeof(nbuf), "%s%zd+", tp->thread_name_prefix, idx);
+      snprintf(nbuf, sizeof(nbuf), "%s%d+", tp->thread_name_prefix, idx);
       if (tp->warn_on_overflow_thread_spawn) {
-        iwlog_warn("iwtp | Overflow thread spawned: %s%zd+",
+        iwlog_warn("iwtp | Overflow thread spawned: %s%d+",
                    tp->thread_name_prefix ? tp->thread_name_prefix : "", idx);
       }
     } else {
-      snprintf(nbuf, sizeof(nbuf), "%s%zd", tp->thread_name_prefix, idx);
+      snprintf(nbuf, sizeof(nbuf), "%s%d", tp->thread_name_prefix, idx);
     }
     iwp_set_current_thread_name(nbuf);
   }
@@ -220,6 +219,8 @@ iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, IWTP *out_tp) {
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
       iwlog_ecode_error3(rc);
       goto finish;
+    } else {
+      RCC(rc, finish, iwulist_push(&tp->threads, &th));
     }
   }
 
