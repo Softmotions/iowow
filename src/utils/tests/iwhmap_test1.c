@@ -24,13 +24,13 @@ void murmur3_x86_128(const void *key, const size_t len, uint32_t seed, void *out
 void murmur3_x64_128(const void *key, const size_t len, const uint32_t seed, void *out);
 
 static void test_murmur_hash(void) {
-#define TESTHASH(arch, nbytes, seed, str, expected) {               \
-    char *input = str;                                              \
-    uint32_t hash[4];                                               \
-    char buf[33];                                                   \
-    murmur3_ ## arch ## _ ## nbytes(input, strlen(input), (seed), hash);  \
-    hex ## nbytes(hash, buf);                                         \
-    CU_ASSERT_STRING_EQUAL(buf, expected)                           \
+#define TESTHASH(arch, nbytes, seed, str, expected) {                          \
+          char *input = str;                                                   \
+          uint32_t hash[4];                                                    \
+          char buf[33];                                                        \
+          murmur3_ ## arch ## _ ## nbytes(input, strlen(input), (seed), hash); \
+          hex ## nbytes(hash, buf);                                            \
+          CU_ASSERT_STRING_EQUAL(buf, expected)                                \
 }
 
   TESTHASH(x86, 32, 1234, "Hello, world!", "faf6cdb3");

@@ -27,18 +27,18 @@ struct chat_root_s {
 static struct chat_root_s rooms[] = {
   {
     .name = "Meeting room",
-    .users ={
-      { .id = 1, .name = "Joy Lynn"      },
+    .users = {
+      { .id = 1, .name = "Joy Lynn" },
       { .id = 2, .name = "Aubrey Sparks" },
-      { .id = 3, .name = "Vinnie Kaye"   },
+      { .id = 3, .name = "Vinnie Kaye" },
       { 0 }
     }
   },
   {
     .name = "Webinar room",
-    .users ={
-      { .id = 4, .name = "Arda Payne"    },
-      { .id = 2, .name = "Joy Lynn"      },
+    .users = {
+      { .id = 4, .name = "Arda Payne" },
+      { .id = 2, .name = "Joy Lynn" },
       { 0 }
     }
   }
@@ -46,7 +46,7 @@ static struct chat_root_s rooms[] = {
 
 static iwrc run(void) {
   IWKV_OPTS opts = {
-    .path   = "compoundkeys.db",
+    .path = "compoundkeys.db",
     .oflags = IWKV_TRUNC
   };
   IWKV iwkv;

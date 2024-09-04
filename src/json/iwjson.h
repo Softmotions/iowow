@@ -134,7 +134,6 @@ struct jbl_node;
 typedef struct jbl_node*JBL_NODE;
 
 
-
 /**
  * @brief JSON document as in-memory tree (DOM tree).
  */

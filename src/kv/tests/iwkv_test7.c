@@ -30,8 +30,8 @@ static void iwkv_test7_1_impl(int direction) {
   IWKV_val key = { 0 };
   IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path        = direction > 0 ? "iwkv_test7_2_fwd.db" : "iwkv_test7_2_back.db",
-    .oflags      = IWKV_TRUNC,
+    .path = direction > 0 ? "iwkv_test7_2_fwd.db" : "iwkv_test7_2_back.db",
+    .oflags = IWKV_TRUNC,
     .random_seed = g_seed
   };
   rc = iwkv_open(&opts, &iwkv);

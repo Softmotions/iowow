@@ -104,7 +104,7 @@ typedef enum {
   IW_ERROR_OPERATION_TIMEOUT,    /**< Operation timeout (IW_ERROR_OPERATION_TIMEOUT) */
   IW_ERROR_EXISTS,               /**< Resource exists (IW_ERROR_EXISTS) */
   IW_ERROR_TYPE_NOT_COMPATIBLE,  /**< Value type is not compatible to the requested one (IW_ERROR_TYPE_NOT_COMPATIBLE)
-                                 */
+                                  */
 } iw_ecode;
 
 /**

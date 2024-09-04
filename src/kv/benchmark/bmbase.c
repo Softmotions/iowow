@@ -7,11 +7,11 @@
 
 char *g_program;
 
-uint32_t _execsize();
+uint32_t _execsize ();
 
 typedef struct _BMCTX BMCTX;
 
-typedef bool(bench_method (BMCTX *bmctx));
+typedef bool(bench_method (BMCTX * bmctx));
 
 #define RND_DATA_SZ (10 * 1048576)
 char RND_DATA[RND_DATA_SZ];
@@ -70,7 +70,7 @@ static void _bmctx_dispose(BMCTX *ctx) {
   free(ctx);
 }
 
-static const char *_bmctx_rndbuf_nextptr(BMCTX *ctx, int len) {
+static const char* _bmctx_rndbuf_nextptr(BMCTX *ctx, int len) {
   if (len > RND_DATA_SZ) {
     fprintf(stderr, "record value length exceeds maximum allowed: %d\n", RND_DATA_SZ);
     exit(1);
@@ -570,7 +570,7 @@ static bool _bm_seekrandom(BMCTX *ctx) {
   return _do_seek_random(ctx);
 }
 
-static BMCTX *_bmctx_create(const char *name) {
+static BMCTX* _bmctx_create(const char *name) {
   bench_method *method = 0;
   bool logdbsize = false;
   bool freshdb = false;

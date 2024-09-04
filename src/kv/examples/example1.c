@@ -4,7 +4,7 @@
 
 int main(void) {
   IWKV_OPTS opts = {
-    .path   = "example1.db",
+    .path = "example1.db",
     .oflags = IWKV_TRUNC // Cleanup database before open
   };
   IWKV iwkv;

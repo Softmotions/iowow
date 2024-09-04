@@ -52,7 +52,7 @@ static DWORD __map_mmap_prot_file(const int prot, const int flags) {
   return desiredAccess;
 }
 
-void *mmap(void *addr, size_t len, int prot, int flags, HANDLE fh, OffsetType off) {
+void* mmap(void *addr, size_t len, int prot, int flags, HANDLE fh, OffsetType off) {
   HANDLE fm;
   void *map = MAP_FAILED;
 

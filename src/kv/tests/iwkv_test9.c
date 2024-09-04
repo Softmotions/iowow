@@ -15,7 +15,7 @@ int clean_suite(void) {
 
 static void iwkv_test9_1(void) {
   IWKV_OPTS opts = {
-    .path   = "iwkv_test9_1.db",
+    .path = "iwkv_test9_1.db",
     .oflags = IWKV_TRUNC
   };
   IWKV kv = NULL;

@@ -28,7 +28,7 @@ static uint64_t db_size_bytes(BMCTX *ctx) {
   return fst.size;
 }
 
-static void *db_open(BMCTX *ctx) {
+static void* db_open(BMCTX *ctx) {
   if (ctx->db) {
     return 0; // db is not closed properly
   }
@@ -39,13 +39,13 @@ static void *db_open(BMCTX *ctx) {
     }
   }
   IWKV_OPTS opts = {
-    .wal                       = {
-      .enabled                 = wal_enabled,
+    .wal = {
+      .enabled = wal_enabled,
       .check_crc_on_checkpoint = false,
-      .savepoint_timeout_sec   = 10,                  // 10 sec
-      .checkpoint_timeout_sec  = 300,                 // 5 min
-      .wal_buffer_sz           = 8 * 1024 * 1024,     // 8M
-      .checkpoint_buffer_sz    = 500ULL * 1024 * 1024 // 500MB
+      .savepoint_timeout_sec = 10,                    // 10 sec
+      .checkpoint_timeout_sec = 300,                  // 5 min
+      .wal_buffer_sz = 8 * 1024 * 1024,               // 8M
+      .checkpoint_buffer_sz = 500ULL * 1024 * 1024    // 500MB
     }
   };
   opts.path = bm.param_db ? bm.param_db : DEFAULT_DB;

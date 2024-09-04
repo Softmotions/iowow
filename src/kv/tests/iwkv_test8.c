@@ -35,9 +35,9 @@ static void iwkv_test8_1(void) {
   IWKV_val key = { 0 };
   IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path      = "iwkv_test8_1.db",
-    .oflags    = IWKV_TRUNC,
-    .wal       = {
+    .path = "iwkv_test8_1.db",
+    .oflags = IWKV_TRUNC,
+    .wal = {
       .enabled = true
     }
   };
@@ -105,7 +105,7 @@ typedef struct T82 {
   IWKV iwkvcheck;
 } T82;
 
-static void *t82(void *ctx_) {
+static void* t82(void *ctx_) {
   T82 *ctx = ctx_;
   IWKV_val key = { 0 };
   IWKV_val val = { 0 };
@@ -146,7 +146,6 @@ static void *t82(void *ctx_) {
 
   int c = i + 10000;
   for ( ; i < c; ++i) {
-
     if (i == c - 9800) { // Force checkpoint during online-backup
       rc = iwal_test_checkpoint(ctx->iwkv);
       CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -176,9 +175,9 @@ static void *t82(void *ctx_) {
 
 static void iwkv_test8_2(void) {
   IWKV_OPTS opts = {
-    .path      = "iwkv_test8_2.db",
-    .oflags    = IWKV_TRUNC,
-    .wal       = {
+    .path = "iwkv_test8_2.db",
+    .oflags = IWKV_TRUNC,
+    .wal = {
       .enabled = true
     }
   };

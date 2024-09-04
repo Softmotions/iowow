@@ -41,26 +41,26 @@ IW_EXPORT off_t iwarr_sorted_insert(
  * @return Index of removed element or -1
  */
 IW_EXPORT off_t iwarr_sorted_remove(
-  void* els,
+  void *els,
   size_t nels,
   size_t elsize,
-  void* eptr,
+  void *eptr,
   int (*cmp)(const void*, const void*));
 
 
 IW_EXPORT off_t iwarr_sorted_find(
-  void* els,
+  void *els,
   size_t nels,
   size_t elsize,
-  void* eptr,
+  void *eptr,
   int (*cmp)(const void*, const void*));
 
 
 IW_EXPORT off_t iwarr_sorted_find2(
-  void* els,
+  void *els,
   size_t nels,
   size_t elsize,
-  void* eptr,
+  void *eptr,
   void *op,
   bool *found,
   int (*cmp)(const void*, const void*, void*));
@@ -369,7 +369,9 @@ IW_EXPORT void* iwlist_remove(struct iwlist *list, size_t index, size_t *osize, 
  * @param compar Elements comparator accepts user data as last argument
  * @param op User data
  */
-IW_EXPORT void iwlist_sort(struct iwlist *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*), void *op);
+IW_EXPORT void iwlist_sort(
+  struct iwlist *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*),
+  void *op);
 
 IW_EXTERN_C_END;
 #endif

@@ -257,8 +257,8 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   }
   return rc;
 
-truncfail:
-  impl->fsize = old_size;
+  truncfail
+  : impl->fsize = old_size;
   IWRC(_exfile_initmmap_lw(f), rc);
   return rc;
 }
@@ -921,7 +921,8 @@ static const char* _exfile_ecodefn(locale_t locale, uint32_t ecode) {
   }
   switch (ecode) {
     case IWFS_ERROR_MMAP_OVERLAP
-      : return "Region is mmaped already, mmaping overlaps. "
+      :
+      return "Region is mmaped already, mmaping overlaps. "
              "(IWFS_ERROR_MMAP_OVERLAP)";
     case IWFS_ERROR_NOT_MMAPED:
       return "Region is not mmaped. (IWFS_ERROR_NOT_MMAPED)";

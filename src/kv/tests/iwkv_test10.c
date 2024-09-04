@@ -21,9 +21,9 @@ int clean_suite(void) {
 static void iwkv_test10_1_impl(int fmt_version) {
   IWKV iwkv;
   IWKV_OPTS opts = {
-    .path      = fmt_version > 1 ? "iwkv_test10_1_v2.db" : "iwkv_test10_1_v1.db",
-    .oflags    = IWKV_TRUNC,
-    .wal       = {
+    .path = fmt_version > 1 ? "iwkv_test10_1_v2.db" : "iwkv_test10_1_v1.db",
+    .oflags = IWKV_TRUNC,
+    .wal = {
       .enabled = true
     }
   };

@@ -46,7 +46,7 @@ static int logstage(FILE *f, const char *name, IWDB db) {
   return rci < 0 ? rci : 0;
 }
 
-static void *iwkv_test1_worker(void *op) {
+static void* iwkv_test1_worker(void *op) {
   TASK *t = op;
   CTX *ctx = t->ctx;
   int mynum;
@@ -82,10 +82,10 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   TASK *tasks = calloc(thrnum, sizeof(*tasks));
   VN *arr = calloc(nrecs, sizeof(*arr));
   CTX ctx = {
-    .vn     = arr,
-    .vnsz   = nrecs,
-    .mtx    = PTHREAD_MUTEX_INITIALIZER,
-    .cond   = PTHREAD_COND_INITIALIZER,
+    .vn = arr,
+    .vnsz = nrecs,
+    .mtx = PTHREAD_MUTEX_INITIALIZER,
+    .cond = PTHREAD_COND_INITIALIZER,
     .thrnum = thrnum
   };
   for (int i = 0; i < nrecs; ++i) {
@@ -107,10 +107,10 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   }
 
   IWKV_OPTS opts = {
-    .path                   = "iwkv_test3_1.db",
-    .oflags                 = IWKV_TRUNC,
-    .wal                    = {
-      .enabled              = wal,
+    .path = "iwkv_test3_1.db",
+    .oflags = IWKV_TRUNC,
+    .wal = {
+      .enabled = wal,
       .checkpoint_buffer_sz = 1024 * 1024
     }
   };

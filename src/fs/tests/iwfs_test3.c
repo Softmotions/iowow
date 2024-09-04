@@ -14,10 +14,10 @@
 #define NRECS 10000
 #define RECSZ (10 * 1024)
 
-#define UNLINK() \
-  unlink("test_fsm_stress.data"); \
-  unlink("test_fsm_stress1.fsm"); \
-  unlink("test_fsm_stress2.fsm")
+#define UNLINK()                        \
+        unlink("test_fsm_stress.data"); \
+        unlink("test_fsm_stress1.fsm"); \
+        unlink("test_fsm_stress2.fsm")
 
 typedef struct SREC {
   int   id;
@@ -65,9 +65,9 @@ int init_suite(void) {
     buf[j] = '\0';
     fprintf(fstress1, "%08d:%s\n", i, buf);
     SREC rec = {
-      .id    = i,
-      .addr  = addr,
-      .rsz   = rsz,
+      .id = i,
+      .addr = addr,
+      .rsz = rsz,
       .freed = false
     };
     addr += (8 + 1 + rsz + 1);
@@ -90,16 +90,16 @@ int clean_suite(void) {
 void test_stress(char *path, int bpow, bool mmap_all) {
   IWFS_FSM fsm;
   IWFS_FSM_OPTS opts = {
-    .exfile    = {
-      .file    = {
-        .path  = path,
+    .exfile = {
+      .file = {
+        .path = path,
         .omode = IWFS_OTRUNC
       }
     },
-    .hdrlen    = 62,
-    .bpow      = bpow,
-    .oflags    = IWFSM_STRICT,
-    .mmap_all  = mmap_all
+    .hdrlen = 62,
+    .bpow = bpow,
+    .oflags = IWFSM_STRICT,
+    .mmap_all = mmap_all
   };
   iwrc rc = iwfs_fsmfile_open(&fsm, &opts);
   CU_ASSERT_FALSE_FATAL(rc);

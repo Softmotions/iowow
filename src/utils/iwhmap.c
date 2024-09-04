@@ -110,11 +110,11 @@ IW_INLINE uint32_t _hash_uint64(uint64_t x) {
 
 IW_INLINE uint32_t _hash_uint64_key(const void *key) {
   #ifdef IW_64
-    return _hash_uint64((uint64_t) key);
+  return _hash_uint64((uint64_t) key);
   #else
-    uint64_t lv;
-    memcpy(&lv, key, sizeof(lv));
-    return _hash_uint64(lv);
+  uint64_t lv;
+  memcpy(&lv, key, sizeof(lv));
+  return _hash_uint64(lv);
   #endif
 }
 

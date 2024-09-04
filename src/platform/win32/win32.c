@@ -146,7 +146,7 @@ iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *fs) {
   fs->ctime = _iwp_filetime2millisecons(&info.ftCreationTime);
   fs->mtime = _iwp_filetime2millisecons(&info.ftLastWriteTime);
   ULARGE_INTEGER ul = {
-    .LowPart  = info.nFileSizeLow,
+    .LowPart = info.nFileSizeLow,
     .HighPart = info.nFileSizeHigh
   };
   fs->size = ul.QuadPart;

@@ -582,17 +582,17 @@ BOOL binn_set_blob(binn *item, void *ptr, int size, binn_mem_free pfree);
 //  int  id;        // only for the map
 //  binn value;
 
-#define binn_object_foreach(object, key, value)   \
-  binn_iter_init(&iter, object, BINN_OBJECT);   \
-  while (binn_object_next(&iter, key, &value))
+#define binn_object_foreach(object, key, value)     \
+        binn_iter_init(&iter, object, BINN_OBJECT); \
+        while (binn_object_next(&iter, key, &value))
 
 #define binn_map_foreach(map, id, value)      \
-  binn_iter_init(&iter, map, BINN_MAP);     \
-  while (binn_map_next(&iter, &id, &value))
+        binn_iter_init(&iter, map, BINN_MAP); \
+        while (binn_map_next(&iter, &id, &value))
 
-#define binn_list_foreach(list, value)      \
-  binn_iter_init(&iter, list, BINN_LIST); \
-  while (binn_list_next(&iter, &value))
+#define binn_list_foreach(list, value)          \
+        binn_iter_init(&iter, list, BINN_LIST); \
+        while (binn_list_next(&iter, &value))
 
 /*************************************************************************************/
 /*** SET FUNCTIONS *******************************************************************/
@@ -799,7 +799,7 @@ IW_INLINE BOOL binn_object_set_null(binn *obj, const char *key) {
 }
 
 IW_INLINE BOOL binn_object_set_str(binn *obj, const char *key, const char *str) {
-  return binn_object_set(obj, key, BINN_STRING, (char*) str, 0);  // todo
+  return binn_object_set(obj, key, BINN_STRING, (char*) str, 0);   // todo
 }
 
 IW_INLINE BOOL binn_object_set_blob(binn *obj, const char *key, void *ptr, int size) {

@@ -22,7 +22,7 @@ uint64_t db_size_bytes(BMCTX *ctx) {
   return fst.size;
 }
 
-static void *db_open(BMCTX *ctx) {
+static void* db_open(BMCTX *ctx) {
   if (ctx->db) {
     return 0; // db is not closed properly
   }

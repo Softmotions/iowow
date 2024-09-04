@@ -17,7 +17,7 @@ static void iwre_test1(void) {
   CU_ASSERT_EQUAL(rv, 3);
   for (int i = 0, j = 0; i < 2 * rv; i += 2, ++j) {
     intptr_t l = mpairs[i + 1] - mpairs[i];
-    switch(j)  {
+    switch (j) {
       case 0:
         CU_ASSERT_EQUAL(l, 7);
         CU_ASSERT_EQUAL(strncmp(mpairs[i], "one1two", l), 0);

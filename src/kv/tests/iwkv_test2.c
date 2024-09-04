@@ -18,7 +18,7 @@ int clean_suite(void) {
 
 static void iwkv_test2_1(void) {
   IWKV_OPTS opts = {
-    .path   = "iwkv_test2_1.db",
+    .path = "iwkv_test2_1.db",
     .oflags = IWKV_TRUNC
   };
   const uint64_t numrec = 1000000; // 1M

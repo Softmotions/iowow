@@ -69,11 +69,11 @@ typedef uint8_t fsm_bmopts_t;
 /* Maximum number of records used in allocation statistics */
 #define FSM_MAX_STATS_COUNT 0x0000ffff
 
-#define FSM_ENSURE_OPEN(impl_)                                                                          \
-  if (!(impl_) || !(impl_)->f) return IW_ERROR_INVALID_STATE;
+#define FSM_ENSURE_OPEN(impl_) \
+        if (!(impl_) || !(impl_)->f) return IW_ERROR_INVALID_STATE;
 
-#define FSM_ENSURE_OPEN2(f_)                                                                             \
-  if (!(f_) || !(f_)->impl) return IW_ERROR_INVALID_STATE;
+#define FSM_ENSURE_OPEN2(f_) \
+        if (!(f_) || !(f_)->impl) return IW_ERROR_INVALID_STATE;
 
 #define FSMBK_OFFSET(b_) ((b_)->off)
 

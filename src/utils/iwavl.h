@@ -53,7 +53,7 @@ struct iwavl_node {
 
 /* Cast an AVL tree node to the containing data structure.  */
 #define iwavl_entry(entry, type, member) \
-  ((type*) ((char*) (entry) - offsetof(type, member)))
+        ((type*) ((char*) (entry) - offsetof(type, member)))
 
 /* Returns a pointer to the parent of the specified AVL tree node, or NULL if it
  * is already the root of the tree.  */
@@ -178,8 +178,9 @@ IW_INLINE void iwavl_lookup_bounds(
 IW_INLINE struct iwavl_node* iwavl_lookup_node(
   const struct iwavl_node *root,
   const struct iwavl_node *node,
-  int (                   *cmp )(const struct iwavl_node*,
-                                 const struct iwavl_node*)
+  int                    (*cmp)(
+    const struct iwavl_node*,
+    const struct iwavl_node*)
   ) {
   const struct iwavl_node *cur = root;
 
@@ -259,8 +260,9 @@ IW_INLINE struct iwavl_node* iwavl_lookup_node(
 IW_INLINE struct iwavl_node* iwavl_insert(
   struct iwavl_node **root_ptr,
   struct iwavl_node  *item,
-  int (              *cmp )(const struct iwavl_node*,
-                            const struct iwavl_node*)
+  int               (*cmp)(
+    const struct iwavl_node*,
+    const struct iwavl_node*)
   ) {
   struct iwavl_node **cur_ptr = root_ptr, *cur = NULL;
   int res;
@@ -331,39 +333,39 @@ extern struct iwavl_node* iwavl_next_in_postorder(
  *		printf("%d\n", i->data);
  * }
  */
-#define iwavl_for_each_in_order(child_struct, root,      \
-                                struct_name, struct_member)    \
-  for (struct iwavl_node *_cur =       \
-         iwavl_first_in_order(root);        \
-       _cur && ((child_struct) =          \
-                  iwavl_entry(_cur, struct_name,     \
-                              struct_member), 1);    \
-       _cur = iwavl_next_in_order(_cur))
+#define iwavl_for_each_in_order(child_struct, root,         \
+                                struct_name, struct_member) \
+        for (struct iwavl_node *_cur =                      \
+               iwavl_first_in_order(root);                  \
+             _cur && ((child_struct) =                      \
+                        iwavl_entry(_cur, struct_name,      \
+                                    struct_member), 1);     \
+             _cur = iwavl_next_in_order(_cur))
 
 /*
  * Like iwavl_for_each_in_order(), but uses the reverse order.
  */
-#define iwavl_for_each_in_reverse_order(child_struct, root,    \
-                                        struct_name, struct_member)  \
-  for (struct iwavl_node *_cur =       \
-         iwavl_last_in_order(root);       \
-       _cur && ((child_struct) =          \
-                  iwavl_entry(_cur, struct_name,     \
-                              struct_member), 1);    \
-       _cur = iwavl_prev_in_order(_cur))
+#define iwavl_for_each_in_reverse_order(child_struct, root,         \
+                                        struct_name, struct_member) \
+        for (struct iwavl_node *_cur =                              \
+               iwavl_last_in_order(root);                           \
+             _cur && ((child_struct) =                              \
+                        iwavl_entry(_cur, struct_name,              \
+                                    struct_member), 1);             \
+             _cur = iwavl_prev_in_order(_cur))
 
 /*
  * Like iwavl_for_each_in_order(), but iterates through the nodes in
  * postorder, so the current node may be deleted or freed.
  */
-#define iwavl_for_each_in_postorder(child_struct, root,    \
-                                    struct_name, struct_member)  \
-  for (  struct iwavl_node *_cur =       \
-           iwavl_first_in_postorder(root), *_parent;    \
-         _cur && ((child_struct) =          \
-                    iwavl_entry(_cur, struct_name,     \
-                                struct_member), 1)     \
-      && (_parent = iwavl_get_parent(_cur), 1);   \
-         _cur = iwavl_next_in_postorder(_cur, _parent))
+#define iwavl_for_each_in_postorder(child_struct, root,         \
+                                    struct_name, struct_member) \
+        for (  struct iwavl_node *_cur =                        \
+                 iwavl_first_in_postorder(root), *_parent;      \
+               _cur && ((child_struct) =                        \
+                          iwavl_entry(_cur, struct_name,        \
+                                      struct_member), 1)        \
+            && (_parent = iwavl_get_parent(_cur), 1);           \
+               _cur = iwavl_next_in_postorder(_cur, _parent))
 
 #endif /* _AVL_TREE_H_ */

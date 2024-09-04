@@ -304,7 +304,7 @@ static void jbl_test1_5(void) {
   // Remove /list1/1
   JBL_PATCH p3[] = {
     { .op = JBP_REMOVE, .path = "/foo2/foo3/foo4" },
-    { .op = JBP_REMOVE, .path = "/list1/1"        }
+    { .op = JBP_REMOVE, .path = "/list1/1" }
   };
   rc = jbl_from_json(&jbl, data);
   CU_ASSERT_EQUAL_FATAL(rc, 0);

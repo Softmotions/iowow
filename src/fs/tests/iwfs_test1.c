@@ -35,11 +35,11 @@
 #include <CUnit/Basic.h>
 #include <unistd.h>
 
-#define UNLINK() \
-  unlink("iwfs_exfile_test1.dat"); \
-  unlink("iwfs_exfile_test1_2.dat"); \
-  unlink("test_mmap1.dat"); \
-  unlink("test_fibo_inc.dat")
+#define UNLINK()                           \
+        unlink("iwfs_exfile_test1.dat");   \
+        unlink("iwfs_exfile_test1_2.dat"); \
+        unlink("test_mmap1.dat");          \
+        unlink("test_fibo_inc.dat")
 
 int init_suite(void) {
   int rc = iw_init();
@@ -58,12 +58,12 @@ void iwfs_exfile_test1(void) {
 
   const char *path = "iwfs_exfile_test1.dat";
   IWFS_EXT_OPTS opts = {
-    .file        = {
-      .path      = path,
+    .file = {
+      .path = path,
       .lock_mode = IWP_WLOCK,
-      .omode     = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
+      .omode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
     },
-    .use_locks   = 1
+    .use_locks = 1
   };
   IWRC(iwfs_exfile_open(&ef, &opts), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -125,8 +125,8 @@ void iwfs_exfile_test1_2(void) {
   IWFS_EXT f;
   const char *path = "exfile_test1_2-"; // Temp file prefix
   IWFS_EXT_OPTS opts = {
-    .file    = {
-      .path  = path,
+    .file = {
+      .path = path,
       .omode = IWFS_OTMP | IWFS_OUNLINK
     }
   };
@@ -158,13 +158,13 @@ void test_fibo_inc(void) {
   const char *path = "test_fibo_inc.dat";
   IWFS_EXT ef;
   IWFS_EXT_OPTS opts = {
-    .file        = {
-      .path      = path,
+    .file = {
+      .path = path,
       .lock_mode = IWP_WLOCK,
-      .omode     = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
+      .omode = IWFS_DEFAULT_OMODE | IWFS_OTRUNC
     },
-    .use_locks   = 0,
-    .rspolicy    = iw_exfile_szpolicy_fibo
+    .use_locks = 0,
+    .rspolicy = iw_exfile_szpolicy_fibo
   };
   iwrc rc = 0;
   size_t sp;

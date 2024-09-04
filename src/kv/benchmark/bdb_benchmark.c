@@ -27,7 +27,7 @@ static void val_free(void *data) {
   free(data);
 }
 
-static void *db_open(BMCTX *ctx) {
+static void* db_open(BMCTX *ctx) {
   if (ctx->db) {
     return 0; // db is not closed properly
   }

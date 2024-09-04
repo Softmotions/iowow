@@ -98,7 +98,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   return rc;
 }
 
-IWFS_FSM *iwkvd_fsm(IWKV kv) {
+IWFS_FSM* iwkvd_fsm(IWKV kv) {
   return &kv->fsm;
 }
 
@@ -106,7 +106,7 @@ void iwkvd_db(FILE *f, IWDB db, int flags, int plvl) {
   assert(db);
   SBLK *sb, *tail;
   IWLCTX lx = {
-    .db   = db,
+    .db = db,
     .nlvl = -1
   };
   iwrc rc = _sblk_at(&lx, db->addr, 0, &sb);

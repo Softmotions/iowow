@@ -31,7 +31,7 @@ static void iwkv_test5_2(void) {
   IWKV_val val = { 0 };
   IWKV_cursor cur1;
   IWKV_OPTS opts = {
-    .path   = "iwkv_test5_2.db",
+    .path = "iwkv_test5_2.db",
     .oflags = IWKV_TRUNC
   };
 
@@ -113,7 +113,7 @@ static void iwkv_test5_1(void) {
   IWDB db;
   IWKV_cursor cur1, cur2;
   IWKV_OPTS opts = {
-    .path   = "iwkv_test5_1.db",
+    .path = "iwkv_test5_1.db",
     .oflags = IWKV_TRUNC
   };
   rc = iwkv_open(&opts, &iwkv);

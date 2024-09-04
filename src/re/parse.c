@@ -190,20 +190,20 @@ CHARACTER:
         return bottom;
       }
 
-#define QUANTIFIER(ch, min, max)                                           \
-    case ch:                                                               \
-      if (context->stack == bottom)                                      \
-      goto CHARACTER;                                                \
-      push(context,                                                      \
-           &(cregex_node_t) {                                             \
+#define QUANTIFIER(ch, min, max)                              \
+          case ch:                                            \
+            if (context->stack == bottom)                     \
+            goto CHARACTER;                                   \
+            push(context,                                     \
+                 &(cregex_node_t) {                           \
     .type = REGEX_NODE_TYPE_QUANTIFIER,                       \
     .nmin = min,                                              \
     .nmax = max,                                              \
     .greedy = (*context->sp == '?') ? (++context->sp, 0) : 1, \
-    .quantified = consume(context) \
-  } \
-           );                         \
-      break
+    .quantified = consume(context)                            \
+  }                                                           \
+                 );                                           \
+            break
 
         /* clang-format off */
         /* Quantifiers */

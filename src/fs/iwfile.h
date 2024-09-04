@@ -99,8 +99,8 @@ typedef uint8_t iwfs_sync_flags;
 
 #define IWFS_DEFAULT_OMODE    (IWFS_OCREATE)
 #define IWFS_DEFAULT_LOCKMODE (IWP_NOLOCK)
-#define IWFS_DEFAULT_FILEMODE                    \
-  00666 /**< Default permission of created files */
+#define IWFS_DEFAULT_FILEMODE \
+        00666 /**< Default permission of created files */
 
 /**
  * @brief `IWFS_FILE` file options.

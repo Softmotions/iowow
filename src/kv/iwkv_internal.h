@@ -273,8 +273,8 @@ struct iwkv_cursor {
                                   If `skip_next < 0` `IWKV_CURSOR_PREV` will be skipped */
   struct sblk *cn;           /**< Current `SBLK` node */
   struct iwkv_cursor *next;  /**< Next cursor in active db cursors chain */
-  struct iwlctx lx;                 /**< Lookup context */
-  off_t  dbaddr;             /**< Database address used as `cn` */
+  struct iwlctx       lx;    /**< Lookup context */
+  off_t dbaddr;              /**< Database address used as `cn` */
 };
 
 #define ENSURE_OPEN(iwkv_)                                               \

@@ -5,11 +5,11 @@
 
 static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8 bytes");
 
-#define E(expr_, ret_) \
-  if ((rc = (expr_)) != MDB_SUCCESS) { \
-    fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, mdb_strerror(rc)); \
-    return ret_; \
-  }
+#define E(expr_, ret_)                                                         \
+        if ((rc = (expr_)) != MDB_SUCCESS) {                                   \
+          fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, mdb_strerror(rc)); \
+          return ret_;                                                         \
+        }
 
 #define B(expr_) E(expr_, 0)
 
@@ -37,7 +37,7 @@ uint64_t db_size_bytes(BMCTX *ctx) {
   return fst.size;
 }
 
-static void *db_open(BMCTX *ctx) {
+static void* db_open(BMCTX *ctx) {
   int rc;
   if (ctx->db) {
     return 0; // db is not closed properly

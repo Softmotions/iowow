@@ -41,11 +41,11 @@
 
 static pthread_mutex_t records_mtx;
 
-#define UNLINK() \
-  unlink("test_fsm_open_close.fsm");  \
-  unlink("test_fsm_uniform_alloc.fsm"); \
-  unlink("test_block_allocation1.fsm"); \
-  unlink("test_block_allocation2.fsm")
+#define UNLINK()                              \
+        unlink("test_fsm_open_close.fsm");    \
+        unlink("test_fsm_uniform_alloc.fsm"); \
+        unlink("test_block_allocation1.fsm"); \
+        unlink("test_block_allocation2.fsm")
 
 int init_suite(void) {
   pthread_mutex_init(&records_mtx, 0);
@@ -222,14 +222,14 @@ void test_fsm_bitmap(void) {
 void test_fsm_open_close(void) {
   iwrc rc;
   IWFS_FSM_OPTS opts = {
-    .exfile         = {
-      .file         = { .path = "test_fsm_open_close.fsm", .lock_mode = IWP_WLOCK },
-      .rspolicy     = iw_exfile_szpolicy_fibo,
+    .exfile = {
+      .file = { .path = "test_fsm_open_close.fsm", .lock_mode = IWP_WLOCK },
+      .rspolicy = iw_exfile_szpolicy_fibo,
       .initial_size = 0
     },
-    .bpow           = 6,
-    .hdrlen         = 64,
-    .oflags         = IWFSM_STRICT
+    .bpow = 6,
+    .hdrlen = 64,
+    .oflags = IWFSM_STRICT
   };
 
   size_t aunit = iwp_alloc_unit();
@@ -276,18 +276,18 @@ void test_fsm_uniform_alloc_impl(int mmap_all) {
   iwrc rc;
   IWFS_FSMDBG_STATE state1, state2;
   IWFS_FSM_OPTS opts = {
-    .exfile        = {
-      .file        = {
-        .path      = "test_fsm_uniform_alloc.fsm",
+    .exfile = {
+      .file = {
+        .path = "test_fsm_uniform_alloc.fsm",
         .lock_mode = IWP_WLOCK,
-        .omode     = IWFS_OTRUNC
+        .omode = IWFS_OTRUNC
       },
-      .rspolicy    = iw_exfile_szpolicy_fibo
+      .rspolicy = iw_exfile_szpolicy_fibo
     },
-    .bpow          = 6,
-    .hdrlen        = 64,
-    .oflags        = IWFSM_STRICT,
-    .mmap_all      = mmap_all
+    .bpow = 6,
+    .hdrlen = 64,
+    .oflags = IWFSM_STRICT,
+    .mmap_all = mmap_all
   };
 
   typedef struct {
@@ -541,13 +541,13 @@ void test_block_allocation_impl(int mmap_all, int nthreads, int numrec, int avgr
   pthread_t *tlist = malloc(nthreads * sizeof(pthread_t));
 
   IWFS_FSM_OPTS opts = {
-    .exfile     = {
-      .file     = { .path = path, .omode = IWFS_OTRUNC },
+    .exfile = {
+      .file = { .path = path, .omode = IWFS_OTRUNC },
       .rspolicy = iw_exfile_szpolicy_fibo
     },
-    .bpow       = blkpow,
-    .oflags     = IWFSM_STRICT,
-    .mmap_all   = mmap_all
+    .bpow = blkpow,
+    .oflags = IWFSM_STRICT,
+    .mmap_all = mmap_all
   };
 
   FSMRECTASK task;
@@ -600,16 +600,16 @@ void test_block_allocation1_impl(int mmap_all) {
   IWFS_FSM fsm;
   int psize = iwp_alloc_unit();
   IWFS_FSM_OPTS opts = {
-    .exfile    = {
-      .file    = {
-        .path  = "test_block_allocation1.fsm",
+    .exfile = {
+      .file = {
+        .path = "test_block_allocation1.fsm",
         .omode = IWFS_OTRUNC
       }
     },
-    .hdrlen    = psize - 2 * 64,
-    .bpow      = 6,
-    .oflags    = IWFSM_STRICT,
-    .mmap_all  = mmap_all
+    .hdrlen = psize - 2 * 64,
+    .bpow = 6,
+    .oflags = IWFSM_STRICT,
+    .mmap_all = mmap_all
   };
 
   off_t oaddr = 0;

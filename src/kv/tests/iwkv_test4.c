@@ -10,7 +10,7 @@ uint32_t g_rnd_data_pos;
 #define RND_DATA_SZ (10 * 1048576)
 char RND_DATA[RND_DATA_SZ];
 
-static void *rndbuf_next(uint32_t len) {
+static void* rndbuf_next(uint32_t len) {
   assert(len <= RND_DATA_SZ);
   if (g_rnd_data_pos + len > RND_DATA_SZ) {
     g_rnd_data_pos = 0;
@@ -48,12 +48,12 @@ static void iwkv_test4_4(void) {
   IWKV_val key = { 0 };
   IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path                     = path,
-    .oflags                   = IWKV_TRUNC,
-    .random_seed              = g_seed,
-    .wal                      = {
-      .enabled                = true,
-      .savepoint_timeout_sec  = 2,
+    .path = path,
+    .oflags = IWKV_TRUNC,
+    .random_seed = g_seed,
+    .wal = {
+      .enabled = true,
+      .savepoint_timeout_sec = 2,
       .checkpoint_timeout_sec = 300
     }
   };
@@ -86,14 +86,14 @@ static void iwkv_test4_3_impl(int fmt_version) {
   IWKV_val key = { 0 };
   IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path                      = path,
-    .oflags                    = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
-    .random_seed               = g_seed,
-    .fmt_version               = fmt_version,
-    .wal                       = {
-      .enabled                 = true,
+    .path = path,
+    .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
+    .random_seed = g_seed,
+    .fmt_version = fmt_version,
+    .wal = {
+      .enabled = true,
       .check_crc_on_checkpoint = true,
-      .savepoint_timeout_sec   = UINT32_MAX
+      .savepoint_timeout_sec = UINT32_MAX
     }
   };
   iwrc rc = iwkv_open(&opts, &iwkv);
@@ -186,15 +186,15 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
   IWKV_val key = { 0 };
   IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path                      = path,
-    .oflags                    = IWKV_TRUNC,
-    .random_seed               = g_seed,
-    .wal                       = {
-      .enabled                 = (walpath != NULL),
+    .path = path,
+    .oflags = IWKV_TRUNC,
+    .random_seed = g_seed,
+    .wal = {
+      .enabled = (walpath != NULL),
       .check_crc_on_checkpoint = true,
-      .savepoint_timeout_sec   = UINT32_MAX,
-      .wal_buffer_sz           = 64 * 1024,
-      .checkpoint_buffer_sz    = 32 * 1024 * 1024
+      .savepoint_timeout_sec = UINT32_MAX,
+      .wal_buffer_sz = 64 * 1024,
+      .checkpoint_buffer_sz = 32 * 1024 * 1024
     }
   };
   rc = iwkv_open(&opts, &iwkv);
@@ -247,10 +247,10 @@ static void iwkv_test1_impl(char *path, const char *walpath) {
   IWKV_val key = { 0 };
   IWKV_val val = { 0 };
   IWKV_OPTS opts = {
-    .path                    = path,
-    .oflags                  = IWKV_TRUNC,
-    .wal                     = {
-      .enabled               = (walpath != NULL),
+    .path = path,
+    .oflags = IWKV_TRUNC,
+    .wal = {
+      .enabled = (walpath != NULL),
       .savepoint_timeout_sec = UINT32_MAX
     }
   };

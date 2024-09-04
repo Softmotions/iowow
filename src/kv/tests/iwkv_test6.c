@@ -23,8 +23,8 @@ static void iwkv_test6_1_impl(int fmt_version) {
   IWKV_cursor cur;
 
   IWKV_OPTS opts = {
-    .path        = "iwkv_test6_1.db",
-    .oflags      = IWKV_TRUNC,
+    .path = "iwkv_test6_1.db",
+    .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   rc = iwkv_open(&opts, &iwkv);
@@ -89,8 +89,8 @@ static void iwkv_test6_2_impl(int fmt_version) {
   char kbuf[PREFIX_KEY_LEN_V2];
 
   IWKV_OPTS opts = {
-    .path        = "iwkv_test6_2.db",
-    .oflags      = IWKV_TRUNC,
+    .path = "iwkv_test6_2.db",
+    .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   rc = iwkv_open(&opts, &iwkv);

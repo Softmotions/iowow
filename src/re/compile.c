@@ -242,7 +242,7 @@ static cregex_program_instr_t* compile_context(
 
     /* Captures */
     case REGEX_NODE_TYPE_CAPTURE:
-      capture = context->ncaptures++ *2;
+      capture = context->ncaptures++ * 2;
       emit(context,
            &(cregex_program_instr_t) { .opcode = REGEX_PROGRAM_OPCODE_SAVE,
                                        .save = capture });

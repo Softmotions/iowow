@@ -12,32 +12,31 @@ static struct data_s {
   const char *club;
   uint8_t     points;
 } _points[] = {
-
-  { "Aston Villa",             25 },
-  { "Manchester City",         57 },
-  { "Arsenal",                 40 },
-  { "Everton",                 37 },
-  { "West Ham United",         27 },
-  { "Tottenham Hotspur",       41 },
+  { "Aston Villa", 25 },
+  { "Manchester City", 57 },
+  { "Arsenal", 40 },
+  { "Everton", 37 },
+  { "West Ham United", 27 },
+  { "Tottenham Hotspur", 41 },
   { "Wolverhampton Wanderers", 43 },
-  { "Norwich City",            21 },
-  { "Leicester City",          53 },
-  { "Manchester United",       45 },
-  { "Newcastle United",        35 },
-  { "Brighton & Hove Albion",  29 },
-  { "AFC Bournemouth",         27 },
-  { "Crystal Palace",          39 },
-  { "Sheffield United",        43 },
-  { "Burnley",                 39 },
-  { "Southampton",             34 },
-  { "Watford",                 27 },
-  { "Chelsea",                 48 },
-  { "Liverpool",               82 },
+  { "Norwich City", 21 },
+  { "Leicester City", 53 },
+  { "Manchester United", 45 },
+  { "Newcastle United", 35 },
+  { "Brighton & Hove Albion", 29 },
+  { "AFC Bournemouth", 27 },
+  { "Crystal Palace", 39 },
+  { "Sheffield United", 43 },
+  { "Burnley", 39 },
+  { "Southampton", 34 },
+  { "Watford", 27 },
+  { "Chelsea", 48 },
+  { "Liverpool", 82 },
 };
 
 static iwrc run(void) {
   IWKV_OPTS opts = {
-    .path   = "cursor1.db",
+    .path = "cursor1.db",
     .oflags = IWKV_TRUNC // Cleanup database before open
   };
   IWKV iwkv;

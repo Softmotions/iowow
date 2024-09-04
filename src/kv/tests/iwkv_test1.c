@@ -72,8 +72,8 @@ static void iwkv_test3_impl(int fmt_version) {
   IWKV iwkv;
   IWDB db1;
   IWKV_OPTS opts = {
-    .path        = "iwkv_test1_3.db",
-    .oflags      = IWKV_TRUNC,
+    .path = "iwkv_test1_3.db",
+    .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
 
@@ -137,8 +137,8 @@ static void iwkv_test2_impl(int fmt_version) {
   IWKV iwkv;
   IWDB db1;
   IWKV_OPTS opts = {
-    .path        = "iwkv_test1_2.db",
-    .oflags      = IWKV_TRUNC,
+    .path = "iwkv_test1_2.db",
+    .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
 
@@ -254,8 +254,8 @@ static void iwkv_test1_impl(int fmt_version) {
   size_t vsize;
 
   IWKV_OPTS opts = {
-    .path        = "iwkv_test1.db",
-    .oflags      = IWKV_TRUNC,
+    .path = "iwkv_test1.db",
+    .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   // Test open/close
@@ -680,8 +680,8 @@ static void iwkv_test1_v2(void) {
 
 static void iwkv_test8_impl(int fmt_version) {
   IWKV_OPTS opts = {
-    .path        = "iwkv_test1_8.db",
-    .oflags      = IWKV_TRUNC,
+    .path = "iwkv_test1_8.db",
+    .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   IWKV iwkv;
@@ -768,8 +768,8 @@ static void iwkv_test8_v2(void) {
 
 static void iwkv_test7_impl(int fmt_version) {
   IWKV_OPTS opts = {
-    .path        = "iwkv_test1_7.db",
-    .oflags      = IWKV_TRUNC,
+    .path = "iwkv_test1_7.db",
+    .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   IWKV iwkv;
@@ -819,8 +819,8 @@ static void iwkv_test7_v2(void) {
 
 static void iwkv_test6_impl(int fmt_version) {
   IWKV_OPTS opts = {
-    .path        = "iwkv_test1_6.db",
-    .oflags      = IWKV_TRUNC,
+    .path = "iwkv_test1_6.db",
+    .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   const int vbsiz = 1000 * 1000;

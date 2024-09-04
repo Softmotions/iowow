@@ -479,7 +479,7 @@ BINN_PRIVATE unsigned char* SearchForKey(
     }
     // Compare if the strings are equal.
     if (len > 0) {
-      if (strnicmp((char*) p, key, len) == 0) {   // note that there is no null terminator here
+      if (strnicmp((char*) p, key, len) == 0) {    // note that there is no null terminator here
         if (keylen == len) {
           p += len;
           return p;
@@ -1326,12 +1326,12 @@ BINN_PRIVATE BOOL GetValue(unsigned char *p, binn *value) {
 #ifdef BINN_EXTENDED
     case BINN_SINGLE_STR:
       value->type = BINN_SINGLE;
-      value->vfloat = (float) atof((const char*) value->ptr); // converts from string to double, and then to float
+      value->vfloat = (float) atof((const char*) value->ptr);  // converts from string to double, and then to float
       value->ptr = &value->vfloat;
       break;
     case BINN_DOUBLE_STR:
       value->type = BINN_DOUBLE;
-      value->vdouble = atof((const char*) value->ptr); // converts from string to double
+      value->vdouble = atof((const char*) value->ptr);  // converts from string to double
       value->ptr = &value->vdouble;
       break;
 #endif

@@ -38,7 +38,7 @@
 #define IW_EXTERN_C_END   } void _IW_EXTERN_C(void)
 #else
 #define IW_EXTERN_C_START void _IW_EXTERN_C_(void)
-#define IW_EXTERN_C_END void _IW_EXTERN_C_(void)
+#define IW_EXTERN_C_END   void _IW_EXTERN_C_(void)
 #endif
 
 #define IW_XSTR(s) IW_STR(s)

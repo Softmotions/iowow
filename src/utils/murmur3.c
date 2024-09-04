@@ -22,8 +22,7 @@ IW_INLINE uint64_t rotl64(uint64_t x, int8_t r) {
 #define ROTL32(x, y) rotl32(x, y)
 #define ROTL64(x, y) rotl64(x, y)
 
-IW_INLINE uint32_t getblock32 (const uint32_t * p, size_t i)
-{
+IW_INLINE uint32_t getblock32(const uint32_t *p, size_t i) {
 #ifndef IW_BIGENDIAN
   return p[i];
 #else
@@ -31,8 +30,7 @@ IW_INLINE uint32_t getblock32 (const uint32_t * p, size_t i)
 #endif
 }
 
-IW_INLINE uint64_t getblock64 (const uint64_t * p, size_t i)
-{
+IW_INLINE uint64_t getblock64(const uint64_t *p, size_t i) {
 #ifndef IW_BIGENDIAN
   return p[i];
 #else
@@ -104,7 +102,8 @@ void murmur3_x86_32(const void *key, size_t len, uint32_t seed, void *out) {
       k1 *= c2;
       h1 ^= k1;
       /* fallthrough */
-  };
+  }
+  ;
 
   h1 ^= (uint32_t) len;
   h1 = fmix32(h1);
@@ -355,7 +354,8 @@ void murmur3_x64_128(const void *key, const size_t len, const uint32_t seed, voi
       k1 *= c2;
       h1 ^= k1;
       /* fallthrough */
-  };
+  }
+  ;
 
   h1 ^= (uint64_t) len;
   h2 ^= (uint64_t) len;
