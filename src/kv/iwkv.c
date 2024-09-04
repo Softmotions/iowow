@@ -696,7 +696,7 @@ IW_INLINE WUR iwrc _kvblk_key_peek(
       return IWKV_ERROR_CORRUPTED;
     }
     rp += step;
-    *obuf = (uint8_t*) rp;
+    *obuf = (uint8_t *) rp;
     *olen = klen;
   } else {
     *obuf = 0;
@@ -716,7 +716,7 @@ IW_INLINE void _kvblk_value_peek(
     IW_READVNUMBUF(rp, klen, step);
     rp += step;
     rp += klen;
-    *obuf = (uint8_t*) rp;
+    *obuf = (uint8_t *) rp;
     *olen = kb->pidx[idx].len - klen - step;
   } else {
     *obuf = 0;
@@ -1108,7 +1108,7 @@ static WUR iwrc _kvblk_addkv(
   IWFS_FSM *fsm = &db->iwkv->fsm;
   bool compacted = false;
   struct iwdlsnr *dlsnr = kb->db->iwkv->dlsnr;
-  struct iwkv_val *uval = (struct iwkv_val*) val;
+  struct iwkv_val *uval = (struct iwkv_val *) val;
 
   size_t ksize = key->size;
   if (compound) {
@@ -1234,8 +1234,8 @@ static WUR iwrc _kvblk_updatev(
   uint8_t pidx = *idxp, *mm = 0, *wp, *sp;
   struct iwdb *db = kb->db;
   struct iwdlsnr *dlsnr = kb->db->iwkv->dlsnr;
-  struct iwkv_val *uval = (struct iwkv_val*) val;
-  struct iwkv_val *ukey = (struct iwkv_val*) key;
+  struct iwkv_val *uval = (struct iwkv_val *) val;
+  struct iwkv_val *ukey = (struct iwkv_val *) key;
   struct iwkv_val skey; // stack allocated key/val
   struct kvp *kvp = &kb->pidx[pidx];
   size_t kbsz = 1ULL << kb->szpow;                            // kvblk size
@@ -3433,7 +3433,7 @@ iwrc iwkv_puth(
   struct iwlctx lx = {
     .db = db,
     .key = &ekey,
-    .val = (struct iwkv_val*) val,
+    .val = (struct iwkv_val *) val,
     .nlvl = -1,
     .op = IWLCTX_PUT,
     .opflags = opflags,
