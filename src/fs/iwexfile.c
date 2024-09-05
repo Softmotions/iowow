@@ -257,8 +257,10 @@ static iwrc _exfile_truncate_lw(struct IWFS_EXT *f, off_t size) {
   }
   return rc;
 
-  truncfail
-  : impl->fsize = old_size;
+  // uncrustify:off
+  truncfail:
+  impl->fsize = old_size;
+  // uncrustify:on
   IWRC(_exfile_initmmap_lw(f), rc);
   return rc;
 }
@@ -356,8 +358,8 @@ static iwrc _exfile_write(struct IWFS_EXT *f, off_t off, const void *buf, size_t
     wp = wp - *sp;
   }
   *sp = siz - wp;
-finish:
-  IWRC(_exfile_unlock2(impl), rc);
+  finish
+  : IWRC(_exfile_unlock2(impl), rc);
 end:
   if (rc) {
     *sp = 0;

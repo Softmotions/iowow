@@ -269,24 +269,24 @@ typedef struct utf8proc_property_struct {
   utf8proc_uint16_t  lowercase_seqindex;
   utf8proc_uint16_t  titlecase_seqindex;
   utf8proc_uint16_t  comb_index;
-  unsigned bidi_mirrored : 1;
-  unsigned comp_exclusion : 1;
+  unsigned bidi_mirrored:1;
+  unsigned comp_exclusion:1;
   /**
    * Can this codepoint be ignored?
    *
    * Used by @ref utf8proc_decompose_char when @ref UTF8PROC_IGNORE is
    * passed as an option.
    */
-  unsigned ignorable : 1;
-  unsigned control_boundary : 1;
+  unsigned ignorable:1;
+  unsigned control_boundary:1;
   /** The width of the codepoint. */
-  unsigned charwidth : 2;
-  unsigned pad : 2;
+  unsigned charwidth:2;
+  unsigned pad:2;
   /**
    * Boundclass.
    * @see utf8proc_boundclass_t.
    */
-  unsigned boundclass : 8;
+  unsigned boundclass:8;
 } utf8proc_property_t;
 
 /** Unicode categories. */
@@ -372,16 +372,16 @@ typedef enum {
 
 /** Boundclass property. (TR29) */
 typedef enum {
-  UTF8PROC_BOUNDCLASS_START              =  0, /**< Start */
-  UTF8PROC_BOUNDCLASS_OTHER              =  1, /**< Other */
-  UTF8PROC_BOUNDCLASS_CR                 =  2, /**< Cr */
-  UTF8PROC_BOUNDCLASS_LF                 =  3, /**< Lf */
-  UTF8PROC_BOUNDCLASS_CONTROL            =  4, /**< Control */
-  UTF8PROC_BOUNDCLASS_EXTEND             =  5, /**< Extend */
-  UTF8PROC_BOUNDCLASS_L                  =  6, /**< L */
-  UTF8PROC_BOUNDCLASS_V                  =  7, /**< V */
-  UTF8PROC_BOUNDCLASS_T                  =  8, /**< T */
-  UTF8PROC_BOUNDCLASS_LV                 =  9, /**< Lv */
+  UTF8PROC_BOUNDCLASS_START              = 0,  /**< Start */
+  UTF8PROC_BOUNDCLASS_OTHER              = 1,  /**< Other */
+  UTF8PROC_BOUNDCLASS_CR                 = 2,  /**< Cr */
+  UTF8PROC_BOUNDCLASS_LF                 = 3,  /**< Lf */
+  UTF8PROC_BOUNDCLASS_CONTROL            = 4,  /**< Control */
+  UTF8PROC_BOUNDCLASS_EXTEND             = 5,  /**< Extend */
+  UTF8PROC_BOUNDCLASS_L                  = 6,  /**< L */
+  UTF8PROC_BOUNDCLASS_V                  = 7,  /**< V */
+  UTF8PROC_BOUNDCLASS_T                  = 8,  /**< T */
+  UTF8PROC_BOUNDCLASS_LV                 = 9,  /**< Lv */
   UTF8PROC_BOUNDCLASS_LVT                = 10, /**< Lvt */
   UTF8PROC_BOUNDCLASS_REGIONAL_INDICATOR = 11, /**< Regional indicator */
   UTF8PROC_BOUNDCLASS_SPACINGMARK        = 12, /**< Spacingmark */

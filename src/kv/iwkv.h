@@ -152,7 +152,7 @@ struct iwkv_wal_opts {
        - after releasing
        exclusive database lock by WAL checkpoint thread.
        In the case of `before lock` first argument will be set to true */
-  void *wal_lock_interceptor_opaque;/**< Opaque data for `wal_lock_interceptor` */
+  void *wal_lock_interceptor_opaque; /**< Opaque data for `wal_lock_interceptor` */
 };
 
 typedef struct iwkv_wal_opts IWKV_WAL_OPTS;

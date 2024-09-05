@@ -21,45 +21,46 @@
    ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
    SOFTWARE.
-*/
+ */
 
 /*
-  2011-04-10 (0.1.6):
+   2011-04-10 (0.1.6):
 
-  	* Added sample
+ * Added sample
 
-  2011-03 (0.1.5):
+   2011-03 (0.1.5):
 
-	* Added shuffle/permutation
+ * Added shuffle/permutation
 
-  2008-11-16 (0.1.4):
+   2008-11-16 (0.1.4):
 
-    * Fixed a bug in introsort() that happens in rare cases.
+ * Fixed a bug in introsort() that happens in rare cases.
 
-  2008-11-05 (0.1.3):
+   2008-11-05 (0.1.3):
 
-    * Fixed a bug in introsort() for complex comparisons.
+ * Fixed a bug in introsort() for complex comparisons.
 
-	* Fixed a bug in mergesort(). The previous version is not stable.
+ * Fixed a bug in mergesort(). The previous version is not stable.
 
-  2008-09-15 (0.1.2):
+   2008-09-15 (0.1.2):
 
-	* Accelerated introsort. On my Mac (not on another Linux machine),
-	  my implementation is as fast as std::sort on random input.
+ * Accelerated introsort. On my Mac (not on another Linux machine),
+    my implementation is as fast as std::sort on random input.
 
-	* Added combsort and in introsort, switch to combsort if the
-	  recursion is too deep.
+ * Added combsort and in introsort, switch to combsort if the
+    recursion is too deep.
 
-  2008-09-13 (0.1.1):
+   2008-09-13 (0.1.1):
 
-	* Added k-small algorithm
+ * Added k-small algorithm
 
-  2008-09-05 (0.1.0):
+   2008-09-05 (0.1.0):
 
-	* Initial version
+ * Initial version
 
-*/
+ */
 
+// uncrustify:off
 #ifndef AC_KSORT_H
 #define AC_KSORT_H
 
