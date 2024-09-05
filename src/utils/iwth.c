@@ -49,16 +49,14 @@ int pthread_barrierattr_destroy(pthread_barrierattr_t *attr __unused) {
 
 int pthread_barrierattr_getpshared(
   const pthread_barrierattr_t* restrict attr __unused,
-  int* restrict                         pshared
-  ) {
+  int* restrict                         pshared) {
   *pshared = PTHREAD_PROCESS_PRIVATE;
   return 0;
 }
 
 int pthread_barrierattr_setpshared(
   pthread_barrierattr_t *attr __unused,
-  int                    pshared
-  ) {
+  int                    pshared) {
   if (pshared != PTHREAD_PROCESS_PRIVATE) {
     errno = EINVAL;
     return -1;
@@ -69,8 +67,7 @@ int pthread_barrierattr_setpshared(
 int pthread_barrier_init(
   pthread_barrier_t* restrict           barrier,
   const pthread_barrierattr_t* restrict attr __unused,
-  unsigned                              count
-  ) {
+  unsigned                              count) {
   if (count == 0) {
     errno = EINVAL;
     return -1;

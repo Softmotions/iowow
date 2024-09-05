@@ -497,8 +497,7 @@ UTF8PROC_DLLEXPORT const utf8proc_property_t* utf8proc_get_property(utf8proc_int
  */
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_decompose_char(
   utf8proc_int32_t codepoint, utf8proc_int32_t *dst, utf8proc_ssize_t bufsize,
-  utf8proc_option_t options, int *last_boundclass
-  );
+  utf8proc_option_t options, int *last_boundclass);
 
 /**
  * The same as @ref utf8proc_decompose_char, but acts on a whole UTF-8
@@ -519,8 +518,7 @@ UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_decompose_char(
  */
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_decompose(
   const utf8proc_uint8_t *str, utf8proc_ssize_t strlen,
-  utf8proc_int32_t *buffer, utf8proc_ssize_t bufsize, utf8proc_option_t options
-  );
+  utf8proc_int32_t *buffer, utf8proc_ssize_t bufsize, utf8proc_option_t options);
 
 /**
  * The same as @ref utf8proc_decompose, but also takes a `custom_func` mapping function
@@ -531,8 +529,7 @@ UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_decompose(
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_decompose_custom(
   const utf8proc_uint8_t *str, utf8proc_ssize_t strlen,
   utf8proc_int32_t *buffer, utf8proc_ssize_t bufsize, utf8proc_option_t options,
-  utf8proc_custom_func custom_func, void *custom_data
-  );
+  utf8proc_custom_func custom_func, void *custom_data);
 
 /**
  * Normalizes the sequence of `length` codepoints pointed to by `buffer`
@@ -684,8 +681,10 @@ UTF8PROC_DLLEXPORT const char* utf8proc_category_string(utf8proc_int32_t codepoi
  * with `malloc`, and should therefore be deallocated with `free`.
  */
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_map(
-  const utf8proc_uint8_t *str, utf8proc_ssize_t strlen, utf8proc_uint8_t **dstptr, utf8proc_option_t options
-  );
+  const utf8proc_uint8_t *str,
+  utf8proc_ssize_t        strlen,
+  utf8proc_uint8_t      **dstptr,
+  utf8proc_option_t       options);
 
 /**
  * Like @ref utf8proc_map, but also takes a `custom_func` mapping function
@@ -695,8 +694,7 @@ UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_map(
  */
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_map_custom(
   const utf8proc_uint8_t *str, utf8proc_ssize_t strlen, utf8proc_uint8_t **dstptr, utf8proc_option_t options,
-  utf8proc_custom_func custom_func, void *custom_data
-  );
+  utf8proc_custom_func custom_func, void *custom_data);
 
 /** @name Unicode normalization
  *

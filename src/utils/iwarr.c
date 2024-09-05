@@ -13,8 +13,7 @@ off_t iwarr_sorted_insert(
   size_t elsize,
   void* restrict eptr,
   int (*cmp)(const void*, const void*),
-  bool skipeq
-  ) {
+  bool skipeq) {
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
   off_t idx = 0,
@@ -58,8 +57,7 @@ off_t iwarr_sorted_remove(
   size_t nels,
   size_t elsize,
   void* restrict eptr,
-  int (*cmp)(const void*, const void*)
-  ) {
+  int (*cmp)(const void*, const void*)) {
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
   off_t idx = 0,
@@ -99,8 +97,7 @@ off_t iwarr_sorted_find(
   size_t nels,
   size_t elsize,
   void* restrict eptr,
-  int (*cmp)(const void*, const void*)
-  ) {
+  int (*cmp)(const void*, const void*)) {
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
   off_t idx = 0,
@@ -139,8 +136,7 @@ off_t iwarr_sorted_find2(
   void* restrict eptr,
   void *op,
   bool *found,
-  int (*cmp)(const void*, const void*, void *cr)
-  ) {
+  int (*cmp)(const void*, const void*, void *cr)) {
 #define EL(idx_) (elsptr + (idx_) * elsize)
 
   off_t idx = 0,

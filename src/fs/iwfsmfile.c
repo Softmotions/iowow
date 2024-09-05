@@ -231,8 +231,7 @@ IW_INLINE const struct iwavl_node* _fsm_find_matching_fblock_lw(
   struct fsm     *fsm,
   uint64_t        offset_blk,
   uint64_t        length_blk,
-  iwfs_fsm_aflags opts
-  ) {
+  iwfs_fsm_aflags opts) {
   struct bkey bk;
   const struct iwavl_node *ub, *lb;
   if (_fsm_init_bkey(&bk, offset_blk, length_blk)) {
@@ -274,8 +273,7 @@ static iwrc _fsm_set_bit_status_lw(
   const uint64_t     offset_bits,
   const uint64_t     length_bits_,
   const int          bit_status,
-  const fsm_bmopts_t opts
-  ) {
+  const fsm_bmopts_t opts) {
   iwrc rc;
   size_t sp;
   uint8_t *mm;
@@ -429,8 +427,7 @@ static iwrc _fsm_blk_allocate_aligned_lw(
   uint64_t             *offset_blk,
   uint64_t             *olength_blk,
   const uint64_t        max_offset_blk,
-  const iwfs_fsm_aflags opts
-  ) {
+  const iwfs_fsm_aflags opts) {
   fsm_bmopts_t bopts = FSM_BM_NONE;
   size_t aunit_blk = (fsm->aunit >> fsm->bpow);
   assert(fsm && length_blk > 0);
@@ -645,8 +642,7 @@ static uint64_t _fsm_find_next_set_bit(
   const uint64_t   *addr,
   register uint64_t offset_bit,
   const uint64_t    max_offset_bit,
-  int              *found
-  ) {
+  int              *found) {
   *found = 0;
   register uint64_t bit, size;
   register const uint64_t *p = addr + offset_bit / 64;
@@ -746,8 +742,7 @@ static uint64_t _fsm_find_prev_set_bit(
   const uint64_t   *addr,
   register uint64_t offset_bit,
   const uint64_t    min_offset_bit,
-  int              *found
-  ) {
+  int              *found) {
   register const uint64_t *p;
   register uint64_t tmp, bit, size;
   *found = 0;
@@ -845,8 +840,7 @@ static uint64_t _fsm_find_prev_set_bit(
 static iwrc _fsm_blk_deallocate_lw(
   struct fsm    *fsm,
   const uint64_t offset_blk,
-  const uint64_t length_blk
-  ) {
+  const uint64_t length_blk) {
   iwrc rc;
   uint64_t *bmptr;
   uint64_t left, right;
@@ -1086,8 +1080,7 @@ static iwrc _fsm_blk_allocate_lw(
   uint64_t        length_blk,
   uint64_t       *offset_blk,
   uint64_t       *olength_blk,
-  iwfs_fsm_aflags opts
-  ) {
+  iwfs_fsm_aflags opts) {
   iwrc rc;
   struct iwavl_node *nn;
   fsm_bmopts_t bopts = FSM_BM_NONE;
@@ -1932,15 +1925,13 @@ uint64_t iwfs_fsmdbg_number_of_free_areas(IWFS_FSM *f) {
 
 uint64_t iwfs_fsmdbg_find_next_set_bit(
   const uint64_t *addr, uint64_t offset_bit, uint64_t max_offset_bit,
-  int *found
-  ) {
+  int *found) {
   return _fsm_find_next_set_bit(addr, offset_bit, max_offset_bit, found);
 }
 
 uint64_t iwfs_fsmdbg_find_prev_set_bit(
   const uint64_t *addr, uint64_t offset_bit, uint64_t min_offset_bit,
-  int *found
-  ) {
+  int *found) {
   return _fsm_find_prev_set_bit(addr, offset_bit, min_offset_bit, found);
 }
 

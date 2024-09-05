@@ -15,8 +15,7 @@ typedef struct {
 
 static inline cregex_node_t* push(
   regex_parse_context *context,
-  const cregex_node_t *node
-  ) {
+  const cregex_node_t *node) {
   assert(context->stack <= context->output);
   *context->stack = *node;
   return context->stack++;
@@ -33,8 +32,7 @@ static inline cregex_node_t* consume(regex_parse_context *context) {
 
 static inline cregex_node_t* concatenate(
   regex_parse_context *context,
-  const cregex_node_t *bottom
-  ) {
+  const cregex_node_t *bottom) {
   if (context->stack == bottom) {
     push(context, &(cregex_node_t) { .type = REGEX_NODE_TYPE_EPSILON });
   } else {
@@ -263,8 +261,7 @@ static inline int estimate_nodes(const char *pattern) {
  */
 static cregex_node_t* parse_with_nodes(
   const char    *pattern,
-  cregex_node_t *nodes
-  ) {
+  cregex_node_t *nodes) {
   regex_parse_context *context
     = &(regex_parse_context) {
     .sp = pattern,

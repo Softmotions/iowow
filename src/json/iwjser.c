@@ -50,8 +50,7 @@ static struct jbl_node* _jbl_json_create_node(
   const char      *key,
   int              klidx,
   struct jbl_node *parent,
-  JCTX            *ctx
-  ) {
+  JCTX            *ctx) {
   struct jbl_node *node;
   if (IW_LIKELY(ctx->pool)) {
     node = iwpool_calloc(sizeof(*node), ctx->pool);
@@ -299,8 +298,7 @@ static const char* _jbl_parse_value(
   int lvl,
   struct jbl_node *parent,
   const char *key, int klidx,
-  const char *p
-  ) {
+  const char *p) {
   if (lvl > JBL_MAX_NESTING_LEVEL) {
     ctx->rc = JBL_ERROR_MAX_NESTING_LEVEL_EXCEEDED;
     return 0;
@@ -626,8 +624,7 @@ static struct jbl_node* _jbl_clone_node_struct(struct jbl_node *src, struct iwpo
 
 static jbn_visitor_cmd_t _jbl_clone_node_visit(
   int lvl, struct jbl_node *n, const char *key, int klidx, JBN_VCTX *vctx,
-  iwrc *rc
-  ) {
+  iwrc *rc) {
   if (lvl < 0) {
     return JBL_VCMD_OK;
   }
@@ -741,8 +738,7 @@ iwrc jbn_from_js(const char *json, struct jbl_node **node, struct iwpool *pool) 
 static iwrc _jbn_write_xml_string(
   const struct jbn_as_xml_spec *spec, unsigned type,
   jbl_json_printer pt, void *op,
-  const char *str, int len
-  ) {
+  const char *str, int len) {
   iwrc rc = 0;
 #define PT(data_, size_, ch_, count_) do {                        \
           rc = pt((const char*) (data_), size_, ch_, count_, op); \
@@ -799,8 +795,7 @@ static iwrc _jbn_write_xml_string(
 
 static iwrc _jbn_node_write_xml_string(
   const struct jbn_as_xml_spec *spec, unsigned type,
-  jbl_json_printer pt, void *op, struct jbl_node *n
-  ) {
+  jbl_json_printer pt, void *op, struct jbl_node *n) {
   switch (n->type) {
     case JBV_STR:
       return _jbn_write_xml_string(spec, type, pt, op, n->vptr, n->vsize);

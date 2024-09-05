@@ -46,8 +46,7 @@ static void vm_add_thread(
   const char                   *string,
   const char                   *sp,
   const char                  **matches,
-  int                           nmatches
-  ) {
+  int                           nmatches) {
   if (list->threads[pc - program->instructions].visited == sp - string + 1) {
     return;
   }
@@ -114,8 +113,7 @@ static int vm_run(
   const cregex_program_t *program,
   const char             *string,
   const char            **matches,
-  int                     nmatches
-  ) {
+  int                     nmatches) {
   size_t size = sizeof(vm_thread) * vm_estimate_threads(program);
   vm_thread *threads;
   int matched;
@@ -134,8 +132,7 @@ static int vm_run_with_threads(
   const char             *string,
   const char            **matches,
   int                     nmatches,
-  vm_thread              *threads
-  ) {
+  vm_thread              *threads) {
   vm_thread_list *current
     = &(vm_thread_list) {
     .nthreads = 0, .threads = threads
@@ -224,7 +221,6 @@ int cregex_program_run(
   const cregex_program_t *program,
   const char             *string,
   const char            **matches,
-  int                     nmatches
-  ) {
+  int                     nmatches) {
   return vm_run(program, string, matches, nmatches);
 }

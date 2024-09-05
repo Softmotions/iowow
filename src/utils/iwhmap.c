@@ -129,8 +129,7 @@ IW_INLINE uint32_t _hash_buf_key(const void *key) {
 IWHMAP* iwhmap_create(
   int (*cmp_fn)(const void*, const void*),
   uint32_t (*hash_key_fn)(const void*),
-  void (*kv_free_fn)(void*, void*)
-  ) {
+  void (*kv_free_fn)(void*, void*)) {
   if (!hash_key_fn) {
     return 0;
   }

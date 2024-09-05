@@ -80,8 +80,7 @@ void (*free_fn)(void *ptr) = free;
 
 void binn_set_alloc_functions(
   void*(*new_malloc)(size_t), void*(*new_realloc)(void*, size_t),
-  void (*new_free)(void*)
-  ) {
+  void (*new_free)(void*)) {
   malloc_fn = new_malloc;
   realloc_fn = new_realloc;
   free_fn = new_free;
@@ -461,8 +460,7 @@ BINN_PRIVATE unsigned char* SearchForID(unsigned char *p, int header_size, int s
 
 BINN_PRIVATE unsigned char* SearchForKey(
   unsigned char *p, int header_size, int size, int numitems, const char *key,
-  int keylen
-  ) {
+  int keylen) {
   unsigned char len, *plimit, *base;
   int i;
 

@@ -129,8 +129,7 @@ extern void iwavl_rebalance_after_insert(
 IW_INLINE struct iwavl_node* iwavl_lookup(
   const struct iwavl_node *root,
   const void *cmp_ctx,
-  int (*cmp)(const void*, const struct iwavl_node*)
-  ) {
+  int (*cmp)(const void*, const struct iwavl_node*)) {
   const struct iwavl_node *cur = root;
 
   while (cur) {
@@ -151,8 +150,7 @@ IW_INLINE void iwavl_lookup_bounds(
   const void *cmp_ctx,
   int (*cmp)(const void*, const struct iwavl_node*),
   const struct iwavl_node **lb,
-  const struct iwavl_node **ub
-  ) {
+  const struct iwavl_node **ub) {
   *lb = *ub = 0;
   const struct iwavl_node *cur = root;
 
@@ -180,8 +178,7 @@ IW_INLINE struct iwavl_node* iwavl_lookup_node(
   const struct iwavl_node *node,
   int                    (*cmp)(
     const struct iwavl_node*,
-    const struct iwavl_node*)
-  ) {
+    const struct iwavl_node*)) {
   const struct iwavl_node *cur = root;
 
   while (cur) {
@@ -262,8 +259,7 @@ IW_INLINE struct iwavl_node* iwavl_insert(
   struct iwavl_node  *item,
   int               (*cmp)(
     const struct iwavl_node*,
-    const struct iwavl_node*)
-  ) {
+    const struct iwavl_node*)) {
   struct iwavl_node **cur_ptr = root_ptr, *cur = NULL;
   int res;
 

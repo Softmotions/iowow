@@ -15,8 +15,7 @@ atomic_uint_fast64_t g_trigger;
 
 IW_SOFT_INLINE iwrc _to_effective_key(
   struct iwdb *db, const struct iwkv_val *key, struct iwkv_val *okey,
-  uint8_t nbuf[static IW_VNUMBUFSZ]
-  ) {
+  uint8_t nbuf[static IW_VNUMBUFSZ]) {
   static_assert(IW_VNUMBUFSZ >= sizeof(uint64_t), "IW_VNUMBUFSZ >= sizeof(uint64_t)");
   iwdb_flags_t dbflg = db->dbflg;
   // Keys compound will be processed at lower levels at `addkv` routines
@@ -683,8 +682,7 @@ IW_INLINE void _kvblk_create(struct iwlctx *lx, off_t baddr, uint8_t kvbpow, str
 IW_INLINE WUR iwrc _kvblk_key_peek(
   const struct kvblk *kb,
   uint8_t idx, const uint8_t *mm, uint8_t **obuf,
-  uint32_t *olen
-  ) {
+  uint32_t *olen) {
   if (kb->pidx[idx].len) {
     uint32_t klen, step;
     const uint8_t *rp = mm + kb->addr + (1ULL << kb->szpow) - kb->pidx[idx].off;
@@ -707,8 +705,7 @@ IW_INLINE WUR iwrc _kvblk_key_peek(
 
 IW_INLINE void _kvblk_value_peek(
   const struct kvblk *kb, uint8_t idx, const uint8_t *mm, uint8_t **obuf,
-  uint32_t *olen
-  ) {
+  uint32_t *olen) {
   assert(idx < KVBLK_IDXNUM);
   if (kb->pidx[idx].len) {
     uint32_t klen, step;
@@ -1092,8 +1089,7 @@ static WUR iwrc _kvblk_addkv(
   const struct iwkv_val *key,
   const struct iwkv_val *val,
   uint8_t               *oidx,
-  bool                   raw_key
-  ) {
+  bool                   raw_key) {
   *oidx = 0;
 
   iwrc rc = 0;
@@ -1226,8 +1222,7 @@ static WUR iwrc _kvblk_updatev(
   struct kvblk          *kb,
   uint8_t               *idxp,
   const struct iwkv_val *key,                              /* Nullable */
-  const struct iwkv_val *val
-  ) {
+  const struct iwkv_val *val) {
   assert(*idxp < KVBLK_IDXNUM);
   int32_t i;
   uint32_t len, nlen, sz;
@@ -1426,8 +1421,7 @@ static WUR iwrc _sblk_create_v1(
   uint8_t        kvbpow,
   off_t          baddr,
   uint8_t        bpos,
-  struct sblk  **oblk
-  ) {
+  struct sblk  **oblk) {
   iwrc rc;
   struct sblk *sblk;
   struct kvblk *kvblk;
@@ -1474,8 +1468,7 @@ static void _sblk_find_free_page_slot_v2(
   uint8_t       *mm,
   struct sblk   *sblk,
   off_t         *obaddr,
-  uint8_t       *oslot
-  ) {
+  uint8_t       *oslot) {
   if ((sblk->bpos < 1) || (sblk->bpos > SBLK_PAGE_SBLK_NUM_V2)) {
     *obaddr = 0;
     *oslot = 0;
@@ -1511,8 +1504,7 @@ static WUR iwrc _sblk_create_v2(
   uint8_t        kvbpow,
   struct sblk   *lower,
   struct sblk   *upper,
-  struct sblk  **oblk
-  ) {
+  struct sblk  **oblk) {
   off_t baddr = 0;
   uint8_t bpos = 0, *mm;
   IWFS_FSM *fsm = &lx->db->iwkv->fsm;
@@ -1570,8 +1562,7 @@ IW_INLINE WUR iwrc _sblk_create(
   uint8_t        kvbpow,
   struct sblk   *lower,
   struct sblk   *upper,
-  struct sblk  **oblk
-  ) {
+  struct sblk  **oblk) {
   return _sblk_create_v2(lx, nlevel, kvbpow, lower, upper, oblk);
 }
 
@@ -1832,8 +1823,7 @@ static WUR iwrc _sblk_find_pi_mm(struct sblk *sblk, struct iwlctx *lx, const uin
 
 static WUR iwrc _sblk_insert_pi_mm(
   struct sblk *sblk, uint8_t nidx, struct iwlctx *lx,
-  const uint8_t *mm, uint8_t *idxp
-  ) {
+  const uint8_t *mm, uint8_t *idxp) {
   assert(sblk->kvblk);
 
   uint8_t *k;
@@ -1882,8 +1872,7 @@ static WUR iwrc _sblk_addkv2(
   int8_t                 idx,
   const struct iwkv_val *key,
   const struct iwkv_val *val,
-  bool                   raw_key
-  ) {
+  bool                   raw_key) {
   assert(sblk && key && key->size && key->data && val && idx >= 0 && sblk->kvblk);
 
   uint8_t kvidx;
@@ -2012,8 +2001,7 @@ static WUR iwrc _sblk_addkv(struct sblk *sblk, struct iwlctx *lx) {
 
 static WUR iwrc _sblk_updatekv(
   struct sblk *sblk, int8_t idx,
-  const struct iwkv_val *key, const struct iwkv_val *val
-  ) {
+  const struct iwkv_val *key, const struct iwkv_val *val) {
   assert(sblk && sblk->kvblk && idx >= 0 && idx < sblk->pnum);
   struct iwdb *db = sblk->db;
   struct kvblk *kvblk = sblk->kvblk;
@@ -3410,8 +3398,7 @@ iwrc iwkv_db_destroy(struct iwdb **dbp) {
 
 iwrc iwkv_puth(
   struct iwdb *db, const struct iwkv_val *key, const struct iwkv_val *val,
-  iwkv_opflags opflags, IWKV_PUT_HANDLER ph, void *phop
-  ) {
+  iwkv_opflags opflags, IWKV_PUT_HANDLER ph, void *phop) {
   if (!db || !db->iwkv || !key || !key->size || !val) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -3675,8 +3662,7 @@ iwrc iwkv_cursor_open(
   struct iwdb           *db,
   struct iwkv_cursor   **curptr,
   enum iwkv_cursor_op    op,
-  const struct iwkv_val *key
-  ) {
+  const struct iwkv_val *key) {
   if (  !db || !db->iwkv || !curptr
      || (key && (op < IWKV_CURSOR_EQ)) || (op < IWKV_CURSOR_BEFORE_FIRST)) {
     return IW_ERROR_INVALID_ARGS;
@@ -3790,9 +3776,8 @@ iwrc iwkv_cursor_to_key(struct iwkv_cursor *cur, IWKV_cursor_op op, const struct
 
 iwrc iwkv_cursor_get(
   struct iwkv_cursor *cur,
-  struct iwkv_val    *okey,                   /* Nullable */
-  struct iwkv_val    *oval
-  ) {                                  /* Nullable */
+  struct iwkv_val    *okey,            /* Nullable */
+  struct iwkv_val    *oval) {          /* Nullable */
   int rci;
   iwrc rc = 0;
   if (!cur || !cur->lx.db) {
@@ -3990,8 +3975,7 @@ finish:
 
 IW_EXPORT iwrc iwkv_cursor_seth(
   struct iwkv_cursor *cur, struct iwkv_val *val, iwkv_opflags opflags,
-  IWKV_PUT_HANDLER ph, void *phop
-  ) {
+  IWKV_PUT_HANDLER ph, void *phop) {
   int rci;
   iwrc rc = 0, irc = 0;
   if (!cur || !cur->lx.db) {

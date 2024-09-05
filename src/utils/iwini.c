@@ -97,8 +97,7 @@ static char* strncpy0(char *dest, const char *src, size_t size) {
 /* See documentation in header file. */
 int iwini_parse_stream(
   iwini_reader reader, void *stream, iwini_handler handler,
-  void *user
-  ) {
+  void *user) {
   /* Uses a fair bit of stack (use heap instead if you need to) */
 #if IWINI_USE_STACK
   char line[IWINI_MAX_LINE];

@@ -1362,8 +1362,7 @@ IW_INLINE bool _jbn_visitor_update_jptr_cursor(JBN_VCTX *vctx, int lvl, const ch
 
 static jbl_visitor_cmd_t _jbl_get_visitor2(
   int lvl, binn *bv, const char *key, int idx, struct jbl_vctx *vctx,
-  iwrc *rc
-  ) {
+  iwrc *rc) {
   struct jbl_ptr *jp = vctx->op;
   assert(jp);
   if (_jbl_visitor_update_jptr_cursor(vctx, lvl, key, idx)) { // Pointer matched
@@ -1381,8 +1380,7 @@ static jbl_visitor_cmd_t _jbl_get_visitor2(
 
 static jbl_visitor_cmd_t _jbl_get_visitor(
   int lvl, binn *bv, const char *key, int idx, struct jbl_vctx *vctx,
-  iwrc *rc
-  ) {
+  iwrc *rc) {
   struct jbl_ptr *jp = vctx->op;
   assert(jp);
   if (_jbl_visitor_update_jptr_cursor(vctx, lvl, key, idx)) { // Pointer matched
@@ -1469,8 +1467,7 @@ static jbn_visitor_cmd_t _jbn_get_visitor(
   const char      *key,
   int              klidx,
   JBN_VCTX        *vctx,
-  iwrc            *rc
-  ) {
+  iwrc            *rc) {
   if (lvl < 0) { // EOF
     return JBL_VCMD_OK;
   }
@@ -1559,8 +1556,7 @@ int jbn_paths_compare(
   struct jbl_node *n2,
   const char      *n2path,
   jbl_type_t       vtype,
-  iwrc            *rcp
-  ) {
+  iwrc            *rcp) {
   *rcp = 0;
   struct jbl_node *v1 = 0, *v2 = 0;
   iwrc rc = jbn_at(n1, n1path, &v1);
@@ -1734,8 +1730,7 @@ iwrc jbn_add_item_str(
   const char       *val,
   int               vlen,
   struct jbl_node **node_out,
-  struct iwpool    *pool
-  ) {
+  struct iwpool    *pool) {
   if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -1820,8 +1815,7 @@ iwrc jbn_add_item_i64(
   const char       *key,
   int64_t           val,
   struct jbl_node **node_out,
-  struct iwpool    *pool
-  ) {
+  struct iwpool    *pool) {
   if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -1862,8 +1856,7 @@ iwrc jbn_add_item_f64(
   const char       *key,
   double            val,
   struct jbl_node **node_out,
-  struct iwpool    *pool
-  ) {
+  struct iwpool    *pool) {
   if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -1904,8 +1897,7 @@ iwrc jbn_add_item_bool(
   const char       *key,
   bool              val,
   struct jbl_node **node_out,
-  struct iwpool    *pool
-  ) {
+  struct iwpool    *pool) {
   if (!parent || parent->type < JBV_OBJECT) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -2018,8 +2010,7 @@ iwrc jbn_copy_path(
   const char      *target_path,
   bool             overwrite_on_nulls,
   bool             no_src_clone,
-  struct iwpool   *pool
-  ) {
+  struct iwpool   *pool) {
   if (!src || !src_path || !target || !target_path || !pool) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -2067,8 +2058,7 @@ IW_EXPORT iwrc jbn_copy_paths(
   const char     **paths,
   bool             overwrite_on_nulls,
   bool             no_src_clone,
-  struct iwpool   *pool
-  ) {
+  struct iwpool   *pool) {
   if (!target || !src || !paths || !pool) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -2122,8 +2112,7 @@ static iwrc _jbl_create_node(
   const char       *key,
   int               klidx,
   struct jbl_node **node,
-  bool              clone_strings
-  ) {
+  bool              clone_strings) {
   if (node) {
     *node = 0;
   }
@@ -2250,8 +2239,7 @@ static iwrc _jbl_node_from_binn_impl(
   struct jbl_node *parent,
   char            *key,
   int              klidx,
-  bool             clone_strings
-  ) {
+  bool             clone_strings) {
   binn bv;
   binn_iter iter;
   iwrc rc = 0;
@@ -3033,8 +3021,7 @@ static struct jbl_node* _jbl_merge_patch_node(
   struct jbl_node *target,
   struct jbl_node *patch,
   struct iwpool   *pool,
-  iwrc            *rcp
-  ) {
+  iwrc            *rcp) {
   *rcp = 0;
   if (!patch) {
     return 0;

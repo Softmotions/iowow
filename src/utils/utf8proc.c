@@ -116,8 +116,7 @@ UTF8PROC_DLLEXPORT const char* utf8proc_errmsg(utf8proc_ssize_t errcode) {
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_iterate(
   const utf8proc_uint8_t *str,
   utf8proc_ssize_t        strlen,
-  utf8proc_int32_t       *dst
-  ) {
+  utf8proc_int32_t       *dst) {
   utf8proc_uint32_t uc;
   const utf8proc_uint8_t *end;
 

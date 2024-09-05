@@ -74,8 +74,7 @@ typedef char cregex_char_class[(UCHAR_MAX + CHAR_BIT - 1) / CHAR_BIT];
 
 static inline int cregex_char_class_contains(
   const cregex_char_class klass,
-  int                     ch
-  ) {
+  int                     ch) {
   return klass[ch / CHAR_BIT] & (1 << ch % CHAR_BIT);
 }
 

@@ -83,8 +83,7 @@ iwrc iwlog_va(
   int         line,
   const char *fmt,
   va_list     argp,
-  bool        no_va
-  ) {
+  bool        no_va) {
   assert(_current_logfn);
 
 #ifdef _WIN32
@@ -314,8 +313,7 @@ static iwrc _default_logfn(
   void       *opts,
   const char *fmt,
   va_list     argp,
-  bool        no_va
-  ) {
+  bool        no_va) {
 #define TBUF_SZ 96
 #define EBUF_SZ 256
 

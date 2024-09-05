@@ -70,8 +70,7 @@ char* iwbin2hex(
   char* const                hex,
   const size_t               hex_maxlen,
   const unsigned char* const bin,
-  const size_t               bin_len
-  ) {
+  const size_t               bin_len) {
   size_t i = (size_t) 0U;
   unsigned int x;
   int b;

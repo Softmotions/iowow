@@ -89,16 +89,14 @@ static bool node_is_anchored(const cregex_node_t *node) {
 
 static inline cregex_program_instr_t* emit(
   regex_compile_context        *context,
-  const cregex_program_instr_t *instruction
-  ) {
+  const cregex_program_instr_t *instruction) {
   *context->pc = *instruction;
   return context->pc++;
 }
 
 static cregex_program_instr_t* compile_char_class(
   const cregex_node_t    *node,
-  cregex_program_instr_t *instruction
-  ) {
+  cregex_program_instr_t *instruction) {
   const char *sp = node->from;
 
   for ( ; ; ) {
@@ -129,8 +127,7 @@ CHARACTER:
 
 static cregex_program_instr_t* compile_context(
   regex_compile_context *context,
-  const cregex_node_t   *node
-  ) {
+  const cregex_node_t   *node) {
   cregex_program_instr_t *bottom = context->pc, *split, *jump;
   int ncaptures = context->ncaptures, capture;
 
@@ -261,8 +258,7 @@ static cregex_program_instr_t* compile_context(
  */
 static cregex_program_t* compile_node_with_program(
   const cregex_node_t *root,
-  cregex_program_t    *program
-  ) {
+  cregex_program_t    *program) {
   /* add capture node for entire match */
   root = &(cregex_node_t) {
     .type = REGEX_NODE_TYPE_CAPTURE,

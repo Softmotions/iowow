@@ -294,8 +294,7 @@ iwrc iwu_replace(
   const char        *keys[],
   int                keysz,
   iwu_replace_mapper mapper,
-  void              *mapper_op
-  ) {
+  void              *mapper_op) {
   if (!result || !data || !keys || !mapper) {
     return IW_ERROR_INVALID_ARGS;
   }

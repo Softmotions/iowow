@@ -105,8 +105,7 @@ struct iwavl_node* iwavl_first_in_postorder(const struct iwavl_node *root) {
  * root of the tree).  */
 struct iwavl_node* iwavl_next_in_postorder(
   const struct iwavl_node *prev,
-  const struct iwavl_node *prev_parent
-  ) {
+  const struct iwavl_node *prev_parent) {
   const struct iwavl_node *next = prev_parent;
 
   if (next && prev == next->left && next->right) {
@@ -125,8 +124,7 @@ struct iwavl_node* iwavl_next_in_postorder(
  * so the compiler can remove the conditional.  */
 IW_INLINE void avl_set_child(
   struct iwavl_node *parent, int sign,
-  struct iwavl_node *child
-  ) {
+  struct iwavl_node *child) {
   if (sign < 0) {
     parent->left = child;
   } else {
@@ -137,8 +135,7 @@ IW_INLINE void avl_set_child(
 /* Sets the parent and balance factor of the specified AVL tree node.  */
 IW_INLINE void avl_set_parent_balance(
   struct iwavl_node *node, struct iwavl_node *parent,
-  int balance_factor
-  ) {
+  int balance_factor) {
   node->parent_balance = (uintptr_t) parent | (balance_factor + 1);
 }
 
@@ -164,8 +161,7 @@ IW_INLINE void avl_replace_child(
   struct iwavl_node **root_ptr,
   struct iwavl_node  *parent,
   struct iwavl_node  *old_child,
-  struct iwavl_node  *new_child
-  ) {
+  struct iwavl_node  *new_child) {
   if (parent) {
     if (old_child == parent->left) {
       parent->left = new_child;
@@ -206,8 +202,7 @@ IW_INLINE void avl_replace_child(
  */
 IW_INLINE void avl_rotate(
   struct iwavl_node** const root_ptr,
-  struct iwavl_node* const A, const int sign
-  ) {
+  struct iwavl_node* const A, const int sign) {
   struct iwavl_node* const B = iwavl_get_child(A, -sign);
   struct iwavl_node* const E = iwavl_get_child(B, +sign);
   struct iwavl_node* const P = iwavl_get_parent(A);
@@ -267,8 +262,7 @@ IW_INLINE void avl_rotate(
 IW_INLINE struct iwavl_node* avl_do_double_rotate(
   struct iwavl_node** const root_ptr,
   struct iwavl_node* const B,
-  struct iwavl_node* const A, const int sign
-  ) {
+  struct iwavl_node* const A, const int sign) {
   struct iwavl_node* const E = iwavl_get_child(B, +sign);
   struct iwavl_node* const F = iwavl_get_child(E, -sign);
   struct iwavl_node* const G = iwavl_get_child(E, +sign);
@@ -328,8 +322,7 @@ IW_INLINE bool avl_handle_subtree_growth(
   struct iwavl_node** const root_ptr,
   struct iwavl_node* const  node,
   struct iwavl_node* const  parent,
-  const int                 sign
-  ) {
+  const int                 sign) {
   int old_balance_factor, new_balance_factor;
 
   old_balance_factor = avl_get_balance_factor(parent);
@@ -453,8 +446,7 @@ IW_INLINE bool avl_handle_subtree_growth(
 /* Rebalance the tree after insertion of the specified node.  */
 void iwavl_rebalance_after_insert(
   struct iwavl_node **root_ptr,
-  struct iwavl_node  *inserted
-  ) {
+  struct iwavl_node  *inserted) {
   struct iwavl_node *node, *parent;
   bool done;
 
@@ -537,8 +529,7 @@ IW_INLINE struct iwavl_node* avl_handle_subtree_shrink(
   struct iwavl_node** const root_ptr,
   struct iwavl_node        *parent,
   const int                 sign,
-  bool* const               left_deleted_ret
-  ) {
+  bool* const               left_deleted_ret) {
   struct iwavl_node *node;
   int old_balance_factor, new_balance_factor;
 
@@ -650,8 +641,7 @@ IW_INLINE struct iwavl_node* avl_handle_subtree_shrink(
 IW_INLINE struct iwavl_node* avl_tree_swap_with_successor(
   struct iwavl_node **root_ptr,
   struct iwavl_node  *X,
-  bool               *left_deleted_ret
-  ) {
+  bool               *left_deleted_ret) {
   struct iwavl_node *Y, *ret;
 
   Y = X->right;

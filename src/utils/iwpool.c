@@ -223,8 +223,7 @@ char* iwpool_printf(struct iwpool *pool, const char *format, ...) {
 
 const char** iwpool_split_string(
   struct iwpool *pool, const char *haystack, const char *split_chars,
-  bool ignore_whitespace
-  ) {
+  bool ignore_whitespace) {
   size_t hsz = strlen(haystack);
   const char **ret = iwpool_alloc((hsz + 1) * sizeof(char*), pool);
   if (!ret) {
@@ -264,8 +263,7 @@ const char** iwpool_split_string(
 const char** iwpool_printf_split(
   struct iwpool *pool,
   const char *split_chars, bool ignore_whitespace,
-  const char *format, ...
-  ) {
+  const char *format, ...) {
   va_list ap;
   va_start(ap, format);
   int size = _iwpool_printf_estimate_size(format, ap);
