@@ -478,31 +478,33 @@ finish:
   return rc;
 }
 
-iwrc iwjsreg_at_str_alloc(struct iwjsreg *reg, const char *path, char *out) {
+iwrc iwjsreg_at_str_alloc(struct iwjsreg *reg, const char *path, char **out) {
   iwrc rc = 0;
   struct jbl_node *n;
   char buf[IWNUMBUF_SIZE];
+
+  *out = 0;
 
   RCRET(reg->rlock_fn(reg->fn_data));
   RCC(rc, finish, jbn_at(reg->root, path, &n));
 
   switch (n->type) {
     case JBV_STR:
-      RCB(finish, out = strdup(n->vptr));
+      RCB(finish, *out = strdup(n->vptr));
       break;
     case JBV_BOOL:
-      RCB(finish, out = strdup(n->vbool ? "true" : "false"));
+      RCB(finish, *out = strdup(n->vbool ? "true" : "false"));
       break;
     case JBV_NULL:
-      RCB(finish, out = strdup("null"));
+      RCB(finish, *out = strdup("null"));
       break;
     case JBV_I64:
       iwitoa(n->vi64, buf, IWNUMBUF_SIZE);
-      RCB(finish, out = strdup(buf));
+      RCB(finish, *out = strdup(buf));
       break;
     case JBV_F64:
       iwftoa(n->vf64, buf);
-      RCB(finish, out = strdup(buf));
+      RCB(finish, *out = strdup(buf));
       break;
     default:
       rc = IW_ERROR_TYPE_NOT_COMPATIBLE;
