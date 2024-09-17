@@ -478,7 +478,7 @@ finish:
   return rc;
 }
 
-iwrc iwjsreg_at_str_alloc(struct iwjsreg *reg, const char *path, char **out) {
+iwrc iwjsreg_at_str(struct iwjsreg *reg, const char *path, char **out) {
   iwrc rc = 0;
   struct jbl_node *n;
   char buf[IWNUMBUF_SIZE];

@@ -93,7 +93,7 @@ IW_EXPORT iwrc iwjsreg_at_f64(struct iwjsreg*, const char *path, double *out);
 
 IW_EXPORT iwrc iwjsreg_at_bool(struct iwjsreg*, const char *path, bool *out);
 
-IW_EXPORT iwrc iwjsreg_at_str_alloc(struct iwjsreg*, const char *path, char **out);
+IW_EXPORT iwrc iwjsreg_at_str(struct iwjsreg*, const char *path, char **out);
 
 IW_EXTERN_C_END;
 
