@@ -19,6 +19,10 @@ iwrc iw_cond_timed_wait_ms(pthread_cond_t *cond, pthread_mutex_t *mtx, long time
   RCRET(rc);
   tp.tv_sec += timeout_ms / 1000;
   tp.tv_nsec += (timeout_ms % 1000) * 1000000;
+  if (tp.tv_nsec >= 1000000000) {
+    tp.tv_sec += 1;
+    tp.tv_nsec -= 1000000000;
+  }
   do {
     rci = pthread_cond_timedwait(cond, mtx, &tp);
   } while (rci == EINTR);
