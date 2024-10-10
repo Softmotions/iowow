@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <errno.h>
 
 // Default IWXSTR initial size
 #ifndef IWXSTR_AUNIT
