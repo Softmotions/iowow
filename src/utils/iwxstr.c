@@ -59,6 +59,7 @@ IWXSTR* iwxstr_clone(const IWXSTR *xstr) {
   }
   if (xstr->size) {
     memcpy(ret->ptr, xstr->ptr, xstr->size);
+    xstr->ptr[xstr->size] = '\0';
   }
   return ret;
 }
