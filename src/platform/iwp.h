@@ -117,7 +117,7 @@ IW_EXPORT iwrc iwp_current_time_ms(uint64_t *time, bool monotonic);
 /**
  * @brief File info.
  */
-typedef struct IWP_FILE_STAT {
+typedef struct iwp_file_stat {
   uint64_t      size;  /**< File size. */
   uint64_t      atime; /**< Time of last access. */
   uint64_t      ctime; /**< Time of last status change. */
@@ -132,9 +132,9 @@ typedef struct IWP_FILE_STAT {
  * @param [out] stat File stat info placeholder.
  * @return `0` on sucess or error code.
  */
-IW_EXPORT iwrc iwp_fstat(const char *path, IWP_FILE_STAT *stat);
+IW_EXPORT iwrc iwp_fstat(const char *path, struct iwp_file_stat *stat);
 
-IW_EXPORT iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *stat);
+IW_EXPORT iwrc iwp_fstath(HANDLE fh, struct iwp_file_stat *stat);
 
 /**
  * @brief Lock the file.
@@ -241,6 +241,11 @@ IW_EXPORT iwrc iwp_sleep(uint64_t ms);
  * @param path Directory path
  */
 IW_EXPORT iwrc iwp_removedir(const char *path);
+
+/**
+ * @brief Recursive walk over given directorie's files specified by `path`
+ */
+IW_EXPORT iwrc iwp_scandir_files(const char *path, bool (*cb)(const char* path, struct iwp_file_stat*, void*), void *user_data);
 
 /**
  * @brief Make directory specified by `path`

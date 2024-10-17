@@ -28,12 +28,14 @@
 #include "iwcfg.h"
 #include "log/iwlog.h"
 #include "platform/iwp.h"
+#include "iwxstr.h"
 
 #include <time.h>
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <ftw.h>
@@ -89,7 +91,7 @@ iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   return 0;
 }
 
-static iwrc _iwp_fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
+static iwrc _iwp_fstat(const char *path, HANDLE fd, struct iwp_file_stat *fs) {
   assert(fs);
   iwrc rc = 0;
   struct stat st = { 0 };
@@ -120,11 +122,11 @@ static iwrc _iwp_fstat(const char *path, HANDLE fd, IWP_FILE_STAT *fs) {
   return rc;
 }
 
-iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fs) {
+iwrc iwp_fstat(const char *path, struct iwp_file_stat *fs) {
   return _iwp_fstat(path, 0, fs);
 }
 
-iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *fs) {
+iwrc iwp_fstath(HANDLE fh, struct iwp_file_stat *fs) {
   return _iwp_fstat(0, fh, fs);
 }
 
@@ -311,7 +313,6 @@ again:
 static int _rmfile(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
   if (remove(pathname) < 0) {
     perror(pathname);
-    return -1;
   }
   return 0;
 }
@@ -321,6 +322,55 @@ iwrc iwp_removedir(const char *path) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
   return 0;
+}
+
+static iwrc _scandir_files(
+  int path_skip,
+  bool *exit,
+  const char *root,
+  bool (*cb)(const char *path, struct iwp_file_stat*, void*),
+  void *user_data) {
+  if (exit) {
+    return 0;
+  }
+
+  struct dirent *entry;
+  DIR *dir = opendir(root);
+  if (!dir) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+
+  while (!*exit && (entry = readdir(dir))) {
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
+
+    struct iwp_file_stat fst;
+    char *path = iwxstr_printf_alloc("%s/%s", root, entry->d_name);
+    char *rpath = path + path_skip + 1;
+
+    if (!iwp_fstat(path, &fst)) {
+      if (fst.ftype == IWP_TYPE_DIR) {
+        iwrc rc = _scandir_files(path_skip, exit, path, cb, user_data);
+        if (rc) {
+          free(path);
+          closedir(dir);
+          return rc;
+        }
+      } else if (fst.ftype == IWP_TYPE_FILE) {
+        *exit = cb(rpath, &fst, user_data);
+      }
+    }
+    free(path);
+  }
+
+  closedir(dir);
+  return 0;
+}
+
+iwrc iwp_scandir_files(const char *root, bool (*cb)(const char *path, struct iwp_file_stat*, void*), void *user_data) {
+  bool exit = false;
+  return _scandir_files(strlen(root), &exit, root, cb, user_data);
 }
 
 iwrc iwp_exec_path(char *opath, size_t opath_maxlen) {

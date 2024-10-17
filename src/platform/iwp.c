@@ -218,7 +218,7 @@ iwrc iwp_mkdirs(const char *path) {
   /* Adapted from http://stackoverflow.com/a/2336245/119527 */
   iwrc rc = 0;
   const size_t len = strlen(path);
-  char buf[PATH_MAX];
+  char buf[PATH_MAX + 1];
   char *p, *ppath = buf;
 
   errno = 0;
@@ -272,7 +272,7 @@ finish:
 }
 
 iwrc iwp_mkdirs_for_file(const char *path) {
-  char buf[PATH_MAX];
+  char buf[PATH_MAX + 1];
   char *ppath = buf;
   const size_t len = strlen(path);
   if (len >= sizeof(buf)) {
