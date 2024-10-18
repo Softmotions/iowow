@@ -330,7 +330,7 @@ static iwrc _scandir_files(
   const char *root,
   bool (*cb)(const char *path, struct iwp_file_stat*, void*),
   void *user_data) {
-  if (exit) {
+  if (*exit) {
     return 0;
   }
 
