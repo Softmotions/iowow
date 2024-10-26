@@ -5,7 +5,7 @@
 #include <string.h>
 #include <assert.h>
 
-// Default IWXSTR initial size
+// Default struct iwxstr initial size
 #ifndef IWXSTR_AUNIT
 #define IWXSTR_AUNIT 16
 #endif
@@ -18,11 +18,11 @@ struct iwxstr {
   void  *user_data;
 };
 
-IWXSTR* iwxstr_create(size_t siz) {
+struct iwxstr* iwxstr_create(size_t siz) {
   if (!siz) {
     siz = IWXSTR_AUNIT;
   }
-  IWXSTR *xstr = malloc(sizeof(*xstr));
+  struct iwxstr *xstr = malloc(sizeof(*xstr));
   if (!xstr) {
     return 0;
   }
@@ -39,12 +39,12 @@ IWXSTR* iwxstr_create(size_t siz) {
   return xstr;
 }
 
-IWXSTR* iwxstr_create_empty(void) {
+struct iwxstr* iwxstr_create_empty(void) {
   return iwxstr_create(IWXSTR_AUNIT);
 }
 
-IWXSTR* iwxstr_clone(const IWXSTR *xstr) {
-  IWXSTR *ret = malloc(sizeof(*ret));
+struct iwxstr* iwxstr_clone(const struct iwxstr *xstr) {
+  struct iwxstr *ret = malloc(sizeof(*ret));
   if (!ret) {
     return 0;
   }
@@ -64,8 +64,8 @@ IWXSTR* iwxstr_clone(const IWXSTR *xstr) {
   return ret;
 }
 
-IWXSTR* iwxstr_wrap(char *buf, size_t size, size_t asize) {
-  IWXSTR *xstr = malloc(sizeof(*xstr));
+struct iwxstr* iwxstr_wrap(char *buf, size_t size, size_t asize) {
+  struct iwxstr *xstr = malloc(sizeof(*xstr));
   if (!xstr) {
     return 0;
   }
@@ -87,7 +87,7 @@ IWXSTR* iwxstr_wrap(char *buf, size_t size, size_t asize) {
   return xstr;
 }
 
-void iwxstr_destroy(IWXSTR *xstr) {
+void iwxstr_destroy(struct iwxstr *xstr) {
   if (!xstr) {
     return;
   }
@@ -98,7 +98,7 @@ void iwxstr_destroy(IWXSTR *xstr) {
   free(xstr);
 }
 
-char* iwxstr_destroy_keep_ptr(IWXSTR *xstr) {
+char* iwxstr_destroy_keep_ptr(struct iwxstr *xstr) {
   if (!xstr) {
     return 0;
   }
@@ -110,13 +110,13 @@ char* iwxstr_destroy_keep_ptr(IWXSTR *xstr) {
   return ptr;
 }
 
-void iwxstr_clear(IWXSTR *xstr) {
+void iwxstr_clear(struct iwxstr *xstr) {
   assert(xstr);
   xstr->size = 0;
   xstr->ptr[0] = '\0';
 }
 
-iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size) {
+iwrc iwxstr_cat(struct iwxstr *xstr, const void *buf, size_t size) {
   size_t nsize = xstr->size + size + 1;
   if (xstr->asize < nsize) {
     while (xstr->asize < nsize) {
@@ -137,7 +137,7 @@ iwrc iwxstr_cat(IWXSTR *xstr, const void *buf, size_t size) {
   return IW_OK;
 }
 
-iwrc iwxstr_set_size(IWXSTR *xstr, size_t size) {
+iwrc iwxstr_set_size(struct iwxstr *xstr, size_t size) {
   size_t nsize = size + 1;
   if (xstr->asize < nsize) {
     while (xstr->asize < nsize) {
@@ -156,11 +156,11 @@ iwrc iwxstr_set_size(IWXSTR *xstr, size_t size) {
   return IW_OK;
 }
 
-iwrc iwxstr_cat2(IWXSTR *xstr, const char *buf) {
+iwrc iwxstr_cat2(struct iwxstr *xstr, const char *buf) {
   return buf ? iwxstr_cat(xstr, buf, strlen(buf)) : 0;
 }
 
-iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size) {
+iwrc iwxstr_unshift(struct iwxstr *xstr, const void *buf, size_t size) {
   size_t nsize = xstr->size + size + 1;
   if (xstr->asize < nsize) {
     while (xstr->asize < nsize) {
@@ -185,7 +185,7 @@ iwrc iwxstr_unshift(IWXSTR *xstr, const void *buf, size_t size) {
   return IW_OK;
 }
 
-void iwxstr_shift(IWXSTR *xstr, size_t shift_size) {
+void iwxstr_shift(struct iwxstr *xstr, size_t shift_size) {
   if (shift_size == 0) {
     return;
   }
@@ -199,7 +199,7 @@ void iwxstr_shift(IWXSTR *xstr, size_t shift_size) {
   xstr->ptr[xstr->size] = '\0';
 }
 
-void iwxstr_pop(IWXSTR *xstr, size_t pop_size) {
+void iwxstr_pop(struct iwxstr *xstr, size_t pop_size) {
   if (pop_size == 0) {
     return;
   }
@@ -210,7 +210,7 @@ void iwxstr_pop(IWXSTR *xstr, size_t pop_size) {
   xstr->ptr[xstr->size] = '\0';
 }
 
-iwrc iwxstr_insert(IWXSTR *xstr, size_t pos, const void *buf, size_t size) {
+iwrc iwxstr_insert(struct iwxstr *xstr, size_t pos, const void *buf, size_t size) {
   if (pos > xstr->size) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -237,7 +237,7 @@ iwrc iwxstr_insert(IWXSTR *xstr, size_t pos, const void *buf, size_t size) {
   return IW_OK;
 }
 
-iwrc iwxstr_insert_vaprintf(IWXSTR *xstr, size_t pos, const char *format, va_list va) {
+iwrc iwxstr_insert_vaprintf(struct iwxstr *xstr, size_t pos, const char *format, va_list va) {
   iwrc rc = 0;
   char buf[1024];
   va_list cva;
@@ -262,7 +262,7 @@ finish:
   return rc;
 }
 
-iwrc iwxstr_insert_printf(IWXSTR *xstr, size_t pos, const char *format, ...) {
+iwrc iwxstr_insert_printf(struct iwxstr *xstr, size_t pos, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
   iwrc rc = iwxstr_insert_vaprintf(xstr, pos, format, ap);
@@ -270,7 +270,7 @@ iwrc iwxstr_insert_printf(IWXSTR *xstr, size_t pos, const char *format, ...) {
   return rc;
 }
 
-iwrc iwxstr_printf_va(IWXSTR *xstr, const char *format, va_list va) {
+iwrc iwxstr_printf_va(struct iwxstr *xstr, const char *format, va_list va) {
   iwrc rc = 0;
   char buf[1024];
   va_list cva;
@@ -295,7 +295,7 @@ finish:
   return rc;
 }
 
-iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) {
+iwrc iwxstr_printf(struct iwxstr *xstr, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
   iwrc rc = iwxstr_printf_va(xstr, format, ap);
@@ -303,8 +303,8 @@ iwrc iwxstr_printf(IWXSTR *xstr, const char *format, ...) {
   return rc;
 }
 
-IWXSTR* iwxstr_new_printf(const char *format, ...) {
-  IWXSTR *xstr = iwxstr_create_empty();
+struct iwxstr* iwxstr_new_printf(const char *format, ...) {
+  struct iwxstr *xstr = iwxstr_create_empty();
   if (!xstr) {
     return 0;
   }
@@ -320,7 +320,7 @@ IWXSTR* iwxstr_new_printf(const char *format, ...) {
 }
 
 char* iwxstr_printf_alloc(const char *format, ...) {
-  IWXSTR xstr = { 0 };
+  struct iwxstr xstr = { 0 };
   va_list ap;
   va_start(ap, format);
   iwrc rc = iwxstr_printf_va(&xstr, format, ap);
@@ -328,19 +328,19 @@ char* iwxstr_printf_alloc(const char *format, ...) {
   return rc ? 0 : xstr.ptr;
 }
 
-char* iwxstr_ptr(IWXSTR *xstr) {
+char* iwxstr_ptr(struct iwxstr *xstr) {
   return xstr->ptr;
 }
 
-size_t iwxstr_size(IWXSTR *xstr) {
+size_t iwxstr_size(struct iwxstr *xstr) {
   return xstr->size;
 }
 
-size_t iwxstr_asize(IWXSTR *xstr) {
+size_t iwxstr_asize(struct iwxstr *xstr) {
   return xstr->asize;
 }
 
-void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn)(void*)) {
+void iwxstr_user_data_set(struct iwxstr *xstr, void *data, void (*free_fn)(void*)) {
   if (xstr->user_data_free_fn) {
     xstr->user_data_free_fn(xstr->user_data);
   }
@@ -348,11 +348,11 @@ void iwxstr_user_data_set(IWXSTR *xstr, void *data, void (*free_fn)(void*)) {
   xstr->user_data_free_fn = free_fn;
 }
 
-void* iwxstr_user_data_get(IWXSTR *xstr) {
+void* iwxstr_user_data_get(struct iwxstr *xstr) {
   return xstr->user_data;
 }
 
-void* iwxstr_user_data_detach(IWXSTR *xstr) {
+void* iwxstr_user_data_detach(struct iwxstr *xstr) {
   xstr->user_data_free_fn = 0;
   return xstr->user_data;
 }
