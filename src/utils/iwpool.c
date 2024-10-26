@@ -1,5 +1,4 @@
 #include "iwpool.h"
-#include "iwutils.h"
 #include "iwlog.h"
 #include "iwchars.h"
 
@@ -225,7 +224,7 @@ const char** iwpool_split_string(
   struct iwpool *pool, const char *haystack, const char *split_chars,
   bool ignore_whitespace) {
   size_t hsz = strlen(haystack);
-  const char **ret = iwpool_alloc((hsz + 1) * sizeof(char*), pool);
+  const char **ret = (const char**) iwpool_alloc((hsz + 1) * sizeof(char*), pool);
   if (!ret) {
     return 0;
   }
