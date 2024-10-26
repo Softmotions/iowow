@@ -176,7 +176,7 @@ off_t iwarr_sorted_find2(
 
 #define IWULIST_ALLOC_UNIT 32
 
-iwrc iwulist_init(IWULIST *list, size_t initial_length, size_t unit_size) {
+iwrc iwulist_init(struct iwulist *list, size_t initial_length, size_t unit_size) {
   list->usize = unit_size;
   list->num = 0;
   list->start = 0;
@@ -191,8 +191,8 @@ iwrc iwulist_init(IWULIST *list, size_t initial_length, size_t unit_size) {
   return 0;
 }
 
-IWULIST* iwulist_create(size_t initial_length, size_t unit_size) {
-  IWULIST *list = malloc(sizeof(*list));
+struct iwulist* iwulist_create(size_t initial_length, size_t unit_size) {
+  struct iwulist *list = malloc(sizeof(*list));
   if (!list) {
     return 0;
   }
@@ -203,7 +203,7 @@ IWULIST* iwulist_create(size_t initial_length, size_t unit_size) {
   return list;
 }
 
-iwrc iwulist_clear(IWULIST *list) {
+iwrc iwulist_clear(struct iwulist *list) {
   if (list) {
     free(list->array);
     return iwulist_init(list, IWULIST_ALLOC_UNIT, list->usize);
@@ -211,21 +211,21 @@ iwrc iwulist_clear(IWULIST *list) {
   return 0;
 }
 
-void iwulist_reset(IWULIST *list) {
+void iwulist_reset(struct iwulist *list) {
   if (list) {
     list->start = 0;
     list->num = 0;
   }
 }
 
-void iwulist_destroy_keep(IWULIST *list) {
+void iwulist_destroy_keep(struct iwulist *list) {
   if (list) {
     free(list->array);
     memset(list, 0, sizeof(*list));
   }
 }
 
-void iwulist_destroy(IWULIST **listp) {
+void iwulist_destroy(struct iwulist **listp) {
   if (listp) {
     if (*listp) {
       iwulist_destroy_keep(*listp);
@@ -235,15 +235,15 @@ void iwulist_destroy(IWULIST **listp) {
   }
 }
 
-size_t iwulist_length(const IWULIST *list) {
+size_t iwulist_length(const struct iwulist *list) {
   return list->num;
 }
 
-IWULIST* iwulist_clone(const IWULIST *list) {
+struct iwulist* iwulist_clone(const struct iwulist *list) {
   if (!list->num) {
     return iwulist_create(list->anum, list->usize);
   }
-  IWULIST *nlist = malloc(sizeof(*nlist));
+  struct iwulist *nlist = malloc(sizeof(*nlist));
   if (!nlist) {
     return 0;
   }
@@ -272,7 +272,7 @@ iwrc iwulist_copy(const struct iwulist *list, struct iwulist *tgt) {
   return 0;
 }
 
-void* iwulist_at(const IWULIST *list, size_t index, iwrc *orc) {
+void* iwulist_at(const struct iwulist *list, size_t index, iwrc *orc) {
   *orc = 0;
   if (index >= list->num) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
@@ -282,7 +282,7 @@ void* iwulist_at(const IWULIST *list, size_t index, iwrc *orc) {
   return list->array + index * list->usize;
 }
 
-void* iwulist_at2(const IWULIST *list, size_t index) {
+void* iwulist_at2(const struct iwulist *list, size_t index) {
   if (index >= list->num) {
     return 0;
   }
@@ -290,7 +290,7 @@ void* iwulist_at2(const IWULIST *list, size_t index) {
   return list->array + index * list->usize;
 }
 
-void* iwulist_get(const IWULIST *list, size_t index) {
+void* iwulist_get(const struct iwulist *list, size_t index) {
   if (index >= list->num) {
     return 0;
   }
@@ -298,7 +298,7 @@ void* iwulist_get(const IWULIST *list, size_t index) {
   return list->array + index * list->usize;
 }
 
-iwrc iwulist_push(IWULIST *list, const void *data) {
+iwrc iwulist_push(struct iwulist *list, const void *data) {
   size_t index = list->start + list->num;
   if (index >= list->anum) {
     size_t anum = list->anum + list->num + 1;
@@ -314,7 +314,7 @@ iwrc iwulist_push(IWULIST *list, const void *data) {
   return 0;
 }
 
-iwrc iwulist_pop(IWULIST *list) {
+iwrc iwulist_pop(struct iwulist *list) {
   if (!list->num) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -336,7 +336,7 @@ iwrc iwulist_pop(IWULIST *list) {
   return 0;
 }
 
-iwrc iwulist_shift(IWULIST *list) {
+iwrc iwulist_shift(struct iwulist *list) {
   if (!list->num) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -360,7 +360,7 @@ iwrc iwulist_shift(IWULIST *list) {
   return 0;
 }
 
-iwrc iwulist_insert(IWULIST *list, size_t index, const void *data) {
+iwrc iwulist_insert(struct iwulist *list, size_t index, const void *data) {
   if (index > list->num) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -382,7 +382,7 @@ iwrc iwulist_insert(IWULIST *list, size_t index, const void *data) {
   return 0;
 }
 
-iwrc iwulist_set(IWULIST *list, size_t index, const void *data) {
+iwrc iwulist_set(struct iwulist *list, size_t index, const void *data) {
   if (index >= list->num) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -391,7 +391,7 @@ iwrc iwulist_set(IWULIST *list, size_t index, const void *data) {
   return 0;
 }
 
-iwrc iwulist_remove(IWULIST *list, size_t index) {
+iwrc iwulist_remove(struct iwulist *list, size_t index) {
   if (index >= list->num) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -415,7 +415,7 @@ iwrc iwulist_remove(IWULIST *list, size_t index) {
   return 0;
 }
 
-bool iwulist_remove_first_by(IWULIST *list, void *data_ptr) {
+bool iwulist_remove_first_by(struct iwulist *list, void *data_ptr) {
   for (size_t i = list->start; i < list->start + list->num; ++i) {
     void *ptr = list->array + i * list->usize;
     if (memcmp(data_ptr, ptr, list->usize) == 0) {
@@ -425,7 +425,7 @@ bool iwulist_remove_first_by(IWULIST *list, void *data_ptr) {
   return false;
 }
 
-ssize_t iwulist_find_first(const IWULIST *list, void *data_ptr) {
+ssize_t iwulist_find_first(const struct iwulist *list, void *data_ptr) {
   for (size_t i = list->start; i < list->start + list->num; ++i) {
     void *ptr = list->array + i * list->usize;
     if (memcmp(data_ptr, ptr, list->usize) == 0) {
@@ -435,7 +435,7 @@ ssize_t iwulist_find_first(const IWULIST *list, void *data_ptr) {
   return -1;
 }
 
-iwrc iwulist_unshift(IWULIST *list, const void *data) {
+iwrc iwulist_unshift(struct iwulist *list, const void *data) {
   if (!list->start) {
     if (list->num >= list->anum) {
       size_t anum = list->anum + list->num + 1;
@@ -455,7 +455,7 @@ iwrc iwulist_unshift(IWULIST *list, const void *data) {
   return 0;
 }
 
-void iwulist_sort(IWULIST *list, int (*compar)(const void*, const void*, void*), void *op) {
+void iwulist_sort(struct iwulist *list, int (*compar)(const void*, const void*, void*), void *op) {
   sort_r(list->array + list->start * list->usize, list->num, list->usize, compar, op);
 }
 
