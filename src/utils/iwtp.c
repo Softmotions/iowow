@@ -214,14 +214,17 @@ iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, IWTP *out_tp) {
 
   for (size_t i = 0; i < num_threads; ++i) {
     pthread_t th;
+    pthread_mutex_lock(&tp->mtx);
     int rci = pthread_create(&th, 0, _worker_fn, tp);
     if (rci) {
+      pthread_mutex_unlock(&tp->mtx);
       rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
       iwlog_ecode_error3(rc);
       goto finish;
     } else {
-      RCC(rc, finish, iwulist_push(&tp->threads, &th));
+      iwulist_push(&tp->threads, &th);
     }
+    pthread_mutex_unlock(&tp->mtx);
   }
 
 finish:
