@@ -226,11 +226,9 @@ void iwulist_destroy_keep(struct iwulist *list) {
 }
 
 void iwulist_destroy(struct iwulist **listp) {
-  if (listp) {
-    if (*listp) {
-      iwulist_destroy_keep(*listp);
-      free(*listp);
-    }
+  if (listp && *listp) {
+    iwulist_destroy_keep(*listp);
+    free(*listp);
     *listp = 0;
   }
 }
