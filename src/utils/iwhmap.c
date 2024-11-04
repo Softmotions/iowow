@@ -126,7 +126,7 @@ IW_INLINE uint32_t _hash_buf_key(const void *key) {
   return wyhash32(key, strlen(key), 0x3017f643);
 }
 
-IWHMAP* iwhmap_create(
+struct iwhmap* iwhmap_create(
   int (*cmp_fn)(const void*, const void*),
   uint32_t (*hash_key_fn)(const void*),
   void (*kv_free_fn)(void*, void*)) {
@@ -161,7 +161,7 @@ IWHMAP* iwhmap_create(
   return hm;
 }
 
-IWHMAP* iwhmap_create_u64(void (*kv_free_fn)(void*, void*)) {
+struct iwhmap* iwhmap_create_u64(void (*kv_free_fn)(void*, void*)) {
   if (!kv_free_fn) {
     kv_free_fn = _noop_uint64_kv_free;
   }
@@ -174,7 +174,7 @@ IWHMAP* iwhmap_create_u64(void (*kv_free_fn)(void*, void*)) {
   return hm;
 }
 
-IWHMAP* iwhmap_create_u32(void (*kv_free_fn)(void*, void*)) {
+struct iwhmap* iwhmap_create_u32(void (*kv_free_fn)(void*, void*)) {
   hmap_t *hm = iwhmap_create(_uint32_cmp, _hash_uint32_key, kv_free_fn);
   if (hm) {
     hm->int_key_as_pointer_value = true;
@@ -182,11 +182,11 @@ IWHMAP* iwhmap_create_u32(void (*kv_free_fn)(void*, void*)) {
   return hm;
 }
 
-IWHMAP* iwhmap_create_str(void (*kv_free_fn)(void*, void*)) {
+struct iwhmap* iwhmap_create_str(void (*kv_free_fn)(void*, void*)) {
   return iwhmap_create((int (*)(const void*, const void*)) strcmp, _hash_buf_key, kv_free_fn);
 }
 
-static entry_t* _entry_find(IWHMAP *hm, const void *key, uint32_t hash) {
+static entry_t* _entry_find(struct iwhmap *hm, const void *key, uint32_t hash) {
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
   entry_t *entry = bucket->entries;
   for (entry_t *end = entry + bucket->used; entry < end; ++entry) {
@@ -197,7 +197,7 @@ static entry_t* _entry_find(IWHMAP *hm, const void *key, uint32_t hash) {
   return 0;
 }
 
-static entry_t* _entry_add(IWHMAP *hm, void *key, uint32_t hash) {
+static entry_t* _entry_add(struct iwhmap *hm, void *key, uint32_t hash) {
   entry_t *entry;
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
 
@@ -282,7 +282,7 @@ fail:
   free(buckets);
 }
 
-static void _lru_entry_update(IWHMAP *hm, entry_t *entry) {
+static void _lru_entry_update(struct iwhmap *hm, entry_t *entry) {
   if (entry->lru_node) {
     entry->lru_node->key = entry->key;
     if (entry->lru_node->next) {
@@ -315,7 +315,7 @@ static void _lru_entry_update(IWHMAP *hm, entry_t *entry) {
   }
 }
 
-static void _lru_entry_remove(IWHMAP *hm, entry_t *entry) {
+static void _lru_entry_remove(struct iwhmap *hm, entry_t *entry) {
   if (entry->lru_node->next) {
     struct lru_node *prev = entry->lru_node->prev;
     if (prev) {
@@ -334,7 +334,7 @@ static void _lru_entry_remove(IWHMAP *hm, entry_t *entry) {
   entry->lru_node = 0;
 }
 
-void* iwhmap_get(IWHMAP *hm, const void *key) {
+void* iwhmap_get(struct iwhmap *hm, const void *key) {
   uint32_t hash = hm->hash_key_fn(key);
   entry_t *entry = _entry_find(hm, key, hash);
   if (entry) {
@@ -347,7 +347,7 @@ void* iwhmap_get(IWHMAP *hm, const void *key) {
   }
 }
 
-static void _entry_remove(IWHMAP *hm, bucket_t *bucket, entry_t *entry) {
+static void _entry_remove(struct iwhmap *hm, bucket_t *bucket, entry_t *entry) {
   if (entry->lru_node) {
     _lru_entry_remove(hm, entry);
   }
@@ -369,7 +369,7 @@ static void _entry_remove(IWHMAP *hm, bucket_t *bucket, entry_t *entry) {
     uint32_t steps_used = bucket->used / STEPS;
     uint32_t steps_total = bucket->total / STEPS;
     if (steps_used + 1 < steps_total) {
-      entry_t *entries_new = realloc(bucket->entries, (steps_used + 1) * STEPS * sizeof(entries_new[0]));
+      entry_t *entries_new = realloc(bucket->entries, ((size_t) steps_used + 1) * STEPS * sizeof(entries_new[0]));
       if (entries_new) {
         bucket->entries = entries_new;
         bucket->total = (steps_used + 1) * STEPS;
@@ -378,7 +378,7 @@ static void _entry_remove(IWHMAP *hm, bucket_t *bucket, entry_t *entry) {
   }
 }
 
-bool iwhmap_remove(IWHMAP *hm, const void *key) {
+bool iwhmap_remove(struct iwhmap *hm, const void *key) {
   uint32_t hash = hm->hash_key_fn(key);
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
   entry_t *entry = _entry_find(hm, key, hash);
@@ -390,7 +390,7 @@ bool iwhmap_remove(IWHMAP *hm, const void *key) {
   }
 }
 
-bool iwhmap_remove_u64(IWHMAP *hm, uint64_t key) {
+bool iwhmap_remove_u64(struct iwhmap *hm, uint64_t key) {
   if (hm->int_key_as_pointer_value) {
     return iwhmap_remove(hm, (void*) (uintptr_t) key);
   } else {
@@ -398,11 +398,11 @@ bool iwhmap_remove_u64(IWHMAP *hm, uint64_t key) {
   }
 }
 
-bool iwhmap_remove_u32(IWHMAP *hm, uint32_t key) {
+bool iwhmap_remove_u32(struct iwhmap *hm, uint32_t key) {
   return iwhmap_remove(hm, (void*) (uintptr_t) key);
 }
 
-iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
+iwrc iwhmap_put(struct iwhmap *hm, void *key, void *val) {
   uint32_t hash = hm->hash_key_fn(key);
   entry_t *entry = _entry_add(hm, key, hash);
   if (!entry) {
@@ -433,7 +433,7 @@ iwrc iwhmap_put(IWHMAP *hm, void *key, void *val) {
   return 0;
 }
 
-iwrc iwhmap_put_str(IWHMAP *hm, const char *key_, void *val) {
+iwrc iwhmap_put_str(struct iwhmap *hm, const char *key_, void *val) {
   char *key = strdup(key_);
   if (!key) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -445,7 +445,7 @@ iwrc iwhmap_put_str(IWHMAP *hm, const char *key_, void *val) {
   return rc;
 }
 
-iwrc iwhmap_rename(IWHMAP *hm, const void *key_old, void *key_new) {
+iwrc iwhmap_rename(struct iwhmap *hm, const void *key_old, void *key_new) {
   uint32_t hash = hm->hash_key_fn(key_old);
   entry_t *entry = _entry_find(hm, key_old, hash);
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
@@ -468,15 +468,14 @@ iwrc iwhmap_rename(IWHMAP *hm, const void *key_old, void *key_new) {
       _lru_entry_update(hm, entry);
     }
   }
-
   return 0;
 }
 
-iwrc iwhmap_put_u32(IWHMAP *hm, uint32_t key, void *val) {
+iwrc iwhmap_put_u32(struct iwhmap *hm, uint32_t key, void *val) {
   return iwhmap_put(hm, (void*) (uintptr_t) key, val);
 }
 
-iwrc iwhmap_put_u64(IWHMAP *hm, uint64_t key, void *val) {
+iwrc iwhmap_put_u64(struct iwhmap *hm, uint64_t key, void *val) {
   if (hm->int_key_as_pointer_value) {
     return iwhmap_put(hm, (void*) (uintptr_t) key, val);
   } else {
@@ -493,7 +492,7 @@ iwrc iwhmap_put_u64(IWHMAP *hm, uint64_t key, void *val) {
   }
 }
 
-void* iwhmap_get_u64(IWHMAP *hm, uint64_t key) {
+void* iwhmap_get_u64(struct iwhmap *hm, uint64_t key) {
   if (hm->int_key_as_pointer_value) {
     return iwhmap_get(hm, (void*) (intptr_t) key);
   } else {
@@ -501,15 +500,15 @@ void* iwhmap_get_u64(IWHMAP *hm, uint64_t key) {
   }
 }
 
-void* iwhmap_get_u32(IWHMAP *hm, uint32_t key) {
+void* iwhmap_get_u32(struct iwhmap *hm, uint32_t key) {
   return iwhmap_get(hm, (void*) (intptr_t) key);
 }
 
-uint32_t iwhmap_count(IWHMAP *hm) {
+uint32_t iwhmap_count(struct iwhmap *hm) {
   return hm->count;
 }
 
-void iwhmap_iter_init(IWHMAP *hm, IWHMAP_ITER *iter) {
+void iwhmap_iter_init(struct iwhmap *hm, struct iwhmap_iter *iter) {
   iter->hm = hm;
   iter->entry = -1;
   iter->bucket = 0;
@@ -517,7 +516,7 @@ void iwhmap_iter_init(IWHMAP *hm, IWHMAP_ITER *iter) {
   iter->val = 0;
 }
 
-bool iwhmap_iter_next(IWHMAP_ITER *iter) {
+bool iwhmap_iter_next(struct iwhmap_iter *iter) {
   if (!iter->hm) {
     return false;
   }
@@ -544,7 +543,7 @@ bool iwhmap_iter_next(IWHMAP_ITER *iter) {
   return true;
 }
 
-void iwhmap_clear(IWHMAP *hm) {
+void iwhmap_clear(struct iwhmap *hm) {
   if (!hm) {
     return;
   }
@@ -568,7 +567,7 @@ void iwhmap_clear(IWHMAP *hm) {
   hm->count = 0;
 }
 
-void iwhmap_destroy(IWHMAP *hm) {
+void iwhmap_destroy(struct iwhmap *hm) {
   if (!hm) {
     return;
   }
@@ -589,12 +588,12 @@ void iwhmap_destroy(IWHMAP *hm) {
   free(hm);
 }
 
-bool iwhmap_lru_eviction_max_count(IWHMAP *hm, void *max_count_val) {
+bool iwhmap_lru_eviction_max_count(struct iwhmap *hm, void *max_count_val) {
   uint32_t max_count = (uintptr_t) max_count_val;
   return iwhmap_count(hm) > max_count;
 }
 
-void iwhmap_lru_init(IWHMAP *hm, iwhmap_lru_eviction_needed ev, void *ev_user_data) {
+void iwhmap_lru_init(struct iwhmap *hm, iwhmap_lru_eviction_needed ev, void *ev_user_data) {
   hm->lru_ev = ev;
   hm->lru_ev_user_data = ev_user_data;
 }
