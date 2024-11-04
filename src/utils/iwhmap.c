@@ -504,7 +504,7 @@ void* iwhmap_get_u32(struct iwhmap *hm, uint32_t key) {
   return iwhmap_get(hm, (void*) (intptr_t) key);
 }
 
-uint32_t iwhmap_count(struct iwhmap *hm) {
+uint32_t iwhmap_count(const struct iwhmap *hm) {
   return hm->count;
 }
 
@@ -564,6 +564,12 @@ void iwhmap_clear(struct iwhmap *hm) {
       hm->buckets_mask = MIN_BUCKETS - 1;
     }
   }
+  for (lru_node_t *n = hm->lru_first; n; ) {
+    lru_node_t *nn = n->next;
+    free(n);
+    n = nn;
+  }
+  hm->lru_first = 0;
   hm->count = 0;
 }
 

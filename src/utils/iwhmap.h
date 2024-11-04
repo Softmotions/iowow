@@ -59,8 +59,6 @@ IW_EXPORT struct iwhmap* iwhmap_create(
   uint32_t (*hash_key_fn)(const void*),
   void (*kv_free_fn)(void*, void*));
 
-IW_EXPORT struct iwhmap* iwhmap_create_ptr(void (*kv_free_fn)(void*, void*));
-
 IW_EXPORT struct iwhmap* iwhmap_create_u64(void (*kv_free_fn)(void*, void*));
 
 IW_EXPORT struct iwhmap* iwhmap_create_u32(void (*kv_free_fn)(void*, void*));
@@ -91,13 +89,13 @@ IW_EXPORT void* iwhmap_get_u64(struct iwhmap *hm, uint64_t key);
 
 IW_EXPORT void* iwhmap_get_u32(struct iwhmap *hm, uint32_t key);
 
-IW_EXPORT uint32_t iwhmap_count(struct iwhmap *hm);
+IW_EXPORT uint32_t iwhmap_count(const struct iwhmap *hm);
 
 IW_EXPORT void iwhmap_clear(struct iwhmap *hm);
 
-IW_EXPORT void iwhmap_iter_init(struct iwhmap *hm, IWHMAP_ITER *iter);
+IW_EXPORT void iwhmap_iter_init(struct iwhmap *hm, struct iwhmap_iter *iter);
 
-IW_EXPORT bool iwhmap_iter_next(IWHMAP_ITER *iter);
+IW_EXPORT bool iwhmap_iter_next(struct iwhmap_iter *iter);
 
 IW_EXPORT void iwhmap_destroy(struct iwhmap *hm);
 
