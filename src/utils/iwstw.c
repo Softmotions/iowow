@@ -1,5 +1,4 @@
 #include "iwstw.h"
-#include "iwth.h"
 #include "iwlog.h"
 #include "iwp.h"
 
@@ -7,16 +6,17 @@
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
+#include <pthread.h>
 
-struct task {
+struct _task {
   iwstw_task_f fn;
   void *arg;
-  struct task *next;
+  struct _task *next;
 };
 
 struct iwstw {
-  struct task *head;
-  struct task *tail;
+  struct _task *head;
+  struct _task *tail;
   char *thread_name;
   iwstw_on_task_discard_f on_task_discard;
   pthread_mutex_t mtx;
@@ -44,7 +44,7 @@ static void* _worker_fn(void *op) {
 
     pthread_mutex_lock(&stw->mtx);
     if (stw->head) {
-      struct task *h = stw->head;
+      struct _task *h = stw->head;
       fn = h->fn;
       arg = h->arg;
       stw->head = h->next;
@@ -81,11 +81,11 @@ static void* _worker_fn(void *op) {
   return 0;
 }
 
-iwrc iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
+iwrc iwstw_shutdown(struct iwstw * *stwp, bool wait_for_all) {
   if (!stwp || !*stwp) {
     return 0;
   }
-  IWSTW stw = *stwp;
+  struct iwstw *stw = *stwp;
   pthread_mutex_lock(&stw->mtx);
   if (stw->shutdown) {
     pthread_mutex_unlock(&stw->mtx);
@@ -97,9 +97,9 @@ iwrc iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
     return IW_ERROR_ASSERTION;
   }
   if (!wait_for_all) {
-    struct task *t = stw->head;
+    struct _task *t = stw->head;
     while (t) {
-      struct task *o = t;
+      struct _task *o = t;
       t = t->next;
       if (stw->on_task_discard) {
         stw->on_task_discard(t->fn, t->arg);
@@ -126,7 +126,7 @@ iwrc iwstw_shutdown(IWSTW *stwp, bool wait_for_all) {
   return 0;
 }
 
-int iwstw_queue_size(IWSTW stw) {
+int iwstw_queue_size(struct iwstw *stw) {
   int res = 0;
   pthread_mutex_lock(&stw->mtx);
   res = stw->cnt;
@@ -134,14 +134,14 @@ int iwstw_queue_size(IWSTW stw) {
   return res;
 }
 
-iwrc iwstw_schedule(IWSTW stw, iwstw_task_f fn, void *arg) {
+iwrc iwstw_schedule(struct iwstw *stw, iwstw_task_f fn, void *arg) {
   if (!stw || !fn) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  struct task *task = malloc(sizeof(*task));
+  struct _task *task = malloc(sizeof(*task));
   RCA(task, finish);
-  *task = (struct task) {
+  *task = (struct _task) {
     .fn = fn,
     .arg = arg
   };
@@ -190,14 +190,14 @@ finish:
   return rc; // NOLINT (clang-analyzer-unix.Malloc)
 }
 
-iwrc iwstw_schedule_only(IWSTW stw, iwstw_task_f fn, void *arg) {
+iwrc iwstw_schedule_only(struct iwstw *stw, iwstw_task_f fn, void *arg) {
   if (!stw || !fn) {
     return IW_ERROR_INVALID_ARGS;
   }
   iwrc rc = 0;
-  struct task *task = malloc(sizeof(*task));
+  struct _task *task = malloc(sizeof(*task));
   RCA(task, finish);
-  *task = (struct task) {
+  *task = (struct _task) {
     .fn = fn,
     .arg = arg
   };
@@ -212,9 +212,9 @@ iwrc iwstw_schedule_only(IWSTW stw, iwstw_task_f fn, void *arg) {
     goto finish;
   }
 
-  struct task *t = stw->head;
+  struct _task *t = stw->head;
   while (t) {
-    struct task *o = t;
+    struct _task *o = t;
     t = t->next;
     if (stw->on_task_discard) {
       stw->on_task_discard(t->fn, t->arg);
@@ -236,15 +236,15 @@ finish:
   return rc; // NOLINT (clang-analyzer-unix.Malloc)
 }
 
-iwrc iwstw_schedule_empty_only(IWSTW stw, iwstw_task_f fn, void *arg, bool *out_scheduled) {
+iwrc iwstw_schedule_empty_only(struct iwstw *stw, iwstw_task_f fn, void *arg, bool *out_scheduled) {
   if (!stw || !fn || !out_scheduled) {
     return IW_ERROR_INVALID_ARGS;
   }
   *out_scheduled = false;
   iwrc rc = 0;
-  struct task *task = malloc(sizeof(*task));
+  struct _task *task = malloc(sizeof(*task));
   RCA(task, finish);
-  *task = (struct task) {
+  *task = (struct _task) {
     .fn = fn,
     .arg = arg
   };
@@ -277,11 +277,11 @@ finish:
   return rc; // NOLINT (clang-analyzer-unix.Malloc)
 }
 
-void iwstw_set_on_task_discard(IWSTW stw, iwstw_on_task_discard_f on_task_discard) {
+void iwstw_set_on_task_discard(struct iwstw *stw, iwstw_on_task_discard_f on_task_discard) {
   stw->on_task_discard = on_task_discard;
 }
 
-iwrc iwstw_start(const char *thread_name, int queue_limit, bool queue_blocking, IWSTW *out_stw) {
+iwrc iwstw_start(const char *thread_name, int queue_limit, bool queue_blocking, struct iwstw **out_stw) {
   if (queue_limit < 0 || !out_stw) {
     return IW_ERROR_INVALID_ARGS;
   }

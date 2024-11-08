@@ -11,18 +11,18 @@
 #include <string.h>
 #include <pthread.h>
 
-struct task {
+struct _task {
   iwtp_task_f fn;
   void       *arg;
-  struct task *next;
+  struct _task *next;
 };
 
 struct iwtp {
-  struct task    *head;
-  struct task    *tail;
+  struct _task   *head;
+  struct _task   *tail;
   pthread_mutex_t mtx;
   pthread_cond_t  cond;
-  IWULIST threads;
+  struct iwulist  threads;
 
   char *thread_name_prefix;
   int   num_threads;
@@ -43,10 +43,10 @@ iwrc iwtp_schedule(struct iwtp *tp, iwtp_task_f fn, void *arg) {
   }
 
   iwrc rc = 0;
-  struct task *task = malloc(sizeof(*task));
+  struct _task *task = malloc(sizeof(*task));
   RCA(task, finish);
 
-  *task = (struct task) {
+  *task = (struct _task) {
     .fn = fn,
     .arg = arg
   };
@@ -121,7 +121,7 @@ static void* _worker_fn(void *op) {
     pthread_mutex_lock(&tp->mtx);
     ++tp->num_threads_busy;
     if (tp->head) {
-      struct task *h = tp->head;
+      struct _task *h = tp->head;
       fn = h->fn;
       arg = h->arg;
       tp->head = h->next;
@@ -250,7 +250,7 @@ iwrc iwtp_shutdown(struct iwtp **tpp, bool wait_for_all) {
     return 0;
   }
   struct iwtp *tp = *tpp;
-  IWULIST *joinlist = 0;
+  struct iwulist *joinlist = 0;
 
   pthread_mutex_lock(&tp->mtx);
   pthread_t st = pthread_self();
@@ -268,9 +268,9 @@ iwrc iwtp_shutdown(struct iwtp **tpp, bool wait_for_all) {
   tp->shutdown = true;
 
   if (!wait_for_all) {
-    struct task *t = tp->head;
+    struct _task *t = tp->head;
     while (t) {
-      struct task *o = t;
+      struct _task *o = t;
       t = t->next;
       free(o);
     }
