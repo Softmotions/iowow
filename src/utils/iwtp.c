@@ -1,5 +1,4 @@
 #include "iwtp.h"
-#include "iwth.h"
 #include "iwp.h"
 #include "iwlog.h"
 #include "iwarr.h"
@@ -10,6 +9,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
+#include <pthread.h>
 
 struct task {
   iwtp_task_f fn;
@@ -37,7 +37,7 @@ struct iwtp {
 
 static void* _worker_fn(void *op);
 
-iwrc iwtp_schedule(IWTP tp, iwtp_task_f fn, void *arg) {
+iwrc iwtp_schedule(struct iwtp *tp, iwtp_task_f fn, void *arg) {
   if (!tp || !fn) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -69,7 +69,7 @@ iwrc iwtp_schedule(IWTP tp, iwtp_task_f fn, void *arg) {
 
   if (  tp->queue_size > 1
      && tp->num_threads_busy >= tp->num_threads
-     && iwulist_length(&tp->threads) < (size_t) (tp->num_threads * (1 + tp->overflow_threads_factor))) {
+     && iwulist_length(&tp->threads) < ((size_t) tp->num_threads * (1 + tp->overflow_threads_factor))) {
     pthread_t th;
     int rci = pthread_create(&th, 0, _worker_fn, tp);
     if (rci) {
@@ -165,7 +165,7 @@ static void* _worker_fn(void *op) {
   return 0;
 }
 
-iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, IWTP *out_tp) {
+iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, struct iwtp * *out_tp) {
   iwrc rc = 0;
   if (!spec || !out_tp) {
     return IW_ERROR_INVALID_ARGS;
@@ -237,7 +237,7 @@ finish:
   return rc;
 }
 
-iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit, IWTP *out_tp) {
+iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit, struct iwtp **out_tp) {
   return iwtp_start_by_spec(&(struct iwtp_spec) {
     .thread_name_prefix = thread_name_prefix,
     .num_threads = num_threads,
@@ -245,11 +245,11 @@ iwrc iwtp_start(const char *thread_name_prefix, int num_threads, int queue_limit
   }, out_tp);
 }
 
-iwrc iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
+iwrc iwtp_shutdown(struct iwtp **tpp, bool wait_for_all) {
   if (!tpp || !*tpp) {
     return 0;
   }
-  IWTP tp = *tpp;
+  struct iwtp *tp = *tpp;
   IWULIST *joinlist = 0;
 
   pthread_mutex_lock(&tp->mtx);
@@ -296,7 +296,7 @@ iwrc iwtp_shutdown(IWTP *tpp, bool wait_for_all) {
   return 0;
 }
 
-int iwtp_queue_size(IWTP tp) {
+int iwtp_queue_size(struct iwtp *tp) {
   int res = 0;
   pthread_mutex_lock(&tp->mtx);
   res = tp->queue_size;
