@@ -96,7 +96,7 @@ IW_EXPORT iwrc iwulist_init(struct iwulist *list, size_t initial_length, size_t 
  * @param unit_size      Unit size
  * @return Zero if memory allocation failed `errno` will be set respectively
  */
-IW_EXPORT IW_ALLOC struct iwulist* iwulist_create(size_t initial_length, size_t unit_size);
+IW_EXPORT WUR struct iwulist* iwulist_create(size_t initial_length, size_t unit_size);
 
 /**
  * @brief Cleanup units list.
@@ -133,7 +133,7 @@ IW_EXPORT size_t iwulist_length(const struct iwulist *list);
 /**
  * @brief Clones a given list.
  */
-IW_EXPORT IW_ALLOC struct iwulist* iwulist_clone(const struct iwulist *list);
+IW_EXPORT WUR struct iwulist* iwulist_clone(const struct iwulist *list);
 
 /**
  * @brief Copies all element of `list` into `tgt` list

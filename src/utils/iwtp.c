@@ -94,6 +94,7 @@ static void* _worker_fn(void *op) {
   pthread_t st = pthread_self();
   pthread_mutex_lock(&tp->mtx);
   int idx = iwulist_find_first(&tp->threads, &st);
+  int num_threads = tp->num_threads;
   pthread_mutex_unlock(&tp->mtx);
 
   if (idx == -1) { // should never be happen
@@ -102,16 +103,13 @@ static void* _worker_fn(void *op) {
 
   if (tp->thread_name_prefix) {
     char nbuf[64];
-    if (idx >= tp->num_threads) {
-      snprintf(nbuf, sizeof(nbuf), "%s%d+", tp->thread_name_prefix, idx);
-      if (tp->warn_on_overflow_thread_spawn) {
-        iwlog_warn("iwtp | Overflow thread spawned: %s%d+",
-                   tp->thread_name_prefix ? tp->thread_name_prefix : "", idx);
-      }
-    } else {
-      snprintf(nbuf, sizeof(nbuf), "%s%d", tp->thread_name_prefix, idx);
-    }
+    snprintf(nbuf, sizeof(nbuf), "%s%d", tp->thread_name_prefix, idx);
     iwp_set_current_thread_name(nbuf);
+  }
+
+  if (idx >= num_threads && tp->warn_on_overflow_thread_spawn) {
+    iwlog_warn("iwtp | Overflow thread spawned: %s%d+",
+               tp->thread_name_prefix ? tp->thread_name_prefix : "", idx);
   }
 
   while (true) {
@@ -165,7 +163,7 @@ static void* _worker_fn(void *op) {
   return 0;
 }
 
-iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, struct iwtp * *out_tp) {
+iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, struct iwtp **out_tp) {
   iwrc rc = 0;
   if (!spec || !out_tp) {
     return IW_ERROR_INVALID_ARGS;
@@ -264,6 +262,7 @@ iwrc iwtp_shutdown(struct iwtp **tpp, bool wait_for_all) {
     pthread_mutex_unlock(&tp->mtx);
     return 0;
   }
+
   *tpp = 0;
   tp->shutdown = true;
 
