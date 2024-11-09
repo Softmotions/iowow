@@ -73,7 +73,7 @@ iwrc iwtp_schedule(struct iwtp *tp, iwtp_task_f fn, void *arg) {
     pthread_t th;
     int rci = pthread_create(&th, 0, _worker_fn, tp);
     if (rci) {
-      iwlog_ecode_error2(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci), "iwtp | Failed to create and overflow thread");
+      iwlog_ecode_error2(iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci), "iwtp | Failed to create overflow thread");
     }
   }
 
