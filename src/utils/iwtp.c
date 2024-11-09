@@ -302,3 +302,11 @@ int iwtp_queue_size(struct iwtp *tp) {
   pthread_mutex_unlock(&tp->mtx);
   return res;
 }
+
+int iwtp_threads_busy_num(struct iwtp *tp) {
+  int res = 0;
+  pthread_mutex_lock(&tp->mtx);
+  res = tp->num_threads_busy;
+  pthread_mutex_unlock(&tp->mtx);
+  return res;
+}

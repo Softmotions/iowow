@@ -111,5 +111,10 @@ IW_EXPORT iwrc iwtp_shutdown(struct iwtp **tpp, bool wait_for_all);
  */
 IW_EXPORT int iwtp_queue_size(struct iwtp *tp);
 
+/**
+ * @brief Returns number of threads currently executing tasks.
+ */
+IW_EXPORT  int iwtp_threads_busy_num(struct iwtp *tp);
+
 IW_EXTERN_C_END;
 #endif
