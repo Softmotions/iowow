@@ -123,7 +123,7 @@ static iwrc _iwp_fstat(const char *path, HANDLE fd, struct iwp_file_stat *fs) {
 }
 
 iwrc iwp_fstat(const char *path, struct iwp_file_stat *fs) {
-  return _iwp_fstat(path, 0, fs);
+  return _iwp_fstat(path, INVALID_HANDLE_VALUE, fs);
 }
 
 iwrc iwp_fstath(HANDLE fh, struct iwp_file_stat *fs) {
