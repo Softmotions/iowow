@@ -259,6 +259,23 @@ const char** iwpool_split_string(
   return ret;
 }
 
+const char** iwpool_copy_cstring_array(const char **v, struct iwpool *pool) {
+  const char **sv = v;
+  while (sv && *sv) {
+    ++sv;
+  }
+  if (sv > v) {
+    const char **ret = (const char**) iwpool_alloc(sizeof(*ret) * (sv - v + 1), pool), **wv = ret;
+    for ( ; *v; ++wv, ++v) {
+      *wv = iwpool_strdup2(pool, *v);
+    }
+    *(++wv) = 0;
+    return ret;
+  } else {
+    return 0;
+  }
+}
+
 const char** iwpool_printf_split(
   struct iwpool *pool,
   const char *split_chars, bool ignore_whitespace,

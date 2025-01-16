@@ -138,6 +138,8 @@ IW_EXPORT const char** iwpool_printf_split(
   const char *split_chars, bool ignore_whitespace,
   const char *format, ...) __attribute__((format(__printf__, 4, 5)));
 
+IW_EXPORT const char** iwpool_copy_cstring_array(const char** v, struct iwpool *pool);
+
 /**
  * Increments an internal reference count.
  * References are decremented by `iwpool_destroy()`.
