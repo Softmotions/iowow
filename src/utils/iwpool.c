@@ -266,10 +266,12 @@ const char** iwpool_copy_cstring_array(const char **v, struct iwpool *pool) {
   }
   if (sv > v) {
     const char **ret = (const char**) iwpool_alloc(sizeof(*ret) * (sv - v + 1), pool), **wv = ret;
-    for ( ; *v; ++wv, ++v) {
-      *wv = iwpool_strdup2(pool, *v);
+    if (ret) {
+      for ( ; *v; ++wv, ++v) {
+        *wv = iwpool_strdup2(pool, *v);
+      }
+      *(++wv) = 0;
     }
-    *(++wv) = 0;
     return ret;
   } else {
     return 0;
