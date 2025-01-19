@@ -12,6 +12,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef __APPLE__
+#define fdatasync fsync
+#endif
+
 struct iwjsreg {
   struct iwpool    *pool;
   struct jbl_node  *root;
