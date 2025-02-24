@@ -1,5 +1,6 @@
 iowow (1.4.19) UNRELEASED; urgency=medium
 
+  * Fixed incorrect JSON generation for some locales where ',' is printed as FP separator.
   * Fixed race condition in iwtp (iwtp.h)
   * Naming refactoring, minor fixes
   * Added iwjsreg_merge(), iwjsreg_replace()
