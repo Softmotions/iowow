@@ -114,7 +114,7 @@ int iwitoa(int64_t v, char *buf, int max) {
     } else {
       v = -v;
       ITOA_SZSTEP(1)
-      * ptr++ = '-';
+      *ptr++ = '-';
     }
   }
   // save start pointer

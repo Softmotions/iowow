@@ -3,7 +3,10 @@
 #define IWCSV_H
 
 #include "iwlog.h"
+#include "iwconv.h"
+
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -84,6 +87,12 @@ static bool iwcsv_column_add(struct iwcsv *w, const char *s, int slen) {
     WW('"');
   }
   return true;
+}
+
+static bool iwcsv_column_add_i64(struct iwcsv *w, int64_t n) {
+  char buf[IWNUMBUF_SIZE];
+  iwitoa(n, buf, sizeof(buf));
+  return iwcsv_column_add(w, buf, -1);
 }
 
 #undef WW
