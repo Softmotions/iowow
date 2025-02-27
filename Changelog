@@ -1,5 +1,6 @@
 iowow (1.4.19) UNRELEASED; urgency=medium
 
+  * Added iwcsv.h utility used to produce CSV formatted lines.
   * Fixed incorrect JSON generation for some locales where ',' is printed as FP separator.
   * Fixed race condition in iwtp (iwtp.h)
   * Naming refactoring, minor fixes
