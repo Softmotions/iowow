@@ -37,6 +37,7 @@ static iwrc iwcsv_wrap_line_buffer(char *linebuf, size_t len, struct iwcsv **out
   w->ep = (char*) w - 1;
   w->ncol = 0;
   *w->ep = '\0';
+  *out = w;
   return 0;
 }
 
