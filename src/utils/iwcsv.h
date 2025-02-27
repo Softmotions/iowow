@@ -56,7 +56,10 @@ static const char* iwcsv_line_flush(struct iwcsv *w) {
 }
 
 static bool iwcsv_column_add(struct iwcsv *w, const char *s, int slen) {
-  if (slen < 0) {
+  if (!s) {
+    s = "";
+    slen = 0;
+  } else if (slen < 0) {
     slen = strlen(s);
   }
   bool q = false;
