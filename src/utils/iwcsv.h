@@ -46,9 +46,12 @@ static iwrc iwcsv_wrap_line_buffer(char *linebuf, size_t len, struct iwcsv **out
          ++w->wp
 
 /// Returns non zero if CSV line built successfully
-static const char* iwcsv_line_flush(struct iwcsv *w) {
+static const char* iwcsv_line_flush(struct iwcsv *w, int *out_len) {
   WW('\r');
   WW('\n');
+  if (out_len) {
+    *out_len = w->wp - w->buf - 1;
+  }
   *w->wp = '\0';
   w->wp = w->buf;
   w->ncol = 0;
