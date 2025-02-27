@@ -51,7 +51,7 @@ static const char* iwcsv_line_flush(struct iwcsv *w, int *out_len) {
   WW('\r');
   WW('\n');
   if (out_len) {
-    *out_len = w->wp - w->buf - 1;
+    *out_len = w->wp - w->buf;
   }
   *w->wp = '\0';
   w->wp = w->buf;
