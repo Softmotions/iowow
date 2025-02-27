@@ -95,5 +95,11 @@ static bool iwcsv_column_add_i64(struct iwcsv *w, int64_t n) {
   return iwcsv_column_add(w, buf, -1);
 }
 
+static bool iwcsv_column_add_f64(struct iwcsv *w, double n) {
+  char buf[IWNUMBUF_SIZE];
+  iwftoa(n, buf);
+  return iwcsv_column_add(w, buf, -1);
+}
+
 #undef WW
 #endif
