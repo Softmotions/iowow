@@ -319,7 +319,7 @@ static int _rmfile(const char *pathname, const struct stat *sbuf, int type, stru
 
 iwrc iwp_removedir(const char *path) {
   if (nftw(path, _rmfile, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS) < 0) {
-    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    return errno != ENOENT ? iwrc_set_errno(IW_ERROR_IO_ERRNO, errno) : 0;
   }
   return 0;
 }
