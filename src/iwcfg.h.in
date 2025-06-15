@@ -56,13 +56,14 @@
 #error Unknown CPU bits
 #endif
 
-#define IOWOW_VERSION       "@iowow_VERSION@"
-#define IOWOW_VERSION_MAJOR @iowow_VERSION_MAJOR@
-#define IOWOW_VERSION_MINOR @iowow_VERSION_MINOR@
-#define IOWOW_VERSION_PATCH @iowow_VERSION_PATCH@
+#define IOWOW_VERSION       "@META_VERSION@"
+#define IOWOW_VERSION_MAJOR @META_VERSION_MAJOR@
+#define IOWOW_VERSION_MINOR @META_VERSION_MINOR@
+#define IOWOW_VERSION_PATCH @META_VERSION_PATCH@
 
 #ifndef static_assert
 #define static_assert _Static_assert
 #endif
 
 #endif
+

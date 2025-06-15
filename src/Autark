@@ -1,0 +1,19 @@
+check {
+  test_qsort_r.sh
+  test_pthread.sh
+}
+
+set {
+  LDFLAG
+  if { defined { PTHREAD_LFLAG }
+    ${PTHREAD_LFLAG}
+  }
+  ..${LDFLAG}
+}
+
+configure {
+  iwcfg.h.in
+  libiowow.pc.in
+}
+
+install { ${INSTALL_PKGCONFIG_DIR} libiowow.pc }

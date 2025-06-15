@@ -1,5 +1,5 @@
-cd ./build/src/json/tests
-file ./iwjsreg_test1
+#cd ./build/src/json/tests
+#file ./iwjsreg_test1
 #set args -c
 
 set confirm off

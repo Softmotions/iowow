@@ -475,6 +475,9 @@ static iwrc _iwp_init_impl(void) {
 
 iwrc iwp_random_fill(char *out, int len, bool ascii) {
   static const char cset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  // TODO: getentropy
+
+
   FILE *f = fopen("/dev/urandom", "r");
   if (!f) {
     return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);

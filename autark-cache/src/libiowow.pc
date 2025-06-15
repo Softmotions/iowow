@@ -1,0 +1,11 @@
+exec_prefix=/usr/local/bin
+libdir=/usr/local/lib64
+includedir=/usr/local/include
+
+Name: iowow
+Description: The skiplist based persistent key/value storage engine.
+URL: https://github.com/Softmotions/iowow
+Version: 1.4.19
+Libs: -L${libdir} -liowow
+Libs.private: -lm
+Cflags: -I${includedir}

@@ -1,0 +1,19 @@
+e META_VERSION1.4.190
+e META_VERSION_MAJOR10
+e META_VERSION_MINOR40
+e META_VERSION_PATCH190
+e INSTALL_PREFIX/usr/local0
+e INSTALL_BIN_DIRbin0
+e INSTALL_PREFIX/usr/local0
+e INSTALL_LIB_DIRlib640
+e INSTALL_PREFIX/usr/local0
+e INSTALL_INCLUDE_DIRinclude0
+e META_NAMEiowow0
+e META_DESCRIPTIONThe skiplist based persistent key/value storage engine.0
+e META_WEBSITEhttps://github.com/Softmotions/iowow0
+e META_VERSION1.4.190
+e META_NAMEiowow0
+fs/home/adam/Projects/softmotions/iowow/src/iwcfg.h.in1749820037995
+fs/home/adam/Projects/softmotions/iowow/src/libiowow.pc.in1749977351117
+f /home/adam/Projects/softmotions/iowow/src/Autark1750003360284
+f /home/adam/Projects/softmotions/iowow/Autark1750002944824

@@ -1,0 +1,91 @@
+meta {
+  name { iowow }
+
+  version_major { 1 }
+  version_minor { 4 }
+  version_patch { 19 }
+
+  description { The skiplist based persistent key/value storage engine. }
+  website { https://github.com/Softmotions/iowow }
+  vendor { Softmotions (https://softmotions.com) }
+  maintainer { Anton Adamansky <adamansky@gmail.com> }
+  license { MIT }
+}
+
+
+option { BUILD_SHARED_LIBS }
+option { ENABLE_TESTS     Build and execute test cases }
+option { ENABLE_ASAN      Turn on address sanitizer }
+option { ENABLE_UBSAN     Turn on UB sanitizer }
+option { ENABLE_DEBINFO   Generate debuginfo even in release mode }
+
+set {
+  META_VERSION
+  ^{ ${META_VERSION_MAJOR} . ${META_VERSION_MINOR} . ${META_VERSION_PATCH} }
+}
+
+set {
+  META_REVISION
+  @{ git rev-parse --short HEAD }
+}
+
+check {
+  system.sh
+}
+
+set {
+  CFLAGS
+  -std=gnu11
+  -pedantic
+  -fsigned-char
+  -Wfatal-errors
+  -Wall
+  -Wextra
+  -Wno-sign-compare
+  -Wno-unused-parameter
+  -Wno-implicit-fallthrough
+  -Wno-unknown-pragmas
+  -Wno-unused-function
+  -Wno-missing-field-initializers
+  -Wno-missing-braces
+  if { !eq { ${SYSTEM_NAME} Windows }
+    -fPIC
+  }
+  if { defined { ENABLE_ASAN }
+    -fsanitize=address
+    -fno-omit-frame-pointer
+  } else {
+    if { defined { ENABLE_UBSAN }
+      -fsanitize=undefined
+      -fno-omit-frame-pointer
+    }
+  }
+  if { eq { ${BUILD_TYPE} Release }
+    -O3
+    if { defined { ENABLE_DEBINFO }
+      -g -ggdb
+    }
+    -DNDEBUG
+    -DIW_RELEASE
+  } else {
+    -O0
+    -g -ggdb
+    -Werror
+    -Wno-unused-variable
+    -DDEBUG -D_DEBUG -UNDEBUG
+  }
+  if { defined { SYSTEM_BIGENDIAN }
+    -DIW_BIGENDIAN
+  }
+  if { defined { SYSTEM_BITNESS_64 }
+    -DIW_64
+  }
+  if { defined { SYSTEM_BITNESS_32 }
+    -DIW_32
+  }
+  if { defined { ENABLE_TESTS }
+    -DIW_TESTS=1
+  }
+}
+
+include { ./src/Autark }
