@@ -1,14 +1,32 @@
 check {
   test_qsort_r.sh
   test_pthread.sh
+  test_symbol.sh { CLOCK_MONOTONIC time.h IW_HAVE_CLOCK_MONOTONIC }
 }
 
 set {
   LDFLAG
+  -lm
   if { defined { PTHREAD_LFLAG }
     ${PTHREAD_LFLAG}
   }
+  if { defined { SYSTEM_ANDROID }
+    -llog
+  }
   ..${LDFLAG}
+}
+
+option { OWNER_PROJECT_NAME Optional name of the owner project used to install
+                            header files into OWNER_PROJECT_NAME/META_PROJECT_NAME }
+
+if { defined { OWNER_PROJECT_NAME }
+  set {
+    IW_PUBLIC_HEADER_DESTINATION ^{ ${INSTALL_INCLUDE_DIR} / ${OWNER_PROJECT_NAME} }
+  }
+} else {
+  set {
+    IW_PUBLIC_HEADER_DESTINATION ^{ ${INSTALL_INCLUDE_DIR} / ${META_NAME} }
+  }
 }
 
 configure {

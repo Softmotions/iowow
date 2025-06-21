@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=8008887
+META_REVISION=edf7d5a
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "8008887"
+#define META_REVISION "edf7d5a"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -600,7 +600,7 @@ struct env {
     const char *cache_dir;          // Project artifacts cache dir.
     bool cleanup;                   // Clean project cache before build
     bool prepared;                  // Autark build prepared
-    bool options;                   // Ask option values
+    struct xstr *options;           // Ask option values
   } project;
   struct {
     const char *prefix_dir;  // Install prefix dir.
@@ -695,6 +695,7 @@ int node_foreach_setup(struct node *n);
 int node_in_sources_setup(struct node *n);
 int node_dir_setup(struct node *n);
 int node_option_setup(struct node *n);
+int node_error_setup(struct node *n);
 #endif
 #ifndef AUTARK_H
 #define AUTARK_H
@@ -733,6 +734,7 @@ void autark_build_prepare(const char *script_path);
 #define NODE_TYPE_IN_SOURCES 0x8000U
 #define NODE_TYPE_DIR        0x10000U
 #define NODE_TYPE_OPTION     0x20000U
+#define NODE_TYPE_ERROR      0x40000U
 #define NODE_FLG_BOUND    0x01U
 #define NODE_FLG_INIT     0x02U
 #define NODE_FLG_SETUP    0x04U
@@ -2989,13 +2991,13 @@ static void _check_on_resolve(struct node_resolve *r) {
   spawn_set_stdout_handler(s, _check_stdout_handler);
   spawn_set_stderr_handler(s, _check_stderr_handler);
   for (struct node *nn = n->child; nn; nn = nn->next) {
-    if (nn->type == NODE_TYPE_VALUE) {
-      spawn_arg_add(s, nn->value);
+    if (node_is_value(nn)) {
+      spawn_arg_add(s, node_value(nn));
     }
   }
   int rc = spawn_do(s);
   if (rc) {
-    node_fatal(rc, unit->n, "%s", unit->source_path);
+    node_fatal(rc, n, "%s", unit->source_path);
   } else {
     int code = spawn_exit_code(s);
     if (code != 0) {
@@ -4658,7 +4660,6 @@ int node_dir_setup(struct node *n) {
 #include "script.h"
 #include "xstr.h"
 #include "env.h"
-#include <stdio.h>
 #endif
 int node_option_setup(struct node *n) {
   if (!g_env.project.options || !n->child) {
@@ -4672,8 +4673,29 @@ int node_option_setup(struct node *n) {
     }
     xstr_cat(xstr, nn->value);
   }
-  fprintf(stdout, "%s: %s\n", name, xstr_ptr(xstr));
+  xstr_printf(g_env.project.options, "%s: %s\n", name, xstr_ptr(xstr));
   xstr_destroy(xstr);
+  return 0;
+}
+#ifndef _AMALGAMATE_
+#include "script.h"
+#include "xstr.h"
+#include "log.h"
+#endif
+static void _error_setup(struct node *n) {
+  struct xstr *xstr = xstr_create_empty();
+  for (struct node *nn = n->child; nn; nn = nn->next) {
+    if (node_value(nn)) {
+      if (xstr_size(xstr)) {
+        xstr_cat2(xstr, " ", 1);
+      }
+      xstr_cat(xstr, node_value(nn));
+    }
+  }
+  node_fatal(AK_ERROR_FAIL, n, xstr_ptr(xstr));
+}
+int node_error_setup(struct node *n) {
+  n->setup = _error_setup;
   return 0;
 }
 #ifndef _AMALGAMATE_
@@ -5177,6 +5199,10 @@ static void _options(void) {
   if (rc) {
     akfatal(rc, "Failed to open script: %s", AUTARK_SCRIPT);
   }
+  node_init(x->root);
+  if (xstr_size(g_env.project.options)) {
+    fprintf(stderr, "\n%s", xstr_ptr(g_env.project.options));
+  }
 }
 void autark_init(void) {
   if (!g_env.pool) {
@@ -5272,7 +5298,9 @@ void autark_run(int argc, const char **argv) {
         version = true;
         break;
       case 'l':
-        g_env.project.options = true;
+        if (!g_env.project.options) {
+          g_env.project.options = xstr_create_empty();
+        }
         break;
       case 'D': {
         char *p = pool_strdup(g_env.pool, optarg);
@@ -6122,6 +6150,8 @@ static unsigned _rule_type(const char *key) {
     return NODE_TYPE_DIR;
   } else if (strcmp(key, "option") == 0) {
     return NODE_TYPE_OPTION;
+  } else if (strcmp(key, "error") == 0) {
+    return NODE_TYPE_ERROR;
   } else {
     return NODE_TYPE_BAG;
   }
@@ -6467,6 +6497,9 @@ static int _node_bind(struct node *n) {
         break;
       case NODE_TYPE_OPTION:
         rc = node_option_setup(n);
+        break;
+      case NODE_TYPE_ERROR:
+        rc = node_error_setup(n);
         break;
     }
     switch (n->type) {
