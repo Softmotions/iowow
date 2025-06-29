@@ -1,0 +1,46 @@
+set {
+  parent {
+    SOURCES
+  }
+  ..${SOURCES}
+  in-sources {
+    ..@{autark -C .. glob 'utils/*.c'}
+  }
+}
+
+set {
+  parent {
+    PUB_HDRS
+  }
+  ..${PUB_HDRS}
+  utils/iwarr.h
+  utils/iwavl.h
+  utils/iwbits.h
+  utils/iwchars.h
+  utils/iwconv.h
+  utils/iwhmap.h
+  utils/iwini.h
+  utils/iwpool.h
+  utils/iwrb.h
+  utils/iwrefs.h
+  utils/iwstw.h
+  utils/iwth.h
+  utils/iwtp.h
+  utils/iwutils.h
+  utils/iwuuid.h
+  utils/iwxstr.h
+  utils/murmur3.h
+  utils/wyhash.h
+  utils/wyhash32.h
+  utils/utf8proc.h
+  utils/pthread_spin_lock_shim.h
+  utils/iwcsv.h
+}
+
+set {
+  root {
+    CFLAGS
+  }
+  ..${CFLAGS}
+  -I SS{}
+}

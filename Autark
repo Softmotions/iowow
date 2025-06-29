@@ -83,6 +83,20 @@ set {
   if { defined { SYSTEM_BITNESS_32 }
     -DIW_32
   }
+  if { defined { SYSTEM_LINUX }
+# Needed by Linux in order to use nftw() but fail to build on FreeBSD due to __BSD_VISIBLE define state.
+    -D_XOPEN_SOURCE=700
+  }
+  if { defined { SYSTEM_APPLE }
+    -D_DARWIN_C_SOURCE
+  }
+  -D_DEFAULT_SOURCE
+  -D_LARGEFILE_SOURCE
+  -D_FILE_OFFSET_BITS=64
+
+  if { !defined { BUILD_SHARED_LIBS }
+    -DIW_NODLL
+  }
   if { defined { ENABLE_TESTS }
     -DIW_TESTS=1
   }

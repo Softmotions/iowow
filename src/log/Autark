@@ -1,0 +1,23 @@
+set {
+  parent {
+    SOURCES
+  }
+  ..${SOURCES}
+  log/iwlog.c
+}
+
+set {
+  parent {
+    PUB_HDRS
+  }
+  ..${PUB_HDRS}
+  log/iwlog.h
+}
+
+set {
+  root {
+    CFLAGS
+  }
+  ..${CFLAGS}
+  -I SS{}
+}

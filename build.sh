@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=edf7d5a
+META_REVISION=6da1e4e
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "edf7d5a"
+#define META_REVISION "6da1e4e"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -614,7 +614,7 @@ struct env {
   } spawn;
   struct map  *map_path_to_unit; // Path to unit mapping
   struct ulist stack_units;      // Stack of nested unit contexts (struct unit_ctx)
-  struct ulist units;            // All created units.
+  struct ulist units;            // All created units. (struct unit*)
   struct {
     struct xstr *log;
   } check;
@@ -627,12 +627,14 @@ void unit_push(struct unit*, struct node*);
 struct unit* unit_pop(void);
 struct unit* unit_peek(void);
 struct unit_ctx unit_peek_ctx(void);
-struct  unit* unit_root(void);
+struct unit* unit_root(void);
+struct unit* unit_parent(void);
 void unit_ch_dir(struct unit_ctx*, char *prevcwd);
 void unit_ch_cache_dir(struct unit*, char *prevcwd);
 void unit_ch_src_dir(struct unit*, char *prevcwd);
 void unit_env_set_val(struct unit*, const char *key, const char *val);
 void unit_env_set_node(struct unit*, const char *key, struct node *n);
+struct node* unit_env_get_node(struct unit *u, const char *key);
 const char* unit_env_get(struct unit*, const char *key);
 const char* unit_env_get_raw(struct unit *u, const char *key);
 void unit_env_remove(struct unit*, const char *key);
@@ -696,6 +698,7 @@ int node_in_sources_setup(struct node *n);
 int node_dir_setup(struct node *n);
 int node_option_setup(struct node *n);
 int node_error_setup(struct node *n);
+int node_echo_setup(struct node *n);
 #endif
 #ifndef AUTARK_H
 #define AUTARK_H
@@ -735,6 +738,7 @@ void autark_build_prepare(const char *script_path);
 #define NODE_TYPE_DIR        0x10000U
 #define NODE_TYPE_OPTION     0x20000U
 #define NODE_TYPE_ERROR      0x40000U
+#define NODE_TYPE_ECHO       0x80000U
 #define NODE_FLG_BOUND    0x01U
 #define NODE_FLG_INIT     0x02U
 #define NODE_FLG_SETUP    0x04U
@@ -775,6 +779,11 @@ struct node {
   struct node *child;
   struct node *next;
   struct node *parent;
+  // Recursive set
+  struct {
+    struct node *n;
+    bool active;
+  } recur_next;
   struct sctx *ctx;
   struct unit *unit;
   const char* (*value_get)(struct node*);
@@ -2991,7 +3000,7 @@ static void _check_on_resolve(struct node_resolve *r) {
   spawn_set_stdout_handler(s, _check_stdout_handler);
   spawn_set_stderr_handler(s, _check_stderr_handler);
   for (struct node *nn = n->child; nn; nn = nn->next) {
-    if (node_is_value(nn)) {
+    if (node_is_can_be_value(nn)) {
       spawn_arg_add(s, node_value(nn));
     }
   }
@@ -3051,15 +3060,40 @@ int node_check_setup(struct node *n) {
 #include "xstr.h"
 #include "utils.h"
 #include "alloc.h"
+#include "env.h"
 #endif
+static struct unit* unit_for_set(struct node *nn, const char **keyp) {
+  if (nn->type == NODE_TYPE_BAG) {
+    if (strcmp(nn->value, "root") == 0) {
+      *keyp = node_value(nn->child);
+      return unit_root();
+    } else if (strcmp(nn->value, "parent") == 0) {
+      *keyp = node_value(nn->child);
+      return unit_parent();
+    }
+  } else {
+    *keyp = node_value(nn);
+  }
+  return unit_peek();
+}
 static void _set_init(struct node *n) {
-  const char *name = node_value(n->child);
-  if (!name) {
+  const char *key = 0;
+  struct unit *unit = n->child ? unit_for_set(n->child, &key) : 0;
+  if (!key) {
+    node_warn(n, "No name specified for 'set' directive");
     return;
   }
-  node_env_set_node(n, name);
+  struct node *nn = unit_env_get_node(unit, key);
+  if (nn) {
+    n->recur_next.n = nn;
+  }
+  unit_env_set_node(unit, key, n);
 }
 static const char* _set_value_get(struct node *n) {
+  if (n->recur_next.active && n->recur_next.n) {
+    return _set_value_get(n->recur_next.n);
+  }
+  n->recur_next.active = true;
   struct node_foreach *fe = node_find_parent_foreach(n);
   if (fe) {
     if ((uintptr_t) n->impl != (uintptr_t) -1) {
@@ -3068,19 +3102,23 @@ static const char* _set_value_get(struct node *n) {
     n->impl = 0;
   }
   if ((uintptr_t) n->impl == (uintptr_t) -1) {
+    n->recur_next.active = false;
     return 0;
   } else if (n->impl) {
+    n->recur_next.active = false;
     return n->impl;
   }
   n->impl = (void*) (uintptr_t) -1;
   struct node *nn = n->child->next;
   if (!nn) {
     n->impl = xstrdup("");
+    n->recur_next.active = false;
     return n->impl;
   }
   if (!nn->next && nn->value[0] != '.') { // Single value
     const char *v = node_value(nn);
     n->impl = xstrdup(v);
+    n->recur_next.active = false;
     return n->impl;
   }
   struct xstr *xstr = xstr_create_empty();
@@ -3099,6 +3137,7 @@ static const char* _set_value_get(struct node *n) {
     }
   }
   n->impl = xstr_destroy_keep_ptr(xstr);
+  n->recur_next.active = false;
   return n->impl;
 }
 static void _set_dispose(struct node *n) {
@@ -4379,7 +4418,10 @@ static void _cc_setup(struct node *n) {
     _cc_source_add(n, val);
   }
   if (ctx->n_cc) {
-    ctx->cc = pool_strdup(ctx->pool, node_value(ctx->n_cc));
+    const char *cc = node_value(ctx->n_cc);
+    if (cc && *cc != '\0') {
+      ctx->cc = pool_strdup(ctx->pool, cc);
+    }
   }
   if (!ctx->cc) {
     const char *key = strcmp(n->value, "cc") == 0 ? "CC" : "CXX";
@@ -4699,6 +4741,84 @@ int node_error_setup(struct node *n) {
   return 0;
 }
 #ifndef _AMALGAMATE_
+#include "script.h"
+#include "alloc.h"
+#include "xstr.h"
+#include "utils.h"
+#include <string.h>
+#endif
+struct _echo_ctx {
+  struct node *n_init;
+  struct node *n_setup;
+  struct node *n_build;
+};
+static void _echo_item(struct xstr *xstr, const char *v, size_t len) {
+  if (is_vlist(v)) {
+    struct vlist_iter iter;
+    vlist_iter_init(v, &iter);
+    while (vlist_iter_next(&iter)) {
+      _echo_item(xstr, iter.item, iter.len);
+    }
+  } else {
+    if (xstr_size(xstr)) {
+      xstr_cat2(xstr, " ", 1);
+    }
+    xstr_cat2(xstr, v, len);
+  }
+}
+static void _echo(struct node *n) {
+  struct xstr *xstr = xstr_create_empty();
+  for (struct node *nn = n->child; nn; nn = nn->next) {
+    if (node_is_can_be_value(nn)) {
+      const char *v = node_value(nn);
+      if (v) {
+        _echo_item(xstr, v, strlen(v));
+      }
+    }
+  }
+  node_info(n, "%s", xstr_ptr(xstr));
+  xstr_destroy(xstr);
+}
+static void _echo_init(struct node *n) {
+  struct _echo_ctx *ctx = n->impl;
+  _echo(ctx->n_init);
+}
+static void _echo_setup(struct node *n) {
+  struct _echo_ctx *ctx = n->impl;
+  _echo(ctx->n_setup);
+}
+static void _echo_build(struct node *n) {
+  struct _echo_ctx *ctx = n->impl;
+  _echo(ctx->n_build);
+}
+static void _echo_dispose(struct node *n) {
+  free(n->impl);
+}
+int node_echo_setup(struct node *n) {
+  struct _echo_ctx *ctx = xcalloc(1, sizeof(*ctx));
+  n->impl = ctx;
+  n->dispose = _echo_dispose;
+  for (struct node *nn = n->child; nn; nn = nn->next) {
+    if (nn->type == NODE_TYPE_BAG) {
+      if (!n->build && strcmp(nn->value, "build") == 0) {
+        n->build = _echo_build;
+        ctx->n_build = nn;
+      } else if (!n->setup && strcmp(nn->value, "setup") == 0) {
+        n->setup = _echo_setup;
+        ctx->n_setup = nn;
+      } else if (!n->init && strcmp(nn->value, "init") == 0) {
+        n->init = _echo_init;
+        ctx->n_init = nn;
+      }
+    }
+  }
+  if (!(n->init || n->setup || n->build)) {
+    n->build = _echo_build;
+    ctx->n_build = n;
+  }
+  return 0;
+}
+#ifndef _AMALGAMATE_
 #ifndef META_VERSION
 #define META_VERSION "dev"
 #endif
@@ -4749,6 +4869,13 @@ void unit_env_set_node(struct unit *u, const char *key, struct node *n) {
   item->val = 0;
   item->n = n;
   map_put_str(u->env, key, item);
+}
+struct node* unit_env_get_node(struct unit *u, const char *key) {
+  struct unit_env_item *item = map_get(u->env, key);
+  if (item) {
+    return item->n;
+  }
+  return 0;
 }
 const char* unit_env_get_raw(struct unit *u, const char *key) {
   struct unit_env_item *item = map_get(u->env, key);
@@ -4873,10 +5000,20 @@ struct unit* unit_peek(void) {
   akassert(u);
   return u;
 }
-struct  unit* unit_root(void) {
+struct unit* unit_root(void) {
   akassert(g_env.stack_units.num);
   struct unit_ctx uc = *(struct unit_ctx*) ulist_get(&g_env.stack_units, 0);
   return uc.unit;
+}
+struct unit* unit_parent(void) {
+  struct unit *u = unit_peek();
+  for (int i = g_env.stack_units.num - 2; i >= 0; --i) {
+    struct unit_ctx uu = *(struct unit_ctx*) ulist_get(&g_env.stack_units, i);
+    if (uu.unit != u) {
+      return uu.unit;
+    }
+  }
+  return u;
 }
 struct unit_ctx unit_peek_ctx(void) {
   if (g_env.stack_units.num == 0) {
@@ -4928,7 +5065,7 @@ static int _usage_va(const char *err, va_list ap) {
           "\nautark [sources_dir/command] [options]\n"
           "  Build project in given sources dir.\n");
   fprintf(stderr,
-          "    -C, --cache=<>              Project cache/build dir. Default: ./" AUTARK_CACHE "\n");
+          "    -H, --cache=<>              Project cache/build dir. Default: ./" AUTARK_CACHE "\n");
   fprintf(stderr,
           "    -c, --clean                 Clean build cache dir.\n");
   fprintf(stderr,
@@ -4963,6 +5100,7 @@ static int _usage_va(const char *err, va_list ap) {
           "  Registers a given environment variable as dependency for check script.\n");
   fprintf(stderr,
           "\nautark glob <pattern>\n"
+          "   -C, --dir                   Current directory for glob list.\n"
           "  Lists files in current directory filtered by glob pattern.\n");
   fprintf(stderr, "\n");
   return AK_ERROR_INVALID_ARGS;
@@ -5127,7 +5265,10 @@ static void _on_command_dep_env(int argc, const char **argv) {
   }
   deps_close(&deps);
 }
-static void _on_command_glob(int argc, const char **argv) {
+static void _on_command_glob(int argc, const char **argv, const char *cdir) {
+  if (cdir) {
+    akcheck(chdir(cdir));
+  }
   const char *pattern = "*";
   if (optind < argc) {
     pattern = argv[optind];
@@ -5268,13 +5409,14 @@ void autark_run(int argc, const char **argv) {
   akassert(argc > 0 && argv[0]);
   autark_init();
   static const struct option long_options[] = {
-    { "cache", 1, 0, 'C' },
+    { "cache", 1, 0, 'H' },
     { "clean", 0, 0, 'c' },
     { "help", 0, 0, 'h' },
     { "verbose", 0, 0, 'V' },
     { "version", 0, 0, 'v' },
     { "options", 0, 0, 'l' },
     { "prefix", 1, 0, 'I' },
+    { "dir", 1, 0, 'C' },
     { "bindir", 1, 0, -1 },
     { "libdir", 1, 0, -2 },
     { "includedir", 1, 0, -3 },
@@ -5282,10 +5424,11 @@ void autark_run(int argc, const char **argv) {
     { 0 }
   };
   bool version = false;
+  const char *cdir = 0;
   struct ulist options = { .usize = sizeof(char*) };
-  for (int ch; (ch = getopt_long(argc, (void*) argv, "+C:chVvlI:D:", long_options, 0)) != -1; ) {
+  for (int ch; (ch = getopt_long(argc, (void*) argv, "+H:chVvlI:C:D:", long_options, 0)) != -1; ) {
     switch (ch) {
-      case 'C':
+      case 'H':
         g_env.project.cache_dir = pool_strdup(g_env.pool, optarg);
         break;
       case 'V':
@@ -5309,6 +5452,9 @@ void autark_run(int argc, const char **argv) {
       }
       case 'I':
         g_env.install.prefix_dir = path_normalize_cwd_pool(optarg, g_env.cwd, g_env.pool);
+        break;
+      case 'C':
+        cdir = pool_strdup(g_env.pool, optarg);
         break;
       case -1:
         g_env.install.bin_dir = pool_strdup(g_env.pool, optarg);
@@ -5377,7 +5523,7 @@ void autark_run(int argc, const char **argv) {
       _on_command_dep_env(argc, argv);
       return;
     } else if (strcmp(arg, "glob") == 0) {
-      _on_command_glob(argc, argv);
+      _on_command_glob(argc, argv, cdir);
       return;
     } else { // Root dir expected
       g_env.project.root_dir = pool_strdup(g_env.pool, arg);
@@ -6152,6 +6298,8 @@ static unsigned _rule_type(const char *key) {
     return NODE_TYPE_OPTION;
   } else if (strcmp(key, "error") == 0) {
     return NODE_TYPE_ERROR;
+  } else if (strcmp(key, "echo") == 0) {
+    return NODE_TYPE_ECHO;
   } else {
     return NODE_TYPE_BAG;
   }
@@ -6370,18 +6518,22 @@ static int _script_from_value(
   }
   if (file) {
     struct unit *unit;
+    char *f = path_relativize(g_env.project.root_dir, file);
     if (parent == 0 && g_env.units.num == 1) {
       unit = unit_peek();
       akassert(unit->n == 0); // We are the root script
     } else {
-      unit = unit_create(file, UNIT_FLG_SRC_CWD, g_env.pool);
+      unit = unit_create(f, UNIT_FLG_SRC_CWD, g_env.pool);
     }
     unit->n = &x->base;
     x->base.unit = unit;
     unit_ch_dir(&(struct unit_ctx) { unit, 0 }, prevcwd_);
     prevcwd = prevcwd_;
+    x->base.value = pool_strdup(pool, f);
+    free(f);
+  } else {
+    x->base.value = "<script>";
   }
-  x->base.value = pool_strdup(pool, file ? file : "<script>");
   x->base.type = NODE_TYPE_SCRIPT;
   _node_register(x->base.ctx, x);
   _node_bind(&x->base);
@@ -6501,6 +6653,9 @@ static int _node_bind(struct node *n) {
       case NODE_TYPE_ERROR:
         rc = node_error_setup(n);
         break;
+      case NODE_TYPE_ECHO:
+        rc = node_echo_setup(n);
+        break;
     }
     switch (n->type) {
       case NODE_TYPE_RUN:
@@ -6582,14 +6737,16 @@ void node_init(struct node *n) {
       case NODE_TYPE_IN_SOURCES:
         _node_context_push(n);
         n->init(n);
-        _node_context_pop(n);
         _init_subnodes(n);
+        _node_context_pop(n);
         break;
       default:
-        _init_subnodes(n);
-        if (n->init) {
+        if (n->init || n->child) {
           _node_context_push(n);
-          n->init(n);
+          _init_subnodes(n);
+          if (n->init) {
+            n->init(n);
+          }
           _node_context_pop(n);
         }
     }
@@ -6599,17 +6756,19 @@ void node_setup(struct node *n) {
   if (!node_is_setup(n)) {
     n->flags |= NODE_FLG_SETUP;
     if (n->type != NODE_TYPE_FOREACH) {
-      _setup_subnodes(n);
-      if (n->setup) {
+      if (n->child || n->setup) {
         _node_context_push(n);
-        n->setup(n);
+        _setup_subnodes(n);
+        if (n->setup) {
+          n->setup(n);
+        }
         _node_context_pop(n);
       }
     } else {
       _node_context_push(n);
       n->setup(n);
-      _node_context_pop(n);
       _setup_subnodes(n);
+      _node_context_pop(n);
     }
   }
 }
@@ -6649,14 +6808,12 @@ static int _script_open(struct node *parent, const char *file, struct node **out
   struct node *n;
   char buf[PATH_MAX];
   autark_build_prepare(path_normalize(file, buf));
-  char *path = path_relativize(0, buf);
-  RCC(rc, finish, _script_from_file(parent, path, &n));
+  RCC(rc, finish, _script_from_file(parent, buf, &n));
   RCC(rc, finish, _script_bind(n->ctx));
   if (out) {
     *out = n;
   }
 finish:
-  free(path);
   return rc;
 }
 int script_open(const char *file, struct sctx **out) {

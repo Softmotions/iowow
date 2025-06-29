@@ -1,0 +1,25 @@
+set {
+  parent {
+    SOURCES
+  }
+  ..${SOURCES}
+  in-sources {
+    ..@{autark -C .. glob 're/*.c'}
+  }
+}
+
+set {
+  parent {
+    PUB_HDRS
+  }
+  ..${PUB_HDRS}
+  re/iwre.h
+}
+
+set {
+  root {
+    CFLAGS
+  }
+  ..${CFLAGS}
+  -I SS{}
+}

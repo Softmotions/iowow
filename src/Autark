@@ -29,9 +29,43 @@ if { defined { OWNER_PROJECT_NAME }
   }
 }
 
+set {
+  SOURCES
+  iowow.c
+}
+
+set {
+  PUB_HDRS
+  basedefs.h
+  iowow.h
+}
+
 configure {
   iwcfg.h.in
   libiowow.pc.in
 }
 
+include { fs/Autark }
+include { json/Autark }
+include { kv/Autark }
+include { log/Autark }
+include { platform/Autark }
+include { rdb/Autark }
+include { re/Autark }
+include { utils/Autark }
+
+cc {
+  ${SOURCES}
+  set { _ ${CFLAGS} -I SS{} }
+  ${CC}
+  consumes {
+    iwcfg.h
+  }
+}
+
+
 install { ${INSTALL_PKGCONFIG_DIR} libiowow.pc }
+install { ${IW_PUBLIC_HEADER_DESTINATION} ${PUB_HDRS} }
+
+echo { S= ${SOURCES} }
+echo { H= ${PUB_HDRS} }

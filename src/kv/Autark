@@ -1,0 +1,24 @@
+set {
+  parent {
+    SOURCES
+  }
+  ..${SOURCES}
+  kv/iwkv.c
+  kv/iwal.c
+}
+
+set {
+  parent {
+    PUB_HDRS
+  }
+  ..${PUB_HDRS}
+  kv/iwkv.h
+}
+
+set {
+  root {
+    CFLAGS
+  }
+  ..${CFLAGS}
+  -I SS{}
+}

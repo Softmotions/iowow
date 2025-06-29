@@ -1,0 +1,15 @@
+set {
+  parent {
+    SOURCES
+  }
+  ..${SOURCES}
+  rdb/iwrdb.c
+}
+
+set {
+  root {
+    CFLAGS
+  }
+  ..${CFLAGS}
+  -I SS{}
+}
