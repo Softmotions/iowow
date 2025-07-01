@@ -53,11 +53,21 @@ check_tool() {
   }
 }
 
+if command -v pkgconf >/dev/null 2>&1; then
+  PKGCONF=pkgconf
+elif command -v pkg-config >/dev/null 2>&1; then
+  PKGCONF=pkg-config
+else
+  echo "error: neither 'pkgconf' nor 'pkg-config' found in PATH" >&2
+  exit 1
+fi
+
 CC=${CC:-cc}
 AR=${AR:-ar}
 
-check_tool $AR && autark set "AR=$AR"
+autark set "PKGCONF=$PKGCONF"
 check_tool $CC && autark set "CC=$CC"
+check_tool $AR && autark set "AR=$AR"
 
 cat > './test_system.c' << 'EOF'
 #include <stdio.h>
