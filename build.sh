@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=6da1e4e
+META_REVISION=0fcdcc1
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "6da1e4e"
+#define META_REVISION "0fcdcc1"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -647,11 +647,12 @@ void unit_env_remove(struct unit*, const char *key);
 #include <limits.h>
 #include <stdint.h>
 #endif
-#define DEPS_TYPE_FILE       102 // f
-#define DEPS_TYPE_NODE_VALUE 118 // v
-#define DEPS_TYPE_ENV        101 // e
-#define DEPS_TYPE_OUTDATED   111 // o
-#define DEPS_TYPE_ALIAS      97  // a
+#define DEPS_TYPE_FILE          102 // f
+#define DEPS_TYPE_FILE_OUTDATED 111 // x
+#define DEPS_TYPE_NODE_VALUE    118 // v
+#define DEPS_TYPE_ENV           101 // e
+#define DEPS_TYPE_ALIAS         97  // a
+#define DEPS_TYPE_OUTDATED      120 // o
 #define DEPS_OPEN_TRUNCATE 0x01U
 #define DEPS_OPEN_READONLY 0x02U
 #define DEPS_BUF_SZ 16384
@@ -2923,6 +2924,11 @@ static int _deps_add(struct deps *d, char type, char flags, const char *resource
     utils_strncpy(buf[0], resource, PATH_MAX);
     utils_chars_replace(buf[0], '\n', '\2');
     resource = buf[0];
+  } else if (type == DEPS_TYPE_FILE_OUTDATED) {
+    type = DEPS_TYPE_FILE;
+    path_normalize(resource, buf[0]);
+    resource = buf[0];
+    serial = 0;
   }
   long int off = ftell(d->file);
   if (off < 0) {
@@ -4123,6 +4129,7 @@ int node_configure_setup(struct node *n) {
 #include "xstr.h"
 #include "spawn.h"
 #include "alloc.h"
+#include "map.h"
 #include <string.h>
 #endif
 struct _cc_ctx {
@@ -4136,7 +4143,8 @@ struct _cc_ctx {
   struct node *n_consumes;
   struct node *n_objects;
   const char  *cc;
-  struct ulist consumes; // sizeof(char*)
+  struct ulist consumes;    // sizeof(char*)
+  int num_failed;
 };
 static void _cc_stdout_handler(char *buf, size_t buflen, struct spawn *s) {
   fprintf(stdout, "%s", buf);
@@ -4209,7 +4217,8 @@ static void _cc_deps_MMD_add(struct node *n, struct deps *deps, const char *src,
   }
   fclose(f);
 }
-static void _cc_on_build_source(struct node *n, struct deps *deps, const char *src, const char *obj) {
+static bool _cc_on_build_source(struct node *n, struct deps *deps, const char *src, const char *obj) {
+  int ret = true;
   if (g_env.check.log) {
     xstr_printf(g_env.check.log, "%s: build src=%s obj=%s\n", n->name, src, obj);
   }
@@ -4238,14 +4247,17 @@ static void _cc_on_build_source(struct node *n, struct deps *deps, const char *s
   spawn_arg_add(s, obj);
   int rc = spawn_do(s);
   if (rc) {
-    node_fatal(rc, ctx->n, "%s", ctx->cc);
+    node_error(rc, ctx->n, "%s", ctx->cc);
+    ret = false;
   } else {
     int code = spawn_exit_code(s);
     if (code != 0) {
-      node_fatal(AK_ERROR_EXTERNAL_COMMAND, n, "%s: %d", ctx->cc, code);
+      node_error(AK_ERROR_EXTERNAL_COMMAND, n, "%s: %d", ctx->cc, code);
+      ret = false;
     }
   }
   spawn_destroy(s);
+  return ret;
 }
 static void _cc_on_resolve(struct node_resolve *r) {
   struct deps deps;
@@ -4253,6 +4265,7 @@ static void _cc_on_resolve(struct node_resolve *r) {
   struct unit *unit = unit_peek();
   struct ulist *slist = &ctx->sources;
   struct ulist rlist = { .usize = sizeof(char*) };
+  struct map *fmap = map_create_str(map_k_free);
   if (r->resolve_outdated.num) {
     for (int i = 0; i < r->resolve_outdated.num; ++i) {
       struct resolve_outdated *u = ulist_get(&r->resolve_outdated, i);
@@ -4297,10 +4310,17 @@ static void _cc_on_resolve(struct node_resolve *r) {
     akassert(p && p[1] != '\0');
     p[1] = 'o';
     p[2] = '\0';
-    _cc_on_build_source(ctx->n, &deps, src, obj);
+    bool failed = !_cc_on_build_source(ctx->n, &deps, src, obj);
+    if (failed) {
+      ++ctx->num_failed;
+      map_put_str(fmap, src, (void*) (intptr_t) 1);
+    }
     if (slist == &ctx->sources) {
-      deps_add(&deps, DEPS_TYPE_FILE, 's', src, 0);
-      _cc_deps_MMD_add(ctx->n, &deps, src, obj);
+      deps_add(&deps, failed ? DEPS_TYPE_FILE_OUTDATED : DEPS_TYPE_FILE, 's', src, 0);
+      if (!failed) {
+        _cc_deps_MMD_add(ctx->n, &deps, src, obj);
+      }
+    } else {
     }
     free(obj);
     free(src);
@@ -4322,8 +4342,11 @@ static void _cc_on_resolve(struct node_resolve *r) {
       akassert(p && p[1] != '\0');
       p[1] = 'o';
       p[2] = '\0';
-      deps_add(&deps, DEPS_TYPE_FILE, 's', src, 0);
-      _cc_deps_MMD_add(ctx->n, &deps, src, obj);
+      bool failed = map_get(fmap, src) != 0;
+      deps_add(&deps, failed ? DEPS_TYPE_FILE_OUTDATED : DEPS_TYPE_FILE, 's', src, 0);
+      if (!failed) {
+        _cc_deps_MMD_add(ctx->n, &deps, src, obj);
+      }
       free(obj);
       free(src);
     }
@@ -4331,6 +4354,7 @@ static void _cc_on_resolve(struct node_resolve *r) {
   node_add_unit_deps(&deps);
   deps_close(&deps);
   ulist_destroy_keep(&rlist);
+  map_destroy(fmap);
 }
 static void _cc_on_consumed_resolved(const char *path_, void *d) {
   struct node *n = d;
@@ -4375,6 +4399,9 @@ static void _cc_build(struct node *n) {
     ulist_push(&r.node_val_deps, &ctx->n_sources);
   }
   node_resolve(&r);
+  if (ctx->num_failed) {
+    akfatal2("Compilation terminated with errors!");
+  }
 }
 static void _cc_source_add(struct node *n, const char *src) {
   char buf[PATH_MAX], *p;
@@ -4656,8 +4683,22 @@ static const char* _dir_value(struct node *n) {
   char cwd[PATH_MAX];
   char buf[PATH_MAX];
   struct unit *root = unit_root();
+  struct unit *unit = unit_peek();
   struct xstr *xstr = xstr_create_empty();
-  const char *dir = strcmp(n->value, "CRC") == 0 ? root->cache_dir : root->dir;
+  const char *dir = 0;
+  if (n->value[0] == 'S') {
+    if (n->value[1] == 'S') {
+      dir = unit->dir;
+    } else {
+      dir = root->dir;
+    }
+  } else {
+    if (n->value[1] == 'C') {
+      dir = unit->cache_dir;
+    } else {
+      dir = root->cache_dir;
+    }
+  }
   if (!getcwd(cwd, PATH_MAX)) {
     akfatal(errno, "Cannot get CWD", 0);
   }
@@ -6292,7 +6333,7 @@ static unsigned _rule_type(const char *key) {
     return NODE_TYPE_FOREACH;
   } else if (strcmp(key, "in-sources") == 0) {
     return NODE_TYPE_IN_SOURCES;
-  } else if (strcmp(key, "SRC") == 0 || strcmp(key, "CRC") == 0) {
+  } else if (strcmp(key, "S") == 0 || strcmp(key, "C") == 0 || strcmp(key, "SS") == 0 || strcmp(key, "CC") == 0) {
     return NODE_TYPE_DIR;
   } else if (strcmp(key, "option") == 0) {
     return NODE_TYPE_OPTION;

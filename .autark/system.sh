@@ -46,9 +46,18 @@ case "$ARCH_RAW" in
     ;;
 esac
 
+check_tool() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "error: required tool '$1' not found in PATH" >&2
+    exit 1
+  }
+}
 
 CC=${CC:-cc}
+AR=${AR:-ar}
 
+check_tool $AR && autark set "AR=$AR"
+check_tool $CC && autark set "CC=$CC"
 
 cat > './test_system.c' << 'EOF'
 #include <stdio.h>

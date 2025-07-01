@@ -177,8 +177,9 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   f->state = _iwfs_state;
   f->copy = _iwfs_copy;
 
-  impl = f->impl = calloc(sizeof(IWF), 1);
+  impl = f->impl = calloc(1, sizeof(IWF));
   if (!impl) {
+
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
 

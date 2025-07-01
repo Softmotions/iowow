@@ -49,7 +49,9 @@ set {
   -Wno-missing-field-initializers
   -Wno-missing-braces
   if { !eq { ${SYSTEM_NAME} Windows }
-    -fPIC
+    if { defined { BUILD_SHARED_LIBS }
+      -fPIC
+    }
   }
   if { defined { ENABLE_ASAN }
     -fsanitize=address

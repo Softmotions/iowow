@@ -5,7 +5,7 @@ check {
 }
 
 set {
-  LDFLAG
+  LDFLAGS
   -lm
   if { defined { PTHREAD_LFLAG }
     ${PTHREAD_LFLAG}
@@ -13,7 +13,7 @@ set {
   if { defined { SYSTEM_ANDROID }
     -llog
   }
-  ..${LDFLAG}
+  ..${LDFLAGS}
 }
 
 option { OWNER_PROJECT_NAME Optional name of the owner project used to install
@@ -63,6 +63,54 @@ cc {
   }
 }
 
+set {
+  LIBIOWOW_A
+  libiowow.a
+}
+
+run {
+  exec { ${AR} rcs ${LIBIOWOW_A} ${CC_OBJS} }
+  consumes {
+    ${CC_OBJS}
+  }
+  produces {
+    ${LIBIOWOW_A}
+  }
+}
+
+if { defined { BUILD_SHARED_LIBS }
+  set {
+    LIBIOWOW_SO_BASE
+    libiowow.so
+  }
+
+  set {
+    LIBIOWOW_SO_BIN
+    ^{${LIBIOWOW_SO_BASE} . ${META_VERSION}}
+  }
+
+  set {
+    LIBIOWOW_SO_NAME
+    ^{${LIBIOWOW_SO_BASE} . ${META_VERSION_MAJOR}}
+  }
+
+  run {
+    exec { ${CC} -shared -o ${LIBIOWOW_SO_BIN} ${CC_OBJS} }
+    consumes {
+      ${CC_OBJS}
+    }
+    produces {
+      ${LIBIOWOW_SO_BIN}
+    }
+  }
+  run {
+    exec { ln -sf ${LIBIOWOW_SO_BIN} ${LIBIOWOW_SO_NAME} }
+    exec { ln -sf ${LIBIOWOW_SO_BIN} ${LIBIOWOW_SO_BASE} }
+    consumes {
+      ${LIBIOWOW_SO_BIN}
+    }
+  }
+}
 
 install { ${INSTALL_PKGCONFIG_DIR} libiowow.pc }
 install { ${IW_PUBLIC_HEADER_DESTINATION} ${PUB_HDRS} }
