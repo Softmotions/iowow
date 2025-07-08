@@ -68,11 +68,13 @@ AR=${AR:-ar}
 autark set "PKGCONF=$PKGCONF"
 check_tool $CC && autark set "CC=$CC"
 check_tool $AR && autark set "AR=$AR"
+check_tool install
 
 cat > './test_system.c' << 'EOF'
 #include <stdio.h>
 #include <stdlib.h>
 int main(void) {
+
   if (sizeof(void*) == 8) {
     puts("SYSTEM_BITNESS_64=1");
   } else if (sizeof(void*) == 4) {
@@ -93,9 +95,10 @@ int main(void) {
 }
 EOF
 
-${CC} ./test_system.c -o ./test_system
+${CC} ./test_system.c -o ./test_system || exit 1
 
 ./test_system | xargs autark set
+eval "$(./test_system)"
 
 autark set "SYSTEM_NAME=$SYSTEM_NAME"
 autark set "SYSTEM_$(echo -n "$SYSTEM_NAME" | tr '[:lower:]' '[:upper:]')=1"

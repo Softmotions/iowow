@@ -2,13 +2,13 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=0fcdcc1
+META_REVISION=bf41c1c
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
 AUTARK=${AUTARK_HOME}/autark
 
-if [ "${META_VERSION}" = "$(${AUTARK} -v)" ]; then
+if [ "${META_VERSION}.${META_REVISION}" = "$(${AUTARK} -v)" ]; then
   ${AUTARK} "$@"
   exit $?
 fi
@@ -32,10 +32,11 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "0fcdcc1"
+#define META_REVISION "bf41c1c"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
+#define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
 #include <errno.h>
 #include <fcntl.h>
@@ -558,7 +559,6 @@ char* path_basename(char *path);
 #endif
 #define AUTARK_CACHE           "autark-cache"
 #define AUTARK_SCRIPT          "Autark"
-#define INSTALL_PREFIX_DEFAULT "/usr/local"
 #define AUTARK_ROOT_DIR  "AUTARK_ROOT_DIR"  // Project root directory
 #define AUTARK_CACHE_DIR "AUTARK_CACHE_DIR" // Project cache directory
 #define AUTARK_UNIT      "AUTARK_UNIT"      // Path relative to AUTARK_ROOT_DIR of build process unit executed
@@ -603,11 +603,12 @@ struct env {
     struct xstr *options;           // Ask option values
   } project;
   struct {
-    const char *prefix_dir;  // Install prefix dir.
+    const char *prefix_dir;  // Absolute path to install prefix dir.
     const char *bin_dir;     // Path to the bin dir relative to prefix.
     const char *lib_dir;     // Path to lib dir relative to prefix.
     const char *include_dir; // Path to include headers dir relative to prefix.
     const char *pkgconf_dir; // Path to pkgconfig dir.
+    bool enabled;            // True if install operation should be performed
   } install;
   struct {
     const char *extra_env_paths; // Extra PATH environment for any program spawn
@@ -700,6 +701,7 @@ int node_dir_setup(struct node *n);
 int node_option_setup(struct node *n);
 int node_error_setup(struct node *n);
 int node_echo_setup(struct node *n);
+int node_install_setup(struct node *n);
 #endif
 #ifndef AUTARK_H
 #define AUTARK_H
@@ -740,6 +742,7 @@ void autark_build_prepare(const char *script_path);
 #define NODE_TYPE_OPTION     0x20000U
 #define NODE_TYPE_ERROR      0x40000U
 #define NODE_TYPE_ECHO       0x80000U
+#define NODE_TYPE_INSTALL    0x100000U
 #define NODE_FLG_BOUND    0x01U
 #define NODE_FLG_INIT     0x02U
 #define NODE_FLG_SETUP    0x04U
@@ -3715,6 +3718,7 @@ static void _run_on_resolve(struct node_resolve *r) {
   if (rc) {
     node_fatal(rc, n, "Failed to open dependency file: %s", r->deps_path_tmp);
   }
+  node_add_unit_deps(&deps);
   for (int i = 0; i < r->node_val_deps.num; ++i) {
     struct node *nv = *(struct node**) ulist_get(&r->node_val_deps, i);
     const char *val = node_value(nv);
@@ -3730,7 +3734,6 @@ static void _run_on_resolve(struct node_resolve *r) {
     const char *path = *(const char**) ulist_get(&ctx->consumes_foreach, i);
     deps_add(&deps, DEPS_TYPE_FILE, 'f', path, 0);
   }
-  node_add_unit_deps(&deps);
   deps_close(&deps);
 }
 static bool _run_setup_foreach(struct node *n) {
@@ -4010,6 +4013,7 @@ static void _on_resolve(struct node_resolve *r) {
   if (rc) {
     node_fatal(rc, n, "Failed to open dependency file: %s", r->deps_path_tmp);
   }
+  node_add_unit_deps(&deps);
   if (r->resolve_outdated.num) {
     for (int i = 0; i < r->resolve_outdated.num; ++i) {
       struct resolve_outdated *u = ulist_get(&r->resolve_outdated, i);
@@ -4047,7 +4051,6 @@ static void _on_resolve(struct node_resolve *r) {
     char *src = *(char**) ulist_get(&ctx->sources, i);
     deps_add(&deps, DEPS_TYPE_FILE, 's', src, 0);
   }
-  node_add_unit_deps(&deps);
   deps_close(&deps);
   ulist_destroy_keep(&rlist);
 }
@@ -4283,16 +4286,17 @@ static void _cc_on_resolve(struct node_resolve *r) {
   if (rc) {
     node_fatal(rc, ctx->n, "Failed to open dependency file: %s", r->deps_path_tmp);
   }
-  for (int i = 0; i < ctx->consumes.num; ++i) {
-    const char *path = *(const char**) ulist_get(&ctx->consumes, i);
-    deps_add(&deps, DEPS_TYPE_FILE, 0, path, 0);
-  }
+  node_add_unit_deps(&deps);
   for (int i = 0; i < r->node_val_deps.num; ++i) {
     struct node *nv = *(struct node**) ulist_get(&r->node_val_deps, i);
     const char *val = node_value(nv);
     if (val) {
       deps_add(&deps, DEPS_TYPE_NODE_VALUE, 0, val, i);
     }
+  }
+  for (int i = 0; i < ctx->consumes.num; ++i) {
+    const char *path = *(const char**) ulist_get(&ctx->consumes, i);
+    deps_add(&deps, DEPS_TYPE_FILE, 0, path, 0);
   }
   for (int i = 0; i < slist->num; ++i) {
     char buf[PATH_MAX];
@@ -4351,7 +4355,6 @@ static void _cc_on_resolve(struct node_resolve *r) {
       free(src);
     }
   }
-  node_add_unit_deps(&deps);
   deps_close(&deps);
   ulist_destroy_keep(&rlist);
   map_destroy(fmap);
@@ -4860,6 +4863,200 @@ int node_echo_setup(struct node *n) {
   return 0;
 }
 #ifndef _AMALGAMATE_
+#include "script.h"
+#include "ulist.h"
+#include "env.h"
+#include "log.h"
+#include "paths.h"
+#include "pool.h"
+#include "utils.h"
+#include "config.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <limits.h>
+#include <errno.h>
+#endif
+struct _install_on_resolve_ctx {
+  struct node_resolve *r;
+  struct node *n;
+  struct node *n_target;
+  struct ulist consumes;  // sizeof(char*)
+};
+static void _install_symlink(struct _install_on_resolve_ctx *ctx, const char *src, const char *dst, struct stat *st) {
+  char buf[PATH_MAX];
+  struct node *n = ctx->n;
+  node_info(n, "Symlink %s => %s", src, dst);
+  ssize_t len = readlink(src, buf, sizeof(buf) - 1);
+  if (len == -1) {
+    node_fatal(errno, n, "Error reading symlink: %s", src);
+  }
+  buf[len] = '\0';
+  if (symlink(buf, dst) == -1) {
+    node_fatal(errno, n, "Error creating symlink: %s", dst);
+  }
+  struct timespec times[2] = { st->st_atim, st->st_mtim };
+  utimensat(AT_FDCWD, dst, times, AT_SYMLINK_NOFOLLOW);
+}
+static void _install_file(struct _install_on_resolve_ctx *ctx, const char *src, const char *dst, struct stat *st) {
+  struct node *n = ctx->n;
+  node_info(n, "File %s => %s", src, dst);
+  int in_fd = open(src, O_RDONLY);
+  if (in_fd == -1) {
+    node_fatal(errno, n, "Error opening file: %s", src);
+  }
+  int out_fd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, st->st_mode);
+  if (out_fd == -1) {
+    node_fatal(errno, n, "Error opening file: %s", dst);
+  }
+  char buf[8192];
+  ssize_t r;
+  while ((r = read(in_fd, buf, sizeof(buf))) > 0) {
+    if (write(out_fd, buf, r) != r) {
+      node_fatal(errno, n, "Error writing file: %s", dst);
+    }
+  }
+  if (r == -1) {
+    node_fatal(errno, n, "Error reading file: %s", src);
+  }
+  fchmod(out_fd, st->st_mode);
+  struct timespec times[2] = { st->st_atim, st->st_mtim };
+  futimens(out_fd, times);
+  close(in_fd);
+  close(out_fd);
+}
+static void _install_do(struct node_resolve *r, const char *src, const char *target) {
+  char src_buf[PATH_MAX];
+  char dst_buf[PATH_MAX];
+  struct stat st;
+  struct _install_on_resolve_ctx *ctx = r->user_data;
+  akcheck(lstat(src, &st));
+  if (!S_ISREG(st.st_mode) && !S_ISLNK(st.st_mode)) {
+    node_fatal(AK_ERROR_FAIL, ctx->n, "Cannot install unsupported file type. File: %s", src);
+  }
+  utils_strncpy(src_buf, src, sizeof(src_buf));
+  snprintf(dst_buf, sizeof(dst_buf), "%s/%s", target, path_basename(src_buf));
+  if (S_ISREG(st.st_mode)) {
+    _install_file(ctx, src, dst_buf, &st);
+  } else if (S_ISLNK(st.st_mode)) {
+    _install_symlink(ctx, src, dst_buf, &st);
+  }
+}
+static void _install_dep_add(struct deps *deps, const char *src, const char *target) {
+  char src_buf[PATH_MAX];
+  char dst_buf[PATH_MAX];
+  deps_add(deps, DEPS_TYPE_FILE, 's', src, 0);
+  utils_strncpy(src_buf, src, sizeof(src_buf));
+  snprintf(dst_buf, sizeof(dst_buf), "%s/%s", target, path_basename(src_buf));
+  deps_add_alias(deps, 's', src, dst_buf);
+}
+static void _install_on_resolve(struct node_resolve *r) {
+  struct deps deps;
+  struct node *n = r->n;
+  struct _install_on_resolve_ctx *ctx = r->user_data;
+  const char *target = node_value(ctx->n_target);
+  if (!path_is_absolute(target)) {
+    target = pool_printf(r->pool, "%s/%s", g_env.install.prefix_dir, target);
+    target = path_normalize_pool(target, g_env.pool);
+  }
+  if (path_is_exist(target) && !path_is_dir(target)) {
+    node_fatal(AK_ERROR_FAIL, n, "Target: %s is not a directory", target);
+  }
+  int rc = path_mkdirs(target);
+  if (rc) {
+    node_fatal(rc, n, "Failed to create target install directory: %s", target);
+  }
+  struct ulist rlist = { .usize = sizeof(char*) };
+  struct ulist *slist = &ctx->consumes;
+  if (r->resolve_outdated.num) {
+    for (int i = 0; i < r->resolve_outdated.num; ++i) {
+      struct resolve_outdated *u = ulist_get(&r->resolve_outdated, i);
+      if (u->flags != 's') { // Rebuild all on any outdated non source dependency
+        slist = &ctx->consumes;
+        break;
+      } else {
+        char *path = pool_strdup(r->pool, u->path);
+        ulist_push(&rlist, &path);
+        slist = &rlist;
+      }
+    }
+  }
+  for (int i = 0; i < slist->num; ++i) {
+    const char *src = *(const char**) ulist_get(slist, i);
+    _install_do(r, src, target);
+  }
+  rc = deps_open(r->deps_path_tmp, 0, &deps);
+  if (rc) {
+    node_fatal(rc, n, "Failed to open dependency file: %s", r->deps_path_tmp);
+  }
+  node_add_unit_deps(&deps);
+  for (int i = 0; i < r->node_val_deps.num; ++i) {
+    struct node *nv = *(struct node**) ulist_get(&r->node_val_deps, i);
+    const char *val = node_value(nv);
+    if (val) {
+      deps_add(&deps, DEPS_TYPE_NODE_VALUE, 0, val, i);
+    }
+  }
+  for (int i = 0; i < ctx->consumes.num; ++i) {
+    const char *src = *(const char**) ulist_get(&ctx->consumes, i);
+    _install_dep_add(&deps, src, target);
+  }
+  deps_close(&deps);
+  ulist_destroy_keep(&rlist);
+}
+static void _install_on_consumed_resolved(const char *path_, void *d) {
+  struct _install_on_resolve_ctx *ctx = d;
+  if (path_is_dir(path_)) {
+    node_fatal(AK_ERROR_FAIL, ctx->n, "Installing of directories is not supported. Path: %s", path_);
+  }
+  const char *path = pool_strdup(ctx->r->pool, path_);
+  ulist_push(&ctx->consumes, &path);
+}
+static void _install_on_resolve_init(struct node_resolve *r) {
+  struct _install_on_resolve_ctx *ctx = r->user_data;
+  ctx->r = r;
+  struct node *nn = ctx->n_target->next;
+  if (nn) {
+    node_consumes_resolve(r->n, nn, 0, _install_on_consumed_resolved, ctx);
+  }
+}
+static void _install_build(struct node *n) {
+  struct _install_on_resolve_ctx ctx = {
+    .n = n,
+    .n_target = n->child,
+    .consumes = { .usize = sizeof(char*) },
+  };
+  if (!ctx.n_target || !node_is_can_be_value(ctx.n_target)) {
+    node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "No target dir specified");
+  }
+  if (!ctx.n_target->next || !node_is_can_be_value(ctx.n_target->next)) {
+    node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "At least one source file/dir should be specified");
+  }
+  struct node_resolve r = {
+    .n = n,
+    .path = n->vfile,
+    .user_data = &ctx,
+    .on_init = _install_on_resolve_init,
+    .on_resolve = _install_on_resolve,
+    .node_val_deps = { .usize = sizeof(struct node*) }
+  };
+  for (struct node *nn = ctx.n_target; nn; nn = nn->next) {
+    if (node_is_value_may_be_dep_saved(nn)) {
+      ulist_push(&r.node_val_deps, &nn);
+    }
+  }
+  node_resolve(&r);
+  ulist_destroy_keep(&ctx.consumes);
+}
+int node_install_setup(struct node *n) {
+  if (!g_env.install.enabled || !g_env.install.prefix_dir) {
+    return 0;
+  }
+  n->build = _install_build;
+  return 0;
+}
+#ifndef _AMALGAMATE_
 #ifndef META_VERSION
 #define META_VERSION "dev"
 #endif
@@ -5114,7 +5311,9 @@ static int _usage_va(const char *err, va_list ap) {
   fprintf(stderr,
           "    -D<option>[=<val>]          Set project build option.\n");
   fprintf(stderr,
-          "    -I, --prefix<>              Install prefix. Default: " INSTALL_PREFIX_DEFAULT "\n");
+          "    -I, --install               Install all built artifacts\n");
+  fprintf(stderr,
+          "    -R, --prefix=<>             Install prefix. Default: $HOME/.local\n");
   fprintf(stderr,
           "        --bindir=<>             Path to 'bin' dir relative to a `prefix` dir. Default: bin\n");
   fprintf(stderr,
@@ -5345,18 +5544,6 @@ void _build(struct ulist *options) {
     akfatal(rc, "Failed to open script: %s", AUTARK_SCRIPT);
   }
   struct unit *root = unit_root();
-  unit_env_set_val(root, "INSTALL_PREFIX", g_env.install.prefix_dir);
-  unit_env_set_val(root, "INSTALL_BIN_DIR", g_env.install.bin_dir);
-  unit_env_set_val(root, "INSTALL_LIB_DIR", g_env.install.lib_dir);
-  unit_env_set_val(root, "INSTALL_INCLUDE_DIR", g_env.install.include_dir);
-  unit_env_set_val(root, "INSTALL_PKGCONFIG_DIR", g_env.install.pkgconf_dir);
-  if (g_env.verbose) {
-    akinfo("%s: INSTALL_PREFIX=%s", root->rel_path, g_env.install.prefix_dir);
-    akinfo("%s: INSTALL_BIN_DIR=%s", root->rel_path, g_env.install.bin_dir);
-    akinfo("%s: INSTALL_LIB_DIR=%s", root->rel_path, g_env.install.lib_dir);
-    akinfo("%s: INSTALL_INCLUDE_DIR=%s", root->rel_path, g_env.install.include_dir);
-    akinfo("%s: INSTALL_PKGCONFIG_DIR=%s", root->rel_path, g_env.install.pkgconf_dir);
-  }
   for (int i = 0; i < options->num; ++i) {
     const char *opt = *(char**) ulist_get(options, i);
     char *p = strchr(opt, '=');
@@ -5456,7 +5643,8 @@ void autark_run(int argc, const char **argv) {
     { "verbose", 0, 0, 'V' },
     { "version", 0, 0, 'v' },
     { "options", 0, 0, 'l' },
-    { "prefix", 1, 0, 'I' },
+    { "install", 0, 0, 'I' },
+    { "prefix", 1, 0, 'R' },
     { "dir", 1, 0, 'C' },
     { "bindir", 1, 0, -1 },
     { "libdir", 1, 0, -2 },
@@ -5467,7 +5655,7 @@ void autark_run(int argc, const char **argv) {
   bool version = false;
   const char *cdir = 0;
   struct ulist options = { .usize = sizeof(char*) };
-  for (int ch; (ch = getopt_long(argc, (void*) argv, "+H:chVvlI:C:D:", long_options, 0)) != -1; ) {
+  for (int ch; (ch = getopt_long(argc, (void*) argv, "+H:chVvlR:C:D:I", long_options, 0)) != -1; ) {
     switch (ch) {
       case 'H':
         g_env.project.cache_dir = pool_strdup(g_env.pool, optarg);
@@ -5491,8 +5679,12 @@ void autark_run(int argc, const char **argv) {
         ulist_push(&options, &p);
         break;
       }
-      case 'I':
+      case 'R':
+        g_env.install.enabled = true;
         g_env.install.prefix_dir = path_normalize_cwd_pool(optarg, g_env.cwd, g_env.pool);
+        break;
+      case 'I':
+        g_env.install.enabled = true;
         break;
       case 'C':
         cdir = pool_strdup(g_env.pool, optarg);
@@ -5515,7 +5707,7 @@ void autark_run(int argc, const char **argv) {
     }
   }
   if (version) {
-    printf(META_VERSION);
+    printf(META_VERSION "." META_REVISION);
     if (g_env.verbose) {
       puts("\nRevision: " META_REVISION);
     }
@@ -5533,7 +5725,12 @@ void autark_run(int argc, const char **argv) {
     g_env.spawn.extra_env_paths = path_normalize_pool(pool_strdup(g_env.pool, home), g_env.pool);
   }
   if (!g_env.install.prefix_dir) {
-    g_env.install.prefix_dir = "/usr/local";
+    char *home = getenv("HOME");
+    if (home) {
+      g_env.install.prefix_dir = pool_printf(g_env.pool, "%s/.local", home);
+    } else {
+      g_env.install.prefix_dir = "/usr/local";
+    }
   }
   if (!g_env.install.bin_dir) {
     g_env.install.bin_dir = "bin";
@@ -6341,6 +6538,8 @@ static unsigned _rule_type(const char *key) {
     return NODE_TYPE_ERROR;
   } else if (strcmp(key, "echo") == 0) {
     return NODE_TYPE_ECHO;
+  } else if (strcmp(key, "install") == 0) {
+    return NODE_TYPE_INSTALL;
   } else {
     return NODE_TYPE_BAG;
   }
@@ -6697,6 +6896,9 @@ static int _node_bind(struct node *n) {
       case NODE_TYPE_ECHO:
         rc = node_echo_setup(n);
         break;
+      case NODE_TYPE_INSTALL:
+        rc = node_install_setup(n);
+        break;
     }
     switch (n->type) {
       case NODE_TYPE_RUN:
@@ -6863,8 +7065,23 @@ int script_open(const char *file, struct sctx **out) {
   }
   struct node *n = 0;
   int rc = _script_open(0, file, &n);
-  if (out && n) {
-    *out = n->ctx;
+  if (!rc) {
+    struct unit *root = unit_root();
+    unit_env_set_val(root, "INSTALL_PREFIX", g_env.install.prefix_dir);
+    unit_env_set_val(root, "INSTALL_BIN_DIR", g_env.install.bin_dir);
+    unit_env_set_val(root, "INSTALL_LIB_DIR", g_env.install.lib_dir);
+    unit_env_set_val(root, "INSTALL_INCLUDE_DIR", g_env.install.include_dir);
+    unit_env_set_val(root, "INSTALL_PKGCONFIG_DIR", g_env.install.pkgconf_dir);
+    if (g_env.verbose) {
+      akinfo("%s: INSTALL_PREFIX=%s", root->rel_path, g_env.install.prefix_dir);
+      akinfo("%s: INSTALL_BIN_DIR=%s", root->rel_path, g_env.install.bin_dir);
+      akinfo("%s: INSTALL_LIB_DIR=%s", root->rel_path, g_env.install.lib_dir);
+      akinfo("%s: INSTALL_INCLUDE_DIR=%s", root->rel_path, g_env.install.include_dir);
+      akinfo("%s: INSTALL_PKGCONFIG_DIR=%s", root->rel_path, g_env.install.pkgconf_dir);
+    }
+    if (out && n) {
+      *out = n->ctx;
+    }
   }
   return rc;
 }
@@ -7067,8 +7284,9 @@ bool node_is_value_may_be_dep_saved(struct node *n) {
         return false;
       }
     }
+    return true;
   }
-  return true;
+  return false;
 }
 struct node* node_consumes_resolve(
   struct node *n,
