@@ -1,0 +1,30 @@
+cc {
+  set { _
+    iwfs_test1.c
+    iwfs_test2.c
+    iwfs_test3.c
+  }
+  ${CFLAGS}
+}
+
+foreach {
+  OBJ
+  ${CC_OBJS}
+  run {
+    exec { ${CC} ${OBJ} ${LDFLAGS_TEST} -o %{${OBJ}} }
+    consumes { ${LIBIOWOW_A} ${OBJ} }
+    produces { %{${OBJ}} }
+  }
+}
+
+if { defined { RUN_TESTS }
+  foreach {
+    OBJ
+    ${CC_OBJS}
+    run {
+      always
+      shell { %{${OBJ}} }
+      consumes { %{${OBJ}} }
+    }
+  }
+}

@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=bf41c1c
+META_REVISION=b7c5514
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "bf41c1c"
+#define META_REVISION "b7c5514"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -431,6 +431,7 @@ static inline bool utils_endswith(const char *str, const char *suffix) {
 long int utils_strtol(const char *v, int base, int *rcp);
 long long utils_strtoll(const char *v, int base, int *rcp);
 struct value utils_file_as_buf(const char *path, ssize_t buflen_max);
+int utils_file_write_buf(const char *path, const char *buf, size_t len, bool append);
 int utils_exec_path(char buf[PATH_MAX]);
 int utils_copy_file(const char *src, const char *dst);
 int utils_rename_file(const char *src, const char *dst);
@@ -639,6 +640,7 @@ struct node* unit_env_get_node(struct unit *u, const char *key);
 const char* unit_env_get(struct unit*, const char *key);
 const char* unit_env_get_raw(struct unit *u, const char *key);
 void unit_env_remove(struct unit*, const char *key);
+const char* env_libdir(void);
 #endif
 #ifndef DEPS_H
 #define DEPS_H
@@ -691,17 +693,18 @@ int node_if_setup(struct node*);
 int node_subst_setup(struct node*);
 int node_run_setup(struct node*);
 int node_echo_setup(struct node*);
-int node_join_setup(struct node *n);
-int node_cc_setup(struct node *n);
-int node_configure_setup(struct node *n);
-int node_basename_setup(struct node *n);
-int node_foreach_setup(struct node *n);
-int node_in_sources_setup(struct node *n);
-int node_dir_setup(struct node *n);
-int node_option_setup(struct node *n);
-int node_error_setup(struct node *n);
-int node_echo_setup(struct node *n);
-int node_install_setup(struct node *n);
+int node_join_setup(struct node*);
+int node_cc_setup(struct node*);
+int node_configure_setup(struct node*);
+int node_basename_setup(struct node*);
+int node_foreach_setup(struct node*);
+int node_in_sources_setup(struct node*);
+int node_dir_setup(struct node*);
+int node_option_setup(struct node*);
+int node_error_setup(struct node*);
+int node_echo_setup(struct node*);
+int node_install_setup(struct node*);
+int node_find_setup(struct node*);
 #endif
 #ifndef AUTARK_H
 #define AUTARK_H
@@ -722,27 +725,30 @@ void autark_build_prepare(const char *script_path);
 #include "map.h"
 #include <stdbool.h>
 #endif
-#define NODE_TYPE_VALUE      0x01U
-#define NODE_TYPE_SCRIPT     0x02U
-#define NODE_TYPE_BAG        0x04U
-#define NODE_TYPE_META       0x08U
-#define NODE_TYPE_CHECK      0x10U
-#define NODE_TYPE_SET        0x20U
-#define NODE_TYPE_INCLUDE    0x40U
-#define NODE_TYPE_IF         0x80U
-#define NODE_TYPE_SUBST      0x100U
-#define NODE_TYPE_RUN        0x200U
-#define NODE_TYPE_JOIN       0x400U
-#define NODE_TYPE_CC         0x800U
-#define NODE_TYPE_CONFIGURE  0x1000U
-#define NODE_TYPE_BASENAME   0x2000U
-#define NODE_TYPE_FOREACH    0x4000U
-#define NODE_TYPE_IN_SOURCES 0x8000U
-#define NODE_TYPE_DIR        0x10000U
-#define NODE_TYPE_OPTION     0x20000U
-#define NODE_TYPE_ERROR      0x40000U
-#define NODE_TYPE_ECHO       0x80000U
-#define NODE_TYPE_INSTALL    0x100000U
+// value types
+#define NODE_TYPE_VALUE    0x01U
+#define NODE_TYPE_SUBST    0x02U
+#define NODE_TYPE_SET      0x04U
+#define NODE_TYPE_JOIN     0x08U
+#define NODE_TYPE_BASENAME 0x10U
+#define NODE_TYPE_DIR      0x20U
+#define NODE_TYPE_FIND     0x40U
+// eof value types
+#define NODE_TYPE_SCRIPT     0x100U
+#define NODE_TYPE_BAG        0x200U
+#define NODE_TYPE_META       0x400U
+#define NODE_TYPE_CHECK      0x800U
+#define NODE_TYPE_INCLUDE    0x1000U
+#define NODE_TYPE_IF         0x2000U
+#define NODE_TYPE_RUN        0x4000U
+#define NODE_TYPE_CC         0x8000U
+#define NODE_TYPE_CONFIGURE  0x10000U
+#define NODE_TYPE_FOREACH    0x20000U
+#define NODE_TYPE_IN_SOURCES 0x40000U
+#define NODE_TYPE_OPTION     0x80000U
+#define NODE_TYPE_ERROR      0x100000U
+#define NODE_TYPE_ECHO       0x200000U
+#define NODE_TYPE_INSTALL    0x400000U
 #define NODE_FLG_BOUND    0x01U
 #define NODE_FLG_INIT     0x02U
 #define NODE_FLG_SETUP    0x04U
@@ -751,18 +757,13 @@ void autark_build_prepare(const char *script_path);
 #define NODE_FLG_IN_CACHE 0x40U
 #define NODE_FLG_IN_SRC   0x80U
 #define NODE_FLG_NO_CWD   0x100U
+#define NODE_FLG_NEGATE   0x200U
 #define NODE_FLG_IN_ANY (NODE_FLG_IN_SRC | NODE_FLG_IN_CACHE | NODE_FLG_NO_CWD)
-#define node_is_init(n__)  (((n__)->flags & NODE_FLG_INIT) != 0)
-#define node_is_setup(n__) (((n__)->flags & NODE_FLG_SETUP) != 0)
-#define node_is_built(n__) (((n__)->flags & NODE_FLG_BUILT) != 0)
-#define node_is_value(n__) ((n__)->type == NODE_TYPE_VALUE)
-#define node_is_can_be_value(n__)            \
-        (  (n__)->type == NODE_TYPE_VALUE    \
-        || (n__)->type == NODE_TYPE_SUBST    \
-        || (n__)->type == NODE_TYPE_SET      \
-        || (n__)->type == NODE_TYPE_JOIN     \
-        || (n__)->type == NODE_TYPE_BASENAME \
-        || (n__)->type == NODE_TYPE_DIR)
+#define node_is_init(n__)         (((n__)->flags & NODE_FLG_INIT) != 0)
+#define node_is_setup(n__)        (((n__)->flags & NODE_FLG_SETUP) != 0)
+#define node_is_built(n__)        (((n__)->flags & NODE_FLG_BUILT) != 0)
+#define node_is_value(n__)        ((n__)->type == NODE_TYPE_VALUE)
+#define node_is_can_be_value(n__) ((n__)->type >= NODE_TYPE_VALUE && (n__)->type <= NODE_TYPE_FIND)
 #define node_is_rule(n__) !node_is_value(n__)
 #define NODE_PRINT_INDENT 2
 struct node_foreach {
@@ -845,7 +846,8 @@ struct node_resolve {
   struct ulist node_val_deps;    // struct node*
   struct pool *pool;
   unsigned     mode;
-  int num_deps;     // Number of dependencies
+  int  num_deps;    // Number of dependencies
+  bool force_outdated;
 };
 struct resolve_outdated {
   char  type;
@@ -1930,7 +1932,6 @@ int map_iter_next(struct map_iter *iter) {
 #include "utils.h"
 #include "xstr.h"
 #include "log.h"
-#include "env.h"
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -1970,6 +1971,33 @@ struct value utils_file_as_buf(const char *path, ssize_t buflen_max) {
   ret.len = xstr_size(xstr);
   ret.buf = xstr_destroy_keep_ptr(xstr);
   return ret;
+}
+int utils_file_write_buf(const char *path, const char *buf, size_t len, bool append) {
+  int flags = O_WRONLY | O_CREAT;
+  if (append) {
+    flags |= O_APPEND;
+  } else {
+    flags |= O_TRUNC;
+  }
+  int fd = open(path, flags);
+  if (fd == -1) {
+    return errno;
+  }
+  for (ssize_t w, tow = len; tow > 0; ) {
+    w = write(fd, buf + len - tow, tow);
+    if (w >= 0) {
+      tow -= w;
+    } else if (w < 0) {
+      if (errno == EAGAIN) {
+        continue;
+      }
+      int ret = errno;
+      close(fd);
+      return ret;
+    }
+  }
+  close(fd);
+  return 0;
 }
 int utils_copy_file(const char *src, const char *dst) {
   int rc = 0;
@@ -3071,7 +3099,7 @@ int node_check_setup(struct node *n) {
 #include "alloc.h"
 #include "env.h"
 #endif
-static struct unit* unit_for_set(struct node *nn, const char **keyp) {
+static struct unit* _unit_for_set(struct node *nn, const char **keyp) {
   if (nn->type == NODE_TYPE_BAG) {
     if (strcmp(nn->value, "root") == 0) {
       *keyp = node_value(nn->child);
@@ -3087,7 +3115,7 @@ static struct unit* unit_for_set(struct node *nn, const char **keyp) {
 }
 static void _set_init(struct node *n) {
   const char *key = 0;
-  struct unit *unit = n->child ? unit_for_set(n->child, &key) : 0;
+  struct unit *unit = n->child ? _unit_for_set(n->child, &key) : 0;
   if (!key) {
     node_warn(n, "No name specified for 'set' directive");
     return;
@@ -3282,7 +3310,7 @@ int node_subst_setup(struct node *n) {
 static bool _if_defined_eval(struct node *mn) {
   struct node *n = mn->parent;
   const char *val = node_value(mn->child);
-  if (val && node_env_get(n, val)) {
+  if (val && *val != '\0' && node_env_get(n, val)) {
     return true;
   } else {
     return false;
@@ -3306,14 +3334,22 @@ static bool _if_cond_eval(struct node *n, struct node *mn) {
   }
   bool eq = false;
   bool neg = false;
-  if (*op == '!') {
+  if (mn->flags & NODE_FLG_NEGATE) {
     neg = true;
-    ++op;
   }
-  if (strcmp(op, "eq") == 0) {
-    eq = _if_matched_eval(mn);
-  } else if (strcmp(op, "defined") == 0) {
-    eq = _if_defined_eval(mn);
+  if (mn->type == NODE_TYPE_BAG) {
+    if (*op == '!') {
+      ++op;
+    }
+    if (strcmp(op, "eq") == 0) {
+      eq = _if_matched_eval(mn);
+    } else if (strcmp(op, "defined") == 0) {
+      eq = _if_defined_eval(mn);
+    } else {
+      node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "Unknown matching condition: %s", op);
+    }
+  } else if (node_is_can_be_value(mn)) {
+    eq = (op && *op != '\0');
   } else {
     node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "Unknown matching condition: %s", op);
   }
@@ -3337,6 +3373,7 @@ static void _if_pull_else(struct node *n) {
     elz = true;
     next = nn->next;
   }
+  n->child = 0;
   if (elz && nn->child) {
     nn = nn->child;
     n->next = nn; // Keep upper iterations (if any) be consistent.
@@ -3354,8 +3391,10 @@ static void _if_pull_else(struct node *n) {
       }
     }
   } else if (prev) {
+    n->next = next;
     prev->next = next;
   } else {
+    n->next = next;
     n->parent->child = next;
   }
 }
@@ -3367,9 +3406,9 @@ static void _if_pull_if(struct node *n) {
   if (_if_node_is_else(next)) {
     next = next->next; // Skip else block
   }
+  n->child = 0;
   if (nn) {
     n->next = nn; // Keep upper iterations (if any) be consistent.
-    n->child = 0;
     if (prev) {
       prev->next = nn;
     } else {
@@ -3383,8 +3422,10 @@ static void _if_pull_if(struct node *n) {
       }
     }
   } else if (prev) {
+    n->next = next;
     prev->next = next;
   } else {
+    n->next = next;
     n->parent->child = next;
   }
 }
@@ -3829,9 +3870,10 @@ static void _run_build(struct node *n) {
     .user_data = &ctx,
     .on_init = _run_on_resolve_init,
     .on_resolve = _run_on_resolve,
-    .node_val_deps = { .usize = sizeof(struct node*) }
+    .node_val_deps = { .usize = sizeof(struct node*) },
+    .force_outdated = node_find_direct_child(n, NODE_TYPE_VALUE, "always") != 0,
   };
-  for (struct node *nn = n->child; nn; nn = nn->next) {
+  /*for (struct node *nn = n->child; nn; nn = nn->next) {
     if (strcmp(nn->value, "exec") == 0 || strcmp(nn->value, "shell") == 0) {
       for (struct node *cn = nn->child; cn; cn = cn->next) {
         if (node_is_value_may_be_dep_saved(cn)) {
@@ -3839,7 +3881,7 @@ static void _run_build(struct node *n) {
         }
       }
     }
-  }
+  }*/
   node_resolve(&r);
   ulist_destroy_keep(&ctx.consumes);
   ulist_destroy_keep(&ctx.consumes_foreach);
@@ -4668,11 +4710,9 @@ int node_in_sources_setup(struct node *n) {
 #include "xstr.h"
 #include "env.h"
 #include "paths.h"
-#include "log.h"
 #include "utils.h"
-#include <string.h>
+#include "alloc.h"
 #include <unistd.h>
-#include <errno.h>
 #endif
 static const char* _dir_value(struct node *n) {
   struct node_foreach *fe = node_find_parent_foreach(n);
@@ -4683,7 +4723,6 @@ static const char* _dir_value(struct node *n) {
   if (n->impl) {
     return n->impl;
   }
-  char cwd[PATH_MAX];
   char buf[PATH_MAX];
   struct unit *root = unit_root();
   struct unit *unit = unit_peek();
@@ -4701,9 +4740,6 @@ static const char* _dir_value(struct node *n) {
     } else {
       dir = root->cache_dir;
     }
-  }
-  if (!getcwd(cwd, PATH_MAX)) {
-    akfatal(errno, "Cannot get CWD", 0);
   }
   for (struct node *nn = n->child; nn; nn = nn->next) {
     const char *v = node_value(nn);
@@ -4726,9 +4762,8 @@ static const char* _dir_value(struct node *n) {
     xstr_cat2(xstr, ".", 1);
   }
   char *path = path_normalize_cwd(xstr_ptr(xstr), dir, buf);
-  path = path_relativize_cwd(cwd, path, cwd);
   xstr_destroy(xstr);
-  n->impl = path;
+  n->impl = xstrdup(path);
   return n->impl;
 }
 static void _dir_dispose(struct node *n) {
@@ -4911,14 +4946,28 @@ static void _install_file(struct _install_on_resolve_ctx *ctx, const char *src, 
     node_fatal(errno, n, "Error opening file: %s", dst);
   }
   char buf[8192];
-  ssize_t r;
-  while ((r = read(in_fd, buf, sizeof(buf))) > 0) {
-    if (write(out_fd, buf, r) != r) {
-      node_fatal(errno, n, "Error writing file: %s", dst);
+  for (ssize_t r; ; ) {
+    r = read(in_fd, buf, sizeof(buf));
+    if (r < 0) {
+      if (errno == EAGAIN) {
+        continue;
+      } else {
+        node_fatal(errno, n, "Error reading file: %s", src);
+      }
+    } else if (r == 0) {
+      break;
     }
-  }
-  if (r == -1) {
-    node_fatal(errno, n, "Error reading file: %s", src);
+    for (ssize_t w, tow = r; tow > 0; ) {
+      w = write(out_fd, buf + r - tow, tow);
+      if (w >= 0) {
+        tow -= w;
+      } else if (w < 0) {
+        if (errno == EAGAIN) {
+          continue;
+        }
+        node_fatal(errno, n, "Error writing file: %s", dst);
+      }
+    }
   }
   fchmod(out_fd, st->st_mode);
   struct timespec times[2] = { st->st_atim, st->st_mtim };
@@ -5054,6 +5103,135 @@ int node_install_setup(struct node *n) {
     return 0;
   }
   n->build = _install_build;
+  return 0;
+}
+#ifndef _AMALGAMATE_
+#include "script.h"
+#include "xstr.h"
+#include "env.h"
+#include "utils.h"
+#include "paths.h"
+#include "alloc.h"
+#include <string.h>
+#endif
+static void _library_find(struct node *n) {
+  struct node *nn = n->child;
+  struct unit *unit = unit_peek();
+  struct xstr *names = xstr_create_empty();
+  for (nn = nn->next; nn; nn = nn->next) {
+    if (node_is_can_be_value(nn)) {
+      const char *val = node_value(nn);
+      if (val && *val != '\0') {
+        xstr_printf(names, "\1%s", val);
+      }
+    }
+  }
+  struct xstr *dirs = xstr_create_empty();
+  const char *ldir = env_libdir();
+  bool sld = strcmp(ldir, "lib") != 0;
+  xstr_printf(dirs, "\1%s/%s/", unit->cache_dir, ldir);
+  if (sld) {
+    xstr_printf(dirs, "\1%s/lib/", unit->cache_dir);
+  }
+  if (strcmp(unit->cache_dir, g_env.project.cache_dir) != 0) {
+    xstr_printf(dirs, "\1%s/%s/", g_env.project.cache_dir, ldir);
+    if (sld) {
+      xstr_printf(dirs, "\1%s/lib/", g_env.project.cache_dir);
+    }
+  }
+  const char *home = getenv("HOME");
+  if (home) {
+    xstr_printf(dirs, "\1%s/.local/%s/", home, ldir);
+    if (sld) {
+      xstr_printf(dirs, "\1%s/.local/lib/", home);
+    }
+  }
+  xstr_printf(dirs, "\1/usr/local/%s/", ldir);
+  if (sld) {
+    xstr_cat(dirs, "\1/usr/local/lib/");
+  }
+  xstr_printf(dirs, "\1/usr/%s/", ldir);
+  if (sld) {
+    xstr_cat(dirs, "\1/usr/lib/");
+  }
+  xstr_printf(dirs, "\1/%s/", ldir);
+  if (sld) {
+    xstr_cat(dirs, "\1/lib/");
+  }
+  struct vlist_iter iter_dirs;
+  vlist_iter_init(xstr_ptr(dirs), &iter_dirs);
+  while (vlist_iter_next(&iter_dirs)) {
+    struct vlist_iter iter_names;
+    vlist_iter_init(xstr_ptr(names), &iter_names);
+    while (vlist_iter_next(&iter_names)) {
+      char buf[PATH_MAX];
+      snprintf(buf, sizeof(buf), "%.*s%.*s",
+               (int) iter_dirs.len, iter_dirs.item, (int) iter_names.len, iter_names.item);
+      if (path_is_exist(buf)) {
+        n->impl = xstrdup(buf);
+        goto finish;
+      }
+    }
+  }
+finish:
+  xstr_destroy(names);
+  xstr_destroy(dirs);
+}
+static const char* _find_value_get(struct node *n) {
+  if (n->impl) {
+    if ((uintptr_t) n->impl == (uintptr_t) -1) {
+      return "";
+    } else {
+      return n->impl;
+    }
+  }
+  n->impl = (void*) (intptr_t) -1;
+  if (strcmp("library", n->value) == 0) {
+    _library_find(n);
+  }
+  if (!n->impl) {
+    n->impl = (void*) (uintptr_t) -1;
+  }
+  if ((uintptr_t) n->impl == (uintptr_t) -1) {
+    return "";
+  } else {
+    return n->impl;
+  }
+}
+static struct unit* _unit_for_find(struct node *nn, const char **keyp) {
+  if (nn->type == NODE_TYPE_BAG) {
+    if (strcmp(nn->value, "root") == 0) {
+      *keyp = node_value(nn->child);
+      return unit_root();
+    } else if (strcmp(nn->value, "parent") == 0) {
+      *keyp = node_value(nn->child);
+      return unit_parent();
+    }
+  } else {
+    *keyp = node_value(nn);
+  }
+  return unit_peek();
+}
+static void _find_init(struct node *n) {
+  const char *key = 0;
+  struct unit *unit = n->child ? _unit_for_find(n->child, &key) : 0;
+  if (!key) {
+    node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "No name specified for '%s' directive", n->value);
+    return;
+  }
+  unit_env_set_node(unit, key, n);
+}
+static void _find_dispose(struct node *n) {
+  if ((uintptr_t) n->impl != (uintptr_t) -1) {
+    free(n->impl);
+  }
+  n->impl = 0;
+}
+int node_find_setup(struct node *n) {
+  n->flags |= NODE_FLG_NO_CWD;
+  n->init = _find_init;
+  n->value_get = _find_value_get;
+  n->dispose = _find_dispose;
   return 0;
 }
 #ifndef _AMALGAMATE_
@@ -5537,7 +5715,7 @@ void on_command_dep_env(int argc, const char **argv) {
   _on_command_dep_env(argc, argv);
 }
 #endif
-void _build(struct ulist *options) {
+static void _build(struct ulist *options) {
   struct sctx *x;
   int rc = script_open(AUTARK_SCRIPT, &x);
   if (rc) {
@@ -5601,7 +5779,7 @@ AK_DESTRUCTOR void autark_dispose(void) {
     memset(&g_env, 0, sizeof(g_env));
   }
 }
-static const char* _libdir(void) {
+const char* env_libdir(void) {
  #if defined(__linux__)
   #if defined(__x86_64__)
   // RPM-style or Debian-style
@@ -5736,7 +5914,7 @@ void autark_run(int argc, const char **argv) {
     g_env.install.bin_dir = "bin";
   }
   if (!g_env.install.lib_dir) {
-    g_env.install.lib_dir = _libdir();
+    g_env.install.lib_dir = env_libdir();
   }
   if (!g_env.install.include_dir) {
     g_env.install.include_dir = "include";
@@ -6500,9 +6678,14 @@ static void _xnode_destroy(struct xnode *x) {
   _xparse_destroy(x->xp);
   x->xp = 0;
 }
-static unsigned _rule_type(const char *key) {
+static unsigned _rule_type(const char *key, unsigned *flags) {
+  *flags = 0;
   if (key[0] == '.' && key[1] == '.') {
     key += 2;
+  }
+  if (key[0] == '!') {
+    *flags = NODE_FLG_NEGATE;
+    key += 1;
   }
   if (strcmp(key, "$") == 0 || strcmp(key, "@") == 0) {
     return NODE_TYPE_SUBST;
@@ -6530,7 +6713,8 @@ static unsigned _rule_type(const char *key) {
     return NODE_TYPE_FOREACH;
   } else if (strcmp(key, "in-sources") == 0) {
     return NODE_TYPE_IN_SOURCES;
-  } else if (strcmp(key, "S") == 0 || strcmp(key, "C") == 0 || strcmp(key, "SS") == 0 || strcmp(key, "CC") == 0) {
+  } else if (  strcmp(key, "S") == 0 || strcmp(key, "C") == 0
+            || strcmp(key, "SS") == 0 || strcmp(key, "CC") == 0) {
     return NODE_TYPE_DIR;
   } else if (strcmp(key, "option") == 0) {
     return NODE_TYPE_OPTION;
@@ -6540,6 +6724,8 @@ static unsigned _rule_type(const char *key) {
     return NODE_TYPE_ECHO;
   } else if (strcmp(key, "install") == 0) {
     return NODE_TYPE_INSTALL;
+  } else if (strcmp(key, "library") == 0) {
+    return NODE_TYPE_FIND;
   } else {
     return NODE_TYPE_BAG;
   }
@@ -6668,7 +6854,9 @@ static struct xnode* _node_text_escaped_push(struct  _yycontext *yy, const char 
 static struct xnode* _rule(struct _yycontext *yy, struct xnode *key) {
   struct xparse *xp = yy->x->xp;
   struct ulist *s = &xp->stack;
-  key->base.type = _rule_type(key->base.value);
+  unsigned flags = 0;
+  key->base.type = _rule_type(key->base.value, &flags);
+  key->base.flags |= flags;
   while (s->num) {
     struct xnode *x = XNODE_PEEK(s);
     if (x != key) {
@@ -6899,6 +7087,9 @@ static int _node_bind(struct node *n) {
       case NODE_TYPE_INSTALL:
         rc = node_install_setup(n);
         break;
+      case NODE_TYPE_FIND:
+        rc = node_find_setup(n);
+        break;
     }
     switch (n->type) {
       case NODE_TYPE_RUN:
@@ -7067,6 +7258,9 @@ int script_open(const char *file, struct sctx **out) {
   int rc = _script_open(0, file, &n);
   if (!rc) {
     struct unit *root = unit_root();
+    if (g_env.install.enabled) {
+      unit_env_set_val(root, "INSTALL_ENABLED", "1");
+    }
     unit_env_set_val(root, "INSTALL_PREFIX", g_env.install.prefix_dir);
     unit_env_set_val(root, "INSTALL_BIN_DIR", g_env.install.bin_dir);
     unit_env_set_val(root, "INSTALL_LIB_DIR", g_env.install.lib_dir);
@@ -7388,7 +7582,7 @@ void node_resolve(struct node_resolve *r) {
   if (r->on_init) {
     r->on_init(r);
   }
-  if (!deps_open(deps_path, DEPS_OPEN_READONLY, &deps)) {
+  if (!r->force_outdated && !deps_open(deps_path, DEPS_OPEN_READONLY, &deps)) {
     char *prev_outdated = 0;
     while (deps_cur_next(&deps)) {
       ++r->num_deps;

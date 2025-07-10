@@ -26,3 +26,6 @@ set {
   -I SS{}
 }
 
+if { defined { BUILD_TESTS }
+  include { tests/Autark }
+}

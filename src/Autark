@@ -13,6 +13,18 @@ set {
   if { defined { SYSTEM_ANDROID }
     -llog
   }
+  if { eq { ${SYSTEM_ARCH} mips }
+    if { library { LIB_ATOMIC atomic atomic.so.1 libatomic.so.1 }
+      -l ${LIB_ATOMIC}
+    }
+  }
+  ..${LDFLAGS}
+}
+
+set {
+  LDFLAGS_TEST
+  ${LIBIOWOW_A}
+  @{pkgconf --libs cunit}
   ..${LDFLAGS}
 }
 
@@ -65,7 +77,7 @@ cc {
 
 set {
   LIBIOWOW_A
-  libiowow.a
+  CC { libiowow.a }
 }
 
 run {
@@ -114,6 +126,3 @@ if { defined { BUILD_SHARED_LIBS }
 
 install { ${INSTALL_PKGCONFIG_DIR} libiowow.pc }
 install { ${IW_PUBLIC_HEADER_DESTINATION} ${PUB_HDRS} }
-
-echo { S= ${SOURCES} }
-echo { H= ${PUB_HDRS} }

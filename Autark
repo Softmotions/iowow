@@ -12,9 +12,9 @@ meta {
   license { MIT }
 }
 
-
 option { BUILD_SHARED_LIBS }
-option { ENABLE_TESTS     Build and execute test cases }
+option { BUILD_TESTS      Build test cases }
+option { RUN_TESTS        Build and run test cases }
 option { ENABLE_ASAN      Turn on address sanitizer }
 option { ENABLE_UBSAN     Turn on UB sanitizer }
 option { ENABLE_DEBINFO   Generate debuginfo even in release mode }
@@ -27,6 +27,12 @@ set {
 set {
   META_REVISION
   @{ git rev-parse --short HEAD }
+}
+
+if { defined { RUN_TESTS }
+  set {
+    BUILD_TESTS 1
+  }
 }
 
 check {
@@ -99,9 +105,11 @@ set {
   if { !defined { BUILD_SHARED_LIBS }
     -DIW_NODLL
   }
-  if { defined { ENABLE_TESTS }
+  if { defined { BUILD_TESTS }
     -DIW_TESTS=1
   }
+  -I C{src}
+  -I S{src}
 }
 
 include { ./src/Autark }
