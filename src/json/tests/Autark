@@ -1,8 +1,10 @@
 cc {
   set { _
-    iwfs_test1.c
-    iwfs_test2.c
-    iwfs_test3.c
+    jbl_test1.c
+    jbl_test2.c
+    jbl_test_binn1.c
+    jbl_test_binn2.c
+    iwjsreg_test1.c
   }
   set { _ ..${CFLAGS} -DIW_STATIC }
 }
@@ -18,6 +20,10 @@ foreach {
 }
 
 if { defined { RUN_TESTS }
+  run {
+    shell { ln -sf SS{data} ./data }
+    produces { ./data }
+  }
   foreach {
     OBJ
     ${CC_OBJS}
@@ -28,3 +34,4 @@ if { defined { RUN_TESTS }
     }
   }
 }
+

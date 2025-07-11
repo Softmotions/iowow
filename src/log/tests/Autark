@@ -1,8 +1,6 @@
 cc {
   set { _
-    iwfs_test1.c
-    iwfs_test2.c
-    iwfs_test3.c
+    iwlog_test1.c
   }
   set { _ ..${CFLAGS} -DIW_STATIC }
 }

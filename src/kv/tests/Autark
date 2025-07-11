@@ -1,8 +1,15 @@
 cc {
   set { _
-    iwfs_test1.c
-    iwfs_test2.c
-    iwfs_test3.c
+    iwkv_test1.c
+    iwkv_test2.c
+    iwkv_test3.c
+    iwkv_test4.c
+    iwkv_test5.c
+    iwkv_test6.c
+    iwkv_test7.c
+    iwkv_test8.c
+    iwkv_test9.c
+    iwkv_test10.c
   }
   set { _ ..${CFLAGS} -DIW_STATIC }
 }
@@ -17,7 +24,12 @@ foreach {
   }
 }
 
+
 if { defined { RUN_TESTS }
+  run {
+    shell { cp SS{*.ref} CC{} }
+    shell { cp SS{*.data} CC{} }
+  }
   foreach {
     OBJ
     ${CC_OBJS}

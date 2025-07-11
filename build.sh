@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=b7c5514
+META_REVISION=b4ae0c9
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,12 +32,13 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "b7c5514"
+#define META_REVISION "b4ae0c9"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
+#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ftw.h>
@@ -749,19 +750,21 @@ void autark_build_prepare(const char *script_path);
 #define NODE_TYPE_ERROR      0x100000U
 #define NODE_TYPE_ECHO       0x200000U
 #define NODE_TYPE_INSTALL    0x400000U
-#define NODE_FLG_BOUND    0x01U
-#define NODE_FLG_INIT     0x02U
-#define NODE_FLG_SETUP    0x04U
-#define NODE_FLG_UPDATED  0x08U // Node product updated as result of build
-#define NODE_FLG_BUILT    0x10U // Node built
-#define NODE_FLG_IN_CACHE 0x40U
-#define NODE_FLG_IN_SRC   0x80U
-#define NODE_FLG_NO_CWD   0x100U
-#define NODE_FLG_NEGATE   0x200U
+#define NODE_FLG_BOUND      0x01U
+#define NODE_FLG_INIT       0x02U
+#define NODE_FLG_SETUP      0x04U
+#define NODE_FLG_UPDATED    0x08U // Node product updated as result of build
+#define NODE_FLG_BUILT      0x10U // Node built
+#define NODE_FLG_POST_BUILT 0x20U // Node post-built
+#define NODE_FLG_IN_CACHE   0x40U
+#define NODE_FLG_IN_SRC     0x80U
+#define NODE_FLG_NO_CWD     0x100U
+#define NODE_FLG_NEGATE     0x200U
 #define NODE_FLG_IN_ANY (NODE_FLG_IN_SRC | NODE_FLG_IN_CACHE | NODE_FLG_NO_CWD)
 #define node_is_init(n__)         (((n__)->flags & NODE_FLG_INIT) != 0)
 #define node_is_setup(n__)        (((n__)->flags & NODE_FLG_SETUP) != 0)
 #define node_is_built(n__)        (((n__)->flags & NODE_FLG_BUILT) != 0)
+#define node_is_post_built(n__)   (((n__)->flags & NODE_FLG_POST_BUILT) != 0)
 #define node_is_value(n__)        ((n__)->type == NODE_TYPE_VALUE)
 #define node_is_can_be_value(n__) ((n__)->type >= NODE_TYPE_VALUE && (n__)->type <= NODE_TYPE_FIND)
 #define node_is_rule(n__) !node_is_value(n__)
@@ -795,6 +798,7 @@ struct node {
   void (*init)(struct node*);
   void (*setup)(struct node*);
   void (*build)(struct node*);
+  void (*post_build)(struct node*);
   void (*dispose)(struct node*);
   void *impl;
 };
@@ -821,6 +825,7 @@ void node_module_setup(struct node *n, unsigned flags);
 void node_init(struct node *n);
 void node_setup(struct node *n);
 void node_build(struct node *n);
+void node_post_build(struct node *n);
 struct node* node_find_direct_child(struct node *n, int type, const char *val);
 struct node* node_find_prev_sibling(struct node *n);
 struct  node* node_find_parent_of_type(struct node *n, int type);
@@ -2835,6 +2840,7 @@ void spawn_destroy(struct spawn *s) {
 #include "paths.h"
 #include "env.h"
 #include <errno.h>
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -2952,6 +2958,7 @@ static int _deps_add(struct deps *d, char type, char flags, const char *resource
       serial = st.mtime;
     }
   } else if (type == DEPS_TYPE_ENV || type == DEPS_TYPE_NODE_VALUE) {
+    assert(resource);
     utils_strncpy(buf[0], resource, PATH_MAX);
     utils_chars_replace(buf[0], '\n', '\2');
     resource = buf[0];
@@ -3967,7 +3974,9 @@ static char* _line_replace_subs(struct node *n, struct deps *deps, char *line) {
       if (*p == '@') {
         const char *key = xstr_ptr(kstr);
         const char *val = node_env_get(n, key);
-        deps_add_env(deps, 0, key, val);
+        if (val) {
+          deps_add_env(deps, 0, key, val);
+        }
         if (!val || *val == '\0') {
           xstr_cat2(xstr, "@", 1);
           xstr_cat(xstr, key);
@@ -4905,7 +4914,6 @@ int node_echo_setup(struct node *n) {
 #include "paths.h"
 #include "pool.h"
 #include "utils.h"
-#include "config.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -4929,7 +4937,14 @@ static void _install_symlink(struct _install_on_resolve_ctx *ctx, const char *sr
   }
   buf[len] = '\0';
   if (symlink(buf, dst) == -1) {
-    node_fatal(errno, n, "Error creating symlink: %s", dst);
+    if (errno == EEXIST) {
+      unlink(dst);
+      if (symlink(buf, dst) == -1) {
+        node_fatal(errno, n, "Error creating symlink: %s", dst);
+      }
+    } else {
+      node_fatal(errno, n, "Error creating symlink: %s", dst);
+    }
   }
   struct timespec times[2] = { st->st_atim, st->st_mtim };
   utimensat(AT_FDCWD, dst, times, AT_SYMLINK_NOFOLLOW);
@@ -5070,7 +5085,7 @@ static void _install_on_resolve_init(struct node_resolve *r) {
     node_consumes_resolve(r->n, nn, 0, _install_on_consumed_resolved, ctx);
   }
 }
-static void _install_build(struct node *n) {
+static void _install_post_build(struct node *n) {
   struct _install_on_resolve_ctx ctx = {
     .n = n,
     .n_target = n->child,
@@ -5102,7 +5117,8 @@ int node_install_setup(struct node *n) {
   if (!g_env.install.enabled || !g_env.install.prefix_dir) {
     return 0;
   }
-  n->build = _install_build;
+  n->flags |= NODE_FLG_IN_CACHE;
+  n->post_build = _install_post_build;
   return 0;
 }
 #ifndef _AMALGAMATE_
@@ -5898,10 +5914,17 @@ void autark_run(int argc, const char **argv) {
       g_env.verbose = true;
     }
   }
-  const char *home = getenv("AUTARK_HOME");
-  if (home) {
-    g_env.spawn.extra_env_paths = path_normalize_pool(pool_strdup(g_env.pool, home), g_env.pool);
+  char buf[PATH_MAX];
+  const char *autark_home = getenv("AUTARK_HOME");
+  if (!autark_home) {
+    utils_strncpy(buf, argv[0], sizeof(buf));
+    autark_home = path_dirname(buf);
   }
+  autark_home = path_normalize_pool(autark_home, g_env.pool);
+  if (g_env.verbose) {
+    akinfo("AUTARK_HOME=%s", autark_home);
+  }
+  g_env.spawn.extra_env_paths =  autark_home;
   if (!g_env.install.prefix_dir) {
     char *home = getenv("HOME");
     if (home) {
@@ -7161,6 +7184,11 @@ static void _build_subnodes(struct node *n) {
     node_build(nn);
   }
 }
+static void _post_build_subnodes(struct node *n) {
+  for (struct node *nn = n->child; nn; nn = nn->next) {
+    node_post_build(nn);
+  }
+}
 void node_init(struct node *n) {
   if (!node_is_init(n)) {
     n->flags |= NODE_FLG_INIT;
@@ -7226,6 +7254,26 @@ void node_build(struct node *n) {
     n->flags |= NODE_FLG_BUILT;
   }
 }
+void node_post_build(struct node *n) {
+  if (!node_is_post_built(n)) {
+    _post_build_subnodes(n);
+    if (n->post_build) {
+      if (g_env.verbose) {
+        node_info(n, "Post-build");
+      }
+      struct xnode *x = (void*) n;
+      x->bld_calls++;
+      if (x->bld_calls > 1) {
+        node_fatal(AK_ERROR_CYCLIC_BUILD_DEPS, n, 0);
+      }
+      _node_context_push(n);
+      n->post_build(n);
+      _node_context_pop(n);
+      x->bld_calls--;
+    }
+    n->flags |= NODE_FLG_POST_BUILT;
+  }
+}
 static int _script_bind(struct sctx *s) {
   int rc = 0;
   for (int i = 0; i < s->nodes.num; ++i) {
@@ -7287,6 +7335,7 @@ void script_build(struct sctx *s) {
   node_init(s->root);
   node_setup(s->root);
   node_build(s->root);
+  node_post_build(s->root);
 }
 void script_close(struct sctx **sp) {
   if (sp && *sp) {
@@ -7521,14 +7570,12 @@ struct node* node_consumes_resolve(
       struct node *pn = node_by_product(n, cv, pathbuf);
       if (pn) {
         node_build(pn);
-        if (path_is_exist(pathbuf)) {
-          if (on_resolved) {
-            on_resolved(pathbuf, opq);
-          }
-          ulist_remove(&rlist, i--);
-        } else {
-          node_fatal(AK_ERROR_DEPENDENCY_UNRESOLVED, n, "'%s' by %s", cv, pn->name);
+      }
+      if (path_is_exist(pathbuf)) {
+        if (on_resolved) {
+          on_resolved(pathbuf, opq);
         }
+        ulist_remove(&rlist, i--);
       }
     }
     akcheck(chdir(prevcwd));
@@ -7565,7 +7612,7 @@ void node_add_unit_deps(struct deps *deps) {
 void node_resolve(struct node_resolve *r) {
   akassert(r && r->path);
   int rc;
-  struct deps deps;
+  struct deps deps = { 0 };
   struct pool *pool = pool_create_empty();
   struct unit *unit = unit_peek();
   const char *deps_path = pool_printf(pool, "%s/%s.deps", unit->cache_dir, r->path);
