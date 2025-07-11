@@ -12,12 +12,12 @@ meta {
   license { MIT }
 }
 
-option { BUILD_SHARED_LIBS }
-option { BUILD_TESTS      Build test cases }
-option { RUN_TESTS        Build and run test cases }
-option { ENABLE_ASAN      Turn on address sanitizer }
-option { ENABLE_UBSAN     Turn on UB sanitizer }
-option { ENABLE_DEBINFO   Generate debuginfo even in release mode }
+option { BUILD_SHARED_LIBS  Build shared library }
+option { BUILD_TESTS        Build test cases }
+option { RUN_TESTS          Build and run test cases }
+option { ENABLE_ASAN        Turn on address sanitizer }
+option { ENABLE_UBSAN       Turn on UB sanitizer }
+option { ENABLE_DEBINFO     Generate debuginfo even in release mode }
 
 set {
   META_VERSION
@@ -44,16 +44,16 @@ set {
   -std=gnu11
   -pedantic
   -fsigned-char
-  -Wfatal-errors
   -Wall
   -Wextra
-  -Wno-sign-compare
-  -Wno-unused-parameter
+  -Wfatal-errors
   -Wno-implicit-fallthrough
+  -Wno-missing-braces
+  -Wno-missing-field-initializers
+  -Wno-sign-compare
   -Wno-unknown-pragmas
   -Wno-unused-function
-  -Wno-missing-field-initializers
-  -Wno-missing-braces
+  -Wno-unused-parameter
   if { !eq { ${SYSTEM_NAME} Windows }
     if { defined { BUILD_SHARED_LIBS }
       -fPIC

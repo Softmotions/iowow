@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=b4ae0c9
+META_REVISION=529af7e
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "b4ae0c9"
+#define META_REVISION "529af7e"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -3017,6 +3017,7 @@ int node_script_setup(struct node *n) {
 #include "env.h"
 #include "log.h"
 #include "pool.h"
+#include "paths.h"
 #include "spawn.h"
 #include "deps.h"
 #include <limits.h>
@@ -3040,7 +3041,8 @@ static void _check_on_env_value(struct node_resolve *nr, const char *key, const 
 static void _check_on_resolve(struct node_resolve *r) {
   struct unit *unit = r->user_data;
   struct node *n = unit->n;
-  struct spawn *s = spawn_create(unit->source_path, unit);
+  const char *path = unit->impl;
+  struct spawn *s = spawn_create(path, unit);
   spawn_set_stdout_handler(s, _check_stdout_handler);
   spawn_set_stderr_handler(s, _check_stderr_handler);
   for (struct node *nn = n->child; nn; nn = nn->next) {
@@ -3067,21 +3069,38 @@ static void _check_on_resolve(struct node_resolve *r) {
   node_add_unit_deps(&deps);
   deps_close(&deps);
 }
+static char* _resolve_check_path(struct pool *pool, struct node *n, const char *script, struct unit **out_u) {
+  *out_u = 0;
+  char buf[PATH_MAX];
+  for (int i = (int) g_env.stack_units.num - 1; i >= 0; --i) {
+    struct unit_ctx *c = (struct unit_ctx*) ulist_get(&g_env.stack_units, i);
+    struct unit *u = c->unit;
+    snprintf(buf, sizeof(buf), "%s/.autark/%s", u->dir, script);
+    if (path_is_exist(buf)) {
+      *out_u = u;
+      return pool_strdup(pool, buf);
+    }
+  }
+  node_fatal(AK_ERROR_FAIL, n, "Check script is not found: %s", script);
+  return 0;
+}
 static void _check_script(struct node *n) {
-  struct unit *parent = unit_peek();
   const char *script = node_value(n);
   if (g_env.verbose) {
     node_info(n->parent, "%s", script);
   }
+  struct unit *parent = 0;
   struct pool *pool = pool_create(on_unit_pool_destroy);
-  const char *path = pool_printf(pool, "%s/.autark/%s", parent->dir, script);
-  struct unit *unit = unit_create(path, 0, pool);
+  char *path = _resolve_check_path(pool, n, script, &parent);
+  const char *vpath = pool_printf(pool, "%s/.autark/%s", parent->dir, n->vfile);
+  struct unit *unit = unit_create(vpath, 0, pool);
   unit->n = n;
+  unit->impl = path;
   unit_push(unit, n);
   struct node_resolve nr = {
     .n = n,
     .mode = NODE_RESOLVE_ENV_ALWAYS,
-    .path = script,
+    .path = n->vfile,
     .user_data = unit,
     .on_env_value = _check_on_env_value,
     .on_resolve = _check_on_resolve,
@@ -5322,7 +5341,7 @@ const char* unit_env_get_raw(struct unit *u, const char *key) {
 }
 const char* unit_env_get(struct unit *u, const char *key) {
   struct unit *prev = 0;
-  for (int i = g_env.stack_units.num - 1; i >= 0; --i) {
+  for (int i = (int) g_env.stack_units.num - 1; i >= 0; --i) {
     struct unit_ctx *c = (struct unit_ctx*) ulist_get(&g_env.stack_units, i);
     if (prev != c->unit) {
       const char *ret = unit_env_get_raw(c->unit, key);
@@ -5439,7 +5458,7 @@ struct unit* unit_root(void) {
 }
 struct unit* unit_parent(void) {
   struct unit *u = unit_peek();
-  for (int i = g_env.stack_units.num - 2; i >= 0; --i) {
+  for (int i = (int) g_env.stack_units.num - 2; i >= 0; --i) {
     struct unit_ctx uu = *(struct unit_ctx*) ulist_get(&g_env.stack_units, i);
     if (uu.unit != u) {
       return uu.unit;
@@ -7309,17 +7328,19 @@ int script_open(const char *file, struct sctx **out) {
     if (g_env.install.enabled) {
       unit_env_set_val(root, "INSTALL_ENABLED", "1");
     }
-    unit_env_set_val(root, "INSTALL_PREFIX", g_env.install.prefix_dir);
-    unit_env_set_val(root, "INSTALL_BIN_DIR", g_env.install.bin_dir);
-    unit_env_set_val(root, "INSTALL_LIB_DIR", g_env.install.lib_dir);
-    unit_env_set_val(root, "INSTALL_INCLUDE_DIR", g_env.install.include_dir);
-    unit_env_set_val(root, "INSTALL_PKGCONFIG_DIR", g_env.install.pkgconf_dir);
-    if (g_env.verbose) {
-      akinfo("%s: INSTALL_PREFIX=%s", root->rel_path, g_env.install.prefix_dir);
-      akinfo("%s: INSTALL_BIN_DIR=%s", root->rel_path, g_env.install.bin_dir);
-      akinfo("%s: INSTALL_LIB_DIR=%s", root->rel_path, g_env.install.lib_dir);
-      akinfo("%s: INSTALL_INCLUDE_DIR=%s", root->rel_path, g_env.install.include_dir);
-      akinfo("%s: INSTALL_PKGCONFIG_DIR=%s", root->rel_path, g_env.install.pkgconf_dir);
+    if (g_env.install.prefix_dir || g_env.install.bin_dir) {
+      unit_env_set_val(root, "INSTALL_PREFIX", g_env.install.prefix_dir);
+      unit_env_set_val(root, "INSTALL_BIN_DIR", g_env.install.bin_dir);
+      unit_env_set_val(root, "INSTALL_LIB_DIR", g_env.install.lib_dir);
+      unit_env_set_val(root, "INSTALL_INCLUDE_DIR", g_env.install.include_dir);
+      unit_env_set_val(root, "INSTALL_PKGCONFIG_DIR", g_env.install.pkgconf_dir);
+      if (g_env.verbose) {
+        akinfo("%s: INSTALL_PREFIX=%s", root->rel_path, g_env.install.prefix_dir);
+        akinfo("%s: INSTALL_BIN_DIR=%s", root->rel_path, g_env.install.bin_dir);
+        akinfo("%s: INSTALL_LIB_DIR=%s", root->rel_path, g_env.install.lib_dir);
+        akinfo("%s: INSTALL_INCLUDE_DIR=%s", root->rel_path, g_env.install.include_dir);
+        akinfo("%s: INSTALL_PKGCONFIG_DIR=%s", root->rel_path, g_env.install.pkgconf_dir);
+      }
     }
     if (out && n) {
       *out = n->ctx;

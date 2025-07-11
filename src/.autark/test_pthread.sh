@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cat > './test_pthread.c' << 'EOF'
 #include <pthread.h>
@@ -15,4 +15,3 @@ if ${CC} ./test_pthread.c -pthread; then
 elif ${CC} ./test_pthread.c -lpthread; then
   autark set "PTHREAD_LFLAG=-lpthread"
 fi
-
