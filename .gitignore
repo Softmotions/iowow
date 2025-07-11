@@ -1,5 +1,5 @@
 /autark-cache
-/mxe
+/tmp
 .cache
 hints.txt
 tmp/
@@ -7,14 +7,11 @@ git.diff
 .vscode/.ropeproject
 .vscode/ipch
 .codelite/
-.cmaketools.json
 *.tags
 *.dll
 #iowow.project
 #iowow.workspace
 build/
-cmake-build*
-.cmake_dirty
 Makefile
 Testing/
 compile_commands.json
@@ -64,9 +61,6 @@ iowow.mk
 # .idea/modules
 # *.iml
 # *.ipr
-
-# CMake
-cmake-build-*/
 
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml

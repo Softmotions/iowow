@@ -32,7 +32,6 @@
 #include "iwp.h"
 
 // Hardcoded requirements (fixme)
-// CMakeLists.txt defines: -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64
 static_assert(sizeof(off_t) == 8, "sizeof(off_t) == 8 bytes");
 
 iwrc iwfs_init(void);

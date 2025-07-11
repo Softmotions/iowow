@@ -1,5 +1,7 @@
-iowow (1.4.19) UNRELEASED; urgency=medium
+2025-07-11 Anton Adamansky  <adamansky@gmail.com>  [v1.4.20]
+  * Migration to Autark build system.
 
+2024-07-02  Anton Adamansky  <adamansky@gmail.com>  [v1.4.19]
   * Added iwcsv.h utility used to produce CSV formatted lines.
   * Fixed incorrect JSON generation for some locales where ',' is printed as FP separator.
   * Fixed race condition in iwtp (iwtp.h)
@@ -10,24 +12,16 @@ iowow (1.4.19) UNRELEASED; urgency=medium
   * Added iwu_file_read_as_buf_max() (iwutils.h)
   * Fixed memory leak in iwstw_schedule_empty_only()
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 02 Jul 2024 18:50:56 +0700
-
-iowow (1.4.18) testing; urgency=medium
-
+2024-04-16  Anton Adamansky  <adamansky@gmail.com>  [v1.4.18]
   * Added iwp_random_fill() (iwp.h)
   * Added convenient numeric conversion functions (iwconv.h)
   * Chore: iwp_{lock,unlock} fcnt replaced by more convenient and reliable flock()
   * Added iwxstr_printf_alloc() (iwxstr.h)
   * Copyright updated
   * Added new iwjsreg.h module - simple JSON key-value file store with atomic
-  updates.
   * Allowed to construct JBL_NODE without IWPOOL ini this case node data will
-  be allocated by malloc and should be freed by visitor.
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 16 Apr 2024 11:02:51 +0700
-
-iowow (1.4.17) testing; urgency=medium
-
+2023-11-13  Anton Adamansky  <adamansky@gmail.com>  [v1.4.17]
   * Added void iwulist_reset(IWULIST *list) (iwarr.h)
   * Added experimental jbn_from_js() (iwjson.h)
   * Fixed C++ compilation errors https://github.com/Softmotions/ejdb/issues/381
@@ -43,10 +37,7 @@ iowow (1.4.17) testing; urgency=medium
   * Fixed windows build
   * Added ref counting feature to iwpool (iwpool.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 13 Nov 2023 23:29:35 +0700
-
-iowow (1.4.16) testing; urgency=medium
-
+2022-11-14  Anton Adamansky  <adamansky@gmail.com>  [v1.4.16]
   * Fixed behavior of iwp_tmpdir() accourding to #47
   * Fixed  Incorrect serialization of INT64_MIN by iwitoa() #48 (iwconv.h)
   * Added iwxstr_insert() (iwxstr.h)
@@ -77,16 +68,10 @@ iowow (1.4.16) testing; urgency=medium
   * Added new regexp API implementation (iwre.h) based on https://github.com/jserv/cregex/
   * Removed iwsha256() from sources. Use iwnet/beassl for hashing instead.
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 14 Nov 2022 18:31:50 +0200
-
-iowow (1.4.15) testing; urgency=medium
-
+2022-02-18  Anton Adamansky  <adamansky@gmail.com>  [v1.4.15]
   * Added format checking __attribute__ to all printf like functions.
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 18 Feb 2022 21:54:04 +0700
-
-iowow (1.4.14) testing; urgency=medium
-
+2022-02-14  Anton Adamansky  <adamansky@gmail.com>  [v1.4.14]
   * Used ftruncate() instead of posix_fallocate() due to EINVAL on ZFS (unix.c)
   * Enable XOPEN_SOURCE only for linux
   * Fixed incorrect selection of `strerror_r` for musl builds.
@@ -94,15 +79,11 @@ iowow (1.4.14) testing; urgency=medium
   * iwxstr_printf() now conforms to stdlib printf function (iwxstr.h)
   * Moved some useful defs from iwutil.h into basedefs.h
   * Fixed iwre_match() function signatute allowing `const  char* input`
-  (iwre.h)
   * Added lightweight regexp implementation (iwre.h)
   * Added `size_t iwxstr_asize(IWXSTR*)` (iwxstr.h)
   * Added locale independed strtod: iwstrtod() (iwconv.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 14 Feb 2022 18:01:17 +0700
-
-iowow (1.4.13) testing; urgency=medium
-
+2021-09-03  Anton Adamansky  <adamansky@gmail.com>  [v1.4.13]
   * Fixed SEGV in iwkv_cursor_open with zero-length key and IWDB_VNUM64_KEYS (#42)
   * Fixed Heap UAF in iwkv_close after invoking iwkv_db_set_meta on a database (#41)
   * Added `iwxstr_wrap()` (iwxstr.h)
@@ -116,10 +97,7 @@ iowow (1.4.13) testing; urgency=medium
   * Thread poll, single thread worker fixes
   * Added IW_MIN, IW_MAX, IW_XSTR defines
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 03 Sep 2021 16:03:05 +0700
-
-iowow (1.4.12) testing; urgency=medium
-
+2021-07-19  Anton Adamansky  <adamansky@gmail.com>  [v1.4.12]
   * Added IW_ERROR_UNSUPPORTED error code
   * Added  IW_ALLOC __attribute__((malloc)) optimization
   * Added ring buffer implementation (iwrb.h)
@@ -127,10 +105,7 @@ iowow (1.4.12) testing; urgency=medium
   * Minor changes in iwlog.h api
   * `memcpy` replaced by `memmove` for overlaping cases (iwarr.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 19 Jul 2021 10:09:05 +0700
-
-iowow (1.4.11) testing; urgency=medium
-
+2021-05-10  Anton Adamansky  <adamansky@gmail.com>  [v1.4.11]
   * Fixed typo (qsort_r => sort_r) (iwarr.c)
   * Added simple threads pool implementation (iwtp.h)
   * Added IW_ERROR_NOT_ALLOWED error code (iwlog.h)
@@ -150,25 +125,16 @@ iowow (1.4.11) testing; urgency=medium
   * Removed dependency on glibc specific features
   * Added new iwxstr_pop() (iwxstr.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 10 May 2021 16:43:52 +0700
-
-iowow (1.4.10) testing; urgency=medium
-
+2020-12-22  Anton Adamansky  <adamansky@gmail.com>  [v1.4.10]
   * Tuned iwkv file resizing policy
   * Fixed misuse of `IWKV_OPTS.file_lock_fail_fast` (#35)
   * Correct handling of EINTR, EAGAIN in read/write functions (unix.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 22 Dec 2020 23:55:36 +0700
-
-iowow (1.4.9) testing; urgency=medium
-
+2020-11-18  Anton Adamansky  <adamansky@gmail.com>  [v1.4.9]
   * Code review of iwkv cache keys comparison, related issue: https://github.com/Softmotions/ejdb/issues/291
   * Added `bool iwu_uuid_valid(const char *uuid)` (iwuuid.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 18 Nov 2020 15:04:03 +0700
-
-iowow (1.4.8) testing; urgency=medium
-
+2020-11-08  Anton Adamansky  <adamansky@gmail.com>  [v1.4.8]
   * Fixed serios bug concerning non-unique ejdb2 indexes, details: https://github.com/Softmotions/ejdb/issues/291
   * Fixed potencial memory leak in `iwlist_create()` (iwarr.h)
   * Fixed wrong `iwulist_clear()` behaviour (iwarr.h)
@@ -176,17 +142,11 @@ iowow (1.4.8) testing; urgency=medium
   * Added `iwulist_at2()` (iwarr.h)
   * Removed not needed assertion (iwstree.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Sun, 08 Nov 2020 21:51:49 +0700
-
-iowow (1.4.7) testing; urgency=medium
-
+2020-09-21  Anton Adamansky  <adamansky@gmail.com>  [v1.4.7]
   * Correct handling of EINTR, EAGAIN in read/write functions (unix.c)
   * Minor fixes on iwhmap
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 21 Sep 2020 12:14:06 +0700
-
-iowow (1.4.6) testing; urgency=medium
-
+2020-06-24  Anton Adamansky  <adamansky@gmail.com>  [v1.4.6]
   * Added `iwpool_user_data_detach()` (iwpool.h)
   * Added `iwpool_create_empty()` (iwpool.h)
   * Added simple hashmap implementation (iwhmap.h)
@@ -196,10 +156,7 @@ iowow (1.4.6) testing; urgency=medium
   * Added single thread worker (iwstw.h)
   * Added `iwstree_clear()` (iwstree.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 24 Jun 2020 18:32:24 +0700
-
-iowow (1.4.5) testing; urgency=medium
-
+2020-06-18  Anton Adamansky  <adamansky@gmail.com>  [v1.4.5]
   * Added `iwulist_clear` (iwarr.h)
   * Added `RCIF` (basedefs.h)
   * Fix assertion error in `iwstree_remove()` (iwstree.h)
@@ -210,24 +167,15 @@ iowow (1.4.5) testing; urgency=medium
   * Added `iwstree_int64_cmp` (iwstree.h)
   * Added `IW_DEPRECATED` (basedefs.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 18 Jun 2020 14:19:32 +0700
-
-iowow (1.4.4) testing; urgency=medium
-
+2020-05-02  Anton Adamansky  <adamansky@gmail.com>  [v1.4.4]
   * Fixed incorrect copying of cursor key data in `IWDB_COMPOUND_KEYS` mode (iwkv.c)
   * Adde compound key example code (compoundkeys1.c)
   * Added `iwstree_visit` (iwstree.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 02 May 2020 19:38:31 +0700
-
-iowow (1.4.3) testing; urgency=medium
-
+2020-04-24  Anton Adamansky  <adamansky@gmail.com>  [v1.4.3]
   * Fixed errors found by PVS studio
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 24 Apr 2020 00:16:42 +0700
-
-iowow (1.4.2) testing; urgency=medium
-
+2020-04-20  Anton Adamansky  <adamansky@gmail.com>  [v1.4.2]
   * Added IWULIST, IWLIST implementation (iwarr.h)
   * Added iwpool_split_string (iwpool.h)
   * Added iwpool_printf (iwpool.h)
@@ -236,267 +184,152 @@ iowow (1.4.2) testing; urgency=medium
   * Added `#define RCHECK` (basedefs.h)
   * Better error handling of `kh_put`
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 20 Apr 2020 16:23:50 +0700
-
-iowow (1.4.1) testing; urgency=medium
-
+2020-03-07  Anton Adamansky  <adamansky@gmail.com>  [v1.4.1]
   * Fixed possible data corruption in `_fsm_blk_allocate_aligned_lw` (iwfsmfile.c)
   * Better new SBLK blocks locality  (performance)
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 07 Mar 2020 23:23:13 +0700
-
-iowow (1.4.0) testing; urgency=medium
-
+2020-03-06  Anton Adamansky  <adamansky@gmail.com>  [v1.4.0]
   * Implemented new compact and performant data storage format v2
   * Added WiredTiger v3.2.1 benchmarks
   * Added BerkeleyDB v5.3.28 benchmarks
   * Added TokyoCabinet v1.4.48 benchmarks
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 06 Mar 2020 23:23:16 +0700
-
-iowow (1.3.37) testing; urgency=medium
-
+2020-02-17  Anton Adamansky  <adamansky@gmail.com>  [v1.3.37]
   * Added iwrc iwp_mkdirs(const char *path) (iwp.h)
   * Added uint32_t iwu_x31_u32_hash(const char *s) (iwutils.h)
   * Added iwu_replace() (iwutils.h)
   * Added RCA( macro definition
   * Removed IW_EXPORT iwrc iwkv_db_last_access_time(IWDB db, uint64_t *ts)
-    for performance and simplicity reasons
   * Added `IW_ERROR_INVALID_VALUE`
   * Added iwstree - splay tree imlementation (iwstree.h)
   * Pointers allocated by iwpool are now 8-byte aligned
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 17 Feb 2020 23:16:31 +0700
-
-iowow (1.3.36) testing; urgency=medium
-
+2020-01-16  Anton Adamansky  <adamansky@gmail.com>  [v1.3.36]
   * Safer iowow initialization bootstrap process.
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 16 Jan 2020 12:44:31 +0700
-
-iowow (1.3.35) testing; urgency=medium
-
+2020-01-15  Anton Adamansky  <adamansky@gmail.com>  [v1.3.35]
   * Added specific checks for TARGET_OS_IPHONE
   * Ported to iOS
   * Added wal locking interceptor to WAL opts
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 15 Jan 2020 13:10:51 +0700
-
-iowow (1.3.32) testing; urgency=medium
-
+2019-12-19  Anton Adamansky  <adamansky@gmail.com>  [v1.3.32]
   * Improved WAL durability
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 19 Dec 2019 10:49:08 +0700
-
-iowow (1.3.31) testing; urgency=medium
-
+2019-11-20  Anton Adamansky  <adamansky@gmail.com>  [v1.3.31]
   * Keys comparison refactoring
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 20 Nov 2019 00:41:15 +0700
-
-iowow (1.3.30) testing; urgency=medium
-
+2019-11-19  Anton Adamansky  <adamansky@gmail.com>  [v1.3.30]
   * Added check if  __unused is already defined in `iwth.c`
   * CRITICAL Comparsions keys fix #30
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 19 Nov 2019 20:23:41 +0700
-
-iowow (1.3.29) testing; urgency=medium
-
+2019-11-13  Anton Adamansky  <adamansky@gmail.com>  [v1.3.29]
   * FIXED iwkv_open assertion fail on opening garbage file #29
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 13 Nov 2019 23:55:35 +0700
-
-iowow (1.3.28) testing; urgency=medium
-
+2019-11-07  Anton Adamansky  <adamansky@gmail.com>  [v1.3.28]
   * iwlog now supports ANDROID NDK logging (iwlog.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 07 Nov 2019 14:44:59 +0700
-
-iowow (1.3.27) testing; urgency=medium
-
+2019-10-28  Anton Adamansky  <adamansky@gmail.com>  [v1.3.27]
   * CRITICAL WAL durability fixes
   * Support of online backups #24
   * Windows platform functions fixes
   * CLion project files added
   * WAL recovering fixes
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 28 Oct 2019 19:08:59 +0700
-
-iowow (1.3.25) testing; urgency=medium
-
+2019-08-29  Anton Adamansky  <adamansky@gmail.com>  [v1.3.25]
   * CRITICAL Fixed heap corruption due incorrect usage of khash API in `_db_destroy_lw` (iwkv.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 29 Aug 2019 12:20:25 +0700
-
-iowow (1.3.24) testing; urgency=medium
-
+2019-08-22  Anton Adamansky  <adamansky@gmail.com>  [v1.3.24]
   * CRITICAL Fixed race condition in WAL rollforward
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 22 Aug 2019 02:04:08 +0700
-
-iowow (1.3.23) testing; urgency=medium
-
+2019-08-17  Anton Adamansky  <adamansky@gmail.com>  [v1.3.23]
   * WAL refactoring, better stability
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 17 Aug 2019 21:17:05 +0700
-
-iowow (1.3.22) testing; urgency=medium
-
+2019-07-18  Anton Adamansky  <adamansky@gmail.com>  [v1.3.22]
   * Small optimizations in `iwfsmfile.c`
   * Added `iwp_clock_get_time` as  portable version of `clock_gettime`
   * `static_assert` is  set to `_Static_assert` if not defined
   * Added `__USE_MINGW_ANSI_STDIO` for MinGW build
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 18 Jul 2019 17:50:14 +0700
-
-iowow (1.3.20) testing; urgency=medium
-
+2019-06-13  Anton Adamansky  <adamansky@gmail.com>  [v1.3.20]
   * CRITICAL Fixed incorrect keys allocation in IWDB_COMPOUND_KEYS mode
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 13 Jun 2019 21:43:47 +0700
-
-iowow (1.3.19) testing; urgency=medium
-
+2019-06-13  Anton Adamansky  <adamansky@gmail.com>  [v1.3.19]
   * CRITICAL: Fixed assertion fail in iwkv records cache
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 13 Jun 2019 19:08:48 +0700
-
-iowow (1.3.18) testing; urgency=medium
-
+2019-06-12  Anton Adamansky  <adamansky@gmail.com>  [v1.3.18]
   * Limit one time file allocation step to 2G
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 12 Jun 2019 16:42:47 +0700
-
-iowow (1.3.17) testing; urgency=medium
-
+2019-05-03  Anton Adamansky  <adamansky@gmail.com>  [v1.3.17]
   * CRITICAL: State of previously deleted database may have influence on newly created dbs
   * BUG: Fixed database metadata blocks leak (db->meta_blk) on database destroy
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 03 May 2019 18:20:39 +0700
-
-iowow (1.3.16) testing; urgency=medium
-
+2019-05-03  Anton Adamansky  <adamansky@gmail.com>  [v1.3.16]
   * CRITICAL: Fixed deadlock on database removal
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 03 May 2019 11:56:29 +0700
-
-iowow (1.3.15) testing; urgency=medium
-
+2019-05-01  Anton Adamansky  <adamansky@gmail.com>  [v1.3.15]
   * CRITICAL: Fixed database file corruption during sequential records deletion with `iwkv_cursor_del` (iwkv.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 01 May 2019 23:29:18 +0700
-
-iowow (1.3.14) testing; urgency=medium
-
+2019-04-27  Anton Adamansky  <adamansky@gmail.com>  [v1.3.14]
   * CRITICAL: Fixed unexpected database file truncation and data loss on close.
   * Adjusted default WAL options for Android
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 27 Apr 2019 01:04:28 +0700
-
-iowow (1.3.13) testing; urgency=medium
-
+2019-04-25  Anton Adamansky  <adamansky@gmail.com>  [v1.3.13]
   * Performance impovements in Write Ahead Logging (iwal.c)
   * BUG: WAL file was not truncated after `wal->checkpoint_timeout_sec` timeout (iwal.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 25 Apr 2019 17:43:06 +0700
-
-iowow (1.3.12) testing; urgency=medium
-
+2019-04-21  Anton Adamansky  <adamansky@gmail.com>  [v1.3.12]
   * Android NDK support (#23)
   * Pthreads `PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP` is used by default
 
- -- Anton Adamansky <adamansky@gmail.com>  Sun, 21 Apr 2019 12:18:16 +0700
-
-iowow (1.3.11) testing; urgency=medium
-
+2019-04-08  Anton Adamansky  <adamansky@gmail.com>  [v1.3.11]
   * Added size_t iwpool_allocated_size(struct iwpool *pool) (iwpool.h)
   * Added `file_lock_fail_fast` iwkv open option.
-    If `true` - do not wait and raise error if database is locked by another process
   * Fixed meaningful PVP studio errors:
-    - kv/iwkv.c:593:1: error: V774
-    - kv/iwkv.c:1375:1: warning: V649
-    - kv/iwkv.c:3357:1: warning: V581
-    - utils/iwxstr.c:59:1: warning: V701
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 08 Apr 2019 11:47:59 +0700
-
-iowow (1.3.10) testing; urgency=medium
-
+2019-04-05  Anton Adamansky  <adamansky@gmail.com>  [v1.3.10]
   * Added cmake `OWNER_PROJECT_NAME` option used to install header files in `CMAKE_INSTALL_INCLUDEDIR}/OWNER_PROJECT_NAME/PROJECT_NAME`
   * Removed `-fvisibility=hidden` C flag when building shared library
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 05 Apr 2019 11:53:34 +0700
-
-iowow (1.3.9) testing; urgency=medium
-
+2019-03-29  Anton Adamansky  <adamansky@gmail.com>  [v1.3.9]
   * BUG `IW_HAVE_PTHREAD_CONDATTR_SETCLOCK` was not properly set for `iwal.c` hence high CPU usage when `wal` mode is on.
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 29 Mar 2019 23:56:25 +0700
-
-iowow (1.3.8) testing; urgency=medium
-
+2019-03-27  Anton Adamansky  <adamansky@gmail.com>  [v1.3.8]
   * BUG Fixed incorrect call of `_kvblk_kv_get` in `iwkv_cursor_seth`.
-    See https://github.com/Softmotions/ejdb/issues/231
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 27 Mar 2019 12:34:10 +0700
-
-iowow (1.3.7) testing; urgency=medium
-
+2019-03-26  Anton Adamansky  <adamansky@gmail.com>  [v1.3.7]
   * Added `iwkv_cursor_del()` (#22)
   * Fixed memory corruption during simultaneous cursor iteration and value updating
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 26 Mar 2019 18:24:35 +0700
-
-iowow (1.3.6) testing; urgency=medium
-
+2019-03-22  Anton Adamansky  <adamansky@gmail.com>  [v1.3.6]
   * BUG: Memory leak in `iwkv_cursor_open` on error (#21)
   * BUG: `iwxstr_new2()` with zero size argument causes illegal memory write (#20)
   * Added `iwkv_cursor_seth()` record update handle supported by `iwkv_cursor_set`
   * Avoided deadlocks with `iwkv_del()` - now this function does't escalate exclusive lock on storage
   * More consistent error reporting using cursor functions
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 22 Mar 2019 16:29:32 +0700
-
-iowow (1.3.5) testing; urgency=medium
-
+2019-03-20  Anton Adamansky  <adamansky@gmail.com>  [v1.3.5]
   * BUG: Data from deleted database can interfere with newly created db (#19)
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 20 Mar 2019 20:26:22 +0700
-
-iowow (1.3.4) testing; urgency=medium
-
+2019-03-11  Anton Adamansky  <adamansky@gmail.com>  [v1.3.4]
   * Code documentation improvements
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 11 Mar 2019 22:42:51 +0700
-
-iowow (1.3.3) testing; urgency=medium
-
+2019-03-08  Anton Adamansky  <adamansky@gmail.com>  [v1.3.3]
   * BUG: `iwkv_puth` called with incorrect previous value (iwkv.h)
   * _kvblk_getvalue renamed to _kvblk_value_get (iwkv.c)
   * _kvblk_peek_val renamed to _kvblk_value_peek (iwkv.c)
   * _kvblk_getkey renamed to _kvblk_key_get (iwkv.c)
   * _kvblk_getkv renamed to _kvblk_kv_get (iwkv.c)
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 08 Mar 2019 17:02:46 +0700
-
-iowow (1.3.2) testing; urgency=medium
-
+2019-03-04  Anton Adamansky  <adamansky@gmail.com>  [v1.3.2]
   * Added `iwkv_cursor_is_matched_key` (iwkv.h)
   * `iwkv_cursor_copy_key` now aware of `IWDB_COMPOUND_KEYS` mode (iwkv.h)
   * `iwkv_cursor_copy_key` can accept zero kbuf,kbufsz only compound part will returned in this case (iwkv.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 04 Mar 2019 20:50:03 +0700
-
-iowow (1.3.1) testing; urgency=medium
-
+2019-02-28  Anton Adamansky  <adamansky@gmail.com>  [v1.3.1]
   * Eliminate adaptive `IWDB_VNUM64_KEYS` key sizing in `_unpack_effective_key` for the sake of API simplicity (iwkv.c)
   * BUG: incorrect key handling in `iwkv_del` - key was not unpacked before. (iwkv.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 28 Feb 2019 10:40:11 +0700
-
-iowow (1.3.0) testing; urgency=medium
-
+2019-02-27  Anton Adamansky  <adamansky@gmail.com>  [v1.3.0]
   * `IWKV_PUT_HANDLER` called for insert operations (not only for updates)
   * Added `IWFS_OUNLINK` flag. Unlink(delete) file on close (iwfile.h)
   * Added `IWFS_OTMP` flag. Create tmp file (iwfile.h)
@@ -511,10 +344,7 @@ iowow (1.3.0) testing; urgency=medium
   * Removed `dup` integer value routines
   * Code cleanup and refactoring
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 27 Feb 2019 12:11:48 +0700
-
-iowow (1.2.14) testing; urgency=medium
-
+2018-11-06  Anton Adamansky  <adamansky@gmail.com>  [v1.2.14]
   * BUG: Fix WAL checkpoint workflow to avoid deadlocks with cursor threads
   * BUG: Clang6 fatal error: variable 'cur' is used uninitialized  (#15)
   * Implemented new multithreaded stress test (iwkv_test6.c) used OMP stack
@@ -526,161 +356,93 @@ iowow (1.2.14) testing; urgency=medium
   * Added iwkv_puth() with provided old value interceptor: `IWKV_PUT_HANDLER` (iwkv.h)
   * Added `IWKV_RC_DUP_ARRAY_EMPTY` flag and `IWKV_DUP_REPORT_EMPTY` opflag for `iwkv_put()` (iwkv.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 06 Nov 2018 23:14:39 +0700
-
-iowow (1.2.13) testing; urgency=medium
-
+2018-08-02  Anton Adamansky  <adamansky@gmail.com>  [v1.2.13]
   * BUG: Correct cursors adjustments during db update operations (#13)
   * BUG: Fixed WAL integration for updates in IWDB_DUP_UINT32_VALS|IWDB_DUP_UINT64_VALS mode
   * Store arbitrary data blocks associated with iwkv internal databases (#12)
   * Checking of max key/value size (IWKV_MAX_KVSZ) for updates in IWDB_DUP_UINT32_VALS|IWDB_DUP_UINT64_VALS mode
   * Minor allocation performance optimizations in _kvblk_addkv()
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 02 Aug 2018 20:29:08 +0700
-
-iowow (1.2.12) testing; urgency=medium
-
+2018-07-21  Anton Adamansky  <adamansky@gmail.com>  [v1.2.12]
   * Set terminating '\0' in iwitoa() (iwconv.h)
   * Added MAP_NORESERVE option for PRIVATE mmaping on Linux (#11)
   * Added iwu_file_read_as_buf() (iwutils.h)
   * Optimized cmake config files generation
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 21 Jul 2018 01:59:40 +0700
-
-iowow (1.2.11) testing; urgency=medium
+2018-06-15  Anton Adamansky  <adamansky@gmail.com>  [v1.2.11]
   * iwpool refactoring fixed pool memory corruption (iwpool.h)
   * Fixed set terminating `\0` in iwpool_strdup() (iwpool.h)
   * Fixed wrong `if` in iwpool_calloc() (iwpool.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 15 Jun 2018 17:58:20 +0700
-
-iowow (1.2.10) testing; urgency=medium
-
+2018-06-11  Anton Adamansky  <adamansky@gmail.com>  [v1.2.10]
   * Added iwpool_calloc() (iwpool.h)
   * Added iwpool_strdup(), iwpool_strndup() (iwpool.h)
   * Fixed memory leak in iwpool_destroy() (iwpool.h)
   * Renamed platform/linux/linux.c to platform/unix/unix.c (#9)
   * Added iwu_replace_char() (iwutils.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 11 Jun 2018 23:00:21 +0700
-
-iowow (1.2.9) testing; urgency=medium
-
+2018-05-29  Anton Adamansky  <adamansky@gmail.com>  [v1.2.9]
   * Rewrite of iwftoa() (iwconv.h)
   * Fixed typo: iwtoa renamed to iwitoa (iwconv.h)
   * Added iwu_cmp_files (iwutils.h)
   * Return type of iwxstr_ptr() changed to char* (iwxstr.h)
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 29 May 2018 01:01:56 +0700
-
-iowow (1.2.8) testing; urgency=medium
-
+2018-05-19  Anton Adamansky  <adamansky@gmail.com>  [v1.2.8]
   * IOWOW Ported to MIPS32 (big-endian) tested on Debian GNU/Linux 9.4
 
- -- Anton Adamansky <adamansky@gmail.com>  Sat, 19 May 2018 21:09:04 +0700
-
-iowow (1.2.7) testing; urgency=medium
-
+2018-05-17  Anton Adamansky  <adamansky@gmail.com>  [v1.2.7]
   * Fixed incorrect exclusive locking in iwkv_del()"
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 17 May 2018 11:27:58 +0700
-
-iowow (1.2.6) testing; urgency=medium
-
+2018-05-16  Anton Adamansky  <adamansky@gmail.com>  [v1.2.6]
   * Fixed: database file is not created automatically if no open modes specified in opts
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 16 May 2018 19:57:35 +0700
-
-iowow (1.2.5) testing; urgency=medium
-
+2018-05-16  Anton Adamansky  <adamansky@gmail.com>  [v1.2.5]
   * Added iwkv_opflags opflags into iwkv_del
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 16 May 2018 19:33:16 +0700
-
-iowow (1.2.4) testing; urgency=medium
-
+2018-05-14  Anton Adamansky  <adamansky@gmail.com>  [v1.2.4]
   * Fixed race conditions in iwkv_cursor_to()
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 14 May 2018 09:28:13 +0700
-
-iowow (1.2.3) testing; urgency=medium
-
+2018-05-11  Anton Adamansky  <adamansky@gmail.com>  [v1.2.3]
   *  Fixed race conditions in iwkv_cursor_set()
 
- -- Anton Adamansky <adamansky@gmail.com>  Fri, 11 May 2018 23:17:13 +0700
-
-iowow (1.2.2) testing; urgency=medium
-
+2018-05-08  Anton Adamansky  <adamansky@gmail.com>  [v1.2.2]
   * Added static iowow_s libraries to the default CMake exports.
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 08 May 2018 22:58:41 +0700
-
-iowow (1.2.1) testing; urgency=medium
-
+2018-05-07  Anton Adamansky  <adamansky@gmail.com>  [v1.2.1]
   * Removed unistd.h from src/fs/iwdlsnr.h since it is not portable.
   * C++ friendly header files
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 07 May 2018 12:47:46 +0700
-
-iowow (1.2.0) testing; urgency=medium
-
+2018-05-06  Anton Adamansky  <adamansky@gmail.com>  [v1.2.0]
   * IOWOW ported to Windows x86-64 platform #1
 
- -- Anton Adamansky <adamansky@gmail.com>  Sun, 06 May 2018 20:35:14 +0700
-
-iowow (1.1.0) testing; urgency=medium
-
+2018-05-02  Anton Adamansky  <adamansky@gmail.com>  [v1.1.0]
   * Write Ahead Log (WAL) implemented #2
   * Changed database block size to 128 bytes so max db size 512Gb
-    WARNING: Database format of version 1.1.x is incompatible with previous versions.
   * Better basename/basename_r detection in iwlog.c #4
 
- -- Anton Adamansky <adamansky@gmail.com>  Wed, 02 May 2018 17:28:14 +0700
-
-iowow (1.0.6) testing; urgency=medium
-
+2018-04-16  Anton Adamansky  <adamansky@gmail.com>  [v1.0.6]
   * src/CMakeLists.txt cleanups #3
   * x86-specific code in src/platform/iwp.c is not guarded #7
   * Database size limited to 2GB on 32 bit CPUs #5
   * Database block size changed: 64 to 128 bytes #8
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 16 Apr 2018 10:21:00 +0700
-
-iowow (1.0.5) testing; urgency=medium
-
+2018-04-12  Anton Adamansky  <adamansky@gmail.com>  [v1.0.5]
   * iwextfile: do msync before munmap on file resizing
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 20:48:26 +0700
-
-iowow (1.0.4) testing; urgency=medium
-
+2018-04-12  Anton Adamansky  <adamansky@gmail.com>  [v1.0.4]
   * Added IWFSM_SYNC_BMAP option to iwfs_fsm_aflags
   * Removed IWFS_NO_MMASYNC since it does noop on many platforms
   * Set exclusive iwkv write lock in iwkv_sync()
 
- -- Anton Adamansky <adamansky@gmail.com>  Thu, 12 Apr 2018 12:33:53 +0700
-
-iowow (1.0.3) testing; urgency=medium
-
+2018-04-10  Anton Adamansky  <adamansky@gmail.com>  [v1.0.3]
   * Added basic iowow.3 man page to distribution archive
   * Use posix_fallocate() to extend iwkv file instead of ftruncate() on Linux/FreeBSD
 
- -- Anton Adamansky <adamansky@gmail.com>  Tue, 10 Apr 2018 18:56:11 +0700
-
-iowow (1.0.2) testing; urgency=medium
-
+2018-04-09  Anton Adamansky  <adamansky@gmail.com>  [v1.0.2]
   * Removed unneeded -D_LARGE_FILE_SOURCE from iowow.h
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 09 Apr 2018 13:56:53 +0700
-
-iowow (1.0.1) testing; urgency=medium
-
+2018-04-09  Anton Adamansky  <adamansky@gmail.com>  [v1.0.1]
   * Fix export flags iwlog2 method
 
- -- Anton Adamansky <adamansky@gmail.com>  Mon, 09 Apr 2018 12:44:23 +0700
-
-iowow (1.0.0) testing; urgency=medium
-
+2018-04-08  Anton Adamansky  <adamansky@gmail.com>  [v1.0.0]
   * Initial release.
-
- -- Anton Adamansky <adamansky@gmail.com>  Sun, 08 Apr 2018 14:21:43 +0700

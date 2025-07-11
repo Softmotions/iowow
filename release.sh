@@ -3,19 +3,26 @@
 set -e
 set -x
 
-cd `readlink -f "$0" | xargs dirname`
+cd "$(dirname "$(readlink -f "$0")")"
+
 git pull origin master
-dch --distribution testing --no-force-save-on-release --release "" -c ./Changelog
-VERSION=`dpkg-parsechangelog -l./Changelog -SVersion`
+
+CHANGELOG=./Changelog
+VERSION=$(grep -m1 -o '\[v[0-9][^]]*\]' "$CHANGELOG" | sed 's/\[v//;s/\]//')
 TAG="v${VERSION}"
-CHANGESET=`dpkg-parsechangelog -l./Changelog -SChanges | sed '/^iowow.*/d' | sed '/^\s*$/d'`
-git add ./Changelog
+
+CHANGESET=$(awk -v tag="$TAG" '
+  $0 ~ tag { skip = 1; next }
+  skip && NF == 0 { exit }
+  skip { print }
+' "$CHANGELOG" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' )
+
+git add "$CHANGELOG"
 
 if ! git diff-index --quiet HEAD --; then
   git commit -m"${TAG} landed"
   git push origin master
 fi
 
-echo "${CHANGESET}" | git tag -f -a -F - "${TAG}"
+echo "$CHANGESET" | git tag -f -a -F - "$TAG"
 git push origin -f --tags
-
