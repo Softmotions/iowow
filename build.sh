@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=529af7e
+META_REVISION=d2c55e8
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "529af7e"
+#define META_REVISION "d2c55e8"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -3081,7 +3081,7 @@ static char* _resolve_check_path(struct pool *pool, struct node *n, const char *
       return pool_strdup(pool, buf);
     }
   }
-  node_fatal(AK_ERROR_FAIL, n, "Check script is not found: %s", script);
+  node_fatal(AK_ERROR_FAIL, n, "Check script not found: %s", script);
   return 0;
 }
 static void _check_script(struct node *n) {
@@ -5443,6 +5443,9 @@ struct unit* unit_pop(void) {
   struct unit_ctx peek = unit_peek_ctx();
   if (peek.unit) {
     unit_ch_dir(&peek, 0);
+    setenv(AUTARK_UNIT, peek.unit->rel_path, 1);
+  } else {
+    unsetenv(AUTARK_UNIT);
   }
   return ctx->unit;
 }
