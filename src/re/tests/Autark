@@ -15,7 +15,7 @@ foreach {
   }
 }
 
-if { defined { RUN_TESTS }
+if { defined { IOWOW_RUN_TESTS }
   foreach {
     OBJ
     ${CC_OBJS}

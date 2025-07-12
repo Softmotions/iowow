@@ -19,7 +19,7 @@ foreach {
   }
 }
 
-if { defined { RUN_TESTS }
+if { defined { IOWOW_RUN_TESTS }
   run {
     shell { ln -sf SS{data} ./data }
     produces { ./data }

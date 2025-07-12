@@ -23,6 +23,6 @@ set {
   -I SS{}
 }
 
-if { defined { BUILD_TESTS }
+if { defined { IOWOW_BUILD_TESTS }
   include { tests/Autark }
 }

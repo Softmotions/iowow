@@ -12,12 +12,12 @@ meta {
   license { MIT }
 }
 
-option { BUILD_SHARED_LIBS  Build shared library }
-option { BUILD_TESTS        Build test cases }
-option { RUN_TESTS          Build and run test cases }
-option { ENABLE_ASAN        Turn on address sanitizer }
-option { ENABLE_UBSAN       Turn on UB sanitizer }
-option { ENABLE_DEBINFO     Generate debuginfo even in release mode }
+option { IOWOW_BUILD_SHARED_LIBS  Build shared library }
+option { IOWOW_BUILD_TESTS        Build test cases }
+option { IOWOW_RUN_TESTS          Build and run test cases }
+option { ENABLE_ASAN              Turn on address sanitizer }
+option { ENABLE_UBSAN             Turn on UB sanitizer }
+option { ENABLE_DEBINFO           Generate debuginfo even in release mode }
 
 set {
   META_VERSION
@@ -29,9 +29,9 @@ set {
   @{ git rev-parse --short HEAD }
 }
 
-if { defined { RUN_TESTS }
+if { defined { IOWOW_RUN_TESTS }
   set {
-    BUILD_TESTS 1
+     IOWOW_BUILD_TESTS 1
   }
 }
 
@@ -55,7 +55,7 @@ set {
   -Wno-unused-function
   -Wno-unused-parameter
   if { !eq { ${SYSTEM_NAME} Windows }
-    if { defined { BUILD_SHARED_LIBS }
+    if { defined { IOWOW_BUILD_SHARED_LIBS }
       -fPIC
     }
   }
@@ -102,10 +102,10 @@ set {
   -D_LARGEFILE_SOURCE
   -D_FILE_OFFSET_BITS=64
 
-  if { !defined { BUILD_SHARED_LIBS }
+  if { !defined { IOWOW_BUILD_SHARED_LIBS }
     -DIW_NODLL
   }
-  if { defined { BUILD_TESTS }
+  if { defined { IOWOW_BUILD_TESTS }
     -DIW_TESTS=1
   }
   -I C{src}

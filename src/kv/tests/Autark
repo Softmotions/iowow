@@ -25,7 +25,7 @@ foreach {
 }
 
 
-if { defined { RUN_TESTS }
+if { defined { IOWOW_RUN_TESTS }
   run {
     shell { cp SS{*.ref} CC{} }
     shell { cp SS{*.data} CC{} }
