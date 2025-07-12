@@ -24,7 +24,7 @@ set {
 set {
   LDFLAGS_TEST
   ${LIBIOWOW_A}
-  @{ pkgconf --libs cunit }
+  @{ ${PKGCONF} --libs cunit }
   ..${LDFLAGS}
 }
 
