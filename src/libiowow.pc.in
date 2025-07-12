@@ -8,5 +8,5 @@ Description: @META_DESCRIPTION@
 URL: @META_WEBSITE@
 Version: @META_VERSION@
 Libs: -L${libdir} -l${artifact}
-Libs.private: -lm
+Libs.private: @LDFLAGS@
 Cflags: -I${includedir}

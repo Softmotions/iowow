@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=d2c55e8
+META_REVISION=812ba17
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "d2c55e8"
+#define META_REVISION "812ba17"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -3283,7 +3283,7 @@ static const char* _subst_value_proc(struct node *n) {
     return n->impl;
   }
   const char *cmd = node_value(n->child);
-  if (cmd == 0) {
+  if (cmd == 0 || *cmd == '\0') {
     return 0;
   }
   struct xstr *xstr = xstr_create_empty();
@@ -3296,8 +3296,8 @@ static const char* _subst_value_proc(struct node *n) {
   spawn_set_stdout_handler(s, _subst_stdout_handler);
   spawn_set_stderr_handler(s, _subst_stderr_handler);
   for (struct node *nn = n->child->next; nn; nn = nn->next) {
-    if (nn->type == NODE_TYPE_VALUE) {
-      spawn_arg_add(s, nn->value);
+    if (node_is_can_be_value(nn)) {
+      spawn_arg_add(s, node_value(nn));
     }
   }
   int rc = spawn_do(s);
