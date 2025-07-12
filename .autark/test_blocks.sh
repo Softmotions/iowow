@@ -18,7 +18,7 @@ int main() {
 }
 EOF
 
-if ${CC} -Werror -fblocks ./test_blocks.c -o ./test_blocks; then
+if ${CC} -Werror -fblocks -lBlocksRuntime ./test_blocks.c -o ./test_blocks; then
   autark set "$DEFINE_VAR=1"
 fi
 

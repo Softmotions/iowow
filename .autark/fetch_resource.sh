@@ -100,5 +100,7 @@ if [ -n "$TARGET_VAR" ]; then
   autark set "$TARGET_VAR=$TARGET_DIR"
 fi
 
+rm -rf $TARGET_DIR/autark-cache
+
 autark dep $TARGET_DIR
 
