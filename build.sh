@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=ba55e01
+META_REVISION=be623dd
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "ba55e01"
+#define META_REVISION "be623dd"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -2812,10 +2812,6 @@ int spawn_do(struct spawn *s) {
             } else {
               s->stderr_handler(buf, n, s);
             }
-          } else if (n == -1) {
-            close(fds[i].fd);
-            fds[i].fd = -1;
-            --c;
           }
         }
         if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
@@ -3906,7 +3902,7 @@ static void _run_build(struct node *n) {
     .node_val_deps = { .usize = sizeof(struct node*) },
     .force_outdated = node_find_direct_child(n, NODE_TYPE_VALUE, "always") != 0,
   };
-  /*for (struct node *nn = n->child; nn; nn = nn->next) {
+  for (struct node *nn = n->child; nn; nn = nn->next) {
     if (strcmp(nn->value, "exec") == 0 || strcmp(nn->value, "shell") == 0) {
       for (struct node *cn = nn->child; cn; cn = cn->next) {
         if (node_is_value_may_be_dep_saved(cn)) {
@@ -3914,7 +3910,7 @@ static void _run_build(struct node *n) {
         }
       }
     }
-  }*/
+  }
   node_resolve(&r);
   ulist_destroy_keep(&ctx.consumes);
   ulist_destroy_keep(&ctx.consumes_foreach);

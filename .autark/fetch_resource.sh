@@ -101,6 +101,6 @@ if [ -n "$TARGET_VAR" ]; then
 fi
 
 rm -rf $TARGET_DIR/autark-cache
-
-autark dep $TARGET_DIR
+touch $TARGET_DIR/.autark-fetch-dep
+autark dep $TARGET_DIR/.autark-fetch-dep
 

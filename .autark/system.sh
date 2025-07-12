@@ -100,6 +100,9 @@ ${CC} ./test_system.c -o ./test_system || exit 1
 ./test_system | xargs autark set
 eval "$(./test_system)"
 
+autark env CC
+autark env CFLAGS
 autark set "SYSTEM_NAME=$SYSTEM_NAME"
 autark set "SYSTEM_$(echo -n "$SYSTEM_NAME" | tr '[:lower:]' '[:upper:]')=1"
 autark set "SYSTEM_ARCH=$SYSTEM_ARCH"
+

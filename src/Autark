@@ -28,12 +28,12 @@ set {
   ..${LDFLAGS}
 }
 
-option { OWNER_PROJECT_NAME Optional name of the owner project used to install
-                            header files into OWNER_PROJECT_NAME/META_PROJECT_NAME }
+option { IOWOW_OWNER_PROJECT_NAME Optional name of the owner project used to install
+                                  header files into IOWOW_OWNER_PROJECT_NAME/META_PROJECT_NAME }
 
-if { defined { OWNER_PROJECT_NAME }
+if { defined { IOWOW_OWNER_PROJECT_NAME }
   set {
-    IW_PUBLIC_HEADER_DESTINATION ^{ ${INSTALL_INCLUDE_DIR} / ${OWNER_PROJECT_NAME} }
+    IW_PUBLIC_HEADER_DESTINATION ^{ ${INSTALL_INCLUDE_DIR} / ${IOWOW_OWNER_PROJECT_NAME} }
   }
 } else {
   set {
