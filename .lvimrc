@@ -14,5 +14,4 @@ let $ROOT_DIR = g:root_dir
 let $UNCRUSTIFY_CONFIG = g:root_dir.'/uncrustify.cfg'
 let &g:makeprg = 'IOWOW_BUILD_TESTS=1 ./build.sh'
 
-packadd termdebug
 let g:termdebug_config = {'map_minus': 0, 'map_plus': 0, 'wide': 1}

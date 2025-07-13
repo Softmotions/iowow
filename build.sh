@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=be623dd
+META_REVISION=16f53b0
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "be623dd"
+#define META_REVISION "16f53b0"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -655,11 +655,12 @@ const char* env_libdir(void);
 #define DEPS_TYPE_FILE_OUTDATED 111 // x
 #define DEPS_TYPE_NODE_VALUE    118 // v
 #define DEPS_TYPE_ENV           101 // e
+#define DEPS_TYPE_SYS_ENV       115 // s
 #define DEPS_TYPE_ALIAS         97  // a
 #define DEPS_TYPE_OUTDATED      120 // o
 #define DEPS_OPEN_TRUNCATE 0x01U
 #define DEPS_OPEN_READONLY 0x02U
-#define DEPS_BUF_SZ 16384
+#define DEPS_BUF_SZ 262144
 struct deps {
   char    type;
   char    flags;
@@ -2812,6 +2813,10 @@ int spawn_do(struct spawn *s) {
             } else {
               s->stderr_handler(buf, n, s);
             }
+          } else if (n == -1) {
+            close(fds[i].fd);
+            fds[i].fd = -1;
+            --c;
           }
         }
         if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
@@ -2872,10 +2877,10 @@ bool deps_cur_next(struct deps *d) {
     char *rp = d->buf;
     d->type = *rp++;
     d->flags = *rp++;
-    if (d->type == DEPS_TYPE_NODE_VALUE || d->type == DEPS_TYPE_ENV) {
+    if (d->type == DEPS_TYPE_NODE_VALUE || d->type == DEPS_TYPE_ENV || d->type == DEPS_TYPE_SYS_ENV) {
       utils_chars_replace(d->buf, '\2', '\n');
     }
-    if (d->type == DEPS_TYPE_ALIAS || d->type == DEPS_TYPE_ENV) {
+    if (d->type == DEPS_TYPE_ALIAS || d->type == DEPS_TYPE_ENV || d->type == DEPS_TYPE_SYS_ENV) {
       d->alias = rp;
       d->resource = 0;
     } else {
@@ -2932,6 +2937,13 @@ bool deps_cur_is_outdated(struct deps *d) {
         }
         return strcmp(val, d->resource) != 0;
       }
+      case DEPS_TYPE_SYS_ENV: {
+        const char *val = getenv(d->alias);
+        if (!val) {
+          val = "";
+        }
+        return strcmp(val, d->resource) != 0;
+      }
       case DEPS_TYPE_OUTDATED:
         return true;
     }
@@ -2941,6 +2953,7 @@ bool deps_cur_is_outdated(struct deps *d) {
 static int _deps_add(struct deps *d, char type, char flags, const char *resource, const char *alias, int64_t serial) {
   int rc = 0;
   char buf[2][PATH_MAX];
+  char dbuf[DEPS_BUF_SZ];
   if (flags == 0) {
     flags = ' ';
   }
@@ -2960,11 +2973,11 @@ static int _deps_add(struct deps *d, char type, char flags, const char *resource
     if (!path_stat(alias, &st) && st.ftype != AKPATH_NOT_EXISTS) {
       serial = st.mtime;
     }
-  } else if (type == DEPS_TYPE_ENV || type == DEPS_TYPE_NODE_VALUE) {
+  } else if (type == DEPS_TYPE_ENV || type == DEPS_TYPE_NODE_VALUE || type == DEPS_TYPE_SYS_ENV) {
     assert(resource);
-    utils_strncpy(buf[0], resource, PATH_MAX);
+    utils_strncpy(dbuf, resource, sizeof(dbuf));
     utils_chars_replace(buf[0], '\n', '\2');
-    resource = buf[0];
+    resource = dbuf;
   } else if (type == DEPS_TYPE_FILE_OUTDATED) {
     type = DEPS_TYPE_FILE;
     path_normalize(resource, buf[0]);
@@ -2976,7 +2989,7 @@ static int _deps_add(struct deps *d, char type, char flags, const char *resource
     return errno;
   }
   fseek(d->file, 0, SEEK_END);
-  if (type != DEPS_TYPE_ALIAS && type != DEPS_TYPE_ENV) {
+  if (type != DEPS_TYPE_ALIAS && type != DEPS_TYPE_ENV && type != DEPS_TYPE_SYS_ENV) {
     if (fprintf(d->file, "%c%c%s\1%" PRId64 "\n", type, flags, resource, serial) < 0) {
       rc = errno;
     }
@@ -2999,6 +3012,9 @@ int deps_add_alias(struct deps *d, char flags, const char *resource, const char 
 }
 int deps_add_env(struct deps *d, char flags, const char *key, const char *value) {
   return _deps_add(d, DEPS_TYPE_ENV, flags, value, key, 0);
+}
+int deps_add_sys_env(struct deps *d, char flags, const char *key, const char *value) {
+  return _deps_add(d, DEPS_TYPE_SYS_ENV, flags, value, key, 0);
 }
 void deps_close(struct deps *d) {
   if (d && d->file) {
@@ -3951,6 +3967,7 @@ static char* _line_replace_def(struct node *n, struct deps *deps, char *line) {
   if (*np == '\"') {
     utils_strnncpy(key, sp, ep - sp, sizeof(key));
     const char *val = node_env_get(n, key);
+    deps_add_env(deps, 0, key, val ? val : "");
     if (val) {
       struct xstr *xstr = xstr_create_empty();
       xstr_printf(xstr, "#define %s \"%s\"\n", key, val);
@@ -3959,6 +3976,7 @@ static char* _line_replace_def(struct node *n, struct deps *deps, char *line) {
   } else if (*np >= '0' && *np <= '9') {
     utils_strnncpy(key, sp, ep - sp, sizeof(key));
     const char *val = node_env_get(n, key);
+    deps_add_env(deps, 0, key, val ? val : "");
     if (val) {
       struct xstr *xstr = xstr_create_empty();
       xstr_printf(xstr, "#define %s %s", key, np);
@@ -3971,6 +3989,7 @@ static char* _line_replace_def(struct node *n, struct deps *deps, char *line) {
   } else {
     utils_strnncpy(key, sp, ep - sp, sizeof(key));
     const char *val = node_env_get(n, key);
+    deps_add_env(deps, 0, key, val ? val : "");
     if (val) {
       struct xstr *xstr = xstr_create_empty();
       xstr_printf(xstr, "#define %s\n", key);
@@ -3996,9 +4015,7 @@ static char* _line_replace_subs(struct node *n, struct deps *deps, char *line) {
       if (*p == '@') {
         const char *key = xstr_ptr(kstr);
         const char *val = node_env_get(n, key);
-        if (val) {
-          deps_add_env(deps, 0, key, val);
-        }
+        deps_add_env(deps, 0, key, val ? val : "");
         if (!val || *val == '\0') {
           xstr_cat2(xstr, "@", 1);
           xstr_cat(xstr, key);
@@ -4090,7 +4107,7 @@ static void _on_resolve(struct node_resolve *r) {
   if (r->resolve_outdated.num) {
     for (int i = 0; i < r->resolve_outdated.num; ++i) {
       struct resolve_outdated *u = ulist_get(&r->resolve_outdated, i);
-      if (u->flags != 's') { // Rebuild all on any outdated non source dependency (DEPS_TYPE_ENV)
+      if (u->flags != 's') {
         slist = &ctx->sources;
         break;
       } else {
@@ -5718,7 +5735,7 @@ static void _on_command_dep_env(int argc, const char **argv) {
   if (rc) {
     akfatal(rc, "Failed to open deps file: %s", deps_path);
   }
-  rc = deps_add_env(&deps, 0, key, val);
+  rc = deps_add_sys_env(&deps, 0, key, val);
   if (rc) {
     akfatal(rc, "Failed to write deps file: %s", deps_path);
   }
