@@ -22,6 +22,6 @@ set {
   -I SS{}
 }
 
-if { defined { IOWOW_BUILD_TESTS }
+if { ${IOWOW_BUILD_TESTS}
   include { tests/Autark }
 }

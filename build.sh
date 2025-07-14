@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=16f53b0
+META_REVISION=a61c8ab
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "16f53b0"
+#define META_REVISION "a61c8ab"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -631,14 +631,14 @@ struct unit* unit_pop(void);
 struct unit* unit_peek(void);
 struct unit_ctx unit_peek_ctx(void);
 struct unit* unit_root(void);
-struct unit* unit_parent(void);
+struct unit* unit_parent(struct node *n);
 void unit_ch_dir(struct unit_ctx*, char *prevcwd);
 void unit_ch_cache_dir(struct unit*, char *prevcwd);
 void unit_ch_src_dir(struct unit*, char *prevcwd);
 void unit_env_set_val(struct unit*, const char *key, const char *val);
 void unit_env_set_node(struct unit*, const char *key, struct node *n);
 struct node* unit_env_get_node(struct unit *u, const char *key);
-const char* unit_env_get(struct unit*, const char *key);
+const char* unit_env_get(struct node *n, const char *key);
 const char* unit_env_get_raw(struct unit *u, const char *key);
 void unit_env_remove(struct unit*, const char *key);
 const char* env_libdir(void);
@@ -646,6 +646,7 @@ const char* env_libdir(void);
 #ifndef DEPS_H
 #define DEPS_H
 #ifndef _AMALGAMATE_
+#include "env.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <limits.h>
@@ -673,7 +674,7 @@ struct deps {
 };
 int deps_open(const char *path, int omode, struct deps *init);
 bool deps_cur_next(struct deps*);
-bool deps_cur_is_outdated(struct deps*);
+bool deps_cur_is_outdated(struct node *n, struct deps*);
 int deps_add(struct deps*, char type, char flags, const char *resource, int64_t serial);
 int deps_add_alias(struct deps*, char flags, const char *resource, const char *alias);
 int deps_add_env(struct deps *d, char flags, const char *key, const char *value);
@@ -838,7 +839,7 @@ struct node* node_consumes_resolve(
   struct ulist *paths,
   void (*on_resolved)(const char *path, void *opq),
   void *opq);
-void node_add_unit_deps(struct deps*);
+void node_add_unit_deps(struct node *n, struct deps*);
 struct node_resolve {
   struct node *n;
   const char  *path;
@@ -2912,7 +2913,7 @@ bool deps_cur_next(struct deps *d) {
   }
   return false;
 }
-bool deps_cur_is_outdated(struct deps *d) {
+bool deps_cur_is_outdated(struct node *n, struct deps *d) {
   if (d) {
     switch (d->type) {
       case DEPS_TYPE_FILE: {
@@ -2930,8 +2931,7 @@ bool deps_cur_is_outdated(struct deps *d) {
         break;
       }
       case DEPS_TYPE_ENV: {
-        struct unit *unit = unit_peek();
-        const char *val = unit_env_get(unit, d->alias);
+        const char *val = unit_env_get(n, d->alias);
         if (!val) {
           val = "";
         }
@@ -3085,7 +3085,7 @@ static void _check_on_resolve(struct node_resolve *r) {
   if (rc) {
     node_fatal(rc, unit->n, "Failed to open depencency file: %s", r->deps_path_tmp);
   }
-  node_add_unit_deps(&deps);
+  node_add_unit_deps(n, &deps);
   deps_close(&deps);
 }
 static char* _resolve_check_path(struct pool *pool, struct node *n, const char *script, struct unit **out_u) {
@@ -3144,14 +3144,14 @@ int node_check_setup(struct node *n) {
 #include "alloc.h"
 #include "env.h"
 #endif
-static struct unit* _unit_for_set(struct node *nn, const char **keyp) {
+static struct unit* _unit_for_set(struct node *n, struct node *nn, const char **keyp) {
   if (nn->type == NODE_TYPE_BAG) {
     if (strcmp(nn->value, "root") == 0) {
       *keyp = node_value(nn->child);
       return unit_root();
     } else if (strcmp(nn->value, "parent") == 0) {
       *keyp = node_value(nn->child);
-      return unit_parent();
+      return unit_parent(n);
     }
   } else {
     *keyp = node_value(nn);
@@ -3160,7 +3160,7 @@ static struct unit* _unit_for_set(struct node *nn, const char **keyp) {
 }
 static void _set_init(struct node *n) {
   const char *key = 0;
-  struct unit *unit = n->child ? _unit_for_set(n->child, &key) : 0;
+  struct unit *unit = n->child ? _unit_for_set(n, n->child, &key) : 0;
   if (!key) {
     node_warn(n, "No name specified for 'set' directive");
     return;
@@ -3394,7 +3394,7 @@ static bool _if_cond_eval(struct node *n, struct node *mn) {
       node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "Unknown matching condition: %s", op);
     }
   } else if (node_is_can_be_value(mn)) {
-    eq = (op && *op != '\0');
+    eq = (op && *op != '\0' && !(op[0] == '0' && op[1] == '\0'));
   } else {
     node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "Unknown matching condition: %s", op);
   }
@@ -3804,7 +3804,7 @@ static void _run_on_resolve(struct node_resolve *r) {
   if (rc) {
     node_fatal(rc, n, "Failed to open dependency file: %s", r->deps_path_tmp);
   }
-  node_add_unit_deps(&deps);
+  node_add_unit_deps(n, &deps);
   for (int i = 0; i < r->node_val_deps.num; ++i) {
     struct node *nv = *(struct node**) ulist_get(&r->node_val_deps, i);
     const char *val = node_value(nv);
@@ -4103,7 +4103,7 @@ static void _on_resolve(struct node_resolve *r) {
   if (rc) {
     node_fatal(rc, n, "Failed to open dependency file: %s", r->deps_path_tmp);
   }
-  node_add_unit_deps(&deps);
+  node_add_unit_deps(n, &deps);
   if (r->resolve_outdated.num) {
     for (int i = 0; i < r->resolve_outdated.num; ++i) {
       struct resolve_outdated *u = ulist_get(&r->resolve_outdated, i);
@@ -4376,7 +4376,7 @@ static void _cc_on_resolve(struct node_resolve *r) {
   if (rc) {
     node_fatal(rc, ctx->n, "Failed to open dependency file: %s", r->deps_path_tmp);
   }
-  node_add_unit_deps(&deps);
+  node_add_unit_deps(ctx->n, &deps);
   for (int i = 0; i < r->node_val_deps.num; ++i) {
     struct node *nv = *(struct node**) ulist_get(&r->node_val_deps, i);
     const char *val = node_value(nv);
@@ -5093,7 +5093,7 @@ static void _install_on_resolve(struct node_resolve *r) {
   if (rc) {
     node_fatal(rc, n, "Failed to open dependency file: %s", r->deps_path_tmp);
   }
-  node_add_unit_deps(&deps);
+  node_add_unit_deps(n, &deps);
   for (int i = 0; i < r->node_val_deps.num; ++i) {
     struct node *nv = *(struct node**) ulist_get(&r->node_val_deps, i);
     const char *val = node_value(nv);
@@ -5253,14 +5253,14 @@ static const char* _find_value_get(struct node *n) {
     return n->impl;
   }
 }
-static struct unit* _unit_for_find(struct node *nn, const char **keyp) {
+static struct unit* _unit_for_find(struct node *n, struct node *nn, const char **keyp) {
   if (nn->type == NODE_TYPE_BAG) {
     if (strcmp(nn->value, "root") == 0) {
       *keyp = node_value(nn->child);
       return unit_root();
     } else if (strcmp(nn->value, "parent") == 0) {
       *keyp = node_value(nn->child);
-      return unit_parent();
+      return unit_parent(n);
     }
   } else {
     *keyp = node_value(nn);
@@ -5269,7 +5269,7 @@ static struct unit* _unit_for_find(struct node *nn, const char **keyp) {
 }
 static void _find_init(struct node *n) {
   const char *key = 0;
-  struct unit *unit = n->child ? _unit_for_find(n->child, &key) : 0;
+  struct unit *unit = n->child ? _unit_for_find(n, n->child, &key) : 0;
   if (!key) {
     node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "No name specified for '%s' directive", n->value);
     return;
@@ -5359,24 +5359,22 @@ const char* unit_env_get_raw(struct unit *u, const char *key) {
   }
   return 0;
 }
-const char* unit_env_get(struct unit *u, const char *key) {
+const char* unit_env_get(struct node *n, const char *key) {
   struct unit *prev = 0;
-  for (int i = (int) g_env.stack_units.num - 1; i >= 0; --i) {
-    struct unit_ctx *c = (struct unit_ctx*) ulist_get(&g_env.stack_units, i);
-    if (prev != c->unit) {
-      const char *ret = unit_env_get_raw(c->unit, key);
+  for (struct node *nn = n; nn; nn = nn->parent) {
+    if (nn->unit && nn->unit != prev) {
+      prev = nn->unit;
+      const char *ret = unit_env_get_raw(nn->unit, key);
       if (ret) {
         return ret;
       }
     }
-    prev = c->unit;
   }
   return getenv(key);
 }
 void unit_env_remove(struct unit *u, const char *key) {
   map_remove(u->env, key);
 }
-const char* unit_env_get(struct unit*, const char *key);
 void on_unit_pool_destroy(struct pool *pool) {
   for (int i = 0; i < g_env.units.num; ++i) {
     struct unit *unit = *(struct unit**) ulist_get(&g_env.units, i);
@@ -5479,15 +5477,16 @@ struct unit* unit_root(void) {
   struct unit_ctx uc = *(struct unit_ctx*) ulist_get(&g_env.stack_units, 0);
   return uc.unit;
 }
-struct unit* unit_parent(void) {
-  struct unit *u = unit_peek();
-  for (int i = (int) g_env.stack_units.num - 2; i >= 0; --i) {
-    struct unit_ctx uu = *(struct unit_ctx*) ulist_get(&g_env.stack_units, i);
-    if (uu.unit != u) {
-      return uu.unit;
+struct unit* unit_parent(struct node *n) {
+  struct unit *u = n->unit;
+  for (struct node *nn = n->parent; nn; nn = nn->parent) {
+    if (!u) {
+      u = nn->unit;
+    } else if (nn->unit && n->unit != nn->unit) {
+      return nn->unit;
     }
   }
-  return u;
+  return unit_root();
 }
 struct unit_ctx unit_peek_ctx(void) {
   if (g_env.stack_units.num == 0) {
@@ -5966,7 +5965,7 @@ void autark_run(int argc, const char **argv) {
   if (g_env.verbose) {
     akinfo("AUTARK_HOME=%s", autark_home);
   }
-  g_env.spawn.extra_env_paths =  autark_home;
+  g_env.spawn.extra_env_paths = autark_home;
   if (!g_env.install.prefix_dir) {
     char *home = getenv("HOME");
     if (home) {
@@ -7643,18 +7642,17 @@ struct node* node_consumes_resolve(
   pool_destroy(pool);
   return nn;
 }
-void node_add_unit_deps(struct deps *deps) {
+void node_add_unit_deps(struct node *n, struct deps *deps) {
   struct unit *prev = 0;
-  for (int i = g_env.stack_units.num - 1; i >= 0; --i) {
-    struct unit_ctx *c = (struct unit_ctx*) ulist_get(&g_env.stack_units, i);
-    if (prev != c->unit && path_is_exist(c->unit->source_path)) {
-      deps_add(deps, DEPS_TYPE_FILE, 0, c->unit->source_path, 0);
+  for (struct node *nn = n; nn; nn = nn->parent) {
+    if (nn->unit && nn->unit != prev) {
+      prev = nn->unit;
+      deps_add(deps, DEPS_TYPE_FILE, 0, nn->unit->source_path, 0);
     }
-    prev = c->unit;
   }
 }
 void node_resolve(struct node_resolve *r) {
-  akassert(r && r->path);
+  akassert(r && r->path && r->n);
   int rc;
   struct deps deps = { 0 };
   struct pool *pool = pool_create_empty();
@@ -7689,7 +7687,7 @@ void node_resolve(struct node_resolve *r) {
           outdated = true;
         }
       } else {
-        outdated = deps_cur_is_outdated(&deps);
+        outdated = deps_cur_is_outdated(r->n, &deps);
       }
       if (outdated) {
         prev_outdated = pool_strdup(pool, deps.resource);

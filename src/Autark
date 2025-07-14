@@ -92,7 +92,7 @@ run {
 
 install { ${INSTALL_LIB_DIR} ${LIBIOWOW_A} }
 
-if { defined { IOWOW_BUILD_SHARED_LIBS }
+if { ${IOWOW_BUILD_SHARED_LIBS}
   set {
     LIBIOWOW_SO_BASE
     libiowow.so

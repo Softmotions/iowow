@@ -29,7 +29,7 @@ set {
   @{ git rev-parse --short HEAD }
 }
 
-if { defined { IOWOW_RUN_TESTS }
+if { ${IOWOW_RUN_TESTS}
   set {
      IOWOW_BUILD_TESTS 1
   }
@@ -55,22 +55,22 @@ set {
   -Wno-unused-function
   -Wno-unused-parameter
   if { !eq { ${SYSTEM_NAME} Windows }
-    if { defined { IOWOW_BUILD_SHARED_LIBS }
+    if { ${IOWOW_BUILD_SHARED_LIBS}
       -fPIC
     }
   }
-  if { defined { ENABLE_ASAN }
+  if { ${ENABLE_ASAN}
     -fsanitize=address
     -fno-omit-frame-pointer
   } else {
-    if { defined { ENABLE_UBSAN }
+    if { ${ENABLE_UBSAN}
       -fsanitize=undefined
       -fno-omit-frame-pointer
     }
   }
   if { eq { ${BUILD_TYPE} Release }
     -O3
-    if { defined { ENABLE_DEBINFO }
+    if { ${ENABLE_DEBINFO}
       -g -ggdb
     }
     -DNDEBUG
@@ -105,7 +105,7 @@ set {
   if { !defined { IOWOW_BUILD_SHARED_LIBS }
     -DIW_NODLL
   }
-  if { defined { IOWOW_BUILD_TESTS }
+  if { ${IOWOW_BUILD_TESTS}
     -DIW_TESTS=1
   }
   -I C{src}
