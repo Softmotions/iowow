@@ -68,19 +68,19 @@ set {
       -fno-omit-frame-pointer
     }
   }
-  if { eq { ${BUILD_TYPE} Release }
+  if { prefix { ${BUILD_TYPE} Debug }
+    -O0
+    -g -ggdb
+    -Werror
+    -Wno-unused-variable
+    -DDEBUG -D_DEBUG -UNDEBUG
+  } else {
     -O3
     if { ${ENABLE_DEBINFO}
       -g -ggdb
     }
     -DNDEBUG
     -DIW_RELEASE
-  } else {
-    -O0
-    -g -ggdb
-    -Werror
-    -Wno-unused-variable
-    -DDEBUG -D_DEBUG -UNDEBUG
   }
   if { defined { SYSTEM_BIGENDIAN }
     -DIW_BIGENDIAN

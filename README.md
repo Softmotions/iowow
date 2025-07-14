@@ -39,41 +39,11 @@ Website https://iowow.softmotions.com
 * Maximum iwkv storage file size: `512 GB (0x7fffffff80)`
 * Total size of a single key+value record must be not greater than `255Mb (0xfffffff)`
 
-# Supported platforms
-
-## Linux
-
-#### Building debian packages
+# Building
 
 ```sh
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DPACKAGE_DEB=ON
-make package
+./build.sh
 ```
-
-### RPM based Linux distributions
-```sh
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DPACKAGE_RPM=ON
-make package
-```
-
-## FreeBSD
-
-Successfully tested on FreeBSD 10/11
-
-## OSX
-
-Successfully tested on OSX 10.12/10.13
-
-## Windows
-
-[Cross-compilation for windows](http://iowow.io/iw/win)
-
-
-## MIPS based systems (+big-endian)
-
-Successfully tested on Debian 9.4, MIPS 32, gcc 6.x compiler.
 
 # Examples
 
@@ -332,18 +302,12 @@ Arsenal: 40
 AFC Bournemouth: 27
 ```
 
-## IWSTART
-
-[IWSTART](https://github.com/Softmotions/iwstart) is an automatic CMake initial project generator for C projects based on iowow / [iwnet](https://github.com/Softmotions/iwnet) / [ejdb2](https://github.com/Softmotions/ejdb) libs.
-
-https://github.com/Softmotions/iwstart
-
 # License
 ```
 
 MIT License
 
-Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+Copyright (c) 2012-2025 Softmotions Ltd <info@softmotions.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

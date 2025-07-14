@@ -2,7 +2,7 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=a61c8ab
+META_REVISION=7eaaf92
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
@@ -32,7 +32,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "a61c8ab"
+#define META_REVISION "7eaaf92"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -3350,6 +3350,7 @@ int node_subst_setup(struct node *n) {
 #include "script.h"
 #include "log.h"
 #include "env.h"
+#include "utils.h"
 #include <string.h>
 #endif
 static bool _if_defined_eval(struct node *mn) {
@@ -3366,6 +3367,17 @@ static bool _if_matched_eval(struct node *mn) {
   const char *val2 = mn->child ? node_value(mn->child->next) : 0;
   if (val1 && val2) {
     return strcmp(val1, val2) == 0;
+  } else if (val1 == 0 && val2 == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+static bool _if_prefix_eval(struct node *mn) {
+  const char *val1 = node_value(mn->child);
+  const char *val2 = mn->child ? node_value(mn->child->next) : 0;
+  if (val1 && val2) {
+    return utils_startswith(val1, val2);
   } else if (val1 == 0 && val2 == 0) {
     return true;
   } else {
@@ -3390,6 +3402,8 @@ static bool _if_cond_eval(struct node *n, struct node *mn) {
       eq = _if_matched_eval(mn);
     } else if (strcmp(op, "defined") == 0) {
       eq = _if_defined_eval(mn);
+    } else if (strcmp(op, "prefix") == 0) {
+      eq = _if_prefix_eval(mn);
     } else {
       node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "Unknown matching condition: %s", op);
     }
