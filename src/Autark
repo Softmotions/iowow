@@ -54,6 +54,9 @@ set {
 
 configure {
   iwcfg.h.in
+}
+
+configure {
   libiowow.pc.in
 }
 

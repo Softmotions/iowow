@@ -1,8 +1,10 @@
 #!/bin/sh
-# Autark build system script wrapper.
+# MIT License
+# Autark (https://autark.dev) build system script wrapper.
+# Copyright (c) 2012-2025 Softmotions Ltd <info@softmotions.com>
 
 META_VERSION=0.9.0
-META_REVISION=3e96e39
+META_REVISION=7272fdb
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 prev_arg=""
@@ -58,7 +60,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "3e96e39"
+#define META_REVISION "7272fdb"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -67,7 +69,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <ftw.h>
+#include <dirent.h>
 #include <getopt.h>
 #include <glob.h>
 #include <inttypes.h>
@@ -559,7 +561,7 @@ char* path_normalize_pool(const char *path, struct pool*);
 char* path_normalize_cwd_pool(const char *path, const char *cwd, struct pool*);
 int path_mkdirs(const char *path);
 int path_mkdirs_for(const char *path);
-int path_rmdir(const char *path);
+int path_rm_cache(const char *path);
 int path_stat(const char *path, struct akpath_stat *stat);
 int path_stat_fd(int fd, struct akpath_stat *stat);
 int path_stat_file(FILE *file, struct akpath_stat *stat);
@@ -2165,8 +2167,8 @@ int utils_fd_make_non_blocking(int fd) {
 #include <errno.h>
 #include <unistd.h>
 #include <libgen.h>
-#include <ftw.h>
 #include <stdio.h>
+#include <dirent.h>
 #endif
 #ifdef __APPLE__
 #define st_atim st_atimespec
@@ -2336,16 +2338,67 @@ int path_mkdirs_for(const char *path) {
   char *dir = path_dirname(buf);
   return path_mkdirs(dir);
 }
-static int _rmfile(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
-  if (remove(pathname) < 0) {
-    perror(pathname);
-  }
-  return 0;
+static inline bool _is_autark_dist_root(const char *path) {
+  return utils_endswith(path, "/.autark-dist");
 }
-int path_rmdir(const char *path) {
-  if (nftw(path, _rmfile, 10, FTW_DEPTH | FTW_MOUNT | FTW_PHYS) < 0) {
-    return errno != ENOENT ? errno : 0;
+static void _rm_dir_recursive(const char *path) {
+  struct stat st;
+  if (lstat(path, &st)) {
+    perror(path);
+    return;
   }
+  if (!S_ISDIR(st.st_mode)) {
+    if (unlink(path) != 0) {
+      perror(path);
+      return;
+    }
+    return;
+  }
+  DIR *dir = opendir(path);
+  if (!dir) {
+    perror(path);
+    return;
+  }
+  // Use dynamic allocation to avoid stack overflow early
+  char *child = xmalloc(PATH_MAX);
+  for (struct dirent *entry; (entry = readdir(dir)) != 0; ) {
+    const char *name = entry->d_name;
+    if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
+      continue;
+    }
+    snprintf(child, PATH_MAX, "%s/%s", path, name);
+    _rm_dir_recursive(child);
+  }
+  closedir(dir);
+  free(child);
+  if (rmdir(path)) {
+    perror(path);
+  }
+}
+int path_rm_cache(const char *path) {
+  char resolved[PATH_MAX];
+  char child[PATH_MAX];
+  if (!path_is_exist(path)) {
+    return 0;
+  }
+  if (!realpath(path, resolved)) {
+    return errno;
+  }
+  DIR *dir = opendir(resolved);
+  if (!dir) {
+    return errno;
+  }
+  for (struct dirent *entry; (entry = readdir(dir)) != 0; ) {
+    const char *name = entry->d_name;
+    if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
+      continue;
+    }
+    snprintf(child, sizeof(child), "%s/%s", path, name);
+    if (!_is_autark_dist_root(child)) {
+      _rm_dir_recursive(child);
+    }
+  }
+  closedir(dir);
   return 0;
 }
 static int _stat(const char *path, int fd, struct akpath_stat *fs) {
@@ -3987,8 +4040,9 @@ static void _run_build(struct node *n) {
     .on_init = _run_on_resolve_init,
     .on_resolve = _run_on_resolve,
     .node_val_deps = { .usize = sizeof(struct node*) },
-    .force_outdated = node_find_direct_child(n, NODE_TYPE_VALUE, "always") != 0,
   };
+  r.force_outdated = n->post_build != 0
+                     || node_find_direct_child(n, NODE_TYPE_VALUE, "always") != 0;
   for (struct node *nn = n->child; nn; nn = nn->next) {
     if (strcmp(nn->value, "exec") == 0 || strcmp(nn->value, "shell") == 0) {
       for (struct node *cn = nn->child; cn; cn = cn->next) {
@@ -4003,9 +4057,17 @@ static void _run_build(struct node *n) {
   ulist_destroy_keep(&ctx.consumes_foreach);
 }
 int node_run_setup(struct node *n) {
-  n->flags |= NODE_FLG_IN_CACHE;
-  n->setup = _run_setup;
-  n->build = _run_build;
+  if (strcmp("run-on-install", n->value) == 0) {
+    if (g_env.install.enabled) {
+      n->flags |= NODE_FLG_IN_CACHE;
+      n->setup = _run_setup;
+      n->post_build = _run_build;
+    }
+  } else {
+    n->flags |= NODE_FLG_IN_CACHE;
+    n->setup = _run_setup;
+    n->build = _run_build;
+  }
   return 0;
 }
 #ifndef _AMALGAMATE_
@@ -5202,6 +5264,7 @@ static void _install_on_resolve(struct node_resolve *r) {
     node_fatal(rc, n, "Failed to open dependency file: %s", r->deps_path_tmp);
   }
   node_add_unit_deps(n, &deps);
+  deps_add_env(&deps, 0, "INSTALL_PREFIX", g_env.install.prefix_dir);
   for (int i = 0; i < r->node_val_deps.num; ++i) {
     struct node *nv = *(struct node**) ulist_get(&r->node_val_deps, i);
     const char *val = node_value(nv);
@@ -5734,7 +5797,7 @@ void autark_build_prepare(const char *script_path) {
   }
   if (g_env.project.cleanup) {
     if (path_is_dir(g_env.project.cache_dir)) {
-      int rc = path_rmdir(g_env.project.cache_dir);
+      int rc = path_rm_cache(g_env.project.cache_dir);
       if (rc) {
         akfatal(rc, "Failed to remove cache directory: %s", g_env.project.cache_dir);
       }
@@ -5905,7 +5968,7 @@ static void _build(struct ulist *options) {
   }
   script_build(x);
   script_close(&x);
-  akinfo("Build successful");
+  akinfo("[%s] Build successful", g_env.project.root_dir);
 }
 static void _options(void) {
   struct sctx *x;
@@ -6888,7 +6951,7 @@ static unsigned _rule_type(const char *key, unsigned *flags) {
     return NODE_TYPE_INCLUDE;
   } else if (strcmp(key, "if") == 0) {
     return NODE_TYPE_IF;
-  } else if (strcmp(key, "run") == 0) {
+  } else if (strcmp(key, "run") == 0 || strcmp(key, "run-on-install") == 0) {
     return NODE_TYPE_RUN;
   } else if (strcmp(key, "meta") == 0) {
     return NODE_TYPE_META;
@@ -7094,7 +7157,11 @@ static void _preprocess_script(struct value *v) {
       eol = true;
       comment = false;
     } else if (eol) {
-      if (*p == '#') {
+      const char *sp = p;
+      while (utils_char_is_space(*sp)) {
+        ++sp;
+      }
+      if (*sp == '#') {
         comment = true;
       }
       eol = false;
