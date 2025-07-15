@@ -16,6 +16,7 @@ set {
   json/iwbinn.h
   json/iwjson.h
   json/iwjsreg.h
+  json/iwjson_internal.h
 }
 
 set {
