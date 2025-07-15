@@ -2,10 +2,36 @@
 # Autark build system script wrapper.
 
 META_VERSION=0.9.0
-META_REVISION=7eaaf92
+META_REVISION=3e96e39
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
-export AUTARK_HOME=${AUTARK_HOME:-${HOME}/.autark}
+prev_arg=""
+for arg in "$@"; do
+  case "$prev_arg" in
+    -H)
+      AUTARK_HOME="${arg}/.autark-dist"
+      prev_arg="" # сброс
+      continue
+      ;;
+  esac
+
+  case "$arg" in
+    -H)
+      prev_arg="-H"
+      ;;
+    -H*)
+      AUTARK_HOME="${arg#-H}/.autark-dist"
+      ;;
+    --cache=*)
+      AUTARK_HOME="${arg#--cache=}/.autark-dist"
+      ;;
+    *)
+      prev_arg=""
+      ;;
+  esac
+done
+
+export AUTARK_HOME=${AUTARK_HOME:-autark-cache/.autark-dist}
 AUTARK=${AUTARK_HOME}/autark
 
 if [ "${META_VERSION}.${META_REVISION}" = "$(${AUTARK} -v)" ]; then
@@ -32,7 +58,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "7eaaf92"
+#define META_REVISION "3e96e39"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -437,6 +463,7 @@ int utils_exec_path(char buf[PATH_MAX]);
 int utils_copy_file(const char *src, const char *dst);
 int utils_rename_file(const char *src, const char *dst);
 void utils_split_values_add(const char *v, struct xstr *xstr);
+int utils_fd_make_non_blocking(int fd);
 //----------------------- Vlist
 struct vlist_iter {
   const char *item;
@@ -485,6 +512,8 @@ void spawn_env_path_prepend(struct spawn*, const char *path);
 void spawn_set_stdin_provider(struct spawn*, size_t (*provider)(char *buf, size_t buflen, struct spawn*));
 void spawn_set_stdout_handler(struct spawn*, void (*handler)(char *buf, size_t buflen, struct spawn*));
 void spawn_set_stderr_handler(struct spawn*, void (*handler)(char *buf, size_t buflen, struct spawn*));
+void spawn_set_nowait(struct spawn*, bool nowait);
+void spawn_set_wstatus(struct spawn*, int wstatus);
 int spawn_do(struct spawn*);
 void spawn_destroy(struct spawn*);
 #endif
@@ -559,8 +588,8 @@ char* path_basename(char *path);
 #include "ulist.h"
 #include <stdbool.h>
 #endif
-#define AUTARK_CACHE           "autark-cache"
-#define AUTARK_SCRIPT          "Autark"
+#define AUTARK_CACHE  "autark-cache"
+#define AUTARK_SCRIPT "Autark"
 #define AUTARK_ROOT_DIR  "AUTARK_ROOT_DIR"  // Project root directory
 #define AUTARK_CACHE_DIR "AUTARK_CACHE_DIR" // Project cache directory
 #define AUTARK_UNIT      "AUTARK_UNIT"      // Path relative to AUTARK_ROOT_DIR of build process unit executed
@@ -597,6 +626,7 @@ struct env {
   const char  *cwd;
   struct pool *pool;
   int verbose;
+  int max_parallel_jobs;            // Max number of allowed parallel jobs.
   struct {
     const char *root_dir;           // Project root source dir.
     const char *cache_dir;          // Project artifacts cache dir.
@@ -2111,6 +2141,18 @@ void utils_split_values_add(const char *v, struct xstr *xstr) {
     xstr_cat(xstr, buf);
   }
 }
+int utils_fd_make_non_blocking(int fd) {
+  int rci, flags;
+  while ((flags = fcntl(fd, F_GETFL, 0)) == -1 && errno == EINTR) ;
+  if (flags == -1) {
+    return errno;
+  }
+  while ((rci = fcntl(fd, F_SETFL, flags | O_NONBLOCK)) == -1 && errno == EINTR) ;
+  if (rci == -1) {
+    return errno;
+  }
+  return 0;
+}
 #ifndef _AMALGAMATE_
 #include "paths.h"
 #include "xstr.h"
@@ -2491,6 +2533,7 @@ struct spawn {
   struct ulist env;
   const char  *exec;
   char *path_overriden;
+  bool  nowait;
   size_t (*stdin_provider)(char *buf, size_t buflen, struct spawn*);
   void   (*stdout_handler)(char *buf, size_t buflen, struct spawn*);
   void   (*stderr_handler)(char *buf, size_t buflen, struct spawn*);
@@ -2692,8 +2735,15 @@ void spawn_set_stderr_handler(
   void (*handler)(char *buf, size_t buflen, struct spawn*)) {
   s->stderr_handler = handler;
 }
+void spawn_set_nowait(struct spawn *s, bool nowait) {
+  s->nowait = nowait;
+}
+void spawn_set_wstatus(struct spawn *s, int wstatus) {
+  s->wstatus = wstatus;
+}
 int spawn_do(struct spawn *s) {
   int rc = 0;
+  bool nowait = s->nowait;
   if (!s->stderr_handler) {
     s->stderr_handler = _default_stderr_handler;
   }
@@ -2729,11 +2779,13 @@ int spawn_do(struct spawn *s) {
     }
     file = rfile;
   }
-  if (pipe(pipe_stdout) == -1) {
-    return errno;
-  }
-  if (pipe(pipe_stderr) == -1) {
-    return errno;
+  if (!nowait) {
+    if (pipe(pipe_stdout) == -1) {
+      return errno;
+    }
+    if (pipe(pipe_stderr) == -1) {
+      return errno;
+    }
   }
   if (s->stdin_provider) {
     if (pipe(pipe_stdin) == -1) {
@@ -2753,24 +2805,28 @@ int spawn_do(struct spawn *s) {
       }
       close(pipe_stdin[0]);
     }
-    close(pipe_stdout[0]);
-    if (dup2(pipe_stdout[1], STDOUT_FILENO) == -1) {
-      perror("dup2");
-      _exit(EXIT_FAILURE);
+    if (!nowait) {
+      close(pipe_stdout[0]);
+      if (dup2(pipe_stdout[1], STDOUT_FILENO) == -1) {
+        perror("dup2");
+        _exit(EXIT_FAILURE);
+      }
+      close(pipe_stdout[1]);
+      close(pipe_stderr[0]);
+      if (dup2(pipe_stderr[1], STDERR_FILENO) == -1) {
+        perror("dup2");
+        _exit(EXIT_FAILURE);
+      }
+      close(pipe_stderr[1]);
     }
-    close(pipe_stdout[1]);
-    close(pipe_stderr[0]);
-    if (dup2(pipe_stderr[1], STDERR_FILENO) == -1) {
-      perror("dup2");
-      _exit(EXIT_FAILURE);
-    }
-    close(pipe_stderr[1]);
     execve(file, args, envp);
     perror("execve");
     _exit(EXIT_FAILURE);
   } else {
-    close(pipe_stdout[1]);
-    close(pipe_stderr[1]);
+    if (!nowait) {
+      close(pipe_stdout[1]);
+      close(pipe_stderr[1]);
+    }
     if (s->stdin_provider) {
       close(pipe_stdin[0]);
       ssize_t tow = 0;
@@ -2789,46 +2845,48 @@ int spawn_do(struct spawn *s) {
       }
       close(pipe_stdin[1]);
     }
-    // Now read both stdout & stderr
-    struct pollfd fds[] = {
-      { .fd = pipe_stdout[0], .events = POLLIN },
-      { .fd = pipe_stderr[0], .events = POLLIN }
-    };
-    int c = sizeof(fds) / sizeof(fds[0]);
-    while (c > 0) {
-      int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
-      if (ret == -1) {
-        break;
-      }
-      for (int i = 0; i < sizeof(fds) / sizeof(fds[0]); ++i) {
-        if (fds[i].fd == -1) {
-          continue;
+    if (!nowait) {
+      // Now read both stdout & stderr
+      struct pollfd fds[] = {
+        { .fd = pipe_stdout[0], .events = POLLIN },
+        { .fd = pipe_stderr[0], .events = POLLIN }
+      };
+      int c = sizeof(fds) / sizeof(fds[0]);
+      while (c > 0) {
+        int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
+        if (ret == -1) {
+          break;
         }
-        short revents = fds[i].revents;
-        if (revents & POLLIN) {
-          ssize_t n = read(fds[i].fd, buf, sizeof(buf) - 1);
-          if (n > 0) {
-            buf[n] = '\0';
-            if (fds[i].fd == pipe_stdout[0]) {
-              s->stdout_handler(buf, n, s);
-            } else {
-              s->stderr_handler(buf, n, s);
+        for (int i = 0; i < sizeof(fds) / sizeof(fds[0]); ++i) {
+          if (fds[i].fd == -1) {
+            continue;
+          }
+          short revents = fds[i].revents;
+          if (revents & POLLIN) {
+            ssize_t n = read(fds[i].fd, buf, sizeof(buf) - 1);
+            if (n > 0) {
+              buf[n] = '\0';
+              if (fds[i].fd == pipe_stdout[0]) {
+                s->stdout_handler(buf, n, s);
+              } else {
+                s->stderr_handler(buf, n, s);
+              }
+            } else if (n == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+              close(fds[i].fd);
+              fds[i].fd = -1;
+              --c;
             }
-          } else if (n == -1) {
+          }
+          if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
             close(fds[i].fd);
             fds[i].fd = -1;
             --c;
           }
         }
-        if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
-          close(fds[i].fd);
-          fds[i].fd = -1;
-          --c;
-        }
       }
-    }
-    if (waitpid(s->pid, &s->wstatus, 0) == -1) {
-      perror("waitpid");
+      if (waitpid(s->pid, &s->wstatus, 0) == -1) {
+        perror("waitpid");
+      }
     }
   }
   if (rc) {
@@ -2837,10 +2895,12 @@ int spawn_do(struct spawn *s) {
   return rc;
 }
 void spawn_destroy(struct spawn *s) {
-  free(s->path_overriden);
-  ulist_destroy_keep(&s->args);
-  ulist_destroy_keep(&s->env);
-  pool_destroy(s->pool);
+  if (s) {
+    free(s->path_overriden);
+    ulist_destroy_keep(&s->args);
+    ulist_destroy_keep(&s->env);
+    pool_destroy(s->pool);
+  }
 }
 #ifndef _AMALGAMATE_
 #include "deps.h"
@@ -2976,7 +3036,7 @@ static int _deps_add(struct deps *d, char type, char flags, const char *resource
   } else if (type == DEPS_TYPE_ENV || type == DEPS_TYPE_NODE_VALUE || type == DEPS_TYPE_SYS_ENV) {
     assert(resource);
     utils_strncpy(dbuf, resource, sizeof(dbuf));
-    utils_chars_replace(buf[0], '\n', '\2');
+    utils_chars_replace(dbuf, '\n', '\2');
     resource = dbuf;
   } else if (type == DEPS_TYPE_FILE_OUTDATED) {
     type = DEPS_TYPE_FILE;
@@ -3688,10 +3748,7 @@ static void _run_on_resolve_shell(struct node_resolve *r, struct node *nn_) {
       xstr_cat(xstr, v);
     }
   }
-  const char *shell = node_env_get(n, "SHELL");
-  if (!shell || *shell == '\0') {
-    node_fatal(AK_ERROR_FAIL, n, "Required $SHELL variable/env is not set");
-  }
+  const char *shell = "/bin/sh";
   struct unit *unit = unit_peek();
   struct spawn *s = spawn_create(shell, &(struct _run_spawn_data) {
     .cmd = shell,
@@ -4238,6 +4295,8 @@ int node_configure_setup(struct node *n) {
 #include "alloc.h"
 #include "map.h"
 #include <string.h>
+#include <errno.h>
+#include <sys/wait.h>
 #endif
 struct _cc_ctx {
   struct pool *pool;
@@ -4253,12 +4312,6 @@ struct _cc_ctx {
   struct ulist consumes;    // sizeof(char*)
   int num_failed;
 };
-static void _cc_stdout_handler(char *buf, size_t buflen, struct spawn *s) {
-  fprintf(stdout, "%s", buf);
-}
-static void _cc_stderr_handler(char *buf, size_t buflen, struct spawn *s) {
-  fprintf(stderr, "%s", buf);
-}
 static void _cc_deps_MMD_item_add(const char *item, struct node *n, struct deps *deps, const char *src) {
   char buf[127];
   char *p = strrchr(item, '.');
@@ -4324,15 +4377,30 @@ static void _cc_deps_MMD_add(struct node *n, struct deps *deps, const char *src,
   }
   fclose(f);
 }
-static bool _cc_on_build_source(struct node *n, struct deps *deps, const char *src, const char *obj) {
-  int ret = true;
+struct _cc_task {
+  struct spawn *s;
+  char *src;
+  char *obj;
+  pid_t pid;
+};
+static void _cc_task_destroy(struct _cc_task *t) {
+  spawn_destroy(t->s);
+  free(t->src);
+  free(t->obj);
+}
+static void _cc_on_build_source(
+  struct node     *n,
+  struct deps     *deps,
+  const char      *src,
+  const char      *obj,
+  struct _cc_task *task) {
   if (g_env.check.log) {
     xstr_printf(g_env.check.log, "%s: build src=%s obj=%s\n", n->name, src, obj);
   }
   struct _cc_ctx *ctx = n->impl;
   struct spawn *s = spawn_create(ctx->cc, ctx);
-  spawn_set_stdout_handler(s, _cc_stdout_handler);
-  spawn_set_stderr_handler(s, _cc_stderr_handler);
+  task->s = s;
+  spawn_set_nowait(s, true);
   if (ctx->n_cflags) {
     struct xstr *xstr = 0;
     const char *cflags = node_value(ctx->n_cflags);
@@ -4354,17 +4422,11 @@ static bool _cc_on_build_source(struct node *n, struct deps *deps, const char *s
   spawn_arg_add(s, obj);
   int rc = spawn_do(s);
   if (rc) {
+    spawn_destroy(s);
     node_error(rc, ctx->n, "%s", ctx->cc);
-    ret = false;
-  } else {
-    int code = spawn_exit_code(s);
-    if (code != 0) {
-      node_error(AK_ERROR_EXTERNAL_COMMAND, n, "%s: %d", ctx->cc, code);
-      ret = false;
-    }
+    return;
   }
-  spawn_destroy(s);
-  return ret;
+  task->pid = spawn_pid(s);
 }
 static void _cc_on_resolve(struct node_resolve *r) {
   struct deps deps;
@@ -4372,7 +4434,12 @@ static void _cc_on_resolve(struct node_resolve *r) {
   struct unit *unit = unit_peek();
   struct ulist *slist = &ctx->sources;
   struct ulist rlist = { .usize = sizeof(char*) };
+  struct ulist tasks = { .usize = sizeof(struct _cc_task) };
   struct map *fmap = map_create_str(map_k_free);
+  int max_jobs = g_env.max_parallel_jobs;
+  if (max_jobs <= 0) {
+    max_jobs = 1;
+  }
   if (r->resolve_outdated.num) {
     for (int i = 0; i < r->resolve_outdated.num; ++i) {
       struct resolve_outdated *u = ulist_get(&r->resolve_outdated, i);
@@ -4402,36 +4469,62 @@ static void _cc_on_resolve(struct node_resolve *r) {
     const char *path = *(const char**) ulist_get(&ctx->consumes, i);
     deps_add(&deps, DEPS_TYPE_FILE, 0, path, 0);
   }
-  for (int i = 0; i < slist->num; ++i) {
-    char buf[PATH_MAX];
-    char *obj, *src = *(char**) ulist_get(slist, i);
-    src = path_normalize_cwd(src, unit->cache_dir, buf);
-    bool incache = path_is_prefix_for(g_env.project.cache_dir, src, unit->cache_dir);
-    if (!incache) {
-      obj = path_relativize_cwd(unit->dir, src, unit->dir);
-      src = path_relativize_cwd(unit->cache_dir, src, unit->cache_dir);
-    } else {
-      obj = path_relativize_cwd(unit->cache_dir, src, unit->cache_dir);
-      src = xstrdup(obj);
-    }
-    char *p = strrchr(obj, '.');
-    akassert(p && p[1] != '\0');
-    p[1] = 'o';
-    p[2] = '\0';
-    bool failed = !_cc_on_build_source(ctx->n, &deps, src, obj);
-    if (failed) {
-      ++ctx->num_failed;
-      map_put_str(fmap, src, (void*) (intptr_t) 1);
-    }
-    if (slist == &ctx->sources) {
-      deps_add(&deps, failed ? DEPS_TYPE_FILE_OUTDATED : DEPS_TYPE_FILE, 's', src, 0);
-      if (!failed) {
-        _cc_deps_MMD_add(ctx->n, &deps, src, obj);
+  for (int i = 0; i < slist->num || tasks.num > 0; ) {
+    while (tasks.num < max_jobs && i < slist->num) {
+      char buf[PATH_MAX];
+      char *obj, *src = *(char**) ulist_get(slist, i);
+      src = path_normalize_cwd(src, unit->cache_dir, buf);
+      bool incache = path_is_prefix_for(g_env.project.cache_dir, src, unit->cache_dir);
+      if (!incache) {
+        obj = path_relativize_cwd(unit->dir, src, unit->dir);
+        src = path_relativize_cwd(unit->cache_dir, src, unit->cache_dir);
+      } else {
+        obj = path_relativize_cwd(unit->cache_dir, src, unit->cache_dir);
+        src = xstrdup(obj);
       }
-    } else {
+      char *p = strrchr(obj, '.');
+      akassert(p && p[1] != '\0');
+      p[1] = 'o';
+      p[2] = '\0';
+      struct _cc_task task = { .src = src, .obj = obj, .pid = -1 };
+      _cc_on_build_source(ctx->n, &deps, src, obj, &task);
+      if (task.pid == -1) {
+        ++ctx->num_failed;
+        map_put_str(fmap, src, (void*) (intptr_t) 1);
+        if (slist == &ctx->sources) {
+          deps_add(&deps, DEPS_TYPE_FILE_OUTDATED, 's', src, 0);
+        }
+        _cc_task_destroy(&task);
+      } else {
+        ulist_push(&tasks, &task);
+      }
+      ++i;
     }
-    free(obj);
-    free(src);
+    int wstatus = 0;
+    pid_t pid = wait(&wstatus);
+    if (pid == -1) {
+      akfatal(errno, "wait() syscall failed", 0);
+    }
+    for (int j = 0; j < tasks.num; ++j) {
+      struct _cc_task *t = (struct _cc_task*) ulist_get(&tasks, j);
+      if (t->pid == pid) {
+        spawn_set_wstatus(t->s, wstatus);
+        int code = spawn_exit_code(t->s);
+        if (code != 0) {
+          ++ctx->num_failed;
+          map_put_str(fmap, t->src, (void*) (intptr_t) 1);
+        }
+        if (slist == &ctx->sources) {
+          deps_add(&deps, code != 0 ? DEPS_TYPE_FILE_OUTDATED : DEPS_TYPE_FILE, 's', t->src, 0);
+          if (code == 0) {
+            _cc_deps_MMD_add(ctx->n, &deps, t->src, t->obj);
+          }
+        }
+        _cc_task_destroy(t);
+        ulist_remove(&tasks, j);
+        break;
+      }
+    }
   }
   if (slist != &ctx->sources) {
     for (int i = 0; i < ctx->sources.num; ++i) {
@@ -4461,6 +4554,7 @@ static void _cc_on_resolve(struct node_resolve *r) {
   }
   deps_close(&deps);
   ulist_destroy_keep(&rlist);
+  ulist_destroy_keep(&tasks);
   map_destroy(fmap);
 }
 static void _cc_on_consumed_resolved(const char *path_, void *d) {
@@ -5558,6 +5652,8 @@ static int _usage_va(const char *err, va_list ap) {
   fprintf(stderr,
           "    -l, --options               List of all available project options and their description.\n");
   fprintf(stderr,
+          "    -J  --jobs=<>               Number of jobs used in c/cxx compilation tasks. Default: 4\n");
+  fprintf(stderr,
           "    -D<option>[=<val>]          Set project build option.\n");
   fprintf(stderr,
           "    -I, --install               Install all built artifacts\n");
@@ -5899,12 +5995,13 @@ void autark_run(int argc, const char **argv) {
     { "libdir", 1, 0, -2 },
     { "includedir", 1, 0, -3 },
     { "pkgconfdir", 1, 0, -4 },
+    { "jobs", 1, 0, 'J' },
     { 0 }
   };
   bool version = false;
   const char *cdir = 0;
   struct ulist options = { .usize = sizeof(char*) };
-  for (int ch; (ch = getopt_long(argc, (void*) argv, "+H:chVvlR:C:D:I", long_options, 0)) != -1; ) {
+  for (int ch; (ch = getopt_long(argc, (void*) argv, "+H:chVvlR:C:D:J:I", long_options, 0)) != -1; ) {
     switch (ch) {
       case 'H':
         g_env.project.cache_dir = pool_strdup(g_env.pool, optarg);
@@ -5950,6 +6047,14 @@ void autark_run(int argc, const char **argv) {
       case -4:
         g_env.install.pkgconf_dir = pool_strdup(g_env.pool, optarg);
         break;
+      case 'J': {
+        int rc = 0;
+        g_env.max_parallel_jobs = utils_strtol(optarg, 10, &rc);
+        if (rc) {
+          akfatal(AK_ERROR_FAIL, "Command line option -J,--jobs value: %s should be non negative number", optarg);
+        }
+        break;
+      }
       case 'h':
       default:
         _usage(0);
@@ -6003,6 +6108,12 @@ void autark_run(int argc, const char **argv) {
 #else
     g_env.install.pkgconf_dir = "lib/pkgconfig";
 #endif
+  }
+  if (g_env.max_parallel_jobs <= 0) {
+    g_env.max_parallel_jobs = 4;
+  }
+  if (g_env.max_parallel_jobs > 16) {
+    g_env.max_parallel_jobs = 16;
   }
   if (optind < argc) {
     const char *arg = argv[optind];

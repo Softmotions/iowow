@@ -4,7 +4,7 @@ IOWOW — `C11` utility library and persistent key/value storage engine
 **NOTE: Issues tracker is disabled. You are welcome to contribute, pull requests accepted.**
 
 [![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/iowow/blob/master/LICENSE)
-![Maintained](https://img.shields.io/maintenance/yes/2024.svg)
+![Maintained](https://img.shields.io/maintenance/yes/2025.svg)
 
 Website https://iowow.softmotions.com
 
@@ -15,34 +15,32 @@ Website https://iowow.softmotions.com
 * [iwkv.h](https://github.com/Softmotions/iowow/blob/master/src/kv/iwkv.h) Persistent key/value database engine.
 * [iwfsmfile.h](https://github.com/Softmotions/iowow/blob/master/src/fs/iwfsmfile.h) File blocks allocation manager like `malloc()` on files.
 
-## Used by
-
-* EJDB2 — Embeddable JSON database engine. http://ejdb.org
-* [Wirow video conferencing platform](https://github.com/wirow-io/wirow-server/)
-* [Pure C Asynchronous HTTP/IO library with websockets, SSL, routing. ](https://github.com/Softmotions/iwnet)
-
 ## IWKV Features
 
 * Support of multiple key-value databases within a single file
 * Online database backups
 * Native support of integer keys
-* [Write Ahead Logging (WAL) support](http://iowow.io/wal)
+* Write Ahead Logging (WAL)
 * Ultra-fast traversal of database records
 * Compound keys support
 * Good performance comparing its main competitors: `lmdb`, `leveldb`, `kyoto cabinet`
 * Tiny C11 library (200Kb) can be easily embedded into any software
-
-[![IWKV Presentation](https://iowow.softmotions.com/articles/iowow-presentation-cover-small.png)](https://iowow.softmotions.com/articles/intro/)
 
 ## IWKV Limitations
 
 * Maximum iwkv storage file size: `512 GB (0x7fffffff80)`
 * Total size of a single key+value record must be not greater than `255Mb (0xfffffff)`
 
-# Building
+# Build
 
 ```sh
 ./build.sh
+```
+
+## Install
+
+```sh
+./build.sh --prefix=$HOME/.local
 ```
 
 # Examples
