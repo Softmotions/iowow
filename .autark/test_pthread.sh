@@ -15,3 +15,5 @@ if ${CC} ./test_pthread.c -pthread; then
 elif ${CC} ./test_pthread.c -lpthread; then
   autark set "PTHREAD_LFLAG=-lpthread"
 fi
+
+autark env CC

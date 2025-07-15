@@ -31,6 +31,12 @@ Website https://iowow.softmotions.com
 * Maximum iwkv storage file size: `512 GB (0x7fffffff80)`
 * Total size of a single key+value record must be not greater than `255Mb (0xfffffff)`
 
+# Prerequisites
+
+* Linux, macOS or FreeBSD
+* gcc or clang compiler (clang is preferred since allows code blocks API provided by this project)
+* pkgconf or pkg-config
+
 # Build
 
 ```sh

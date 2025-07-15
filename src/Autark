@@ -28,14 +28,8 @@ set {
   ..${LDFLAGS}
 }
 
-option { IOWOW_OWNER_PROJECT_NAME Optional name of the owner project used to install
-                                  header files into IOWOW_OWNER_PROJECT_NAME/META_PROJECT_NAME }
-
-if { ${IOWOW_OWNER_PROJECT_NAME}
-  set {
-    IOWOW_PUBLIC_HEADER_DESTINATION ^{ ${INSTALL_INCLUDE_DIR} / ${IOWOW_OWNER_PROJECT_NAME} }
-  }
-} else {
+option { IOWOW_PUBLIC_HEADER_DESTINATION  Installation path relative to INSTALL_PREFIX for iowow public header files. }
+if { !defined { IOWOW_PUBLIC_HEADER_DESTINATION }
   set {
     IOWOW_PUBLIC_HEADER_DESTINATION ^{ ${INSTALL_INCLUDE_DIR} / ${META_NAME} }
   }
