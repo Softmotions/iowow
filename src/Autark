@@ -28,10 +28,10 @@ set {
   ..${LDFLAGS}
 }
 
-option { IOWOW_PUBLIC_HEADER_DESTINATION  Installation path relative to INSTALL_PREFIX for iowow public header files. }
-if { !defined { IOWOW_PUBLIC_HEADER_DESTINATION }
+option { IOWOW_PUBLIC_HEADERS_DESTINATION  Installation path relative to INSTALL_PREFIX for iowow public header files. }
+if { !defined { IOWOW_PUBLIC_HEADERS_DESTINATION }
   set {
-    IOWOW_PUBLIC_HEADER_DESTINATION ^{ ${INSTALL_INCLUDE_DIR} / ${META_NAME} }
+    IOWOW_PUBLIC_HEADERS_DESTINATION ^{ ${INSTALL_INCLUDE_DIR} / ${META_NAME} }
   }
 }
 
@@ -126,4 +126,4 @@ if { ${IOWOW_BUILD_SHARED_LIBS}
 }
 
 install { ${INSTALL_PKGCONFIG_DIR} libiowow.pc }
-install { ${IOWOW_PUBLIC_HEADER_DESTINATION} ${PUB_HDRS} }
+install { ${IOWOW_PUBLIC_HEADERS_DESTINATION} ${PUB_HDRS} }
