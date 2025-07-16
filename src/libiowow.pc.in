@@ -10,3 +10,4 @@ Version: @META_VERSION@
 Libs: -L${libdir} -l${artifact}
 Libs.private: @LDFLAGS@
 Cflags: -I@INSTALL_PREFIX@/@INSTALL_INCLUDE_DIR@ -I${includedir}
+Cflags.private: -DIW_STATIC
