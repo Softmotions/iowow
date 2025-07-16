@@ -4,7 +4,7 @@
 # Copyright (c) 2012-2025 Softmotions Ltd <info@softmotions.com>
 
 META_VERSION=0.9.0
-META_REVISION=7272fdb
+META_REVISION=69ef0d3
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 prev_arg=""
@@ -60,7 +60,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "7272fdb"
+#define META_REVISION "69ef0d3"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -642,6 +642,7 @@ struct env {
     const char *lib_dir;     // Path to lib dir relative to prefix.
     const char *include_dir; // Path to include headers dir relative to prefix.
     const char *pkgconf_dir; // Path to pkgconfig dir.
+    const char *man_dir;     // Path to man pages dir.
     bool enabled;            // True if install operation should be performed
   } install;
   struct {
@@ -5728,6 +5729,8 @@ static int _usage_va(const char *err, va_list ap) {
           "        --libdir=<>             Path to 'lib' dir relative to a `prefix` dir. Default: lib\n");
   fprintf(stderr,
           "        --includedir=<>         Path to 'include' dir relative to `prefix` dir. Default: include\n");
+ fprintf(stderr,
+          "        --mandir=<>             Path to 'man' dir relative to `prefix` dir. Default: share/man\n");
 #ifdef __FreeBSD__
   fprintf(stderr,
           "        --pkgconfdir=<>         Path to 'pkgconfig' dir relative to prefix dir. Default: libdata/pkgconfig");
@@ -6058,6 +6061,7 @@ void autark_run(int argc, const char **argv) {
     { "libdir", 1, 0, -2 },
     { "includedir", 1, 0, -3 },
     { "pkgconfdir", 1, 0, -4 },
+    { "mandir", 1, 0, -5 },
     { "jobs", 1, 0, 'J' },
     { 0 }
   };
@@ -6109,6 +6113,9 @@ void autark_run(int argc, const char **argv) {
         break;
       case -4:
         g_env.install.pkgconf_dir = pool_strdup(g_env.pool, optarg);
+        break;
+      case -5:
+        g_env.install.man_dir = pool_strdup(g_env.pool, optarg);
         break;
       case 'J': {
         int rc = 0;
@@ -6164,6 +6171,9 @@ void autark_run(int argc, const char **argv) {
   }
   if (!g_env.install.include_dir) {
     g_env.install.include_dir = "include";
+  }
+  if (!g_env.install.man_dir) {
+    g_env.install.man_dir = "share/man";
   }
   if (!g_env.install.pkgconf_dir) {
 #ifdef __FreeBSD__
@@ -7548,12 +7558,14 @@ int script_open(const char *file, struct sctx **out) {
       unit_env_set_val(root, "INSTALL_LIB_DIR", g_env.install.lib_dir);
       unit_env_set_val(root, "INSTALL_INCLUDE_DIR", g_env.install.include_dir);
       unit_env_set_val(root, "INSTALL_PKGCONFIG_DIR", g_env.install.pkgconf_dir);
+      unit_env_set_val(root, "INSTALL_MAN_DIR", g_env.install.man_dir);
       if (g_env.verbose) {
         akinfo("%s: INSTALL_PREFIX=%s", root->rel_path, g_env.install.prefix_dir);
         akinfo("%s: INSTALL_BIN_DIR=%s", root->rel_path, g_env.install.bin_dir);
         akinfo("%s: INSTALL_LIB_DIR=%s", root->rel_path, g_env.install.lib_dir);
         akinfo("%s: INSTALL_INCLUDE_DIR=%s", root->rel_path, g_env.install.include_dir);
         akinfo("%s: INSTALL_PKGCONFIG_DIR=%s", root->rel_path, g_env.install.pkgconf_dir);
+        akinfo("%s: INSTALL_MAN_DIR=%s", root->rel_path, g_env.install.man_dir);
       }
     }
     if (out && n) {
