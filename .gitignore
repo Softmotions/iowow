@@ -12,7 +12,6 @@ git.diff
 #iowow.project
 #iowow.workspace
 build/
-Makefile
 Testing/
 compile_commands.json
 iowow.mk
