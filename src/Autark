@@ -23,9 +23,9 @@ set {
 
 set {
   LDFLAGS_TEST
+  ..${LDFLAGS}
   ${LIBIOWOW_A}
   @{ ${PKGCONF} --libs cunit }
-  ..${LDFLAGS}
 }
 
 option { IOWOW_PUBLIC_HEADERS_DESTINATION  Installation path relative to INSTALL_PREFIX for iowow public header files. }

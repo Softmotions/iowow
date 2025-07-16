@@ -4,7 +4,7 @@
 # Copyright (c) 2012-2025 Softmotions Ltd <info@softmotions.com>
 
 META_VERSION=0.9.0
-META_REVISION=69ef0d3
+META_REVISION=496f175
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 prev_arg=""
@@ -60,7 +60,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "69ef0d3"
+#define META_REVISION "496f175"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -4150,11 +4150,7 @@ static char* _line_replace_subs(struct node *n, struct deps *deps, char *line) {
         const char *key = xstr_ptr(kstr);
         const char *val = node_env_get(n, key);
         deps_add_env(deps, 0, key, val ? val : "");
-        if (!val || *val == '\0') {
-          xstr_cat2(xstr, "@", 1);
-          xstr_cat(xstr, key);
-          xstr_cat2(xstr, "@", 1);
-        } else {
+        if (val && *val != '\0') {
           if (is_vlist(val)) {
             ++val;
             size_t len = strlen(val);
