@@ -4,7 +4,7 @@
 # Copyright (c) 2012-2025 Softmotions Ltd <info@softmotions.com>
 
 META_VERSION=0.9.0
-META_REVISION=6efcc56
+META_REVISION=474f043
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 prev_arg=""
@@ -60,7 +60,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "6efcc56"
+#define META_REVISION "474f043"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -3258,6 +3258,7 @@ int node_check_setup(struct node *n) {
 #include "alloc.h"
 #include "env.h"
 #endif
+static const char* _set_value_get(struct node *n);
 static struct unit* _unit_for_set(struct node *n, struct node *nn, const char **keyp) {
   if (nn->type == NODE_TYPE_BAG) {
     if (strcmp(nn->value, "root") == 0) {
@@ -3271,6 +3272,21 @@ static struct unit* _unit_for_set(struct node *n, struct node *nn, const char **
     *keyp = node_value(nn);
   }
   return unit_peek();
+}
+static void _set_setup(struct node *n) {
+  if (n->child && strcmp(n->value, "env") == 0) {
+    const char *v = _set_value_get(n);
+    if (v) {
+      const char *key = 0;
+      _unit_for_set(n, n->child, &key);
+      if (key) {
+        if (g_env.verbose) {
+          node_info(n, "%s=%s", key, v);
+        }
+        setenv(key, v, 1);
+      }
+    }
+  }
 }
 static void _set_init(struct node *n) {
   const char *key = 0;
@@ -3345,6 +3361,7 @@ static void _set_dispose(struct node *n) {
 int node_set_setup(struct node *n) {
   n->flags |= NODE_FLG_NO_CWD;
   n->init = _set_init;
+  n->setup = _set_setup;
   n->value_get = _set_value_get;
   n->dispose = _set_dispose;
   return 0;
