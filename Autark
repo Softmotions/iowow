@@ -92,10 +92,10 @@ set {
     -DIW_32
   }
   if { defined { SYSTEM_LINUX }
-# Needed by Linux in order to use nftw() but fail to build on FreeBSD due to __BSD_VISIBLE define state.
+    # Needed by Linux in order to use nftw() but fail to build on FreeBSD due to __BSD_VISIBLE define state.
     -D_XOPEN_SOURCE=700
   }
-  if { defined { SYSTEM_APPLE }
+  if { defined { SYSTEM_DARWIN }
     -D_DARWIN_C_SOURCE
   }
   -D_DEFAULT_SOURCE

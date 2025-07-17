@@ -90,28 +90,55 @@ run {
 install { ${INSTALL_LIB_DIR} ${LIBIOWOW_A} }
 
 if { ${IOWOW_BUILD_SHARED_LIBS}
-  set {
-    LIBIOWOW_SO_BASE
-    libiowow.so
-  }
-
-  set {
-    LIBIOWOW_SO_BIN
-    ^{${LIBIOWOW_SO_BASE} . ${META_VERSION}}
-  }
-
-  set {
-    LIBIOWOW_SO_NAME
-    ^{${LIBIOWOW_SO_BASE} . ${META_VERSION_MAJOR}}
-  }
-
-  run {
-    exec { ${CC} -shared -o ${LIBIOWOW_SO_BIN} ${CC_OBJS} }
-    consumes {
-      ${CC_OBJS}
+  if {!defined {SYSTEM_DARWIN}
+    set {
+      LIBIOWOW_SO_BASE
+      libiowow.so
     }
-    produces {
-      ${LIBIOWOW_SO_BIN}
+    set {
+      LIBIOWOW_SO_BIN
+      ^{${LIBIOWOW_SO_BASE} . ${META_VERSION}}
+    }
+    set {
+      LIBIOWOW_SO_NAME
+      ^{${LIBIOWOW_SO_BASE} . ${META_VERSION_MAJOR}}
+    }
+    run {
+      exec { ${CC} -shared -o ${LIBIOWOW_SO_BIN} ${CC_OBJS} }
+      consumes {
+        ${CC_OBJS}
+      }
+      produces {
+        ${LIBIOWOW_SO_BIN}
+      }
+    }
+  } else {
+    set {
+      LIBIOWOW_SO_BASE
+      libiowow.dylib
+    }
+    set {
+      LIBIOWOW_SO_BIN
+      ^{libiowow. ${META_VERSION} .dylib}
+    }
+    set {
+      LIBIOWOW_SO_NAME
+      ^{libiowow. ${META_VERSION_MAJOR} .dylib}
+    }
+    run {
+      exec { ${CC} -dynamiclib
+        -install_name ^{@rpath/ ${LIBIOWOW_SO_BIN}}
+        -compatibility_version ${META_VERSION_MAJOR}
+        -current_version ${META_VERSION}
+        -o ${LIBEJDB_SO_BIN}
+        ${CC_OBJS}
+      }
+      consumes {
+        ${CC_OBJS}
+      }
+      produces {
+        ${LIBIOWOW_SO_BIN}
+      }
     }
   }
   run {
@@ -121,7 +148,6 @@ if { ${IOWOW_BUILD_SHARED_LIBS}
       ${LIBIOWOW_SO_BIN}
     }
   }
-
   install { ${INSTALL_LIB_DIR} ${LIBIOWOW_SO_BIN} ${LIBIOWOW_SO_NAME} ${LIBIOWOW_SO_BASE} }
 }
 
