@@ -105,6 +105,9 @@ if { ${IOWOW_BUILD_SHARED_LIBS}
     }
     run {
       exec { ${CC} -shared -o ${LIBIOWOW_SO_BIN} ${CC_OBJS} }
+      if { ${STRIP_ENABLED}
+        exec { strip --strip-debug ${LIBIOWOW_SO_BIN} }
+      }
       consumes {
         ${CC_OBJS}
       }
@@ -132,6 +135,9 @@ if { ${IOWOW_BUILD_SHARED_LIBS}
         -current_version ${META_VERSION}
         -o ${LIBEJDB_SO_BIN}
         ${CC_OBJS}
+      }
+      if { ${STRIP_ENABLED}
+        exec { strip --strip-debug ${LIBIOWOW_SO_BIN} }
       }
       consumes {
         ${CC_OBJS}

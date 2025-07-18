@@ -35,6 +35,12 @@ if { ${IOWOW_RUN_TESTS}
   }
 }
 
+if { eq { ${BUILD_TYPE} Release }
+  set {
+    STRIP_ENABLED 1
+  }
+}
+
 check {
   system.sh
 }
@@ -54,11 +60,7 @@ set {
   -Wno-unknown-pragmas
   -Wno-unused-function
   -Wno-unused-parameter
-  if { !eq { ${SYSTEM_NAME} Windows }
-    if { ${IOWOW_BUILD_SHARED_LIBS}
-      -fPIC
-    }
-  }
+  -fPIC
   if { ${ENABLE_ASAN}
     -fsanitize=address
     -fno-omit-frame-pointer
@@ -104,7 +106,10 @@ set {
 
   if { !defined { IOWOW_BUILD_SHARED_LIBS }
     -DIW_NODLL
+  } else {
+    -DIW_API_EXPORTS
   }
+
   if { ${IOWOW_BUILD_TESTS}
     -DIW_TESTS=1
   }
