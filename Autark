@@ -37,7 +37,7 @@ if { ${IOWOW_RUN_TESTS}
 
 if { eq { ${BUILD_TYPE} Release }
   set {
-    STRIP_ENABLED 1
+    STRIP_CMD strip --strip-debug
   }
 }
 

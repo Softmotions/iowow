@@ -4,7 +4,7 @@
 # Copyright (c) 2012-2025 Softmotions Ltd <info@softmotions.com>
 
 META_VERSION=0.9.0
-META_REVISION=f316663
+META_REVISION=dfc9bc0
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 prev_arg=""
@@ -60,7 +60,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.0"
-#define META_REVISION "f316663"
+#define META_REVISION "dfc9bc0"
 #endif
 #define _AMALGAMATE_
 #define _XOPEN_SOURCE 600
@@ -640,6 +640,7 @@ struct env {
     const char *prefix_dir;  // Absolute path to install prefix dir.
     const char *bin_dir;     // Path to the bin dir relative to prefix.
     const char *lib_dir;     // Path to lib dir relative to prefix.
+    const char *data_dir; // Path to lib data dir relative to prefix.
     const char *include_dir; // Path to include headers dir relative to prefix.
     const char *pkgconf_dir; // Path to pkgconfig dir.
     const char *man_dir;     // Path to man pages dir.
@@ -3578,7 +3579,15 @@ static bool _if_cond_eval(struct node *n, struct node *mn) {
     }
   } else if (node_is_can_be_value(mn)) {
     op = node_value(mn);
-    eq = (op && *op != '\0' && !(op[0] == '0' && op[1] == '\0'));
+    if (is_vlist(op)) {
+      struct vlist_iter iter;
+      vlist_iter_init(op, &iter);
+      if (vlist_iter_next(&iter) && !(iter.len == 1 && iter.item[0] == '0')) {
+        eq = iter.len > 0 || vlist_iter_next(&iter);
+      }
+    } else {
+      eq = (op && *op != '\0' && !(op[0] == '0' && op[1] == '\0'));
+    }
   } else {
     node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "Unknown matching condition: %s", op);
   }
@@ -4140,6 +4149,7 @@ int node_run_setup(struct node *n) {
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/stat.h>
 #endif
 struct _configure_ctx {
   struct pool *pool;
@@ -4268,6 +4278,14 @@ static void _process_file(struct node *n, const char *src, const char *tgt, stru
       free(rl);
     }
   }
+  // Transfer file permissions
+  struct stat st;
+  if (stat(src, &st) == -1) {
+    node_fatal(errno, n, "Failed to stat source file: %s", src);
+  }
+  if (fchmod(fileno(t), st.st_mode & 07777) == -1) {
+    node_fatal(errno, n, "Failed to set permissions on target file: %s", tgt);
+  }
   fclose(f);
   fclose(t);
   if (xstr) {
@@ -4278,7 +4296,7 @@ static void _process_file(struct node *n, const char *src, const char *tgt, stru
     xstr_destroy(xstr);
   }
 }
-static void _on_resolve(struct node_resolve *r) {
+static void _configure_on_resolve(struct node_resolve *r) {
   struct node *n = r->n;
   struct _configure_ctx *ctx = n->impl;
   struct ulist *slist = &ctx->sources;
@@ -4330,12 +4348,19 @@ static void _on_resolve(struct node_resolve *r) {
   deps_close(&deps);
   ulist_destroy_keep(&rlist);
 }
+static void _configure_on_resolve_init(struct node_resolve *r) {
+  struct node *n = r->n;
+  struct _configure_ctx *ctx = n->impl;
+  node_consumes_resolve(n, 0, &ctx->sources, 0, 0);
+}
 static void _configure_build(struct node *n) {
-  node_resolve(&(struct node_resolve) {
+  struct node_resolve r = {
     .n = n,
     .path = n->vfile,
-    .on_resolve = _on_resolve,
-  });
+    .on_init = _configure_on_resolve_init,
+    .on_resolve = _configure_on_resolve,
+  };
+  node_resolve(&r);
 }
 static void _configure_init(struct node *n) {
   struct pool *pool = pool_create_empty();
@@ -5780,8 +5805,10 @@ static int _usage_va(const char *err, va_list ap) {
   fprintf(stderr,
           "        --libdir=<>             Path to 'lib' dir relative to a `prefix` dir. Default: lib\n");
   fprintf(stderr,
+          "        --datadir=<>             Path to 'data' dir relative to a `prefix` dir. Default: share\n");
+  fprintf(stderr,
           "        --includedir=<>         Path to 'include' dir relative to `prefix` dir. Default: include\n");
- fprintf(stderr,
+  fprintf(stderr,
           "        --mandir=<>             Path to 'man' dir relative to `prefix` dir. Default: share/man\n");
 #ifdef __FreeBSD__
   fprintf(stderr,
@@ -6109,12 +6136,13 @@ void autark_run(int argc, const char **argv) {
     { "install", 0, 0, 'I' },
     { "prefix", 1, 0, 'R' },
     { "dir", 1, 0, 'C' },
+    { "jobs", 1, 0, 'J' },
     { "bindir", 1, 0, -1 },
     { "libdir", 1, 0, -2 },
     { "includedir", 1, 0, -3 },
     { "pkgconfdir", 1, 0, -4 },
     { "mandir", 1, 0, -5 },
-    { "jobs", 1, 0, 'J' },
+    { "datadir", 1, 0, -6 },
     { 0 }
   };
   bool version = false;
@@ -6169,6 +6197,9 @@ void autark_run(int argc, const char **argv) {
       case -5:
         g_env.install.man_dir = pool_strdup(g_env.pool, optarg);
         break;
+      case -6:
+        g_env.install.data_dir = pool_strdup(g_env.pool, optarg);
+        break;
       case 'J': {
         int rc = 0;
         g_env.max_parallel_jobs = utils_strtol(optarg, 10, &rc);
@@ -6220,6 +6251,9 @@ void autark_run(int argc, const char **argv) {
   }
   if (!g_env.install.lib_dir) {
     g_env.install.lib_dir = env_libdir();
+  }
+  if (!g_env.install.data_dir) {
+    g_env.install.data_dir = "share";
   }
   if (!g_env.install.include_dir) {
     g_env.install.include_dir = "include";
@@ -7628,6 +7662,7 @@ int script_open(const char *file, struct sctx **out) {
       unit_env_set_val(root, "INSTALL_PREFIX", g_env.install.prefix_dir);
       unit_env_set_val(root, "INSTALL_BIN_DIR", g_env.install.bin_dir);
       unit_env_set_val(root, "INSTALL_LIB_DIR", g_env.install.lib_dir);
+      unit_env_set_val(root, "INSTALL_DATA_DIR", g_env.install.data_dir);
       unit_env_set_val(root, "INSTALL_INCLUDE_DIR", g_env.install.include_dir);
       unit_env_set_val(root, "INSTALL_PKGCONFIG_DIR", g_env.install.pkgconf_dir);
       unit_env_set_val(root, "INSTALL_MAN_DIR", g_env.install.man_dir);
@@ -7635,6 +7670,7 @@ int script_open(const char *file, struct sctx **out) {
         akinfo("%s: INSTALL_PREFIX=%s", root->rel_path, g_env.install.prefix_dir);
         akinfo("%s: INSTALL_BIN_DIR=%s", root->rel_path, g_env.install.bin_dir);
         akinfo("%s: INSTALL_LIB_DIR=%s", root->rel_path, g_env.install.lib_dir);
+        akinfo("%s: INSTALL_DATA_DIR=%s", root->rel_path, g_env.install.data_dir);
         akinfo("%s: INSTALL_INCLUDE_DIR=%s", root->rel_path, g_env.install.include_dir);
         akinfo("%s: INSTALL_PKGCONFIG_DIR=%s", root->rel_path, g_env.install.pkgconf_dir);
         akinfo("%s: INSTALL_MAN_DIR=%s", root->rel_path, g_env.install.man_dir);
