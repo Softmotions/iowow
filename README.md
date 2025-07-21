@@ -37,7 +37,7 @@ Website https://iowow.softmotions.com
 * gcc or clang compiler (clang is preferred since allows code blocks API provided by this project)
 * pkgconf or pkg-config
 
-# Build
+# Build by [Autark](https://github.com/Softmotions/autark)
 
 ```sh
 ./build.sh
