@@ -117,11 +117,4 @@ set {
   -I S{src}
 }
 
-set {
-  CFLAGS_TESTS
-  -DIW_STATIC
-  ..@{ ${PKGCONF} --cflags --static cunit }
-  ..${CFLAGS}
-}
-
 include { ./src/Autark }
