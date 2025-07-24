@@ -11,7 +11,7 @@ cc {
     iwkv_test9.c
     iwkv_test10.c
   }
-  set { _ ..${CFLAGS} -DIW_STATIC }
+  ${CFLAGS_TESTS}
 }
 
 foreach {

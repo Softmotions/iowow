@@ -2,7 +2,7 @@ cc {
   set { _
     iwre_test1.c
   }
-  set { _ ..${CFLAGS} -DIW_STATIC }
+  ${CFLAGS_TESTS}
 }
 
 foreach {

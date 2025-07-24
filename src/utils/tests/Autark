@@ -4,7 +4,7 @@ cc {
     iwutils_test1.c
     iwhmap_test1.c
   }
-  set { _ ..${CFLAGS} -DIW_STATIC }
+  ${CFLAGS_TESTS}
 }
 
 foreach {

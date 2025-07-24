@@ -4,7 +4,7 @@ cc {
     iwfs_test2.c
     iwfs_test3.c
   }
-  set { _ ..${CFLAGS} -DIW_STATIC }
+  ${CFLAGS_TESTS}
 }
 
 foreach {

@@ -6,7 +6,7 @@ cc {
     jbl_test_binn2.c
     iwjsreg_test1.c
   }
-  set { _ ..${CFLAGS} -DIW_STATIC }
+  ${CFLAGS_TESTS}
 }
 
 foreach {
