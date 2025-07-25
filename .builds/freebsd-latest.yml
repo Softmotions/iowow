@@ -5,7 +5,6 @@ sources:
   - git@git.sr.ht:~adamansky/iowow
 packages:
   - gcc
-  - clang
   - pkgconf
   - cunit
 tasks:
