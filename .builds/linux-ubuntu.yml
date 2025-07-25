@@ -1,0 +1,15 @@
+secrets:
+  - 7179e7ce-6c56-46b5-9b85-091332eb3684
+sources:
+  - git@git.sr.ht:~adamansky/iowow
+packages:
+  - gcc
+  - clang
+  - pkgconf
+tasks:
+  - run-tests-gcc: |
+      cd ./iowow
+      CC=gcc make test
+  - run-tests-clang: |
+      cd ./iowow
+      CC=clang make test
