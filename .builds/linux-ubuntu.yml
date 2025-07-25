@@ -7,10 +7,11 @@ packages:
   - gcc
   - clang
   - pkgconf
+  - libcunit1-dev
 tasks:
   - run-tests-gcc: |
       cd ./iowow
-      CC=gcc make test
+      CC=gcc BUILD_TYPE=Debug IOWOW_RUN_TESTS=1 ./build.sh -c
   - run-tests-clang: |
       cd ./iowow
-      CC=clang make test
+      CC=clang BUILD_TYPE=Debug IOWOW_RUN_TESTS=1 ./build.sh -c
