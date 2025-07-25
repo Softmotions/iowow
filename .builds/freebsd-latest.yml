@@ -1,0 +1,17 @@
+image: freebsd/latest
+secrets:
+  - 7179e7ce-6c56-46b5-9b85-091332eb3684
+sources:
+  - git@git.sr.ht:~adamansky/iowow
+packages:
+  - gcc
+  - clang
+  - pkgconf
+  - cunit
+tasks:
+  - run-tests-gcc: |
+      cd ./iowow
+      CC=gcc BUILD_TYPE=Debug IOWOW_RUN_TESTS=1 ./build.sh -c
+  - run-tests-clang: |
+      cd ./iowow
+      CC=clang BUILD_TYPE=Debug IOWOW_RUN_TESTS=1 ./build.sh -c
