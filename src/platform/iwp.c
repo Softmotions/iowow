@@ -206,10 +206,10 @@ char* iwp_basename(char *path) {
   i = strlen(path) - 1;
 #ifdef _WIN32
   for ( ; i && (path[i] == '/' || path[i] == '\\'); i--) path[i] = 0;
-  for ( ; i && (path[i - 1] != '/' && path[i - 1] != '\\'); i--);
+  for ( ; i && (path[i - 1] != '/' && path[i - 1] != '\\'); i--) ;
  #else
   for ( ; i && path[i] == '/'; i--) path[i] = 0;
-  for ( ; i && path[i - 1] != '/'; i--);
+  for ( ; i && path[i - 1] != '/'; i--) ;
  #endif
   return path + i;
 }
@@ -293,5 +293,54 @@ iwrc iwp_mkdirs_for_file(const char *path) {
 iwrc iwp_init(void) {
   iwcpuflags = x86_simd();
   _iwp_init_impl();
+  return 0;
+}
+
+iwrc iwp_copy_file(const char *src, const char *dst) {
+  iwrc rc = 0;
+  char buf[8192];
+  FILE *sf = fopen(src, "rb");
+  if (!sf) {
+    return errno;
+  }
+  FILE *df = fopen(dst, "wb");
+  if (!df) {
+    rc = errno;
+    fclose(sf);
+    return rc;
+  }
+  size_t nr = 0;
+  while (1) {
+    nr = fread(buf, 1, sizeof(buf), sf);
+    if (nr) {
+      nr = fwrite(buf, 1, nr, df);
+      if (!nr) {
+        rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+        break;
+      }
+    } else if (feof(sf)) {
+      break;
+    } else if (ferror(sf)) {
+      rc = IW_ERROR_IO;
+      break;
+    }
+  }
+  fclose(sf);
+  fclose(df);
+  return rc;
+}
+
+iwrc iwp_rename_file(const char *src, const char *dst) {
+  if (rename(src, dst) == -1) {
+    if (errno == EXDEV) {
+      int rc = iwp_copy_file(src, dst);
+      if (!rc) {
+        unlink(src);
+      }
+      return rc;
+    } else {
+      return errno;
+    }
+  }
   return 0;
 }

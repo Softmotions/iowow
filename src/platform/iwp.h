@@ -202,6 +202,12 @@ IW_EXPORT iwrc iwp_copy_bytes(
   off_t off, size_t siz,
   off_t noff);
 
+
+iwrc iwp_copy_file(const char *src, const char *dst);
+
+
+iwrc iwp_rename_file(const char *src, const char *dst);
+
 /**
  * @brief Get system page size.
  */
