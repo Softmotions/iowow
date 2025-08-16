@@ -24,14 +24,14 @@ set {
 set {
   LDFLAGS_TEST
   ${LIBIOWOW_A}
-  ..@{ ${PKGCONF} --libs --static cunit }
+  ..@@{ ${PKGCONF} --libs --static cunit }
   ..${LDFLAGS}
 }
 
 set {
   CFLAGS_TESTS
   -DIW_STATIC
-  ..@{ ${PKGCONF} --cflags --static cunit }
+  ..@@{ ${PKGCONF} --cflags --static cunit }
   ..${CFLAGS}
 }
 
