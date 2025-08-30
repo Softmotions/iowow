@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-IWRB* iwrb_create(size_t usize, size_t len) {
-  IWRB *rb = malloc(sizeof(*rb) + usize * len);
+struct iwrb* iwrb_create(size_t usize, size_t len) {
+  struct iwrb *rb = malloc(sizeof(*rb) + usize * len);
   if (!rb) {
     return 0;
   }
@@ -15,26 +15,26 @@ IWRB* iwrb_create(size_t usize, size_t len) {
   return rb;
 }
 
-void iwrb_destroy(IWRB **rbp) {
+void iwrb_destroy(struct iwrb **rbp) {
   if (rbp && *rbp) {
     free(*rbp);
     *rbp = 0;
   }
 }
 
-IWRB* iwrb_wrap(void *buf, size_t len, size_t usize) {
-  if (buf == 0 || len < sizeof(IWRB) + usize) {
+struct iwrb* iwrb_wrap(void *buf, size_t len, size_t usize) {
+  if (buf == 0 || len < sizeof(struct iwrb) + usize) {
     return 0;
   }
-  IWRB *rb = buf;
+  struct iwrb *rb = buf;
   rb->pos = 0;
-  rb->len = (len - sizeof(IWRB)) / usize;
+  rb->len = (len - sizeof(struct iwrb)) / usize;
   rb->usize = usize;
   rb->buf = (char*) buf + sizeof(*rb);
   return rb;
 }
 
-void iwrb_put(IWRB *rb, const void *buf) {
+void iwrb_put(struct iwrb *rb, const void *buf) {
   if (rb->pos != 0) {
     size_t upos = rb->pos > 0 ? rb->pos : -rb->pos;
     if (upos == rb->len) {
@@ -50,7 +50,7 @@ void iwrb_put(IWRB *rb, const void *buf) {
   }
 }
 
-void iwrb_back(IWRB *rb) {
+void iwrb_back(struct iwrb *rb) {
   if (rb->pos > 0) {
     --rb->pos;
   } else if (rb->pos < 0) {
@@ -58,7 +58,7 @@ void iwrb_back(IWRB *rb) {
   }
 }
 
-void* iwrb_peek(const IWRB *rb) {
+void* iwrb_peek(const struct iwrb *rb) {
   if (rb->pos == 0) {
     return 0;
   }
@@ -66,11 +66,22 @@ void* iwrb_peek(const IWRB *rb) {
   return rb->buf + (upos - 1) * rb->usize;
 }
 
-void iwrb_clear(IWRB *rb) {
+void* iwrb_begin(const struct iwrb *rb) {
+  if (rb->pos == 0) {
+    return 0;
+  }
+  if (rb->pos < 0) {
+    return rb->buf;
+  } else {
+    return rb->buf + rb->pos * rb->usize;
+  }
+}
+
+void iwrb_clear(struct iwrb *rb) {
   rb->pos = 0;
 }
 
-size_t iwrb_num_cached(const IWRB *rb) {
+size_t iwrb_num_cached(const struct iwrb *rb) {
   if (rb->pos <= 0) {
     return -rb->pos;
   } else {
@@ -78,14 +89,14 @@ size_t iwrb_num_cached(const IWRB *rb) {
   }
 }
 
-void iwrb_iter_init(const IWRB *rb, IWRB_ITER *iter) {
+void iwrb_iter_init(const struct iwrb *rb, struct iwrb_iter *iter) {
   iter->rb = rb;
   iter->pos = rb->pos > 0 ? rb->pos : -rb->pos;
   iter->ipos = rb->pos > 0 ? -rb->pos : rb->pos;
 }
 
-void* iwrb_iter_prev(IWRB_ITER *iter) {
-  const IWRB *rb = iter->rb;
+void* iwrb_iter_prev(struct iwrb_iter *iter) {
+  const struct iwrb *rb = iter->rb;
   if (iter->ipos == 0) {
     return 0;
   }

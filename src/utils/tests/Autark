@@ -3,6 +3,7 @@ cc {
     iwarr_test1.c
     iwutils_test1.c
     iwhmap_test1.c
+    iwrb_test1.c
   }
   ${CFLAGS_TESTS}
 }

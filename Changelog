@@ -1,5 +1,6 @@
-2025-07-19 Anton Adamansky  <adamansky@gmail.com>  [v1.4.20]
+2025-07-19 Anton Adamansky  <adamansky@gmail.com>  [WIP]
   * Migration to Autark build system.
+  * iwrb improvements and iwrb test cases (iwrb.h)
 
 2024-07-02  Anton Adamansky  <adamansky@gmail.com>  [v1.4.19]
   * Added iwcsv.h utility used to produce CSV formatted lines.

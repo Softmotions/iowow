@@ -34,41 +34,43 @@
 
 IW_EXTERN_C_START;
 
-struct iwrp;
-struct iwrp_iter;
-typedef struct iwrp IWRB;
-typedef struct iwrp_iter IWRB_ITER;
+struct iwrb;
+struct iwrb_iter;
+typedef struct iwrb IWRB;
+typedef struct iwrb_iter IWRB_ITER;
 
-struct iwrp {
+struct iwrb {
   ssize_t pos;
   size_t  len;
   size_t  usize;
   char   *buf;
 };
 
-struct iwrp_iter {
-  const IWRB *rb;
-  size_t      pos;
-  ssize_t     ipos;
+struct iwrb_iter {
+  const struct iwrb *rb;
+  size_t  pos;
+  ssize_t ipos;
 };
 
-IW_EXPORT IW_ALLOC struct iwrp* iwrb_create(size_t usize, size_t len);
+IW_EXPORT IW_ALLOC struct iwrb* iwrb_create(size_t usize, size_t len);
 
-IW_EXPORT void iwrb_clear(struct iwrp *rb);
+IW_EXPORT void iwrb_clear(struct iwrb *rb);
 
-IW_EXPORT void iwrb_destroy(struct iwrp **rbp);
+IW_EXPORT void iwrb_destroy(struct iwrb **rbp);
 
-IW_EXPORT struct iwrp* iwrb_wrap(void *buf, size_t len, size_t usize);
+IW_EXPORT struct iwrb* iwrb_wrap(void *buf, size_t len, size_t usize);
 
-IW_EXPORT void iwrb_put(struct iwrp *rb, const void *buf);
+IW_EXPORT void iwrb_put(struct iwrb *rb, const void *buf);
 
-IW_EXPORT void iwrb_back(struct iwrp *rb);
+IW_EXPORT void iwrb_back(struct iwrb *rb);
 
-IW_EXPORT void* iwrb_peek(const struct iwrp *rb);
+IW_EXPORT void* iwrb_peek(const struct iwrb *rb);
 
-IW_EXPORT size_t iwrb_num_cached(const struct iwrp *rb);
+IW_EXPORT void* iwrb_begin(const struct iwrb *rb);
 
-IW_EXPORT void iwrb_iter_init(const struct iwrp *rb, IWRB_ITER *iter);
+IW_EXPORT size_t iwrb_num_cached(const struct iwrb *rb);
+
+IW_EXPORT void iwrb_iter_init(const struct iwrb *rb, struct iwrb_iter *iter);
 
 IW_EXPORT void* iwrb_iter_prev(IWRB_ITER *iter);
 
