@@ -6,8 +6,6 @@ IOWOW — `C11` utility library and persistent key/value storage engine
 [![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/iowow/blob/master/LICENSE)
 ![Maintained](https://img.shields.io/maintenance/yes/2025.svg)
 
-Website https://iowow.softmotions.com
-
 # Key components
 
 * [utils](https://github.com/Softmotions/iowow/tree/master/src/utils) Useful data structures and various commonly used routines.
