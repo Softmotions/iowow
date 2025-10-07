@@ -193,6 +193,14 @@ typedef int HANDLE;
         }
 #endif
 
+#ifndef RCE
+#define RCE(label__, v__)                             \
+        if (!(v__)) {                                 \
+          rc = iwrc_set_errno(IW_ERROR_ERRNO, errno); \
+          goto label__;                               \
+        }
+#endif
+
 #ifndef RCT
 #define RCT(label__, val__)                                      \
         ({ __typeof__(val__) v__ = (val__);                      \
