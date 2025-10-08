@@ -20,11 +20,14 @@ struct _task {
 struct iwtp {
   struct _task   *head;
   struct _task   *tail;
+
   pthread_mutex_t mtx;
   pthread_cond_t  cond;
   struct iwulist  threads;
 
   char *thread_name_prefix;
+  void (*thread_initializer)(pthread_t);
+
   int   num_threads;
   int   num_threads_busy;
   int   overflow_threads_factor;
@@ -105,6 +108,10 @@ static void* _worker_fn(void *op) {
     char nbuf[64];
     snprintf(nbuf, sizeof(nbuf), "%s%d", tp->thread_name_prefix, idx);
     iwp_set_current_thread_name(nbuf);
+  }
+
+  if (tp->thread_initializer) {
+    tp->thread_initializer(st);
   }
 
   if (idx >= num_threads && tp->warn_on_overflow_thread_spawn) {
@@ -198,6 +205,7 @@ iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, struct iwtp **out_tp) {
   *tp = (struct iwtp) {
     .warn_on_overflow_thread_spawn = spec->warn_on_overflow_thread_spawn,
     .overflow_threads_factor = overflow_threads_factor,
+    .thread_initializer = spec->thread_initializer,
     .num_threads = num_threads,
     .queue_limit = queue_limit,
     .mtx = PTHREAD_MUTEX_INITIALIZER,

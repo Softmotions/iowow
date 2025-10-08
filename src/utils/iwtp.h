@@ -31,6 +31,7 @@
  *************************************************************************************************/
 
 #include "basedefs.h"
+#include <pthread.h>
 
 IW_EXTERN_C_START;
 
@@ -65,6 +66,11 @@ struct iwtp_spec {
    * It true performs log warning in the case of spawning overflow thread.
    */
   bool warn_on_overflow_thread_spawn;
+
+  /**
+   * Optional thread initializer function called when pool thread is created.
+   */
+  void (*thread_initializer)(pthread_t);
 };
 
 /**
