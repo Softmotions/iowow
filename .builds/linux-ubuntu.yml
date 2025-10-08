@@ -1,4 +1,4 @@
-image: ubuntu/24.10
+image: ubuntu/25.04
 secrets:
   - 7179e7ce-6c56-46b5-9b85-091332eb3684
 sources:
