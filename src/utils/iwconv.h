@@ -73,9 +73,9 @@ IW_EXPORT long int iw_strtol(const char *v, int base, iwrc *rcp);
 
 IW_EXPORT long long iw_strtoll(const char *v, int base, iwrc *rcp);
 
-IW_EXPORT long int iw_strtoul(const char *v, int base, iwrc *rcp);
+IW_EXPORT unsigned long int iw_strtoul(const char *v, int base, iwrc *rcp);
 
-IW_EXPORT long long iw_strtoull(const char *v, int base, iwrc *rcp);
+IW_EXPORT unsigned long long iw_strtoull(const char *v, int base, iwrc *rcp);
 
 IW_EXTERN_C_END;
 

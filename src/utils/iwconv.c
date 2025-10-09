@@ -585,9 +585,9 @@ long long iw_strtoll(const char *v, int base, iwrc *rcp) {
   return ret;
 }
 
-long int iw_strtoul(const char *v, int base, iwrc *rcp) {
+unsigned long int iw_strtoul(const char *v, int base, iwrc *rcp) {
   char *ep = 0;
-  long int ret = strtoul(v, &ep, base);
+  unsigned long int ret = strtoul(v, &ep, base);
   if (*ep != '\0' || errno == ERANGE) {
     *rcp = IW_ERROR_INVALID_ARGS;
     return 0;
@@ -595,9 +595,9 @@ long int iw_strtoul(const char *v, int base, iwrc *rcp) {
   return ret;
 }
 
-long long iw_strtoull(const char *v, int base, iwrc *rcp) {
+unsigned long long iw_strtoull(const char *v, int base, iwrc *rcp) {
   char *ep = 0;
-  long long ret = strtoull(v, &ep, base);
+  unsigned long long ret = strtoull(v, &ep, base);
   if (*ep != '\0' || errno == ERANGE) {
     *rcp = IW_ERROR_INVALID_ARGS;
     return 0;
