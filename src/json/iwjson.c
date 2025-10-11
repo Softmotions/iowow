@@ -24,6 +24,28 @@ IW_INLINE int _jbl_printf_estimate_size(const char *format, va_list ap) {
 IW_INLINE void _jbn_remove_item(struct jbl_node *parent, struct jbl_node *child);
 static void _jbn_add_item(struct jbl_node *parent, struct jbl_node *node);
 
+void jbl_node_as_plain_value(struct jbl_node *n, struct jbl_plain_value *on) {
+  memset(on, 0, sizeof(*on));
+  on->type = n->type;
+  on->vsize = n->vsize;
+  switch (n->type) {
+    case JBV_BOOL:
+      on->vbool = n->vbool;
+      break;
+    case JBV_I64:
+      on->vi64 = n->vi64;
+      break;
+    case JBV_F64:
+      on->vf64 = n->vf64;
+      break;
+    case JBV_STR:
+      on->vptr = n->vptr;
+      break;
+    default:
+      break;
+  }
+}
+
 void iwjson_ftoa(long double val, char buf[static IWNUMBUF_SIZE], size_t *out_len) {
   int len = snprintf(buf, IWNUMBUF_SIZE, "%.8Lf", val);
   // FIXME: Dirt hack. I won't touch global locale.
