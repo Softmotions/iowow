@@ -134,6 +134,18 @@ struct jbl_node;
 typedef struct jbl_node*JBL_NODE;
 
 
+struct jbl_value {
+  jbl_type_t type;
+  int vsize;
+  union {
+    const char *vptr;
+    bool    vbool;
+    int64_t vi64;
+    double  vf64;
+  };
+};
+
+
 /**
  * @brief JSON document as in-memory tree (DOM tree).
  */
