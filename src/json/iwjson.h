@@ -200,9 +200,9 @@ typedef struct jbl_patch {
 } JBL_PATCH;
 
 
-void jbl_node_as_plain_value(struct jbl_node *n, struct jbl_plain_value *out_value);
+void jbl_node_as_plain_value(const struct jbl_node *n, struct jbl_plain_value *out_value);
 
-void jbl_plain_value_set_node(struct jbl_plain_value *v, struct jbl_node *n);
+void jbl_plain_value_set_node(const struct jbl_plain_value *v, struct jbl_node *n);
 
 /**
  * @brief JSON pointer rfc6901

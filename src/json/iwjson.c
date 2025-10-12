@@ -24,12 +24,12 @@ IW_INLINE int _jbl_printf_estimate_size(const char *format, va_list ap) {
 IW_INLINE void _jbn_remove_item(struct jbl_node *parent, struct jbl_node *child);
 static void _jbn_add_item(struct jbl_node *parent, struct jbl_node *node);
 
-void jbl_node_as_plain_value(struct jbl_node *n, struct jbl_plain_value *v) {
+void jbl_node_as_plain_value(const struct jbl_node *n, struct jbl_plain_value *v) {
   memset(v, 0, sizeof(*v));
   memcpy(v, (char*) n + offsetof(struct jbl_node, vsize), sizeof(*n) - offsetof(struct jbl_node, vsize));
 }
 
-void jbl_plain_value_set_node(struct jbl_plain_value *v, struct jbl_node *n) {
+void jbl_plain_value_set_node(const struct jbl_plain_value *v, struct jbl_node *n) {
   memcpy((char*) n + offsetof(struct jbl_node, vsize), v, sizeof(*v));
 }
 
