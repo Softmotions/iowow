@@ -134,9 +134,12 @@ struct jbl_node;
 typedef struct jbl_node*JBL_NODE;
 
 
+/**
+ * JSON value with the same structure as in jbl_node.
+ */
 struct jbl_plain_value {
-  jbl_type_t type;
   int vsize;
+  jbl_type_t type;
   union {
     const char *vptr;
     bool    vbool;
@@ -198,6 +201,8 @@ typedef struct jbl_patch {
 
 
 void jbl_node_as_plain_value(struct jbl_node *n, struct jbl_plain_value *out_value);
+
+void jbl_plain_value_set_node(struct jbl_plain_value *v, struct jbl_node *n);
 
 /**
  * @brief JSON pointer rfc6901
