@@ -1,4 +1,5 @@
 2025-07-19 Anton Adamansky  <adamansky@gmail.com>  [WIP]
+  * json nodes of JBV_NONE type are not serialized and skipped (iwjser.c)
   * Added thread_initializer to iwtp (iwtp.h)
   * Migration to Autark build system.
   * iwrb improvements and iwrb test cases (iwrb.h)

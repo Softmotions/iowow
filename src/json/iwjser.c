@@ -507,6 +507,9 @@ static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *
         PT(0, 0, '\n', 1);
       }
       for (struct jbl_node *n = node->child; n; n = n->next) {
+        if (n->type == JBV_NONE) {
+          continue;
+        }
         if (pretty) {
           PT(0, 0, ' ', lvl * indent + indent);
         }
@@ -530,6 +533,9 @@ static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *
         PT(0, 0, '\n', 1);
       }
       for (struct jbl_node *n = node->child; n; n = n->next) {
+        if (n->type == JBV_NONE) {
+          continue;
+        }
         if (pretty) {
           PT(0, 0, ' ', lvl * indent + indent);
         }
@@ -572,6 +578,8 @@ static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *
       break;
     case JBV_NULL:
       PT("null", 4, 0, 1);
+      break;
+    case JBV_NONE:
       break;
     default:
       iwlog_ecode_error3(IW_ERROR_ASSERTION);
