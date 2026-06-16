@@ -79,7 +79,7 @@ void (*free_fn)(void *ptr) = free;
 #endif
 
 void binn_set_alloc_functions(
-  void*(*new_malloc)(size_t), void*(*new_realloc)(void*, size_t),
+  void*(*new_malloc)(size_t), void* (*new_realloc)(void*, size_t),
   void (*new_free)(void*)) {
   malloc_fn = new_malloc;
   realloc_fn = new_realloc;
@@ -2789,12 +2789,12 @@ binn* binn_value(int type, void *pvalue, int size, binn_mem_free freefn) {
             return NULL;
           }
           item->freefn = free_fn;
-          if (storage_type == BINN_STORAGE_STRING) {
-            size--;
-          }
         } else {
           item->ptr = pvalue;
           item->freefn = freefn;
+        }
+        if (storage_type == BINN_STORAGE_STRING) {
+          size--;
         }
         item->size = size;
         break;
