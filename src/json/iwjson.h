@@ -1049,6 +1049,9 @@ IW_EXPORT iwrc jbn_merge_patch_create(
   const char *path, struct jbl_node *val, struct iwpool *pool,
   struct jbl_node **out);
 
+IW_EXPORT iwrc jbn_double_value(struct jbl_node *n, double *out);
+
+IW_EXPORT iwrc jbn_int_value(struct jbl_node *n, int64_t *out);
 
 IW_EXPORT iwrc jbl_init(void);
 

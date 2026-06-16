@@ -3273,6 +3273,30 @@ iwrc jbn_merge_patch(struct jbl_node *root, struct jbl_node *patch, struct iwpoo
   return rc;
 }
 
+iwrc jbn_double_value(struct jbl_node *n, double *out) {
+  if (n->type == JBV_F64) {
+    *out = n->vf64;
+    return 0;
+  } else if (n->type == JBV_I64) {
+    *out = n->vi64;
+    return 0;
+  } else {
+    return IW_ERROR_INVALID_ARGS;
+  }
+}
+
+iwrc jbn_int_value(struct jbl_node *n, int64_t *out) {
+  if (n->type == JBV_I64) {
+    *out = n->vi64;
+    return 0;
+  } else if (n->type == JBV_F64) {
+    *out = n->vf64;
+    return 0;
+  } else {
+    return IW_ERROR_INVALID_ARGS;
+  }
+}
+
 static const char* _jbl_ecodefn(locale_t locale, uint32_t ecode) {
   if (!((ecode > _JBL_ERROR_START) && (ecode < _JBL_ERROR_END))) {
     return 0;
