@@ -35,7 +35,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
 
 #define IWKVD_MAX_VALSZ 96
 
-iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
+iwrc iwkvd_sblk(FILE *f, struct iwlctx *lx, SBLK *sb, int flags) {
   assert(sb && sb->addr);
   uint32_t lkl = 0;
   char lkbuf[PREFIX_KEY_LEN_V2 + 1] = { 0 };
@@ -59,11 +59,7 @@ iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, SBLK *sb, int flags) {
   } else {
     memcpy(&lkl, mm + sb->addr + SOFF_LKL_U1, 1);
     lkl = IW_ITOHL(lkl);
-    if (lx->db->iwkv->fmt_version > 1) {
-      memcpy(lkbuf, mm + sb->addr + SOFF_LK_V2, lkl);
-    } else {
-      memcpy(lkbuf, mm + sb->addr + SOFF_LK_V1, lkl);
-    }
+    memcpy(lkbuf, mm + sb->addr + SOFF_LK_V2, lkl);
   }
   fprintf(f, "\n === SBLK[%u] lvl=%d, pnum=%d, flg=%x, kvzidx=%d, p0=%u, db=%u",
           blkn,
@@ -105,7 +101,7 @@ IWFS_FSM* iwkvd_fsm(IWKV kv) {
 void iwkvd_db(FILE *f, IWDB db, int flags, int plvl) {
   assert(db);
   SBLK *sb, *tail;
-  IWLCTX lx = {
+  struct iwlctx lx = {
     .db = db,
     .nlvl = -1
   };

@@ -54,7 +54,6 @@ struct iwdlsnr {
   iwrc (*onsynced)(struct iwdlsnr *self, int flags);
 };
 
-typedef struct iwdlsnr IWDLSNR;
 
 IW_EXTERN_C_END;
 

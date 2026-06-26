@@ -7,7 +7,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2026 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -157,13 +157,13 @@ typedef enum {
  * @brief `IWFS_FSM` file options.
  * @see iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts)
  */
-typedef struct IWFS_FSM_OPTS {
-  IWFS_EXT_OPTS exfile;
+typedef struct iwfs_fsm_opts {
+  struct iwfs_ext_opts exfile;
   size_t   bmlen;                 /**< Initial size of free-space bitmap */
   uint32_t hdrlen;                /**< Length of custom file header.*/
   iwfs_fsm_openflags   oflags;    /**< Operation mode flags */
   iwfs_ext_mmap_opts_t mmap_opts; /**< Defaul mmap options used in `add_mmap` */
-  uint8_t bpow;                   /**< Block size power for 2 */
+  uint8_t bpow;                   /**< Block size power of 2 */
   bool    mmap_all;               /**< Mmap all file data */
 } IWFS_FSM_OPTS;
 
@@ -171,18 +171,18 @@ typedef struct IWFS_FSM_OPTS {
  * @brief `IWFS_FSM` file state container.
  * @see IWFS_FSM::state
  */
-typedef struct IWFS_FSM_STATE {
-  IWFS_EXT_STATE exfile;      /**< File pool state */
-  size_t block_size;          /**< Size of data block in bytes. */
-  iwfs_fsm_openflags oflags;  /**< Operation mode flags. */
-  uint64_t blocks_num;        /**< Number of available data blocks. */
-  uint32_t free_segments_num; /**< Number of free (deallocated) continuous data segments */
-  uint32_t hdrlen;            /**< Length of custom file header length in bytes */
-  double_t avg_alloc_size;    /**< Average allocation number of blocks */
-  double_t alloc_dispersion;  /**< Average allocation blocks dispersion */
+typedef struct iwfs_fsm_state {
+  struct iwfs_ext_state exfile; /**< File pool state */
+  size_t block_size;            /**< Size of data block in bytes. */
+  iwfs_fsm_openflags oflags;    /**< Operation mode flags. */
+  uint64_t blocks_num;          /**< Number of available data blocks. */
+  uint32_t free_segments_num;   /**< Number of free (deallocated) continuous data segments */
+  uint32_t hdrlen;              /**< Length of custom file header length in bytes */
+  double_t avg_alloc_size;      /**< Average allocation number of blocks */
+  double_t alloc_dispersion;    /**< Average allocation blocks dispersion */
 } IWFS_FSM_STATE;
 
-typedef struct IWFS_FSMDBG_STATE {
+typedef struct iwfs_fsmdbg_state {
   IWFS_FSM_STATE state;
   uint64_t       bmoff;
   uint64_t       bmlen;
@@ -195,7 +195,7 @@ typedef struct IWFS_FSMDBG_STATE {
  * locking
  *        and free space blocks management using bitmaps.
  */
-typedef struct IWFS_FSM {
+typedef struct iwfs_fsm {
   struct fsm *impl;
 
   /**
@@ -216,7 +216,7 @@ typedef struct IWFS_FSM {
    * @return `0` on success or error code.
    */
   iwrc (*allocate)(
-    struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *olen,
+    struct iwfs_fsm *f, off_t len, off_t *oaddr, off_t *olen,
     iwfs_fsm_aflags opts);
 
   /**
@@ -236,7 +236,7 @@ typedef struct IWFS_FSM {
    * @return `0` on success or error code.
    */
   iwrc (*reallocate)(
-    struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t *olen,
+    struct iwfs_fsm *f, off_t nlen, off_t *oaddr, off_t *olen,
     iwfs_fsm_aflags opts);
 
   /**
@@ -246,14 +246,14 @@ typedef struct IWFS_FSM {
    * @param len Length of area to release.
    * @return `0` on success or error code.
    */
-  iwrc (*deallocate)(struct IWFS_FSM *f, off_t addr, off_t len);
+  iwrc (*deallocate)(struct iwfs_fsm *f, off_t addr, off_t len);
 
 
   /**
    * @brief Check allocation status of region specified by @a addr and @a len
    * @return `0` on success or error code.
    */
-  iwrc (*check_allocation_status)(struct IWFS_FSM *f, off_t addr, off_t len, bool allocated);
+  iwrc (*check_allocation_status)(struct iwfs_fsm *f, off_t addr, off_t len, bool allocated);
 
   /**
    * @brief Write a data to the custom file header.
@@ -266,7 +266,7 @@ typedef struct IWFS_FSM {
    * @param siz Number of bytes of @a buf to write into header.
    * @return `0` on success or error code.
    */
-  iwrc (*writehdr)(struct IWFS_FSM *f, off_t off, const void *buf, off_t siz);
+  iwrc (*writehdr)(struct iwfs_fsm *f, off_t off, const void *buf, off_t siz);
 
   /**
    * @brief Read a data from the custom file header.
@@ -278,7 +278,7 @@ typedef struct IWFS_FSM {
    * @param [out] buf Data buffer to read into
    * @param Number of bytes to read
    */
-  iwrc (*readhdr)(struct IWFS_FSM *f, off_t off, void *buf, off_t siz);
+  iwrc (*readhdr)(struct iwfs_fsm *f, off_t off, void *buf, off_t siz);
 
   /**
    * @brief Cleanup all allocated data blocks and reset the file to the initial
@@ -287,20 +287,20 @@ typedef struct IWFS_FSM {
    * @param clrflags
    * @return `0` on success or error code.
    */
-  iwrc (*clear)(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags);
+  iwrc (*clear)(struct iwfs_fsm *f, iwfs_fsm_clrfalgs clrflags);
 
   /* See iwexfile.h */
 
   /** @see IWFS_EXT::ensure_size */
-  iwrc (*ensure_size)(struct IWFS_FSM *f, off_t size);
+  iwrc (*ensure_size)(struct iwfs_fsm *f, off_t size);
 
 
   /** @see IWFS_EXT::add_mmap */
-  iwrc (*add_mmap)(struct IWFS_FSM *f, off_t off, size_t maxlen, iwfs_ext_mmap_opts_t opts);
+  iwrc (*add_mmap)(struct iwfs_fsm *f, off_t off, size_t maxlen, iwfs_ext_mmap_opts_t opts);
 
 
   /** @see IWFS_EXT::remap_all */
-  iwrc (*remap_all)(struct IWFS_FSM *f);
+  iwrc (*remap_all)(struct iwfs_fsm *f);
 
   /**
    * @brief Get a pointer to the registered mmap area starting at `off`.
@@ -312,47 +312,47 @@ typedef struct IWFS_FSM {
    * @see IWFS_FSM::add_mmap
    * @see IWFS_EXT::acquire_mmap
    */
-  iwrc (*acquire_mmap)(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp);
+  iwrc (*acquire_mmap)(struct iwfs_fsm *f, off_t off, uint8_t **mm, size_t *sp);
 
   /**
    * @brief Retrieve mmaped region by its offset @a off
    */
-  iwrc (*probe_mmap)(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp);
+  iwrc (*probe_mmap)(struct iwfs_fsm *f, off_t off, uint8_t **mm, size_t *sp);
 
   /**
    * @brief Release the lock acquired by successfull call of `acquire_mmap()`
    */
-  iwrc (*release_mmap)(struct IWFS_FSM *f);
+  iwrc (*release_mmap)(struct iwfs_fsm *f);
 
   /** @see IWFS_EXT::remove_mmap */
-  iwrc (*remove_mmap)(struct IWFS_FSM *f, off_t off);
+  iwrc (*remove_mmap)(struct iwfs_fsm *f, off_t off);
 
   /** @see IWFS_EXT::sync_mmap */
-  iwrc (*sync_mmap)(struct IWFS_FSM *f, off_t off, iwfs_sync_flags flags);
+  iwrc (*sync_mmap)(struct iwfs_fsm *f, off_t off, iwfs_sync_flags flags);
 
   /* See iwfile.h */
 
   /** @see IWFS_FILE::write */
   iwrc (*write)(
-    struct IWFS_FSM *f, off_t off, const void *buf, size_t siz,
+    struct iwfs_fsm *f, off_t off, const void *buf, size_t siz,
     size_t *sp);
 
   /** @see IWFS_FILE::read */
   iwrc (*read)(
-    struct IWFS_FSM *f, off_t off, void *buf, size_t siz,
+    struct iwfs_fsm *f, off_t off, void *buf, size_t siz,
     size_t *sp);
 
   /** @see IWFS_FILE::close */
-  iwrc (*close)(struct IWFS_FSM *f);
+  iwrc (*close)(struct iwfs_fsm *f);
 
   /** @see IWFS_FILE::sync */
-  iwrc (*sync)(struct IWFS_FSM *f, iwfs_sync_flags flags);
+  iwrc (*sync)(struct iwfs_fsm *f, iwfs_sync_flags flags);
 
   /** @see IWFS_FILE::state */
-  iwrc (*state)(struct IWFS_FSM *f, IWFS_FSM_STATE *state);
+  iwrc (*state)(struct iwfs_fsm *f, IWFS_FSM_STATE *state);
 
   /** get access to the underlying iwextfile instance */
-  iwrc (*extfile)(struct IWFS_FSM *f, IWFS_EXT **ext);
+  iwrc (*extfile)(struct iwfs_fsm *f, IWFS_EXT **ext);
 } IWFS_FSM;
 
 /**
@@ -402,7 +402,7 @@ typedef struct IWFS_FSM {
  * @param opts File open options
  * @relatesalso IWFS_FSM
  */
-IW_EXPORT WUR iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts);
+IW_EXPORT WUR iwrc iwfs_fsmfile_open(struct iwfs_fsm *f, const struct iwfs_fsm_opts *opts);
 
 /**
  * @brief Init `iwfsmfile` submodule.

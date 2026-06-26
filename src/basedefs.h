@@ -6,7 +6,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2026 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -418,7 +418,7 @@ typedef uint64_t iwrc;
 /**
  * @brief A rational number.
  */
-typedef struct IW_RNUM {
+typedef struct iw_rnum {
   int32_t n;  /**< Numerator */
   int32_t dn; /**< Denometator */
 } IW_RNUM;

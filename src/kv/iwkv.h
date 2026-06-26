@@ -7,7 +7,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2026 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@
  * - Total size of a single key+value record must be not greater than 255Mb (0xfffffff)
  */
 
-#include "iowow.h"
+#include "iowow.h" // IWYU pragma: export
 #include "iwfsmfile.h"
 #include <stddef.h>
 #include <stdbool.h>
@@ -315,7 +315,7 @@ IW_EXPORT iwrc iwkv_put(struct iwdb *db, const struct iwkv_val *key, const struc
  * @param oldval Old value which will be replaced by `val` may be `NULL`
  * @param op Arbitrary opaqued data passed to this handler
  */
-typedef iwrc (*IWKV_PUT_HANDLER)(
+typedef iwrc (*iwkv_put_handler_fn)(
   const struct iwkv_val *key, const struct iwkv_val *val, struct iwkv_val *oldval,
   void *op);
 
@@ -325,7 +325,7 @@ typedef iwrc (*IWKV_PUT_HANDLER)(
  */
 IW_EXPORT iwrc iwkv_puth(
   struct iwdb *db, const struct iwkv_val *key, const struct iwkv_val *val,
-  iwkv_opflags opflags, IWKV_PUT_HANDLER ph, void *phop);
+  iwkv_opflags opflags, iwkv_put_handler_fn ph, void *phop);
 
 /**
  * @brief Get value for given `key`.
@@ -504,7 +504,7 @@ IW_EXPORT iwrc iwkv_cursor_set(struct iwkv_cursor *cur, struct iwkv_val *val, iw
 
 IW_EXPORT iwrc iwkv_cursor_seth(
   struct iwkv_cursor *cur, struct iwkv_val *val, iwkv_opflags opflags,
-  IWKV_PUT_HANDLER ph, void *phop);
+  iwkv_put_handler_fn ph, void *phop);
 
 /**
  * @brief Remove record value at current cursor position.

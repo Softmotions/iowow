@@ -4,13 +4,12 @@
 
 #include "iwkv.h"
 #include "iwlog.h"
-#include "iwarr.h"
 #include "iwutils.h"
 #include "iwfsmfile.h"
 #include "iwdlsnr.h"
-#include "iwal.h"
 #include "iwhmap.h"
-#include "ksort.h"
+#include "iwal.h"  // IWYU pragma: export
+#include "ksort.h" // IWYU pragma: export
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -151,13 +150,13 @@ typedef uint8_t iwlctx_op_t;
 /* struct kvblk: [szpow:u1,idxsz:u2,[ps0:vn,pl0:vn,..., ps32,pl32]____[[KV],...]] */
 struct kvblk {
   struct iwdb *db;
-  off_t    addr;              /**< Block address */
-  off_t    maxoff;            /**< Max pair offset */
-  uint16_t idxsz;             /**< Size of KV pairs index in bytes */
-  int8_t   zidx;              /**< Index of first empty pair slot (zero index), or -1 */
-  uint8_t  szpow;             /**< Block size as power of 2 */
-  kvblk_flags_t flags;        /**< Flags */
-  KVP pidx[KVBLK_IDXNUM];     /**< KV pairs index */
+  off_t    addr;                    /**< Block address */
+  off_t    maxoff;                  /**< Max pair offset */
+  uint16_t idxsz;                   /**< Size of KV pairs index in bytes */
+  int8_t   zidx;                    /**< Index of first empty pair slot (zero index), or -1 */
+  uint8_t  szpow;                   /**< Block size as power of 2 */
+  kvblk_flags_t flags;              /**< Flags */
+  struct kvp    pidx[KVBLK_IDXNUM]; /**< KV pairs index */
 };
 
 typedef struct kvblk KVBLK;
@@ -214,15 +213,15 @@ typedef struct sblk SBLK;
 
 /** struct iwkv* instance */
 struct iwkv {
-  IWFS_FSM fsm;                          /**< FSM pool */
+  struct iwfs_fsm  fsm;                  /**< FSM pool */
   pthread_rwlock_t rwl;                  /**< API RW lock */
   iwrc fatalrc;                          /**< Fatal error occuried, no farther operations can be performed */
-  struct iwdb   *first_db;               /**< First database in chain */
-  struct iwdb   *last_db;                /**< Last database in chain */
-  struct iwhmap *dbs;                    /**< Database id -> struct iwdb* mapping */
-  IWDLSNR       *dlsnr;                  /**< WAL data events listener */
-  iwkv_openflags oflags;                 /**< Open flags */
-  pthread_cond_t wk_cond;                /**< Workers cond variable */
+  struct iwdb    *first_db;              /**< First database in chain */
+  struct iwdb    *last_db;               /**< Last database in chain */
+  struct iwhmap  *dbs;                   /**< Database id -> struct iwdb* mapping */
+  struct iwdlsnr *dlsnr;                 /**< WAL data events listener */
+  iwkv_openflags  oflags;                /**< Open flags */
+  pthread_cond_t  wk_cond;               /**< Workers cond variable */
   pthread_mutex_t wk_mtx;                /**< Workers cond mutext */
   int32_t fmt_version;                   /**< Database format version */
   volatile int32_t wk_count;             /**< Number of active workers */
@@ -249,7 +248,7 @@ struct iwlctx {
   uint8_t      saan;               /**< Position of next free `SBLK` element in the `saa` area */
   uint8_t      kaan;               /**< Position of next free `struct kvblk` element in the `kaa` area */
   int8_t       nlvl;               /**< Level of new inserted/deleted `SBLK` node. -1 if no new node inserted/deleted */
-  IWKV_PUT_HANDLER ph;             /**< Optional put handler */
+  iwkv_put_handler_fn ph;          /**< Optional put handler */
   void *phop;                      /**< Put handler opaque data */
   struct sblk    *plower[SLEVELS]; /**< Pinned lower nodes per level */
   struct sblk    *pupper[SLEVELS]; /**< Pinned upper nodes per level */
@@ -260,8 +259,6 @@ struct iwlctx {
   uint8_t nbuf[IW_VNUMBUFSZ];
   uint8_t incbuf[8];          /**< Buffer used to store incremented/decremented values `IWKV_VAL_INCREMENT` opflag */
 };
-
-typedef struct iwlctx IWLCTX;
 
 /** Cursor context */
 struct iwkv_cursor {
@@ -372,7 +369,6 @@ IW_INLINE iwrc _api_db_wlock(struct iwdb *db) {
 #define SOFF_N0_U4      (SOFF_PI0_U1 + 1 * KVBLK_IDXNUM)
 #define SOFF_BPOS_U1_V2 (SOFF_N0_U4 + 4 * SLEVELS)
 #define SOFF_LK_V2      (SOFF_BPOS_U1_V2 + 1)
-#define SOFF_LK_V1      (SOFF_N0_U4 + 4 * SLEVELS)
 #define SOFF_END        (SOFF_LK_V2 + SBLK_LKLEN)
 static_assert(SOFF_END == 256, "SOFF_END == 256");
 static_assert(SBLK_SZ >= SOFF_END, "SBLK_SZ >= SOFF_END");
@@ -396,12 +392,11 @@ static_assert(DB_SZ >= DOFF_END, "DB_SZ >= DOFF_END");
 // [szpow:u1,idxsz:u2,[ps1:vn,pl1:vn,...,ps32,pl32]____[[_KV],...]] // struct kvblk
 #define KBLK_SZPOW_OFF 0
 
-
 iwrc iwkv_exclusive_lock(struct iwkv *iwkv);
 iwrc iwkv_exclusive_unlock(struct iwkv *iwkv);
 void iwkvd_trigger_xor(uint64_t val);
 void iwkvd_kvblk(FILE *f, struct kvblk *kb, int maxvlen);
-iwrc iwkvd_sblk(FILE *f, IWLCTX *lx, struct sblk *sb, int flags);
+iwrc iwkvd_sblk(FILE *f, struct iwlctx *lx, struct sblk *sb, int flags);
 void iwkvd_db(FILE *f, struct iwdb *db, int flags, int plvl);
 
 // IWKVD Trigger commands

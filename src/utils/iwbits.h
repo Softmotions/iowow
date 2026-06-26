@@ -7,7 +7,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2026 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,9 @@ IW_EXTERN_C_START;
  * @brief Find the first set bit number. Undefined if @a x is zero.
  */
 IW_INLINE uint8_t iwbits_find_first_sbit64(uint64_t x) {
-  //return __builtin_ffsll(x) - 1;
+#if defined(__GNUC__) || defined(__clang__)
+  return (unsigned) __builtin_ctzll(x);
+#else
   uint8_t ret = 0;
   if ((x & 0xffffffffU) == 0) {
     ret += 32;
@@ -73,13 +75,16 @@ IW_INLINE uint8_t iwbits_find_first_sbit64(uint64_t x) {
     ret += 1;
   }
   return ret;
+#endif
 }
 
 /**
  * @brief Find the last set bit number. Undefined if @a x is zero.
  */
 IW_INLINE uint8_t iwbits_find_last_sbit64(uint64_t x) {
-  //return 63 - __builtin_clzll(x);
+#if defined(__GNUC__) || defined(__clang__)
+  return 63U - (unsigned) __builtin_clzll(x);
+#else
   uint8_t num = 63;
   if ((x & 0xffffffff00000000ULL) == 0) {
     num -= 32;
@@ -105,6 +110,7 @@ IW_INLINE uint8_t iwbits_find_last_sbit64(uint64_t x) {
     num -= 1;
   }
   return num;
+#endif
 }
 
 /**

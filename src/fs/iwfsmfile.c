@@ -3,7 +3,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2026 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,18 +82,18 @@ typedef uint8_t fsm_bmopts_t;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct fsm {
-  IWFS_EXT  pool;                 /**< Underlying rwl file. */
-  uint64_t  bmlen;                /**< Free-space bitmap block length in bytes. */
-  uint64_t  bmoff;                /**< Free-space bitmap block offset in bytes. */
-  uint64_t  lfbkoff;              /**< Offset in blocks of free block chunk with the largest offset. */
-  uint64_t  lfbklen;              /**< Length in blocks of free block chunk with the largest offset. */
-  uint64_t  crzsum;               /**< Cumulative sum all allocated blocks */
-  uint64_t  crzvar;               /**< Record sizes standard variance (deviation^2 * N) */
-  uint32_t  hdrlen;               /**< Length of custom file header */
-  uint32_t  crznum;               /**< Number of all allocated continuous areas acquired by `allocate` */
-  uint32_t  fsmnum;               /**< Number of records in fsm */
-  IWFS_FSM *f;                    /**< Self reference. */
-  IWDLSNR  *dlsnr;                /**< Data events listener */
+  struct iwfs_ext pool;           /**< Underlying rwl file. */
+  uint64_t bmlen;                 /**< Free-space bitmap block length in bytes. */
+  uint64_t bmoff;                 /**< Free-space bitmap block offset in bytes. */
+  uint64_t lfbkoff;               /**< Offset in blocks of free block chunk with the largest offset. */
+  uint64_t lfbklen;               /**< Length in blocks of free block chunk with the largest offset. */
+  uint64_t crzsum;                /**< Cumulative sum all allocated blocks */
+  uint64_t crzvar;                /**< Record sizes standard variance (deviation^2 * N) */
+  uint32_t hdrlen;                /**< Length of custom file header */
+  uint32_t crznum;                /**< Number of all allocated continuous areas acquired by `allocate` */
+  uint32_t fsmnum;                /**< Number of records in fsm */
+  struct iwfs_fsm   *f;           /**< Self reference. */
+  struct iwdlsnr    *dlsnr;       /**< Data events listener */
   struct iwavl_node *root;        /**< Free-space tree */
   pthread_rwlock_t  *ctlrwlk;     /**< Methods RW lock */
   size_t aunit;                   /**< System allocation unit size.
@@ -259,6 +259,35 @@ IW_INLINE const struct iwavl_node* _fsm_find_matching_fblock_lw(
   return 0;
 }
 
+IW_INLINE bool _fsm_bm_mask_ok(uint8_t v, uint8_t mask, int bit_status) {
+  return bit_status ? ((v & mask) == 0) : ((v & mask) == mask);
+}
+
+IW_INLINE void _fsm_bm_mask_apply(uint8_t *p, uint8_t mask, int bit_status) {
+  if (bit_status) {
+    *p |= mask;
+  } else {
+    *p &= (uint8_t) ~mask;
+  }
+}
+
+IW_INLINE bool _fsm_bm_full_ok(const uint8_t *p, uint64_t len, int bit_status) {
+  if (bit_status) {
+    for (uint64_t i = 0; i < len; ++i) {
+      if (p[i] != 0) {
+        return false;
+      }
+    }
+  } else {
+    for (uint64_t i = 0; i < len; ++i) {
+      if (p[i] != 0xffU) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 /**
  * @brief Set the allocation bits in the fsm bitmap.
  *
@@ -271,141 +300,95 @@ IW_INLINE const struct iwavl_node* _fsm_find_matching_fblock_lw(
 static iwrc _fsm_set_bit_status_lw(
   struct fsm        *fsm,
   const uint64_t     offset_bits,
-  const uint64_t     length_bits_,
+  const uint64_t     length_bits,
   const int          bit_status,
   const fsm_bmopts_t opts) {
   iwrc rc;
-  size_t sp;
-  uint8_t *mm;
-  register int64_t length_bits = length_bits_;
-  register uint64_t *p, set_mask;
-  uint64_t bend = offset_bits + length_bits;
-  int set_bits;
+  uint64_t *bmptr;
 
-  if (bend < offset_bits) { // overflow
+  if (length_bits == 0) {
+    return 0;
+  }
+
+  if (fsm->bmlen > UINT64_MAX / 8) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
-  assert(fsm->bmlen * 8 >= offset_bits + length_bits);
-  if (fsm->bmlen * 8 < offset_bits + length_bits) {
+
+  const uint64_t bitmap_bits = fsm->bmlen * 8;
+  const uint64_t end_bits = offset_bits + length_bits;
+
+  if (end_bits > bitmap_bits) {
     return IWFS_ERROR_FSM_SEGMENTATION;
   }
-  if (fsm->mmap_all) {
-    rc = fsm->pool.probe_mmap(&fsm->pool, 0, &mm, &sp);
-    RCRET(rc);
-    if (sp < fsm->bmoff + fsm->bmlen) {
-      return IWFS_ERROR_NOT_MMAPED;
-    } else {
-      mm += fsm->bmoff;
+
+  rc = _fsm_bmptr(fsm, &bmptr);
+  RCRET(rc);
+
+  uint8_t *bm = (uint8_t*) bmptr;
+
+  const bool strict = (opts & FSM_BM_STRICT) != 0;
+  const bool dry = (opts & FSM_BM_DRY_RUN) != 0;
+  const uint64_t first_byte = offset_bits >> 3;
+  const uint64_t end_byte = end_bits >> 3;
+  const unsigned first_bit = offset_bits & 7U;
+  const unsigned end_bit = end_bits & 7U;
+
+  if (first_byte == end_byte) {
+    const uint8_t mask = (uint8_t) ((0xffU << first_bit) & ((1U << end_bit) - 1U));
+    if (strict && !_fsm_bm_mask_ok(bm[first_byte], mask, bit_status)) {
+      return IWFS_ERROR_FSM_SEGMENTATION;
+    }
+    if (!dry) {
+      _fsm_bm_mask_apply(bm + first_byte, mask, bit_status);
     }
   } else {
-    rc = fsm->pool.probe_mmap(&fsm->pool, fsm->bmoff, &mm, &sp);
-    RCRET(rc);
-    if (sp < fsm->bmlen) {
-      return IWFS_ERROR_NOT_MMAPED;
+    uint64_t full_off = first_byte;
+    if (first_bit) {
+      const uint8_t mask = (uint8_t) (0xffU << first_bit);
+      if (strict && !_fsm_bm_mask_ok(bm[first_byte], mask, bit_status)) {
+        return IWFS_ERROR_FSM_SEGMENTATION;
+      }
+      full_off = first_byte + 1;
     }
-  }
-  p = ((uint64_t*) mm) + offset_bits / 64;
-  set_bits = 64 - (offset_bits & (64 - 1)); // NOLINT
-  set_mask = (~((uint64_t) 0) << (offset_bits & (64 - 1)));
 
-#ifdef IW_BIGENDIAN
-  while (length_bits - set_bits >= 0) {
-    uint64_t pv = *p;
-    pv = IW_ITOHLL(pv);
-    if (bit_status) {
-      if ((opts & FSM_BM_STRICT) && (pv & set_mask)) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
-      }
-      if ((opts & FSM_BM_DRY_RUN) == 0) {
-        pv |= set_mask;
-        *p = IW_HTOILL(pv);
-      }
-    } else {
-      if ((opts & FSM_BM_STRICT) && ((pv & set_mask) != set_mask)) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
-      }
-      if ((opts & FSM_BM_DRY_RUN) == 0) {
-        pv &= ~set_mask;
-        *p = IW_HTOILL(pv);
+    const uint64_t full_end = end_byte;
+    const uint64_t full_len = full_end - full_off;
+    if (strict && full_len) {
+      if (!_fsm_bm_full_ok(bm + full_off, full_len, bit_status)) {
+        return IWFS_ERROR_FSM_SEGMENTATION;
       }
     }
-    length_bits -= set_bits;
-    set_bits = 64;
-    set_mask = ~((uint64_t) 0);
-    ++p;
-  }
-  if (length_bits) {
-    uint64_t pv = *p;
-    pv = IW_ITOHLL(pv);
-    set_mask &= (bend & (64 - 1)) ? ((((uint64_t) 1) << (bend & (64 - 1))) - 1) : ~((uint64_t) 0);
-    if (bit_status) {
-      if ((opts & FSM_BM_STRICT) && (pv & set_mask)) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
+
+    if (end_bit) {
+      const uint8_t mask = (uint8_t) ((1U << end_bit) - 1U);
+      if (strict && !_fsm_bm_mask_ok(bm[end_byte], mask, bit_status)) {
+        return IWFS_ERROR_FSM_SEGMENTATION;
       }
-      if ((opts & FSM_BM_DRY_RUN) == 0) {
-        pv |= set_mask;
-        *p = IW_HTOILL(pv);
+    }
+
+    if (!dry) {
+      if (first_bit) {
+        const uint8_t mask = (uint8_t) (0xffU << first_bit);
+        _fsm_bm_mask_apply(bm + first_byte, mask, bit_status);
       }
-    } else {
-      if ((opts & FSM_BM_STRICT) && ((pv & set_mask) != set_mask)) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
+
+      if (full_len) {
+        memset(bm + full_off, bit_status ? 0xff : 0x00, full_len);
       }
-      if ((opts & FSM_BM_DRY_RUN) == 0) {
-        pv &= ~set_mask;
-        *p = IW_HTOILL(pv);
+
+      if (end_bit) {
+        const uint8_t mask = (uint8_t) ((1U << end_bit) - 1U);
+        _fsm_bm_mask_apply(bm + end_byte, mask, bit_status);
       }
     }
   }
-#else
-  while (length_bits - set_bits >= 0) {
-    if (bit_status) {
-      if ((opts & FSM_BM_STRICT) && (*p & set_mask)) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
-      }
-      if ((opts & FSM_BM_DRY_RUN) == 0) {
-        *p |= set_mask;
-      }
-    } else {
-      if ((opts & FSM_BM_STRICT) && ((*p & set_mask) != set_mask)) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
-      }
-      if ((opts & FSM_BM_DRY_RUN) == 0) {
-        *p &= ~set_mask;
-      }
-    }
-    length_bits -= set_bits;
-    set_bits = 64;
-    set_mask = ~((uint64_t) 0);
-    ++p;
+
+  if (!dry && fsm->dlsnr) {
+    uint64_t so = first_byte;
+    uint64_t dl = (length_bits + first_bit + 7U) >> 3;
+    rc = fsm->dlsnr->onwrite(fsm->dlsnr, fsm->bmoff + so, bm + so, dl, 0);
   }
-  if (length_bits) {
-    set_mask &= (bend & (64 - 1)) ? ((((uint64_t) 1) << (bend & (64 - 1))) - 1) : ~((uint64_t) 0);
-    if (bit_status) {
-      if ((opts & FSM_BM_STRICT) && (*p & set_mask)) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
-      }
-      if ((opts & FSM_BM_DRY_RUN) == 0) {
-        *p |= set_mask;
-      }
-    } else {
-      if ((opts & FSM_BM_STRICT) && ((*p & set_mask) != set_mask)) {
-        rc = IWFS_ERROR_FSM_SEGMENTATION;
-      }
-      if ((opts & FSM_BM_DRY_RUN) == 0) {
-        *p &= ~set_mask;
-      }
-    }
-  }
-#endif
-  if (!rc && fsm->dlsnr) {
-    uint64_t so = offset_bits / 8;
-    uint64_t lb = length_bits_ + offset_bits % 8;
-    uint64_t dl = lb / 8;
-    if (lb % 8) {
-      ++dl;
-    }
-    rc = fsm->dlsnr->onwrite(fsm->dlsnr, fsm->bmoff + so, mm + so, dl, 0);
-  }
+
   return rc;
 }
 
@@ -508,49 +491,119 @@ static void _fsm_node_destroy(struct iwavl_node *root) {
   }
 }
 
+IW_INLINE uint64_t _fsm_bm_load_word_u64p(const uint64_t *p) {
+#ifdef IW_BIGENDIAN
+  return IW_ITOHLL(*p);
+#else
+  return *p;
+#endif
+}
+
+IW_INLINE uint64_t _fsm_bm_load_word_u8p(const uint8_t *p) {
+  uint64_t v;
+  memcpy(&v, p, sizeof(v));
+#ifdef IW_BIGENDIAN
+  v = IW_ITOHLL(v);
+#endif
+  return v;
+}
+
+IW_INLINE iwrc _fsm_flush_free_run(
+  struct fsm *fsm,
+  uint64_t    cbnum,
+  uint64_t   *fbklength) {
+  if (*fbklength == 0) {
+    return 0;
+  }
+  iwrc rc = _fsm_put_fbk(fsm, cbnum - *fbklength, *fbklength);
+  *fbklength = 0;
+  return rc;
+}
+
 /**
  * @brief Load existing bitmap area into free-space search tree.
  * @param fsm  `struct fsm`
  * @param bm    Bitmap area start ptr
  * @param len   Bitmap area length in bytes.
  */
-static void _fsm_load_fsm_lw(struct fsm *fsm, const uint8_t *bm, uint64_t len) {
-  uint64_t cbnum = 0, fbklength = 0, fbkoffset = 0;
+
+static iwrc _fsm_load_fsm_lw(
+  struct fsm    *fsm,
+  const uint8_t *bm,
+  uint64_t       len) {
+  iwrc rc = 0;
+  uint64_t cbnum = 0;
+  uint64_t fbklength = 0;
+  uint64_t b = 0;
 
   _fsm_node_destroy(fsm->root);
   fsm->root = 0;
   fsm->fsmnum = 0;
+  fsm->lfbkoff = 0;
+  fsm->lfbklen = 0;
 
-  for (uint64_t b = 0; b < len; ++b) {
-    register uint8_t bb = bm[b];
+
+  while (b + 8 <= len) {
+    uint64_t word = _fsm_bm_load_word_u8p(bm + b);
+    if (word == 0) {
+      fbklength += 64;
+      cbnum += 64;
+      b += 8;
+      continue;
+    }
+    if (word == UINT64_MAX) {
+      RCC(rc, finish, _fsm_flush_free_run(fsm, cbnum, &fbklength));
+      cbnum += 64;
+      b += 8;
+      continue;
+    }
+
+    uint64_t pos = 0;
+    while (word) {
+      const unsigned sbit = iwbits_find_first_sbit64(word);
+      if (sbit > pos) {
+        fbklength += sbit - pos;
+      }
+      if (fbklength) {
+        RCC(rc, finish, _fsm_put_fbk(fsm, cbnum + sbit - fbklength, fbklength));
+        fbklength = 0;
+      }
+      word &= word - 1;
+      pos = (uint64_t) sbit + 1;
+    }
+    if (pos < 64) {
+      fbklength += 64 - pos;
+    }
+    cbnum += 64;
+    b += 8;
+  }
+
+  while (b < len) {
+    uint8_t bb = bm[b++];
     if (bb == 0) {
       fbklength += 8;
       cbnum += 8;
-    } else if (bb == 0xffU) {
-      if (fbklength) {
-        fbkoffset = cbnum - fbklength;
-        _fsm_put_fbk(fsm, fbkoffset, fbklength);
-        fbklength = 0;
-      }
+      continue;
+    }
+    if (bb == 0xffU) {
+      RCC(rc, finish, _fsm_flush_free_run(fsm, cbnum, &fbklength));
       cbnum += 8;
-    } else {
-      for (int i = 0; i < 8; ++i, ++cbnum) {
-        if (bb & (1U << i)) {
-          if (fbklength) {
-            fbkoffset = cbnum - fbklength;
-            _fsm_put_fbk(fsm, fbkoffset, fbklength);
-            fbklength = 0;
-          }
-        } else {
-          ++fbklength;
-        }
+      continue;
+    }
+    for (unsigned i = 0; i < 8; ++i, ++cbnum) {
+      if (bb & (1U << i)) {
+        RCC(rc, finish, _fsm_flush_free_run(fsm, cbnum, &fbklength));
+      } else {
+        ++fbklength;
       }
     }
   }
-  if (fbklength > 0) {
-    fbkoffset = len * 8 - fbklength;
-    _fsm_put_fbk(fsm, fbkoffset, fbklength);
+  if (fbklength) {
+    RCC(rc, finish, _fsm_put_fbk(fsm, cbnum - fbklength, fbklength));
   }
+
+finish:
+  return rc;
 }
 
 /**
@@ -639,99 +692,64 @@ static iwrc _fsm_write_meta_lw(struct fsm *fsm) {
  *        starting from the specified offset bit (INCLUDED).
  */
 static uint64_t _fsm_find_next_set_bit(
-  const uint64_t   *addr,
-  register uint64_t offset_bit,
-  const uint64_t    max_offset_bit,
-  int              *found) {
+  const uint64_t *addr,
+  uint64_t        offset_bit,
+  const uint64_t  max_offset_bit,
+  int            *found) {
   *found = 0;
-  register uint64_t bit, size;
-  register const uint64_t *p = addr + offset_bit / 64;
+
   if (offset_bit >= max_offset_bit) {
     return 0;
   }
-  bit = offset_bit & (64 - 1);
-  offset_bit -= bit;
-  size = max_offset_bit - offset_bit;
 
-#ifdef IW_BIGENDIAN
-  uint64_t pv = *p;
-  if (bit) {
-    pv = IW_ITOHLL(pv) & (~((uint64_t) 0) << bit);
-    if (pv) {
-      pv = iwbits_find_first_sbit64(pv);
-      if (pv >= size) {
-        return 0;
-      } else {
-        *found = 1;
-        return offset_bit + pv;
-      }
-    }
-    if (size <= 64) {
-      return 0;
-    }
-    offset_bit += 64;
-    size -= 64;
-    ++p;
-  }
-  while (size & ~(64 - 1)) {
-    pv = *(p++);
-    if (pv) {
+  uint64_t base = offset_bit & ~UINT64_C(63);
+  uint64_t idx = base >> 6;
+  unsigned bit = (unsigned) (offset_bit & 63U);
+
+  uint64_t size = max_offset_bit - base;
+  uint64_t word = _fsm_bm_load_word_u64p(addr + idx);
+
+  word &= (~UINT64_C(0) << bit);
+
+  if (size < 64) {
+    word &= (UINT64_C(1) << size) - 1U;
+    if (word) {
       *found = 1;
-      return offset_bit + iwbits_find_first_sbit64(IW_ITOHLL(pv));
+      return base + iwbits_find_first_sbit64(word);
     }
-    offset_bit += 64;
-    size -= 64;
-  }
-  if (!size) {
     return 0;
   }
-  pv = *p;
-  pv = IW_ITOHLL(pv) & (~((uint64_t) 0) >> (64 - size));
-  if (pv) {
+
+  if (word) {
     *found = 1;
-    return offset_bit + iwbits_find_first_sbit64(pv);
-  } else {
-    return 0;
+    return base + iwbits_find_first_sbit64(word);
   }
-#else
-  register uint64_t tmp;
-  if (bit) {
-    tmp = *p & (~((uint64_t) 0) << bit);
-    if (tmp) {
-      tmp = iwbits_find_first_sbit64(tmp);
-      if (tmp >= size) {
-        return 0;
-      } else {
-        *found = 1;
-        return offset_bit + tmp;
-      }
-    }
-    if (size <= 64) {
-      return 0;
-    }
-    offset_bit += 64;
-    size -= 64;
-    ++p;
-  }
-  while (size & ~(64 - 1)) {
-    if ((tmp = *(p++))) {
+
+  base += 64;
+  ++idx;
+
+  while (max_offset_bit - base >= 64) {
+    word = _fsm_bm_load_word_u64p(addr + idx);
+    if (word) {
       *found = 1;
-      return offset_bit + iwbits_find_first_sbit64(tmp);
+      return base + iwbits_find_first_sbit64(word);
     }
-    offset_bit += 64;
-    size -= 64;
+    base += 64;
+    ++idx;
   }
-  if (!size) {
-    return 0;
+
+  if (base < max_offset_bit) {
+    const uint64_t tail = max_offset_bit - base;
+    word = _fsm_bm_load_word_u64p(addr + idx);
+    word &= (UINT64_C(1) << tail) - 1U;
+
+    if (word) {
+      *found = 1;
+      return base + iwbits_find_first_sbit64(word);
+    }
   }
-  tmp = (*p) & (~((uint64_t) 0) >> (64 - size));
-  if (tmp) {
-    *found = 1;
-    return offset_bit + iwbits_find_first_sbit64(tmp);
-  } else {
-    return 0;
-  }
-#endif
+
+  return 0;
 }
 
 /**
@@ -739,94 +757,60 @@ static uint64_t _fsm_find_next_set_bit(
  *        starting from the specified offset_bit (EXCLUDED).
  */
 static uint64_t _fsm_find_prev_set_bit(
-  const uint64_t   *addr,
-  register uint64_t offset_bit,
-  const uint64_t    min_offset_bit,
-  int              *found) {
-  register const uint64_t *p;
-  register uint64_t tmp, bit, size;
+  const uint64_t *addr,
+  uint64_t        offset_bit,
+  const uint64_t  min_offset_bit,
+  int            *found) {
   *found = 0;
+
   if (min_offset_bit >= offset_bit) {
     return 0;
   }
-  size = offset_bit - min_offset_bit;
-  bit = offset_bit & (64 - 1);
-  p = addr + offset_bit / 64;
 
-#ifdef IW_BIGENDIAN
-  uint64_t pv;
+  uint64_t base = offset_bit & ~UINT64_C(63);
+  uint64_t idx = base >> 6;
+  unsigned bit = (unsigned) (offset_bit & 63U);
+
   if (bit) {
-    pv = *p;
-    pv = (iwbits_reverse_64(IW_ITOHLL(pv)) >> (64 - bit));
-    if (pv) {
-      pv = iwbits_find_first_sbit64(pv);
-      if (pv >= size) {
-        return 0;
-      } else {
-        *found = 1;
-        assert(offset_bit > pv);
-        return offset_bit > pv ? offset_bit - pv - 1 : 0;
-      }
+    uint64_t word = _fsm_bm_load_word_u64p(addr + idx);
+
+    /* Bits below offset_bit in the current word. offset_bit is excluded. */
+    word &= (UINT64_C(1) << bit) - 1U;
+
+    /* If min_offset_bit is in the same word, remove bits below min_offset_bit. */
+    if (min_offset_bit > base) {
+      const unsigned min_bit = (unsigned) (min_offset_bit - base);
+      word &= ~((UINT64_C(1) << min_bit) - 1U);
     }
-    offset_bit -= bit;
-    size -= bit;
-  }
-  while (size & ~(64 - 1)) {
-    if (*(--p)) {
-      pv = *p;
+
+    if (word) {
       *found = 1;
-      tmp = iwbits_find_first_sbit64(iwbits_reverse_64(IW_ITOHLL(pv)));
-      assert(offset_bit > tmp);
-      return offset_bit > tmp ? offset_bit - tmp - 1 : 0;
+      return base + iwbits_find_last_sbit64(word);
     }
-    offset_bit -= 64;
-    size -= 64;
-  }
-  if (size == 0) {
-    return 0;
-  }
-  pv = *(--p);
-  tmp = iwbits_reverse_64(IW_ITOHLL(pv)) & ((((uint64_t) 1) << size) - 1);
-#else
-  if (bit) {
-    tmp = (iwbits_reverse_64(*p) >> (64 - bit));
-    if (tmp) {
-      tmp = iwbits_find_first_sbit64(tmp);
-      if (tmp >= size) {
-        return 0;
-      } else {
-        *found = 1;
-        assert(offset_bit > tmp);
-        return offset_bit > tmp ? offset_bit - tmp - 1 : 0;
-      }
+
+    if (min_offset_bit >= base) {
+      return 0;
     }
-    offset_bit -= bit;
-    size -= bit;
   }
-  while (size & ~(64 - 1)) {
-    if (*(--p)) {
+
+  while (base > min_offset_bit) {
+    base -= 64;
+    --idx;
+
+    uint64_t word = _fsm_bm_load_word_u64p(addr + idx);
+
+    if (base < min_offset_bit) {
+      const unsigned min_bit = (unsigned) (min_offset_bit - base);
+      word &= ~((UINT64_C(1) << min_bit) - 1U);
+    }
+
+    if (word) {
       *found = 1;
-      tmp = iwbits_find_first_sbit64(iwbits_reverse_64(*p));
-      assert(offset_bit > tmp);
-      return offset_bit > tmp ? offset_bit - tmp - 1 : 0;
+      return base + iwbits_find_last_sbit64(word);
     }
-    offset_bit -= 64;
-    size -= 64;
   }
-  if (size == 0) {
-    return 0;
-  }
-  tmp = iwbits_reverse_64(*(--p)) & ((((uint64_t) 1) << size) - 1);
-#endif
-  if (tmp) {
-    uint64_t tmp2;
-    *found = 1;
-    tmp2 = iwbits_find_first_sbit64(tmp);
-    assert(offset_bit > tmp2);
-    return offset_bit > tmp2 ? offset_bit - tmp2 - 1 : 0;
-  } else {
-    return 0;
-  }
+
+  return 0;
 }
 
 /**
@@ -913,7 +897,7 @@ static iwrc _fsm_init_lw(struct fsm *fsm, uint64_t bmoff, uint64_t bmlen) {
   uint8_t *mm, *mm2;
   size_t sp, sp2;
   uint64_t old_bmoff, old_bmlen;
-  IWFS_EXT *pool = &fsm->pool;
+  struct iwfs_ext *pool = &fsm->pool;
 
   if ((bmlen & ((1U << fsm->bpow) - 1)) || (bmoff & ((1U << fsm->bpow) - 1)) || (bmoff & (fsm->aunit - 1))) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
@@ -1004,7 +988,7 @@ static iwrc _fsm_init_lw(struct fsm *fsm, uint64_t bmoff, uint64_t bmlen) {
   }
 
   /* Reload fsm tree */
-  _fsm_load_fsm_lw(fsm, mm, bmlen);
+  RCC(rc, rollback, _fsm_load_fsm_lw(fsm, mm, bmlen));
 
   /* Flush new meta */
   RCC(rc, rollback, _fsm_write_meta_lw(fsm));
@@ -1024,7 +1008,7 @@ rollback:
   fsm->bmoff = old_bmoff;
   fsm->bmlen = old_bmlen;
   if (old_bmlen && mm2) {
-    _fsm_load_fsm_lw(fsm, mm2, old_bmlen);
+    IWRC(_fsm_load_fsm_lw(fsm, mm2, old_bmlen), rc);
   }
   pool->sync(pool, IWFS_FDATASYNC);
   return rc;
@@ -1038,7 +1022,7 @@ rollback:
 static iwrc _fsm_resize_fsm_bitmap_lw(struct fsm *fsm, uint64_t size) {
   iwrc rc;
   uint64_t bmoffset = 0, bmlen, sp;
-  IWFS_EXT *pool = &fsm->pool;
+  struct iwfs_ext *pool = &fsm->pool;
 
   if (fsm->bmlen >= size) {
     return 0;
@@ -1183,7 +1167,7 @@ static iwrc _fsm_trim_tail_lw(struct fsm *fsm) {
   iwrc rc;
   int hasleft;
   uint64_t length, lastblk, *bmptr;
-  IWFS_EXT_STATE fstate;
+  struct iwfs_ext_state fstate;
   uint64_t offset = 0;
 
   if (!(fsm->omode & IWFS_OWRITE)) {
@@ -1227,7 +1211,7 @@ finish:
   return rc;
 }
 
-static iwrc _fsm_init_impl(struct fsm *fsm, const IWFS_FSM_OPTS *opts) {
+static iwrc _fsm_init_impl(struct fsm *fsm, const struct iwfs_fsm_opts *opts) {
   fsm->oflags = opts->oflags;
   fsm->aunit = iwp_alloc_unit();
   fsm->bpow = opts->bpow;
@@ -1242,7 +1226,7 @@ static iwrc _fsm_init_impl(struct fsm *fsm, const IWFS_FSM_OPTS *opts) {
   return 0;
 }
 
-static iwrc _fsm_init_locks(struct fsm *fsm, const IWFS_FSM_OPTS *opts) {
+static iwrc _fsm_init_locks(struct fsm *fsm, const struct iwfs_fsm_opts *opts) {
   if (opts->oflags & IWFSM_NOLOCKS) {
     fsm->ctlrwlk = 0;
     return 0;
@@ -1425,7 +1409,7 @@ static iwrc _fsm_init_existing_lw(struct fsm *fsm) {
     }
   }
 
-  _fsm_load_fsm_lw(fsm, mm, fsm->bmlen);
+  rc = _fsm_load_fsm_lw(fsm, mm, fsm->bmlen);
 
 finish:
   return rc;
@@ -1458,7 +1442,7 @@ static iwrc _fsm_is_fully_allocated_lr(struct fsm *fsm, uint64_t offset_blk, uin
 *                                  Public API *
 *************************************************************************************************/
 
-static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t siz, size_t *sp) {
+static iwrc _fsm_write(struct iwfs_fsm *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   FSM_ENSURE_OPEN2(f);
   struct fsm *fsm = f->impl;
   iwrc rc = _fsm_ctrl_rlock(fsm);
@@ -1483,7 +1467,7 @@ static iwrc _fsm_write(struct IWFS_FSM *f, off_t off, const void *buf, size_t si
   return rc;
 }
 
-static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size_t *sp) {
+static iwrc _fsm_read(struct iwfs_fsm *f, off_t off, void *buf, size_t siz, size_t *sp) {
   FSM_ENSURE_OPEN2(f);
   struct fsm *fsm = f->impl;
   iwrc rc = _fsm_ctrl_rlock(fsm);
@@ -1507,7 +1491,7 @@ static iwrc _fsm_read(struct IWFS_FSM *f, off_t off, void *buf, size_t siz, size
   return rc;
 }
 
-static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
+static iwrc _fsm_sync(struct iwfs_fsm *f, iwfs_sync_flags flags) {
   FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
   RCRET(rc);
@@ -1517,7 +1501,7 @@ static iwrc _fsm_sync(struct IWFS_FSM *f, iwfs_sync_flags flags) {
   return rc;
 }
 
-static iwrc _fsm_close(struct IWFS_FSM *f) {
+static iwrc _fsm_close(struct iwfs_fsm *f) {
   if (!f || !f->impl) {
     return 0;
   }
@@ -1546,7 +1530,7 @@ IW_INLINE iwrc _fsm_ensure_size_lw(struct fsm *fsm, off_t size) {
   return fsm->pool.ensure_size(&fsm->pool, size);
 }
 
-static iwrc _fsm_ensure_size(struct IWFS_FSM *f, off_t size) {
+static iwrc _fsm_ensure_size(struct iwfs_fsm *f, off_t size) {
   FSM_ENSURE_OPEN2(f);
   iwrc rc = _fsm_ctrl_rlock(f->impl);
   RCRET(rc);
@@ -1561,40 +1545,40 @@ finish:
   return rc;
 }
 
-static iwrc _fsm_add_mmap(struct IWFS_FSM *f, off_t off, size_t maxlen, iwfs_ext_mmap_opts_t opts) {
+static iwrc _fsm_add_mmap(struct iwfs_fsm *f, off_t off, size_t maxlen, iwfs_ext_mmap_opts_t opts) {
   FSM_ENSURE_OPEN2(f);
   return f->impl->pool.add_mmap(&f->impl->pool, off, maxlen, opts);
 }
 
-static iwrc _fsm_remap_all(struct IWFS_FSM *f) {
+static iwrc _fsm_remap_all(struct iwfs_fsm *f) {
   FSM_ENSURE_OPEN2(f);
   return f->impl->pool.remap_all(&f->impl->pool);
 }
 
-iwrc _fsm_acquire_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
+iwrc _fsm_acquire_mmap(struct iwfs_fsm *f, off_t off, uint8_t **mm, size_t *sp) {
   return f->impl->pool.acquire_mmap(&f->impl->pool, off, mm, sp);
 }
 
-iwrc _fsm_release_mmap(struct IWFS_FSM *f) {
+iwrc _fsm_release_mmap(struct iwfs_fsm *f) {
   return f->impl->pool.release_mmap(&f->impl->pool);
 }
 
-static iwrc _fsm_probe_mmap(struct IWFS_FSM *f, off_t off, uint8_t **mm, size_t *sp) {
+static iwrc _fsm_probe_mmap(struct iwfs_fsm *f, off_t off, uint8_t **mm, size_t *sp) {
   FSM_ENSURE_OPEN2(f);
   return f->impl->pool.probe_mmap(&f->impl->pool, off, mm, sp);
 }
 
-static iwrc _fsm_remove_mmap(struct IWFS_FSM *f, off_t off) {
+static iwrc _fsm_remove_mmap(struct iwfs_fsm *f, off_t off) {
   FSM_ENSURE_OPEN2(f);
   return f->impl->pool.remove_mmap(&f->impl->pool, off);
 }
 
-static iwrc _fsm_sync_mmap(struct IWFS_FSM *f, off_t off, iwfs_sync_flags flags) {
+static iwrc _fsm_sync_mmap(struct iwfs_fsm *f, off_t off, iwfs_sync_flags flags) {
   FSM_ENSURE_OPEN2(f);
   return f->impl->pool.sync_mmap(&f->impl->pool, off, flags);
 }
 
-static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
+static iwrc _fsm_allocate(struct iwfs_fsm *f, off_t len, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
   FSM_ENSURE_OPEN2(f);
   iwrc rc;
   uint64_t sbnum, nlen;
@@ -1622,7 +1606,7 @@ static iwrc _fsm_allocate(struct IWFS_FSM *f, off_t len, off_t *oaddr, off_t *ol
   return rc;
 }
 
-static iwrc _fsm_reallocate(struct IWFS_FSM *f, off_t nlen, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
+static iwrc _fsm_reallocate(struct iwfs_fsm *f, off_t nlen, off_t *oaddr, off_t *olen, iwfs_fsm_aflags opts) {
   FSM_ENSURE_OPEN2(f);
   iwrc rc;
   struct fsm *fsm = f->impl;
@@ -1665,7 +1649,7 @@ finish:
   return rc;
 }
 
-static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
+static iwrc _fsm_deallocate(struct iwfs_fsm *f, off_t addr, off_t len) {
   FSM_ENSURE_OPEN2(f);
   iwrc rc;
   struct fsm *fsm = f->impl;
@@ -1692,7 +1676,7 @@ static iwrc _fsm_deallocate(struct IWFS_FSM *f, off_t addr, off_t len) {
   return rc;
 }
 
-static iwrc _fsm_check_allocation_status(struct IWFS_FSM *f, off_t addr, off_t len, bool allocated) {
+static iwrc _fsm_check_allocation_status(struct iwfs_fsm *f, off_t addr, off_t len, bool allocated) {
   struct fsm *fsm = f->impl;
   if ((addr & ((1ULL << fsm->bpow) - 1)) || (len & ((1ULL << fsm->bpow) - 1))) {
     return IWFS_ERROR_RANGE_NOT_ALIGNED;
@@ -1713,7 +1697,7 @@ static iwrc _fsm_check_allocation_status(struct IWFS_FSM *f, off_t addr, off_t l
   return rc;
 }
 
-static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t siz) {
+static iwrc _fsm_writehdr(struct iwfs_fsm *f, off_t off, const void *buf, off_t siz) {
   FSM_ENSURE_OPEN2(f);
   iwrc rc;
   uint8_t *mm;
@@ -1735,7 +1719,7 @@ static iwrc _fsm_writehdr(struct IWFS_FSM *f, off_t off, const void *buf, off_t 
   return rc;
 }
 
-static iwrc _fsm_readhdr(struct IWFS_FSM *f, off_t off, void *buf, off_t siz) {
+static iwrc _fsm_readhdr(struct iwfs_fsm *f, off_t off, void *buf, off_t siz) {
   FSM_ENSURE_OPEN2(f);
   iwrc rc;
   uint8_t *mm;
@@ -1754,7 +1738,7 @@ static iwrc _fsm_readhdr(struct IWFS_FSM *f, off_t off, void *buf, off_t siz) {
   return rc;
 }
 
-static iwrc _fsm_clear(struct IWFS_FSM *f, iwfs_fsm_clrfalgs clrflags) {
+static iwrc _fsm_clear(struct iwfs_fsm *f, iwfs_fsm_clrfalgs clrflags) {
   FSM_ENSURE_OPEN2(f);
   struct fsm *fsm = f->impl;
   uint64_t bmoff, bmlen;
@@ -1783,13 +1767,13 @@ finish:
   return rc;
 }
 
-static iwrc _fsm_extfile(struct IWFS_FSM *f, IWFS_EXT **ext) {
+static iwrc _fsm_extfile(struct iwfs_fsm *f, IWFS_EXT **ext) {
   FSM_ENSURE_OPEN2(f);
   *ext = &f->impl->pool;
   return 0;
 }
 
-static iwrc _fsm_state(struct IWFS_FSM *f, IWFS_FSM_STATE *state) {
+static iwrc _fsm_state(struct iwfs_fsm *f, IWFS_FSM_STATE *state) {
   FSM_ENSURE_OPEN2(f);
   struct fsm *fsm = f->impl;
   iwrc rc = _fsm_ctrl_rlock(fsm);
@@ -1809,7 +1793,7 @@ static iwrc _fsm_state(struct IWFS_FSM *f, IWFS_FSM_STATE *state) {
 iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   assert(f && opts);
   iwrc rc = 0;
-  IWFS_EXT_STATE fstate = { 0 };
+  struct iwfs_ext_state fstate = { 0 };
   const char *path = opts->exfile.file.path;
 
   memset(f, 0, sizeof(*f));
@@ -1846,11 +1830,12 @@ iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
   if (!fsm) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
+
   fsm->f = f;
   fsm->dlsnr = opts->exfile.file.dlsnr; // Copy data changes listener address
   fsm->mmap_opts = opts->mmap_opts;
 
-  IWFS_EXT_OPTS rwl_opts = opts->exfile;
+  struct iwfs_ext_opts rwl_opts = opts->exfile;
   rwl_opts.use_locks = !(opts->oflags & IWFSM_NOLOCKS);
 
   RCC(rc, finish, _fsm_init_impl(fsm, opts));

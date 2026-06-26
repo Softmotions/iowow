@@ -24,11 +24,11 @@ extern atomic_uint_fast64_t g_trigger;
 #define BKP_WAL_COPY2   0x5       /**< Copy rest of WAL file in exclusive locked mode */
 
 struct iwal {
-  IWDLSNR     lsnr;
-  atomic_bool applying;             /**< WAL applying */
-  atomic_bool open;                 /**< Is WAL in use */
-  atomic_bool force_cp;             /**< Next checkpoint scheduled */
-  atomic_bool synched;              /**< WAL is synched or WBFIXPOINT is the last write operation */
+  struct iwdlsnr lsnr;
+  atomic_bool    applying;          /**< WAL applying */
+  atomic_bool    open;              /**< Is WAL in use */
+  atomic_bool    force_cp;          /**< Next checkpoint scheduled */
+  atomic_bool    synched;           /**< WAL is synched or WBFIXPOINT is the last write operation */
   bool force_sp;                    /**< Next savepoint scheduled */
   bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
   iwkv_openflags oflags;            /**< File open flags */
@@ -1052,7 +1052,7 @@ iwrc _init_cpt(struct iwal *wal) {
   return 0;
 }
 
-iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, IWFS_FSM_OPTS *fsmopts, bool recover_backup) {
+iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fsm_opts *fsmopts, bool recover_backup) {
   assert(!iwkv->dlsnr && opts && fsmopts);
   if (!opts) {
     return IW_ERROR_INVALID_ARGS;
@@ -1088,7 +1088,7 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, IWFS_FSM_OPTS 
   rc = _init_locks(wal);
   RCGO(rc, finish);
 
-  IWDLSNR *dlsnr = &wal->lsnr;
+  struct iwdlsnr *dlsnr = &wal->lsnr;
   dlsnr->onopen = _onopen;
   dlsnr->onclosing = _onclosing;
   dlsnr->onset = _onset;
@@ -1096,7 +1096,7 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, IWFS_FSM_OPTS 
   dlsnr->onwrite = _onwrite;
   dlsnr->onresize = _onresize;
   dlsnr->onsynced = _onsynced;
-  iwkv->dlsnr = (IWDLSNR*) wal;
+  iwkv->dlsnr = (struct iwdlsnr*) wal;
 
   wal->wal_buffer_sz
     = opts->wal.wal_buffer_sz > 0

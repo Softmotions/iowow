@@ -30,7 +30,6 @@ V2 SBLK layout:
   bpos   - Position of SBLK in a page block starting with 1 (zero means SBLK deleted)
   lk     - Buffer for the lowest key among all key/value pairs stored in KVBLK
 
-
 KVBLK - Data block stored a set of key/value pairs associated with SBLK
 
 [szpow:u1,idxsz:u2,KVI[32] ___free space___ [[KV],...]]

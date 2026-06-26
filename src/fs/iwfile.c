@@ -3,7 +3,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2026 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,15 +41,15 @@
 #define strndup xstrndup
 #endif
 
-typedef struct IWFS_FILE_IMPL {
-  HANDLE fh;               /**< File handle. */
-  iwfs_openstatus ostatus; /**< File open status. */
-  IWFS_FILE_OPTS  opts;    /**< File open options. */
-} IWF;
+struct iwfs_file_impl {
+  HANDLE fh;                     /**< File handle. */
+  iwfs_openstatus       ostatus; /**< File open status. */
+  struct iwfs_file_opts opts;    /**< File open options. */
+};
 
-static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp) {
+static iwrc _iwfs_write(struct iwfs_file *f, off_t off, const void *buf, size_t siz, size_t *sp) {
   assert(f);
-  IWF *impl = f->impl;
+  struct iwfs_file_impl *impl = f->impl;
   if (!impl) {
     return IW_ERROR_INVALID_STATE;
   }
@@ -63,22 +63,22 @@ static iwrc _iwfs_write(struct IWFS_FILE *f, off_t off, const void *buf, size_t 
   return rc;
 }
 
-static iwrc _iwfs_read(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp) {
+static iwrc _iwfs_read(struct iwfs_file *f, off_t off, void *buf, size_t siz, size_t *sp) {
   assert(f);
-  IWF *impl = f->impl;
+  struct iwfs_file_impl *impl = f->impl;
   if (!impl) {
     return IW_ERROR_INVALID_STATE;
   }
   return iwp_pread(impl->fh, off, buf, siz, sp);
 }
 
-static iwrc _iwfs_close(struct IWFS_FILE *f) {
+static iwrc _iwfs_close(struct iwfs_file *f) {
   if (!f || !f->impl) {
     return 0;
   }
   iwrc rc = 0;
-  IWF *impl = f->impl;
-  IWFS_FILE_OPTS *opts = &impl->opts;
+  struct iwfs_file_impl *impl = f->impl;
+  struct iwfs_file_opts *opts = &impl->opts;
 #ifndef _WIN32
   if (opts->path && (opts->omode & IWFS_OUNLINK)) {
     unlink(opts->path);
@@ -97,13 +97,13 @@ static iwrc _iwfs_close(struct IWFS_FILE *f) {
   return rc;
 }
 
-static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
+static iwrc _iwfs_sync(struct iwfs_file *f, iwfs_sync_flags flags) {
   assert(f);
   iwrc rc = 0;
   if (!f->impl) {
     return IW_ERROR_INVALID_STATE;
   }
-  IWF *impl = f->impl;
+  struct iwfs_file_impl *impl = f->impl;
   if (flags & IWFS_FDATASYNC) {
 #ifdef __APPLE__
     if (fcntl(impl->fh, F_FULLFSYNC) == -1) {
@@ -123,11 +123,10 @@ static iwrc _iwfs_sync(struct IWFS_FILE *f, iwfs_sync_flags flags) {
   return rc;
 }
 
-static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE *state) {
-  assert(f);
-  assert(state);
+static iwrc _iwfs_state(struct iwfs_file *f, struct iwfs_file_state *state) {
+  assert(f && state);
   memset(state, 0, sizeof(*state));
-  IWF *impl = f->impl;
+  struct iwfs_file_impl *impl = f->impl;
   state->is_open = (impl != 0);
   if (!state->is_open) {
     return 0;
@@ -138,9 +137,9 @@ static iwrc _iwfs_state(struct IWFS_FILE *f, IWFS_FILE_STATE *state) {
   return 0;
 }
 
-static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
+static iwrc _iwfs_copy(struct iwfs_file *f, off_t off, size_t siz, off_t noff) {
   assert(f);
-  IWF *impl = f->impl;
+  struct iwfs_file_impl *impl = f->impl;
   if (!impl) {
     return IW_ERROR_INVALID_STATE;
   }
@@ -154,13 +153,13 @@ static iwrc _iwfs_copy(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff) {
   return rc;
 }
 
-iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
+iwrc iwfs_file_open(struct iwfs_file *f, const struct iwfs_file_opts *_opts) {
   if (!f || !_opts || !_opts->path) {
     return IW_ERROR_INVALID_ARGS;
   }
 
-  IWFS_FILE_OPTS *opts;
-  IWF *impl;
+  struct iwfs_file_opts *opts;
+  struct iwfs_file_impl *impl;
   IWP_FILE_STAT fstat;
   iwfs_omode omode;
   iwrc rc;
@@ -177,9 +176,8 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   f->state = _iwfs_state;
   f->copy = _iwfs_copy;
 
-  impl = f->impl = calloc(1, sizeof(IWF));
+  impl = f->impl = calloc(1, sizeof(struct iwfs_file_impl));
   if (!impl) {
-
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
 
@@ -187,7 +185,7 @@ iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *_opts) {
   opts = &impl->opts;
 
   if (opts->dlsnr) {
-    IWDLSNR *l = opts->dlsnr;
+    struct iwdlsnr *l = opts->dlsnr;
     if (  !l->onopen || !l->onclosing || !l->oncopy || !l->onresize
        || !l->onset || !l->onsynced || !l->onwrite) {
       iwlog_ecode_error2(IW_ERROR_INVALID_ARGS, "Invalid 'opts->dlsnr' specified");

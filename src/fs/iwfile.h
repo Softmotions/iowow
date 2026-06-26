@@ -7,7 +7,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2026 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,8 +61,6 @@
  * @endcode
  */
 
-#include "iowow.h"
-#include "iwlog.h"
 #include "iwp.h"
 #include "iwdlsnr.h"
 
@@ -106,32 +104,32 @@ typedef uint8_t iwfs_sync_flags;
  * @brief `IWFS_FILE` file options.
  * @see iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts)
  */
-typedef struct {
+typedef struct iwfs_file_opts {
   const char  *path;      /**< Required file path. */
   iwfs_omode   omode;     /**< File open mode. */
   iwp_lockmode lock_mode; /**< File locking mode. */
   /**< Specifies the permissions to use in case a new file is created,
        `int open(const char *pathname, int flags, mode_t mode)` */
-  int      filemode;
-  IWDLSNR *dlsnr;         /**< Optional data listener */
+  int filemode;
+  struct iwdlsnr *dlsnr;         /**< Optional data listener */
 } IWFS_FILE_OPTS;
 
 /**
  * @brief `IWFS_FILE` file state info.
  * @see IWFS_FILE::state
  */
-typedef struct {
-  int is_open;             /**< `1` if file in open state */
-  iwfs_openstatus ostatus; /**< File open status. */
-  IWFS_FILE_OPTS  opts;    /**< File open options. */
-  HANDLE fh;               /**< File handle */
+typedef struct iwfs_file_state {
+  int is_open;                   /**< `1` if file in open state */
+  iwfs_openstatus       ostatus; /**< File open status. */
+  struct iwfs_file_opts opts;    /**< File open options. */
+  HANDLE fh;                     /**< File handle */
 } IWFS_FILE_STATE;
 
 /**
  * @struct IWFS_FILE
  * @brief Simple file implementation.
  */
-typedef struct IWFS_FILE {
+typedef struct iwfs_file {
   void *impl; /**< Implementation specific data */
 
   /**
@@ -144,7 +142,7 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually written
    * @return `0` on success or error code.
    */
-  iwrc (*write)(struct IWFS_FILE *f, off_t off, const void *buf, size_t siz, size_t *sp);
+  iwrc (*write)(struct iwfs_file *f, off_t off, const void *buf, size_t siz, size_t *sp);
 
   /**
    * @brief Read @a siz bytes into @a buf at the specified offset @a off
@@ -156,20 +154,20 @@ typedef struct IWFS_FILE {
    * @param [out] sp Number of bytes actually read.
    * @return `0` on success or error code.
    */
-  iwrc (*read)(struct IWFS_FILE *f, off_t off, void *buf, size_t siz, size_t *sp);
+  iwrc (*read)(struct iwfs_file *f, off_t off, void *buf, size_t siz, size_t *sp);
 
   /**
    * @brief Closes this file.
    * @return `0` on success or error code.
    */
-  iwrc (*close)(struct IWFS_FILE *f);
+  iwrc (*close)(struct iwfs_file *f);
 
   /**
    * @brief Sync file data with fs.
    * @param f `struct IWFS_FILE` pointer.
    * @param opts File sync options.
    */
-  iwrc (*sync)(struct IWFS_FILE *f, iwfs_sync_flags flags);
+  iwrc (*sync)(struct iwfs_file *f, iwfs_sync_flags flags);
 
   /**
    * @brief Return current file state.
@@ -179,7 +177,7 @@ typedef struct IWFS_FILE {
    *
    * @see struct IWFS_FILE_STATE
    */
-  iwrc (*state)(struct IWFS_FILE *f, IWFS_FILE_STATE *state);
+  iwrc (*state)(struct iwfs_file *f, IWFS_FILE_STATE *state);
 
   /**
    * @brief Copy data within a file
@@ -188,7 +186,7 @@ typedef struct IWFS_FILE {
    * @param siz Data size
    * @param noff New data offset
    */
-  iwrc (*copy)(struct IWFS_FILE *f, off_t off, size_t siz, off_t noff);
+  iwrc (*copy)(struct iwfs_file *f, off_t off, size_t siz, off_t noff);
 } IWFS_FILE;
 
 /**
@@ -212,7 +210,7 @@ typedef struct IWFS_FILE {
  * @return `0` on success or error code.
  * @relatesalso IWFS_FILE
  */
-IW_EXPORT WUR iwrc iwfs_file_open(IWFS_FILE *f, const IWFS_FILE_OPTS *opts);
+IW_EXPORT WUR iwrc iwfs_file_open(struct iwfs_file *f, const struct iwfs_file_opts *opts);
 
 /**
  * @brief Init `iwfile` submodule.

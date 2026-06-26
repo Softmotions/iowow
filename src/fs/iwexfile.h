@@ -7,7 +7,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2012-2024 Softmotions Ltd <info@softmotions.com>
+ * Copyright (c) 2012-2026 Softmotions Ltd <info@softmotions.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,8 +66,8 @@
 
 IW_EXTERN_C_START;
 
-struct IWFS_EXT_OPTS;
-struct IWFS_EXT;
+struct iwfs_ext_opts;
+struct iwfs_ext;
 
 /**
  * @enum iwfs_ext_ecode
@@ -109,8 +109,8 @@ typedef uint8_t iwfs_ext_mmap_opts_t;
  *
  * @return Computed new file size.
  */
-typedef off_t (*IW_EXT_RSPOLICY)(
-  off_t nsize, off_t csize, struct IWFS_EXT *f,
+typedef off_t (*iw_ext_rspolicy_fp)(
+  off_t nsize, off_t csize, struct iwfs_ext *f,
   void **ctx);
 
 /**
@@ -120,7 +120,7 @@ typedef off_t (*IW_EXT_RSPOLICY)(
  */
 IW_EXPORT off_t iw_exfile_szpolicy_fibo(
   off_t nsize, off_t csize,
-  struct IWFS_EXT *f, void **ctx);
+  struct iwfs_ext *f, void **ctx);
 
 /**
  * @brief Rational number `IW_RNUM` file size multiplication policy.
@@ -129,23 +129,23 @@ IW_EXPORT off_t iw_exfile_szpolicy_fibo(
  */
 IW_EXPORT off_t iw_exfile_szpolicy_mul(
   off_t nsize, off_t csize,
-  struct IWFS_EXT *f, void **ctx);
+  struct iwfs_ext *f, void **ctx);
 
 /**
  * @brief `IWFS_EXT` file options.
  * @see iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts)
  */
-typedef struct IWFS_EXT_OPTS {
+typedef struct iwfs_ext_opts {
   IWFS_FILE_OPTS file; /**< Underlying file options */
   off_t initial_size;  /**< Initial file size */
   bool  use_locks;     /**< If `true` file operations will be guarded by rw lock. Default: `false` */
 
-  IW_EXT_RSPOLICY rspolicy; /**< File resize policy function ptr. Default:
-                               `exact size policy`  */
-  void *rspolicy_ctx;       /**< Custom opaque data for policy functions.
-                                 Default: `0` */
-  uint64_t maxoff;          /**< Maximum allowed file offset. Unlimited if zero.
-                                 If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
+  iw_ext_rspolicy_fp rspolicy; /**< File resize policy function ptr. Default:
+                                  `exact size policy`  */
+  void *rspolicy_ctx;          /**< Custom opaque data for policy functions.
+                                    Default: `0` */
+  uint64_t maxoff;             /**< Maximum allowed file offset. Unlimited if zero.
+                                    If maximum offset is reached `IWFS_ERROR_MAXOFF` will be reported. */
 } IWFS_EXT_OPTS;
 
 /**
@@ -153,16 +153,16 @@ typedef struct IWFS_EXT_OPTS {
  * @brief `IWFS_EXT` file state info.
  * @see IWFS_EXT::state
  */
-typedef struct IWFS_EXT_STATE {
-  IWFS_FILE_STATE file; /**< Simple file state */
-  off_t fsize;          /**< Current file size */
+typedef struct iwfs_ext_state {
+  struct iwfs_file_state file; /**< Simple file state */
+  off_t fsize;                 /**< Current file size */
 } IWFS_EXT_STATE;
 
 /**
  * @brief Auto-expandable file.
  */
-typedef struct IWFS_EXT {
-  struct IWFS_EXT_IMPL *impl;
+typedef struct iwfs_ext {
+  struct iwfs_ext_impl *impl;
 
   /**
    * @brief Ensures that a file's physical address space contains a given offset
@@ -181,14 +181,14 @@ typedef struct IWFS_EXT {
    * @see off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT
    * *f, void **ctx)
    */
-  iwrc (*ensure_size)(struct IWFS_EXT *f, off_t off);
+  iwrc (*ensure_size)(struct iwfs_ext *f, off_t off);
 
   /**
    * @brief Set the end of this file to the specified offset @a off exactly.
    */
-  iwrc (*truncate)(struct IWFS_EXT *f, off_t off);
+  iwrc (*truncate)(struct iwfs_ext *f, off_t off);
 
-  iwrc (*truncate_unsafe)(struct IWFS_EXT *f, off_t off);
+  iwrc (*truncate_unsafe)(struct iwfs_ext *f, off_t off);
 
   /**
    * @brief Register an address space specified by @a off and @a len as memory
@@ -216,9 +216,9 @@ typedef struct IWFS_EXT {
    * @param len Length of mmaped region
    * @return `0` on success or error code.
    */
-  iwrc (*add_mmap)(struct IWFS_EXT *f, off_t off, size_t len, iwfs_ext_mmap_opts_t opts);
+  iwrc (*add_mmap)(struct iwfs_ext *f, off_t off, size_t len, iwfs_ext_mmap_opts_t opts);
 
-  iwrc (*add_mmap_unsafe)(struct IWFS_EXT *f, off_t off, size_t len, iwfs_ext_mmap_opts_t opts);
+  iwrc (*add_mmap_unsafe)(struct iwfs_ext *f, off_t off, size_t len, iwfs_ext_mmap_opts_t opts);
 
   /**
    * @brief Retrieve mmaped region by its offset @a off and keep file as read locked.
@@ -237,19 +237,19 @@ typedef struct IWFS_EXT {
    * @param [out] sp Length of region
    * @return `0` on success or error code.
    */
-  iwrc (*acquire_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
+  iwrc (*acquire_mmap)(struct iwfs_ext *f, off_t off, uint8_t **mm, size_t *sp);
 
   /**
    * @brief Retrieve mmaped region by its offset @a off
    */
-  iwrc (*probe_mmap)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
+  iwrc (*probe_mmap)(struct iwfs_ext *f, off_t off, uint8_t **mm, size_t *sp);
 
-  iwrc (*probe_mmap_unsafe)(struct IWFS_EXT *f, off_t off, uint8_t **mm, size_t *sp);
+  iwrc (*probe_mmap_unsafe)(struct iwfs_ext *f, off_t off, uint8_t **mm, size_t *sp);
 
   /**
    * @brief Release the lock acquired by successfull call of `acquire_mmap()`
    */
-  iwrc (*release_mmap)(struct IWFS_EXT *f);
+  iwrc (*release_mmap)(struct iwfs_ext *f);
 
   /**
    * @brief Unmap mmaped region identified by @a off
@@ -261,9 +261,9 @@ typedef struct IWFS_EXT {
    * @param off Region start offset
    * @return `0` on success or error code.
    */
-  iwrc (*remove_mmap)(struct IWFS_EXT *f, off_t off);
+  iwrc (*remove_mmap)(struct iwfs_ext *f, off_t off);
 
-  iwrc (*remove_mmap_unsafe)(struct IWFS_EXT *f, off_t off);
+  iwrc (*remove_mmap_unsafe)(struct iwfs_ext *f, off_t off);
 
   /**
    * @brief Synchronize a file with a mmaped region identified by @a off offset.
@@ -276,40 +276,40 @@ typedef struct IWFS_EXT {
    * @param flags Sync flags.
    * @return `0` on success or error code.
    */
-  iwrc (*sync_mmap)(struct IWFS_EXT *f, off_t off, iwfs_sync_flags flags);
+  iwrc (*sync_mmap)(struct iwfs_ext *f, off_t off, iwfs_sync_flags flags);
 
-  iwrc (*sync_mmap_unsafe)(struct IWFS_EXT *f, off_t off, iwfs_sync_flags flags);
+  iwrc (*sync_mmap_unsafe)(struct iwfs_ext *f, off_t off, iwfs_sync_flags flags);
 
   /**
    * @brief Remap all mmaped regions.
    *
    * @param f `IWFS_EXT`
    */
-  iwrc (*remap_all)(struct IWFS_EXT *f);
+  iwrc (*remap_all)(struct iwfs_ext *f);
 
   /* See iwfile.h */
 
   /**  @see IWFS_FILE::write */
   iwrc (*write)(
-    struct IWFS_EXT *f, off_t off, const void *buf, size_t siz,
+    struct iwfs_ext *f, off_t off, const void *buf, size_t siz,
     size_t *sp);
 
   /**  @see IWFS_FILE::read */
   iwrc (*read)(
-    struct IWFS_EXT *f, off_t off, void *buf, size_t siz,
+    struct iwfs_ext *f, off_t off, void *buf, size_t siz,
     size_t *sp);
 
   /** @see IWFS_FILE::close */
-  iwrc (*close)(struct IWFS_EXT *f);
+  iwrc (*close)(struct iwfs_ext *f);
 
   /**  @see IWFS_FILE::sync */
-  iwrc (*sync)(struct IWFS_EXT *f, iwfs_sync_flags flags);
+  iwrc (*sync)(struct iwfs_ext *f, iwfs_sync_flags flags);
 
   /**  @see IWFS_FILE::state */
-  iwrc (*state)(struct IWFS_EXT *f, IWFS_EXT_STATE *state);
+  iwrc (*state)(struct iwfs_ext *f, IWFS_EXT_STATE *state);
 
   /**  @see IWFS_FILE::copy */
-  iwrc (*copy)(struct IWFS_EXT *f, off_t off, size_t siz, off_t noff);
+  iwrc (*copy)(struct iwfs_ext *f, off_t off, size_t siz, off_t noff);
 } IWFS_EXT;
 
 /**
@@ -344,7 +344,7 @@ typedef struct IWFS_EXT {
  * @return Error code of `0` on success.
  * @relatesalso IWFS_EXT
  */
-IW_EXPORT WUR iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts);
+IW_EXPORT WUR iwrc iwfs_exfile_open(struct iwfs_ext *f, const struct iwfs_ext_opts *opts);
 
 /**
  * @brief Init `iwexfile` submodule.

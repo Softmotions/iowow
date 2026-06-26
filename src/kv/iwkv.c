@@ -343,6 +343,7 @@ static WUR iwrc _db_at(struct iwkv *iwkv, struct iwdb **dbp, off_t addr, uint8_t
   if (!db) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
+
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
 #if defined __linux__ && (defined __USE_UNIX98 || defined __USE_XOPEN2K)
@@ -359,6 +360,7 @@ static WUR iwrc _db_at(struct iwkv *iwkv, struct iwdb **dbp, off_t addr, uint8_t
     free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
+
   // [magic:u4,dbflg:u1,dbid:u4,next_db_blk:u4,p0:u4,n[24]:u4,c[24]:u4,meta_blk:u4,meta_blkn:u4]:217
   db->flags = SBLK_DB;
   db->addr = addr;
@@ -1146,7 +1148,7 @@ start:
     off_t olen = nlen;
 
     uint8_t npow = kb->szpow;
-    while ((1ULL << ++npow) < nsz);
+    while ((1ULL << ++npow) < nsz) ;
 
     rc = fsm->allocate(fsm, (1ULL << npow), &naddr, &nlen, IWKV_FSM_ALLOC_FLAGS);
     RCGO(rc, finish);
@@ -2901,7 +2903,7 @@ iwrc iwkv_init(void) {
   return iwlog_register_ecodefn(_kv_ecodefn);
 }
 
-static off_t _szpolicy(off_t nsize, off_t csize, struct IWFS_EXT *f, void **_ctx) {
+static off_t _szpolicy(off_t nsize, off_t csize, struct iwfs_ext *f, void **_ctx) {
   off_t res;
   size_t aunit = iwp_alloc_unit();
   if (csize < 0x4000000) { // Doubled alloc up to 64M
@@ -3091,6 +3093,7 @@ iwrc iwkv_open(const struct iwkv_opts *opts, struct iwkv **iwkvp) {
   if (opts->random_seed) {
     iwu_rand_seed(opts->random_seed);
   }
+
   iwkv_openflags oflags = opts->oflags;
   iwfs_omode omode = IWFS_OREAD;
   if (oflags & IWKV_TRUNC) {
@@ -3147,8 +3150,8 @@ iwrc iwkv_open(const struct iwkv_opts *opts, struct iwkv **iwkvp) {
   }
 
   iwkv->oflags = oflags;
-  IWFS_FSM_STATE fsmstate;
-  IWFS_FSM_OPTS fsmopts = {
+  struct iwfs_fsm_state fsmstate;
+  struct iwfs_fsm_opts fsmopts = {
     .exfile = {
       .file = {
         .path = opts->path,
@@ -3181,7 +3184,7 @@ iwrc iwkv_open(const struct iwkv_opts *opts, struct iwkv **iwkvp) {
   RCC(rc, finish, iwfs_fsmfile_open(&iwkv->fsm, &fsmopts));
   RCB(finish, iwkv->dbs = iwhmap_create_u32(0));
 
-  IWFS_FSM *fsm = &iwkv->fsm;
+  struct iwfs_fsm *fsm = &iwkv->fsm;
   RCC(rc, finish, fsm->state(fsm, &fsmstate));
 
   // Database header: [magic:u4, first_addr:u8, db_format_version:u4]
@@ -3398,10 +3401,11 @@ iwrc iwkv_db_destroy(struct iwdb **dbp) {
 
 iwrc iwkv_puth(
   struct iwdb *db, const struct iwkv_val *key, const struct iwkv_val *val,
-  iwkv_opflags opflags, IWKV_PUT_HANDLER ph, void *phop) {
+  iwkv_opflags opflags, iwkv_put_handler_fn ph, void *phop) {
   if (!db || !db->iwkv || !key || !key->size || !val) {
     return IW_ERROR_INVALID_ARGS;
   }
+
   struct iwkv *iwkv = db->iwkv;
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
@@ -3975,7 +3979,7 @@ finish:
 
 IW_EXPORT iwrc iwkv_cursor_seth(
   struct iwkv_cursor *cur, struct iwkv_val *val, iwkv_opflags opflags,
-  IWKV_PUT_HANDLER ph, void *phop) {
+  iwkv_put_handler_fn ph, void *phop) {
   int rci;
   iwrc rc = 0, irc = 0;
   if (!cur || !cur->lx.db) {
