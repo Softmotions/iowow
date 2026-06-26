@@ -4,7 +4,7 @@ IOWOW — `C11` utility library and persistent key/value storage engine
 **NOTE: Issues tracker is disabled. You are welcome to contribute, pull requests accepted.**
 
 [![license](https://img.shields.io/github/license/Softmotions/ejdb.svg)](https://github.com/Softmotions/iowow/blob/master/LICENSE)
-![Maintained](https://img.shields.io/maintenance/yes/2025.svg)
+![Maintained](https://img.shields.io/maintenance/yes/2026.svg)
 
 # Key components
 
