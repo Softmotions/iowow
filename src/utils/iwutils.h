@@ -50,103 +50,232 @@ IW_EXTERN_C_START;
 //                    Variable length number encoding                    //
 ///////////////////////////////////////////////////////////////////////////
 
-/* set a buffer for a variable length 32 bit number */
-#define IW_SETVNUMBUF(len_, buf_, num_)                     \
-        do {                                                \
-          int32_t _num_ = (num_);                           \
-          if (_num_ == 0) {                                 \
-            ((signed char*) (buf_))[0] = 0;                 \
-            (len_) = 1;                                     \
-          } else {                                          \
-            (len_) = 0;                                     \
-            while (_num_ > 0) {                             \
-              int _rem_ = _num_ & 0x7f;                     \
-              _num_ >>= 7;                                  \
-              if (_num_ > 0) {                              \
-                ((signed char*) (buf_))[(len_)] = ~(_rem_); \
-              } else {                                      \
-                ((signed char*) (buf_))[(len_)] = _rem_;    \
-              }                                             \
-              (len_)++;                                     \
-            }                                               \
-          }                                                 \
+IW_INLINE int iw_setvnumbuf32(void *buf, uint32_t n) {
+  uint8_t *p = (uint8_t*) buf;
+  if (IW_LIKELY(n < 0x80U)) {
+    p[0] = (uint8_t) n;
+    return 1;
+  }
+  p[0] = (uint8_t) ~((uint8_t) (n & 0x7fU));
+  if (n < 0x4000U) {
+    p[1] = (uint8_t) ((n >> 7) & 0x7fU);
+    return 2;
+  }
+  p[1] = (uint8_t) ~((uint8_t) ((n >> 7) & 0x7fU));
+  if (n < 0x200000U) {
+    p[2] = (uint8_t) ((n >> 14) & 0x7fU);
+    return 3;
+  }
+  p[2] = (uint8_t) ~((uint8_t) ((n >> 14) & 0x7fU));
+  if (n < 0x10000000U) {
+    p[3] = (uint8_t) ((n >> 21) & 0x7fU);
+    return 4;
+  }
+  p[3] = (uint8_t) ~((uint8_t) ((n >> 21) & 0x7fU));
+  p[4] = (uint8_t) ((n >> 28) & 0x0fU);
+  return 5;
+}
+
+IW_INLINE int iw_setvnumbuf64(void *buf, uint64_t n) {
+  uint8_t *p = (uint8_t*) buf;
+  if (IW_LIKELY(n < UINT64_C(0x80))) {
+    p[0] = (uint8_t) n;
+    return 1;
+  }
+  p[0] = (uint8_t) ~((uint8_t) (n & UINT64_C(0x7f)));
+  if (n < UINT64_C(0x4000)) {
+    p[1] = (uint8_t) ((n >> 7) & UINT64_C(0x7f));
+    return 2;
+  }
+  p[1] = (uint8_t) ~((uint8_t) ((n >> 7) & UINT64_C(0x7f)));
+  if (n < UINT64_C(0x200000)) {
+    p[2] = (uint8_t) ((n >> 14) & UINT64_C(0x7f));
+    return 3;
+  }
+  p[2] = (uint8_t) ~((uint8_t) ((n >> 14) & UINT64_C(0x7f)));
+  if (n < UINT64_C(0x10000000)) {
+    p[3] = (uint8_t) ((n >> 21) & UINT64_C(0x7f));
+    return 4;
+  }
+  p[3] = (uint8_t) ~((uint8_t) ((n >> 21) & UINT64_C(0x7f)));
+  if (n < UINT64_C(0x800000000)) {
+    p[4] = (uint8_t) ((n >> 28) & UINT64_C(0x7f));
+    return 5;
+  }
+  p[4] = (uint8_t) ~((uint8_t) ((n >> 28) & UINT64_C(0x7f)));
+  if (n < UINT64_C(0x40000000000)) {
+    p[5] = (uint8_t) ((n >> 35) & UINT64_C(0x7f));
+    return 6;
+  }
+  p[5] = (uint8_t) ~((uint8_t) ((n >> 35) & UINT64_C(0x7f)));
+  if (n < UINT64_C(0x2000000000000)) {
+    p[6] = (uint8_t) ((n >> 42) & UINT64_C(0x7f));
+    return 7;
+  }
+  p[6] = (uint8_t) ~((uint8_t) ((n >> 42) & UINT64_C(0x7f)));
+  if (n < UINT64_C(0x100000000000000)) {
+    p[7] = (uint8_t) ((n >> 49) & UINT64_C(0x7f));
+    return 8;
+  }
+  p[7] = (uint8_t) ~((uint8_t) ((n >> 49) & UINT64_C(0x7f)));
+  if (n < (UINT64_C(1) << 63)) {
+    p[8] = (uint8_t) ((n >> 56) & UINT64_C(0x7f));
+    return 9;
+  }
+  p[8] = (uint8_t) ~((uint8_t) ((n >> 56) & UINT64_C(0x7f)));
+  p[9] = (uint8_t) ((n >> 63) & UINT64_C(0x01));
+  return 10;
+}
+
+IW_INLINE uint32_t iw_readvnumbuf32(const void *buf, int *step) {
+  const uint8_t *p = (const uint8_t*) buf;
+  uint8_t b = p[0];
+  if (IW_LIKELY(b < 0x80U)) {
+    if (step) {
+      *step = 1;
+    }
+    return b;
+  }
+  uint32_t n = ((uint32_t) ~b) & 0x7fU;
+  b = p[1];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 2;
+    }
+    return n | ((uint32_t) b << 7);
+  }
+  n |= (((uint32_t) ~b) & 0x7fU) << 7;
+  b = p[2];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 3;
+    }
+    return n | ((uint32_t) b << 14);
+  }
+  n |= (((uint32_t) ~b) & 0x7fU) << 14;
+  b = p[3];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 4;
+    }
+    return n | ((uint32_t) b << 21);
+  }
+  n |= (((uint32_t) ~b) & 0x7fU) << 21;
+  b = p[4];
+  if (step) {
+    *step = 5;
+  }
+  return n | ((uint32_t) b << 28);
+}
+
+IW_INLINE uint64_t iw_readvnumbuf64(const void *buf, int *step) {
+  const uint8_t *p = (const uint8_t*) buf;
+  uint8_t b = p[0];
+  if (IW_LIKELY(b < 0x80U)) {
+    if (step) {
+      *step = 1;
+    }
+    return b;
+  }
+  uint64_t n = ((uint64_t) ~b) & UINT64_C(0x7f);
+  b = p[1];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 2;
+    }
+    return n | ((uint64_t) b << 7);
+  }
+  n |= (((uint64_t) ~b) & UINT64_C(0x7f)) << 7;
+  b = p[2];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 3;
+    }
+    return n | ((uint64_t) b << 14);
+  }
+  n |= (((uint64_t) ~b) & UINT64_C(0x7f)) << 14;
+  b = p[3];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 4;
+    }
+    return n | ((uint64_t) b << 21);
+  }
+  n |= (((uint64_t) ~b) & UINT64_C(0x7f)) << 21;
+  b = p[4];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 5;
+    }
+    return n | ((uint64_t) b << 28);
+  }
+  n |= (((uint64_t) ~b) & UINT64_C(0x7f)) << 28;
+  b = p[5];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 6;
+    }
+    return n | ((uint64_t) b << 35);
+  }
+  n |= (((uint64_t) ~b) & UINT64_C(0x7f)) << 35;
+  b = p[6];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 7;
+    }
+    return n | ((uint64_t) b << 42);
+  }
+  n |= (((uint64_t) ~b) & UINT64_C(0x7f)) << 42;
+  b = p[7];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 8;
+    }
+    return n | ((uint64_t) b << 49);
+  }
+  n |= (((uint64_t) ~b) & UINT64_C(0x7f)) << 49;
+  b = p[8];
+  if (b < 0x80U) {
+    if (step) {
+      *step = 9;
+    }
+    return n | ((uint64_t) b << 56);
+  }
+  n |= (((uint64_t) ~b) & UINT64_C(0x7f)) << 56;
+  b = p[9];
+  if (step) {
+    *step = 10;
+  }
+  return n | ((uint64_t) b << 63);
+}
+
+#define IW_READVNUMBUF(buf_, num_, step_)                \
+        do {                                             \
+          int _iw_step_;                                 \
+          (num_) = iw_readvnumbuf32((buf_), &_iw_step_); \
+          (step_) = _iw_step_;                           \
         } while (0)
 
-/* set a buffer for a variable length 64 number */
-#define IW_SETVNUMBUF64(len_, buf_, num_)                   \
-        do {                                                \
-          int64_t _num_ = (num_);                           \
-          if (_num_ == 0) {                                 \
-            ((signed char*) (buf_))[0] = 0;                 \
-            (len_) = 1;                                     \
-          } else {                                          \
-            (len_) = 0;                                     \
-            while (_num_ > 0) {                             \
-              int _rem_ = _num_ & 0x7f;                     \
-              _num_ >>= 7;                                  \
-              if (_num_ > 0) {                              \
-                ((signed char*) (buf_))[(len_)] = ~(_rem_); \
-              } else {                                      \
-                ((signed char*) (buf_))[(len_)] = _rem_;    \
-              }                                             \
-              (len_)++;                                     \
-            }                                               \
-          }                                                 \
+#define IW_READVNUMBUF64(buf_, num_, step_)              \
+        do {                                             \
+          int _iw_step_;                                 \
+          (num_) = iw_readvnumbuf64((buf_), &_iw_step_); \
+          (step_) = _iw_step_;                           \
         } while (0)
 
-
-/* read a 32 bit variable length buffer */
-#define IW_READVNUMBUF(buf_, num_, step_)                             \
-        do {                                                          \
-          (num_) = 0;                                                 \
-          int32_t _base_ = 1;                                         \
-          int _i_ = 0;                                                \
-          while (1) {                                                 \
-            if (((const signed char*) (buf_))[_i_] >= 0) {            \
-              (num_) += _base_ * ((const signed char*) (buf_))[_i_];  \
-              break;                                                  \
-            }                                                         \
-            (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
-            _base_ <<= 7;                                             \
-            _i_++;                                                    \
-          }                                                           \
-          (step_) = _i_ + 1;                                          \
+#define IW_READVNUMBUF64_2(buf_, num_)          \
+        do {                                    \
+          (num_) = iw_readvnumbuf64((buf_), 0); \
         } while (0)
 
-/* read a 64 bit variable length buffer */
-#define IW_READVNUMBUF64(buf_, num_, step_)                           \
-        do {                                                          \
-          (num_) = 0;                                                 \
-          int64_t _base_ = 1;                                         \
-          int _i_ = 0;                                                \
-          while (1) {                                                 \
-            if (((const signed char*) (buf_))[_i_] >= 0) {            \
-              (num_) += _base_ * ((const signed char*) (buf_))[_i_];  \
-              break;                                                  \
-            }                                                         \
-            (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
-            _base_ <<= 7;                                             \
-            _i_++;                                                    \
-          }                                                           \
-          (step_) = _i_ + 1;                                          \
+#define IW_SETVNUMBUF(len_, buf_, num_)                        \
+        do {                                                   \
+          (len_) = iw_setvnumbuf32((buf_), (uint32_t) (num_)); \
         } while (0)
 
-
-/* read a 64 bit variable length buffer */
-#define IW_READVNUMBUF64_2(buf_, num_)                                \
-        do {                                                          \
-          (num_) = 0;                                                 \
-          int64_t _base_ = 1;                                         \
-          int _i_ = 0;                                                \
-          while (1) {                                                 \
-            if (((const signed char*) (buf_))[_i_] >= 0) {            \
-              (num_) += _base_ * ((const signed char*) (buf_))[_i_];  \
-              break;                                                  \
-            }                                                         \
-            (num_) += _base_ * ~(((const signed char*) (buf_))[_i_]); \
-            _base_ <<= 7;                                             \
-            _i_++;                                                    \
-          }                                                           \
+#define IW_SETVNUMBUF64(len_, buf_, num_)                      \
+        do {                                                   \
+          (len_) = iw_setvnumbuf64((buf_), (uint64_t) (num_)); \
         } while (0)
 
 
