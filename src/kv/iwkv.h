@@ -544,7 +544,7 @@ IW_EXPORT iwrc iwkv_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *t
  * @param db Database handler
  * @param [out] out IWFS_FSM_STATE placeholder iwkv file state
  */
-IW_EXPORT iwrc iwkv_state(struct iwkv *iwkv, IWFS_FSM_STATE *out);
+IW_EXPORT iwrc iwkv_state(struct iwkv *iwkv, struct iwfs_fsm_state *out);
 
 // Do not print random levels of skiplist blocks
 #define IWKVD_PRINT_NO_LEVEVELS 0x1

@@ -47,19 +47,19 @@ typedef enum {
 } wop_t;
 
 #pragma pack(push, 1)
-typedef struct WBSEP {
+typedef struct wbsep {
   uint8_t  id;
   uint8_t  pad[3];
   uint32_t crc;
   uint32_t len;
 } WBSEP;
 
-typedef struct WBRESET {
+typedef struct wbreset {
   uint8_t id;
   uint8_t pad[3];
 } WBRESET;
 
-typedef struct WBSET {
+typedef struct wbset {
   uint8_t  id;
   uint8_t  pad[3];
   uint32_t val;
@@ -67,7 +67,7 @@ typedef struct WBSET {
   off_t    len;
 } WBSET;
 
-typedef struct WBCOPY {
+typedef struct wbcopy {
   uint8_t id;
   uint8_t pad[3];
   off_t   off;
@@ -75,7 +75,7 @@ typedef struct WBCOPY {
   off_t   noff;
 } WBCOPY;
 
-typedef struct WBWRITE {
+typedef struct wbwrite {
   uint8_t  id;
   uint8_t  pad[3];
   uint32_t crc;
@@ -83,21 +83,21 @@ typedef struct WBWRITE {
   off_t    off;
 } WBWRITE;
 
-typedef struct WBRESIZE {
+typedef struct wbresize {
   uint8_t id;
   uint8_t pad[3];
   off_t   osize;
   off_t   nsize;
 } WBRESIZE;
 
-typedef struct WBSAVEPOINT {
+typedef struct wbsavepoint {
   uint8_t  id;
   uint8_t  pad[3];
   uint64_t ts;
 } WBSAVEPOINT;
 #pragma pack(pop)
 
-iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, IWFS_FSM_OPTS *fsmopts, bool recover_backup);
+iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fsm_opts *fsmopts, bool recover_backup);
 
 iwrc iwal_sync(struct iwkv *iwkv);
 

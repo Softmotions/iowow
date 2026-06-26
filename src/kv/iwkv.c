@@ -2918,7 +2918,7 @@ static off_t _szpolicy(off_t nsize, off_t csize, struct iwfs_ext *f, void **_ctx
   return res;
 }
 
-iwrc iwkv_state(struct iwkv *iwkv, IWFS_FSM_STATE *out) {
+iwrc iwkv_state(struct iwkv *iwkv, struct iwfs_fsm_state *out) {
   if (!iwkv || !out) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -2946,9 +2946,9 @@ static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_
   const size_t aunit = iwp_alloc_unit();
   char *wpath = 0;
 
-  IWFS_FILE f = { 0 }, w = { 0 };
-  IWFS_FILE_STATE fs, fw;
-  iwrc rc = iwfs_file_open(&f, &(IWFS_FILE_OPTS) {
+  struct iwfs_file f = { 0 }, w = { 0 };
+  struct iwfs_file_state fs, fw;
+  iwrc rc = iwfs_file_open(&f, &(struct iwfs_file_opts) {
     .path = path,
     .omode = IWFS_OREAD | IWFS_OWRITE,
     .lock_mode = IWP_WLOCK | extra_lock_flags
@@ -3005,7 +3005,7 @@ static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_
 
   // Read the first WAL instruction: WBSEP
   if (waloff != pos) { // Not an empty WAL?
-    WBSEP wbsep = { 0 };
+    struct wbsep wbsep = { 0 };
     rc = iwp_pread(fs.fh, waloff, &wbsep, sizeof(wbsep), &sp);
     RCGO(rc, finish);
     if (wbsep.id != WOP_SEP) {
@@ -3029,7 +3029,7 @@ static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_
   *out_has_online_bkp = true;
 
   // WAL file
-  rc = iwfs_file_open(&w, &(IWFS_FILE_OPTS) {
+  rc = iwfs_file_open(&w, &(struct iwfs_file_opts) {
     .path = wpath,
     .omode = IWFS_OREAD | IWFS_OWRITE | IWFS_OTRUNC
   });
@@ -3483,7 +3483,7 @@ iwrc iwkv_get_copy(struct iwdb *db, const struct iwkv_val *key, void *vbuf, size
   struct iwkv_val ekey;
   uint32_t ovalsz;
   uint8_t *mm = 0, *oval, idx;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &db->iwkv->fsm;
   uint8_t nbuf[IW_VNUMBUFSZ];
   iwrc rc = _to_effective_key(db, key, &ekey, nbuf);
   RCRET(rc);
@@ -3533,7 +3533,7 @@ iwrc iwkv_db_set_meta(struct iwdb *db, void *buf, size_t sz) {
 
   bool resized = false;
   uint8_t *mm = 0, *wp, *sp;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &db->iwkv->fsm;
   size_t asz = IW_ROUNDUP(sz, 1U << IWKV_FSM_BPOW);
 
   if ((asz > db->meta_blkn) || (asz * 2 <= db->meta_blkn)) {
@@ -3594,7 +3594,7 @@ iwrc iwkv_db_get_meta(struct iwdb *db, void *buf, size_t sz, size_t *rsz) {
   }
 
   uint8_t *mm = 0;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &db->iwkv->fsm;
   size_t rmax = BLK2ADDR(db->meta_blkn);
   if (sz > rmax) {
     sz = rmax;
@@ -3793,7 +3793,7 @@ iwrc iwkv_cursor_get(
   struct iwlctx *lx = &cur->lx;
   API_DB_RLOCK(lx->db, rci);
   uint8_t *mm = 0;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   if (!cur->cn->kvblk) {
@@ -3836,7 +3836,7 @@ iwrc iwkv_cursor_copy_val(struct iwkv_cursor *cur, void *vbuf, size_t vbufsz, si
   API_DB_RLOCK(lx->db, rci);
   uint8_t *mm = 0, *oval;
   uint32_t ovalsz;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   if (!cur->cn->kvblk) {
@@ -3876,7 +3876,7 @@ iwrc iwkv_cursor_is_matched_key(struct iwkv_cursor *cur, const struct iwkv_val *
   uint8_t *mm = 0, *okey;
   uint32_t okeysz;
   iwdb_flags_t dbflg = lx->db->dbflg;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   if (!cur->cn->kvblk) {
@@ -3934,7 +3934,7 @@ iwrc iwkv_cursor_copy_key(struct iwkv_cursor *cur, void *kbuf, size_t kbufsz, si
   uint8_t *mm = 0, *okey;
   uint32_t okeysz;
   iwdb_flags_t dbflg = lx->db->dbflg;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCGO(rc, finish);
   if (!cur->cn->kvblk) {
@@ -3998,7 +3998,7 @@ IW_EXPORT iwrc iwkv_cursor_seth(
   if (ph) {
     uint8_t *mm;
     struct iwkv_val key, oldval;
-    IWFS_FSM *fsm = &db->iwkv->fsm;
+    struct iwfs_fsm *fsm = &db->iwkv->fsm;
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCGO(rc, finish);
     rc = _kvblk_kv_get(sblk->kvblk, mm, sblk->pi[cur->cnpos], &key, &oldval);
@@ -4073,7 +4073,7 @@ iwrc iwkv_cursor_del(struct iwkv_cursor *cur, iwkv_opflags opflags) {
   struct iwlctx *lx = &cur->lx;
   struct iwdb *db = lx->db;
   struct iwkv *iwkv = db->iwkv;
-  IWFS_FSM *fsm = &iwkv->fsm;
+  struct iwfs_fsm *fsm = &iwkv->fsm;
 
   API_DB_WLOCK(db, rci);
   if (sblk->pnum == 1) { // sblk will be removed
