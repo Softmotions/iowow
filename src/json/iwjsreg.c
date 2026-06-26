@@ -1,3 +1,4 @@
+#include "iwlog.h"
 #include "iwjsreg.h"
 #include "iwrefs.h"
 #include "iwutils.h"

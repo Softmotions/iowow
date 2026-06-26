@@ -49,7 +49,6 @@
  * Library function allows conversion of JSON document between above formats.
  */
 
-#include "iwlog.h"
 #include "iwpool.h"
 #include "iwxstr.h"
 #include <stdbool.h>

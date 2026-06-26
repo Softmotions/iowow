@@ -1,3 +1,4 @@
+#include "iwlog.h"
 #include "iwxstr.h"
 #include "iwutils.h"
 

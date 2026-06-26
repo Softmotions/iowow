@@ -1,3 +1,4 @@
+#include "iwlog.h"
 #include "iowow.h"
 #include "iwjsreg.h"
 #include "iwlog.h"

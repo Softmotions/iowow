@@ -1,5 +1,5 @@
+#include "iwlog.h"
 #include "iwbinn.h"
-#include "iwjson_internal.h"
 #include "iwconv.h"
 
 #include <stdlib.h>

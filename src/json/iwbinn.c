@@ -5,7 +5,6 @@
 #include <string.h>
 #include <memory.h>
 #include "iwbinn.h"
-#include "iwutils.h"
 
 #ifdef _WIN32
 #include <libiberty/libiberty.h>

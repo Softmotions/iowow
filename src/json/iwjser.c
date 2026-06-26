@@ -1,3 +1,4 @@
+#include "iwlog.h"
 #include "iwjson.h"
 #include "iwjson_internal.h"
 #include "iwconv.h"
