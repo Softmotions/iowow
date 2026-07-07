@@ -6,7 +6,7 @@
 # https://github.com/Softmotions/autark
 
 META_VERSION=0.9.4
-META_REVISION=008f56a
+META_REVISION=1eb896b
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 prev_arg=""
@@ -62,7 +62,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.4"
-#define META_REVISION "008f56a"
+#define META_REVISION "1eb896b"
 #define MACRO_MAX_RECURSIVE_CALLS 128
 #endif
 #define _AMALGAMATE_
@@ -897,7 +897,7 @@ struct node* node_find_direct_child(struct node *n, int type, const char *val);
 struct node* node_find_prev_sibling(struct node *n);
 struct  node* node_find_parent_of_type(struct node *n, int type);
 struct node_foreach* node_find_parent_foreach(struct node *n);
-bool node_is_value_may_be_dep_saved(struct node *n);
+bool node_is_value_may_be_dep_saved(struct node *n, unsigned skip_type);
 struct node* node_consumes_resolve(
   struct node *n,
   struct node *npaths,
@@ -3240,6 +3240,12 @@ static void _check_on_resolve(struct node_resolve *r) {
   struct unit *unit = r->user_data;
   struct node *n = unit->n;
   const char *path = unit->impl;
+  // Good, now add dependency on itself
+  struct deps deps;
+  int rc = deps_open(r->deps_path_tmp, 0, &deps);
+  if (rc) {
+    node_fatal(rc, unit->n, "Failed to open depencency file: %s", r->deps_path_tmp);
+  }
   struct spawn *s = spawn_create(path, unit);
   spawn_set_stdout_handler(s, _check_stdout_handler);
   spawn_set_stderr_handler(s, _check_stderr_handler);
@@ -3248,7 +3254,7 @@ static void _check_on_resolve(struct node_resolve *r) {
       spawn_arg_add(s, node_value(nn));
     }
   }
-  int rc = spawn_do(s);
+  rc = spawn_do(s);
   if (rc) {
     node_fatal(rc, n, "%s", path);
   } else {
@@ -3258,14 +3264,14 @@ static void _check_on_resolve(struct node_resolve *r) {
     }
   }
   spawn_destroy(s);
-  // Good, now add dependency on itself
-  struct deps deps;
-  rc = deps_open(r->deps_path_tmp, 0, &deps);
-  if (rc) {
-    node_fatal(rc, unit->n, "Failed to open depencency file: %s", r->deps_path_tmp);
-  }
   deps_add(&deps, DEPS_TYPE_FILE, 0, path, 0);
-  node_add_unit_deps(n, &deps);
+  for (int i = 0; i < r->node_val_deps.num; ++i) {
+    struct node *nv = *(struct node**) ulist_get(&r->node_val_deps, i);
+    const char *val = node_value(nv);
+    if (val) {
+      deps_add(&deps, DEPS_TYPE_NODE_VALUE, 0, val, i);
+    }
+  }
   deps_close(&deps);
 }
 static char* _resolve_check_path(struct pool *pool, struct node *n, const char *script, struct unit **out_u) {
@@ -3296,15 +3302,21 @@ static void _check_script(struct node *n) {
   unit->n = n;
   unit->impl = path;
   unit_push(unit, n);
-  struct node_resolve nr = {
+  struct node_resolve r = {
     .n = n,
     .mode = NODE_RESOLVE_ENV_ALWAYS,
     .path = n->vfile,
     .user_data = unit,
     .on_env_value = _check_on_env_value,
     .on_resolve = _check_on_resolve,
+    .node_val_deps = { .usize = sizeof(struct node*) },
   };
-  node_resolve(&nr);
+  for (struct node *nn = n->child; nn; nn = nn->next) {
+    if (node_is_value_may_be_dep_saved(nn, 0)) {
+      ulist_push(&r.node_val_deps, &nn);
+    }
+  }
+  node_resolve(&r);
   unit_pop();
   pool_destroy(pool);
 }
@@ -3581,7 +3593,7 @@ static const char* _subst_value_proc_cache(struct node *n) {
     .node_val_deps = { .usize = sizeof(struct node*) },
   };
   for (struct node *cn = n->child; cn; cn = cn->next) {
-    if (node_is_value_may_be_dep_saved(cn)) {
+    if (node_is_value_may_be_dep_saved(cn, NODE_TYPE_VALUE)) {
       ulist_push(&r.node_val_deps, &cn);
     }
   }
@@ -4301,7 +4313,7 @@ static void _run_build(struct node *n) {
   for (struct node *nn = n->child; nn; nn = nn->next) {
     if (strcmp(nn->value, "exec") == 0 || strcmp(nn->value, "shell") == 0) {
       for (struct node *cn = nn->child; cn; cn = cn->next) {
-        if (node_is_value_may_be_dep_saved(cn)) {
+        if (node_is_value_may_be_dep_saved(cn, 0)) {
           ulist_push(&r.node_val_deps, &cn);
         }
       }
@@ -4924,13 +4936,13 @@ static void _cc_build(struct node *n) {
     .on_resolve = _cc_on_resolve,
     .node_val_deps = { .usize = sizeof(struct node*) }
   };
-  if (node_is_value_may_be_dep_saved(ctx->n_cc)) {
+  if (node_is_value_may_be_dep_saved(ctx->n_cc, NODE_TYPE_VALUE)) {
     ulist_push(&r.node_val_deps, &ctx->n_cc);
   }
-  if (node_is_value_may_be_dep_saved(ctx->n_cflags)) {
+  if (node_is_value_may_be_dep_saved(ctx->n_cflags, NODE_TYPE_VALUE)) {
     ulist_push(&r.node_val_deps, &ctx->n_cflags);
   }
-  if (node_is_value_may_be_dep_saved(ctx->n_sources)) {
+  if (node_is_value_may_be_dep_saved(ctx->n_sources, NODE_TYPE_VALUE)) {
     ulist_push(&r.node_val_deps, &ctx->n_sources);
   }
   node_resolve(&r);
@@ -5610,7 +5622,7 @@ static void _install_post_build(struct node *n) {
     .node_val_deps = { .usize = sizeof(struct node*) }
   };
   for (struct node *nn = ctx.n_target; nn; nn = nn->next) {
-    if (node_is_value_may_be_dep_saved(nn)) {
+    if (node_is_value_may_be_dep_saved(nn, NODE_TYPE_VALUE)) {
       ulist_push(&r.node_val_deps, &nn);
     }
   }
@@ -8360,8 +8372,8 @@ struct node_foreach* node_find_parent_foreach(struct node *n) {
     return 0;
   }
 }
-bool node_is_value_may_be_dep_saved(struct node *n) {
-  if (!n || n->type == NODE_TYPE_VALUE) { // Hardcoded value
+bool node_is_value_may_be_dep_saved(struct node *n, unsigned skip_types) {
+  if (!n || (n->type & skip_types) != 0) { // Hardcoded value
     return false;
   }
   if (node_is_can_be_value(n)) {
