@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 IW_EXTERN_C_START;
 
@@ -417,7 +418,43 @@ IW_EXPORT char* iwu_file_read_as_buf_max(const char *path, ssize_t len_max, size
 /**
  * @brief Create X31 hash value.
  */
-IW_EXPORT uint32_t iwu_x31_u32_hash(const char *data);
+static inline uint32_t iwu_x31_u32_hash(const char *s) {
+  uint32_t h = (uint32_t) *s;
+  if (h) {
+    for (++s; *s; ++s) {
+      h = (h << 5) - h + (uint32_t) *s;
+    }
+  }
+  return h;
+}
+
+static inline size_t iwu_strnlen(const char *s, size_t maxlen) {
+  size_t i;
+  for (i = 0; i < maxlen && s[i]; ++i) ;
+  return i;
+}
+
+static inline char* iwu_strncpy(char *dst, const char *src, size_t dst_sz) {
+  if (dst_sz > 1) {
+    size_t len = iwu_strnlen(src, dst_sz - 1);
+    memcpy(dst, src, len);
+    dst[len] = '\0';
+  } else if (dst_sz) {
+    dst[0] = '\0';
+  }
+  return dst;
+}
+
+static inline char* iwu_strnncpy(char *dst, const char *src, size_t src_len, size_t dst_sz) {
+  if (dst_sz > 1 && src_len) {
+    size_t len = MIN(src_len, dst_sz - 1);
+    memcpy(dst, src, len);
+    dst[len] = '\0';
+  } else if (dst_sz) {
+    dst[0] = '\0';
+  }
+  return dst;
+}
 
 IW_EXTERN_C_END;
 

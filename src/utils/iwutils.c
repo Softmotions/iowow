@@ -277,15 +277,6 @@ char* iwu_file_read_as_buf(const char *path) {
   return iwu_file_read_as_buf_len(path, &sz);
 }
 
-uint32_t iwu_x31_u32_hash(const char *s) {
-  uint32_t h = (uint32_t) *s;
-  if (h) {
-    for (++s; *s; ++s) {
-      h = (h << 5) - h + (uint32_t) *s;
-    }
-  }
-  return h;
-}
 
 iwrc iwu_replace(
   IWXSTR           **result,
