@@ -54,11 +54,11 @@ static void iwref_reset(struct iwref_holder *h, void *data, void (*freefn)(void*
   }
 }
 
-IW_INLINE void iwref_ref(struct iwref_holder *h) {
+static inline void iwref_ref(struct iwref_holder *h) {
   ++h->refs;
 }
 
-IW_INLINE bool iwref_unref(struct iwref_holder *h) {
+static inline bool iwref_unref(struct iwref_holder *h) {
   if (h) {
     if (--h->refs == 0) {
       if (h->freefn) {
