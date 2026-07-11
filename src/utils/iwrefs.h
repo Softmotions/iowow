@@ -62,7 +62,9 @@ IW_INLINE bool iwref_unref(struct iwref_holder *h) {
   if (h) {
     if (--h->refs == 0) {
       if (h->freefn) {
-        h->freefn(h->data);
+        void (*fn)(void*) = h->freefn;
+        h->freefn = 0;
+        fn(h->data);
       }
       return true;
     }
