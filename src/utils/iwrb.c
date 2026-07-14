@@ -72,6 +72,8 @@ void* iwrb_begin(const struct iwrb *rb) {
   }
   if (rb->pos < 0) {
     return rb->buf;
+  } else if ((size_t) rb->pos == rb->len) {
+    return rb->buf;
   } else {
     return rb->buf + rb->pos * rb->usize;
   }
