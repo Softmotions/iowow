@@ -77,6 +77,9 @@ IW_EXPORT unsigned long int iw_strtoul(const char *v, int base, iwrc *rcp);
 
 IW_EXPORT unsigned long long iw_strtoull(const char *v, int base, iwrc *rcp);
 
+/// Perform a percent decoding-in place.
+IW_EXPORT iwrc iw_decode_percent_inplace(char *buf, size_t len, size_t *out_len);
+
 IW_EXTERN_C_END;
 
 #endif

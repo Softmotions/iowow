@@ -114,7 +114,7 @@ int iwitoa(int64_t v, char *buf, int max) {
     } else {
       v = -v;
       ITOA_SZSTEP(1)
-      *ptr++ = '-';
+      * ptr++ = '-';
     }
   }
   // save start pointer
@@ -603,4 +603,46 @@ unsigned long long iw_strtoull(const char *v, int base, iwrc *rcp) {
     return 0;
   }
   return ret;
+}
+
+static inline int _hexval(unsigned char c) {
+  if (c >= '0' && c <= '9') {
+    return c - '0';
+  }
+  if (c >= 'a' && c <= 'f') {
+    return c - 'a' + 10;
+  }
+  if (c >= 'A' && c <= 'F') {
+    return c - 'A' + 10;
+  }
+  return -1;
+}
+
+iwrc iw_decode_percent_inplace(char *buf, size_t len, size_t *out_len) {
+  if (!buf || !out_len) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  size_t si = 0;
+  size_t di = 0;
+
+  while (si < len) {
+    unsigned char c = (unsigned char) buf[si];
+    if (c == '%') {
+      if (si + 2 >= len) {
+        return IW_ERROR_INVALID_VALUE;
+      }
+      int hi = ascii2hex[(uint8_t) buf[si + 1]];
+      int lo = ascii2hex[(uint8_t) buf[si + 2]];
+      if (hi < 0 || lo < 0) {
+        return IW_ERROR_INVALID_VALUE;
+      }
+      buf[di++] = (char) ((hi << 4) | lo);
+      si += 3;
+    } else {
+      buf[di++] = buf[si++];
+    }
+  }
+  buf[di] = '\0';
+  *out_len = di;
+  return 0;
 }
