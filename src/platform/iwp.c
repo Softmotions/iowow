@@ -301,11 +301,11 @@ iwrc iwp_copy_file(const char *src, const char *dst) {
   char buf[8192];
   FILE *sf = fopen(src, "rb");
   if (!sf) {
-    return errno;
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
   }
   FILE *df = fopen(dst, "wb");
   if (!df) {
-    rc = errno;
+    rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     fclose(sf);
     return rc;
   }
@@ -313,10 +313,14 @@ iwrc iwp_copy_file(const char *src, const char *dst) {
   while (1) {
     nr = fread(buf, 1, sizeof(buf), sf);
     if (nr) {
-      nr = fwrite(buf, 1, nr, df);
-      if (!nr) {
-        rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
-        break;
+      size_t offset = 0;
+      while (offset < nr) {
+        size_t nw = fwrite(buf + offset, 1, nr - offset, df);
+        if (!nw) {
+          rc = IW_ERROR_IO;
+          goto finish;
+        }
+        offset += nw;
       }
     } else if (feof(sf)) {
       break;
@@ -325,8 +329,13 @@ iwrc iwp_copy_file(const char *src, const char *dst) {
       break;
     }
   }
+finish:
   fclose(sf);
-  fclose(df);
+  if (fclose(df)) {
+    if (!rc) {
+      rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+    }
+  }
   return rc;
 }
 
