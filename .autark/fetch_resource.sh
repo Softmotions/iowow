@@ -9,7 +9,6 @@ usage() {
 [ -z "$1" ] && usage
 [ -z "$2" ] && usage
 
-
 PROJECT_URL="$1"
 TARGET_DIR="$2"
 TARGET_VAR="$3"
@@ -109,6 +108,4 @@ if [ -n "$TARGET_VAR" ]; then
   autark set "$TARGET_VAR=$TARGET_DIR"
 fi
 
-rm -rf $TARGET_DIR/autark-cache
-touch $TARGET_DIR/.autark-fetch-dep
-autark dep $TARGET_DIR/.autark-fetch-dep
+autark fetched ${PROJECT_URL} ${TARGET_DIR}
