@@ -122,3 +122,21 @@ set {
 }
 
 include { ./src/Autark }
+
+install-sources {
+  ^{${INSTALL_DATA_DIR} / ${META_NAME} / ${META_NAME} -sources- ${META_VERSION}}
+  .autark/
+  .clang-tidy
+  .editorconfig
+  .gitignore
+  .ignore
+  .lvimrc
+  Autark
+  Changelog
+  LICENSE
+  Makefile
+  README.md
+  build.sh
+  src/
+  uncrustify.cfg
+}
