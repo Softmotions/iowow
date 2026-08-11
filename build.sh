@@ -5,8 +5,8 @@
 # Autark: aec5320de2e44ef5a0338f9ea990ed2a
 # https://github.com/Softmotions/autark
 
-META_VERSION=0.9.5
-META_REVISION=9c8254c
+META_VERSION=0.9.8
+META_REVISION=b6f13a0
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 prev_arg=""
@@ -61,8 +61,8 @@ mkdir -p ${AUTARK_HOME}
 cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
-#define META_VERSION "0.9.5"
-#define META_REVISION "9c8254c"
+#define META_VERSION "0.9.8"
+#define META_REVISION "b6f13a0"
 #define MACRO_MAX_RECURSIVE_CALLS 128
 #endif
 #define _AMALGAMATE_
@@ -393,6 +393,7 @@ int map_iter_next(struct map_iter*);
 #include <limits.h>
 #include <string.h>
 #include <sys/types.h>
+#include <stdio.h>
 #endif
 #define Q_XSTR(s) Q_STR(s)
 #define Q_STR(s)  #s
@@ -480,6 +481,7 @@ long int utils_strtol(const char *v, int base, int *rcp);
 long long utils_strtoll(const char *v, int base, int *rcp);
 struct value utils_file_as_buf(const char *path, ssize_t buflen_max);
 int utils_file_write_buf(const char *path, const char *buf, size_t len, bool append);
+int utils_copy_file_streams(FILE *src, FILE *dst);
 int utils_copy_file(const char *src, const char *dst);
 int utils_copy_dir(const char *src, const char *dst);
 int utils_copy_dir_to_parent(const char *src, const char *dst);
@@ -487,6 +489,7 @@ int utils_rename_file(const char *src, const char *dst);
 void utils_split_values_add(const char *v, struct xstr *xstr);
 int utils_fd_make_non_blocking(int fd);
 int64_t utils_current_time_ms(void);
+const char* utils_json_escape_str(const char *val, ssize_t len, struct xstr *xstr);
 //----------------------- Vlist
 struct vlist_iter {
   const char *item;
@@ -535,6 +538,7 @@ void spawn_env_path_prepend(struct spawn*, const char *path);
 void spawn_set_stdin_provider(struct spawn*, size_t (*provider)(char *buf, size_t buflen, struct spawn*));
 void spawn_set_stdout_handler(struct spawn*, void (*handler)(char *buf, size_t buflen, struct spawn*));
 void spawn_set_stderr_handler(struct spawn*, void (*handler)(char *buf, size_t buflen, struct spawn*));
+void spawn_visit_cmd(struct spawn*, void *user_data, void (*visitor)(int num, const char *arg, void*));
 void spawn_set_nowait(struct spawn*, bool nowait);
 void spawn_set_wstatus(struct spawn*, int wstatus);
 int spawn_do(struct spawn*);
@@ -622,12 +626,14 @@ const char* path_join_path_pool(struct pool *pool, const char *dir, const char *
 #define AUTARK_FETCHED_REG       ".autark-fetched"
 #define AUTARK_FETCHED_REG_DIST  ".autark-fetched-dist"
 #define AUTARK_FETCH_DEP         ".autark-fetch-dep"
+#define AUTARK_COMPILE_COMMANDS  ".compile_commands"
 #define AUTARK_ROOT_DIR_ENV          "AUTARK_ROOT_DIR"          // Project root directory
 #define AUTARK_CACHE_DIR_ENV         "AUTARK_CACHE_DIR"         // Project cache directory
 #define AUTARK_CACHE_OVERLAY_DIR_ENV "AUTARK_CACHE_OVERLAY_DIR" // Project cache overlay directory
 #define AUTARK_UNIT_ENV              "AUTARK_UNIT"              // Path relative to AUTARK_ROOT_DIR of build process
                                                                 // unit executed
 #define AUTARK_INSTALL_SRC_DEPS_ENV "AUTARK_INSTALL_SRC_DEPS"   // Install src with deps.
+#define AUTARK_COMPILE_COMMANDS_ENV "AUTARK_COMPILE_COMMANDS"   // Path to compile commands file.
 #define AUTARK_VERBOSE_ENV "AUTARK_VERBOSE"                     // Autark verbose env key
 #define UNIT_FLG_ROOT    0x01U // Project root unit
 #define UNIT_FLG_SRC_CWD 0x02U // Set project source dir as unit CWD
@@ -669,6 +675,8 @@ struct env {
     const char *cache_dir;          // Project artifacts cache dir. Not zero.
     const char *cache_overlay_dir;  // Overlay data dir for autark cache. Can be zero.
     bool cleanup;                   // Clean project cache before build
+    bool compile_commands;          // Generate compile_commands.json database.
+    bool compile_commands_own;      // We own compile commands file.
     bool prepared;                  // Autark build prepared
     struct xstr *options;           // Ask option values
   } project;
@@ -2117,6 +2125,28 @@ int utils_file_write_buf(const char *path, const char *buf, size_t len, bool app
   close(fd);
   return 0;
 }
+int utils_copy_file_streams(FILE *sf, FILE *df) {
+  char buf[8192];
+  size_t nr = 0;
+  while (1) {
+    nr = fread(buf, 1, sizeof(buf), sf);
+    if (nr) {
+      size_t offset = 0;
+      while (offset < nr) {
+        size_t nw = fwrite(buf + offset, 1, nr - offset, df);
+        if (!nw) {
+          return AK_ERROR_IO;
+        }
+        offset += nw;
+      }
+    } else if (feof(sf)) {
+      break;
+    } else if (ferror(sf)) {
+      return AK_ERROR_IO;
+    }
+  }
+  return 0;
+}
 int utils_copy_file(const char *src, const char *dst) {
   int rc = 0;
   char buf[8192];
@@ -2530,6 +2560,30 @@ int64_t utils_current_time_ms(void) {
   return (int64_t) tv.tv_sec * 1000 + tv.tv_usec / 1000;
 #endif
   return (int64_t) ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+const char* utils_json_escape_str(const char *val, ssize_t len, struct xstr *xstr) {
+  if (!val || !xstr) {
+    return 0;
+  }
+  if (len < 0) {
+    len = strlen(val);
+  }
+  static const char *specials = "btnvfr";
+  xstr_cat2(xstr, "\"", 1);
+  for (size_t i = 0; i < len; ++i) {
+    uint8_t ch = (uint8_t) val[i];
+    if (ch == '"' || ch == '\'') {
+      xstr_cat2(xstr, "\\", 1);
+      xstr_cat2(xstr, &ch, 1);
+    } else if (ch >= '\b' && ch <= '\r') {
+      xstr_cat2(xstr, "\\", 1);
+      xstr_cat2(xstr, &specials[ch - '\b'], 1);
+    } else {
+      xstr_cat2(xstr, &ch, 1);
+    }
+  }
+  xstr_cat2(xstr, "\"", 1);
+  return xstr_ptr(xstr);
 }
 #ifndef _AMALGAMATE_
 #include "paths.h"
@@ -3052,6 +3106,12 @@ struct spawn* spawn_create(const char *exec, void *user_data) {
     spawn_env_path_prepend(s, g_env.spawn.extra_env_paths);
   }
   return s;
+}
+void spawn_visit_cmd(struct spawn *s, void *user_data, void (*visitor)(int num, const char *arg, void*)) {
+  for (int i = 0; i < s->args.num; ++i) {
+    const char *arg = *(const char**) ulist_get(&s->args, i);
+    visitor(i, arg, user_data);
+  }
 }
 static const char* _spawn_arg_add(struct spawn *s, const char *arg, int len) {
   if (!arg || *arg == '\0') {
@@ -5132,7 +5192,14 @@ int node_configure_setup(struct node *n) {
 #include <string.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <stdio.h>
+#include <unistd.h>
 #endif
+/// Compilation database state.
+struct _cdb {
+  const char *path;
+  char _path[PATH_MAX];
+} _cdb;
 struct _cc_ctx {
   struct pool *pool;
   struct ulist sources;     // char*
@@ -5144,10 +5211,11 @@ struct _cc_ctx {
   struct node *n_consumes;
   struct node *n_objects;
   const char  *cc;
-  const char *objskey;
+  const char  *objskey;
   struct ulist consumes;    // sizeof(char*)
   int num_failed;
 };
+static void _cc_cdb_entry_add(struct node *n, struct spawn *s, const char *src, const char *tgt);
 static void _cc_deps_MMD_item_add(const char *item, struct node *n, struct deps *deps, const char *src) {
   char buf[127];
   char *p = strrchr(item, '.');
@@ -5256,6 +5324,7 @@ static void _cc_on_build_source(
   spawn_arg_add(s, src);
   spawn_arg_add(s, "-o");
   spawn_arg_add(s, obj);
+  _cc_cdb_entry_add(n, s, src, obj);
   int rc = spawn_do(s);
   if (rc) {
     spawn_destroy(s);
@@ -5405,6 +5474,101 @@ static void _cc_on_resolve_init(struct node_resolve *r) {
     node_consumes_resolve(r->n, ctx->n_consumes->child, 0, _cc_on_consumed_resolved, r->n);
   }
 }
+static void _cc_cdb_init(struct node *n) {
+  if (!g_env.project.compile_commands) {
+    return;
+  }
+  const char *path = getenv(AUTARK_COMPILE_COMMANDS_ENV);
+  if (!path) {
+    return;
+  }
+  if (g_env.project.compile_commands_own) {
+    unlink(path);
+  }
+  utils_strncpy(_cdb._path, path, sizeof(_cdb._path));
+  _cdb.path = _cdb._path;
+}
+struct _cc_cdb_arg_ctx {
+  FILE *file;
+  struct xstr *xstr;
+};
+static void _cc_cdb_arg_add(int num, const char *arg, void *d) {
+  struct _cc_cdb_arg_ctx *ctx = d;
+  xstr_clear(ctx->xstr);
+  utils_json_escape_str(arg, -1, ctx->xstr);
+  if (num) {
+    fprintf(ctx->file, ",\n      %s", xstr_ptr(ctx->xstr));
+  } else {
+    fprintf(ctx->file, "\n      %s", xstr_ptr(ctx->xstr));
+  }
+}
+static void _cc_cdb_entry_add(struct node *n, struct spawn *s, const char *src, const char *tgt) {
+  if (!_cdb.path) {
+    return;
+  }
+  FILE *f = fopen(_cdb.path, "a");
+  if (!f) {
+    node_fatal(errno, n, "Error opening file for writing: %s", _cdb.path);
+  }
+  long int pos = ftell(f);
+  if (pos == -1) {
+    node_fatal(errno, n, "File: %s", _cdb.path);
+  }
+  struct xstr *xstr = xstr_create_empty();
+  if (pos > 0) {
+    fprintf(f, ",\n  {\n");
+  } else {
+    fprintf(f, "\n  {\n");
+  }
+  fprintf(f, "    \"arguments\": [");
+  spawn_visit_cmd(s, &(struct _cc_cdb_arg_ctx) { f, xstr }, _cc_cdb_arg_add);
+  fprintf(f, "\n    ],\n");
+  struct unit *unit = unit_peek();
+  xstr_clear(xstr);
+  utils_json_escape_str(unit->cache_dir, -1, xstr);
+  fprintf(f, "    \"directory\": %s,\n", xstr_ptr(xstr));
+  xstr_clear(xstr);
+  utils_json_escape_str(src, -1, xstr);
+  fprintf(f, "    \"file\": %s,\n", xstr_ptr(xstr));
+  xstr_clear(xstr);
+  utils_json_escape_str(tgt, -1, xstr);
+  fprintf(f, "    \"output\": %s\n", xstr_ptr(xstr));
+  fprintf(f, "  }");
+  xstr_destroy(xstr);
+  fclose(f);
+}
+static void _cc_post_build(struct node *n) {
+  int rc = 0;
+  if (!_cdb.path || !g_env.project.compile_commands_own) {
+    return;
+  }
+  const char *path = _cdb.path;
+  _cdb.path = 0;
+  FILE *sf = fopen(path, "r");
+  if (!sf) {
+    return;
+  }
+  unlink(path);
+  path = _cdb._path;
+  snprintf(_cdb._path, sizeof(_cdb._path), "%s/compile_commands.json", g_env.project.cache_dir);
+  FILE *tf = fopen(path, "w");
+  if (!tf) {
+    rc = errno;
+    fclose(sf);
+    node_fatal(rc, n, "Error opening file for writing: %s", path);
+  }
+  fputs("[", tf);
+  rc = utils_copy_file_streams(sf, tf);
+  if (rc) {
+    fclose(sf);
+    fclose(tf);
+    node_fatal(rc, n, "Error writing file: %s", path);
+  }
+  fputs("\n]", tf);
+  fclose(sf);
+  fclose(tf);
+  node_info(n, "Compilation database file created: %s", path);
+}
 static void _cc_build(struct node *n) {
   struct _cc_ctx *ctx = n->impl;
   char *objs = ulist_to_vlist(&ctx->objects);
@@ -5471,6 +5635,7 @@ static void _cc_source_add(struct node *n, const char *src) {
   node_product_add(n, obj, 0);
 }
 static void _cc_setup(struct node *n) {
+  _cc_cdb_init(n);
   struct _cc_ctx *ctx = n->impl;
   const char *val = node_value(ctx->n_sources);
   if (is_vlist(val)) {
@@ -5572,6 +5737,7 @@ int node_cc_setup(struct node *n) {
   n->init = _cc_init;
   n->setup = _cc_setup;
   n->build = _cc_build;
+  n->post_build = _cc_post_build;
   n->dispose = _cc_dispose;
   struct pool *pool = pool_create_empty();
   struct _cc_ctx *ctx = pool_alloc(pool, sizeof(*ctx));
@@ -6015,7 +6181,10 @@ static void _install_do(struct _install_on_resolve_ctx *ctx, char *src, const ch
       }
       return;
     } else if (utils_endswith(src, "/" AUTARK_FETCHED_REG)) {
-      snprintf(dst_buf, sizeof(dst_buf), "%s/" AUTARK_CACHE "/" AUTARK_CACHE_OVERLAY_DIR "/" AUTARK_FETCHED_REG_DIST, target);
+      snprintf(dst_buf,
+               sizeof(dst_buf),
+               "%s/" AUTARK_CACHE "/" AUTARK_CACHE_OVERLAY_DIR "/" AUTARK_FETCHED_REG_DIST,
+               target);
       path_mkdirs_for(dst_buf);
       _install_file(n, src, dst_buf, &st);
       return;
@@ -6146,8 +6315,10 @@ static void _install_post_build(struct node *n) {
   if (!ctx.n_target || !node_is_can_be_value(ctx.n_target)) {
     node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "No target dir specified");
   }
-  if (!ctx.n_target->next || !node_is_can_be_value(ctx.n_target->next)) {
-    node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "At least one source file/dir should be specified");
+  if (n->type != NODE_TYPE_INSTALL_SOURCES) {
+    if (!ctx.n_target->next || !node_is_can_be_value(ctx.n_target->next)) {
+      node_fatal(AK_ERROR_SCRIPT_SYNTAX, n, "At least one source file/dir should be specified");
+    }
   }
   struct node_resolve r = {
     .n = n,
@@ -6815,14 +6986,12 @@ static int _usage_va(
     vfprintf(stderr, err, ap);
     fprintf(stderr, "\n\n");
   }
-  fprintf(stderr, "Usage\n");
-  fprintf(stderr, "\nCommon options:\n"
-          "    -V, --verbose               Outputs verbose execution info.\n"
+  fprintf(stderr,
+          "\nautark [options] [sources_dir] | [command [options]]\n");
+  fprintf(stderr,
+          "\n    -V, --verbose               Outputs verbose execution info.\n"
           "    -v, --version               Prints version info.\n"
           "    -h, --help                  Prints usage help.\n");
-  fprintf(stderr,
-          "\nautark [sources_dir/command] [options]\n"
-          "  Build project in given sources dir.\n");
   fprintf(stderr,
           "    -H, --cache=<>              Project cache/build dir. Default: ./" AUTARK_CACHE "\n");
   fprintf(stderr,
@@ -6833,6 +7002,8 @@ static int _usage_va(
           "    -J  --jobs=<>               Number of jobs used in c/cxx compilation tasks. Default: 4\n");
   fprintf(stderr,
           "    -D<option>[=<val>]          Set project build option.\n");
+  fprintf(stderr,
+          "    -k, --compile-commands      Generates compile_commands.json database. Sets -c option implicitly.\n");
   fprintf(stderr,
           "    -I, --install               Install all built artifacts\n");
   fprintf(stderr,
@@ -6856,7 +7027,7 @@ static int _usage_va(
   fprintf(stderr,
           "        --pkgconfdir=<>         Path to 'pkgconfig' dir relative to prefix dir. Default: lib/pkgconfig");
 #endif
-  fprintf(stderr, "\nautark <cmd> [options]\n");
+  fprintf(stderr, "\n\nautark <cmd> [options]\n");
   fprintf(stderr, "  Execute a given command from check script.\n");
   fprintf(stderr,
           "\nautark set <key>=<value>\n"
@@ -6927,13 +7098,14 @@ void autark_build_prepare(const char *script_path) {
     g_env.install.flags |= INSTALL_FLG_SRC_WITH_DEPS;
     setenv(AUTARK_INSTALL_SRC_DEPS_ENV, "1", 0);
   }
-  const char* cache_overlay_dir = path_join_path_pool(g_env.pool, g_env.project.cache_dir, AUTARK_CACHE_OVERLAY_DIR, 0);
+  const char *cache_overlay_dir = path_join_path_pool(g_env.pool, g_env.project.cache_dir, AUTARK_CACHE_OVERLAY_DIR, 0);
   if (path_is_dir(cache_overlay_dir)) {
     g_env.project.cache_overlay_dir = cache_overlay_dir;
     setenv(AUTARK_CACHE_OVERLAY_DIR_ENV, g_env.project.cache_overlay_dir, 1);
   } else if ((g_env.install.flags & INSTALL_FLG_SRC_WITH_DEPS) || getenv(AUTARK_CACHE_OVERLAY_DIR_ENV)) {
-    g_env.project.cache_overlay_dir = pool_printf(g_env.pool, "%s/" AUTARK_CACHE_OVERLAY_DIR, g_env.project.cache_dir);
+    g_env.project.cache_overlay_dir = cache_overlay_dir;
     setenv(AUTARK_CACHE_OVERLAY_DIR_ENV, g_env.project.cache_overlay_dir, 1);
+    path_mkdirs(g_env.project.cache_overlay_dir);
   }
   if (g_env.project.cleanup) {
     if (path_is_dir(g_env.project.cache_dir)) {
@@ -6952,6 +7124,12 @@ void autark_build_prepare(const char *script_path) {
   }
   if (g_env.verbose) {
     setenv(AUTARK_VERBOSE_ENV, "1", 1);
+  }
+  if (g_env.project.compile_commands) {
+    snprintf(path_buf, sizeof(path_buf), "%s/" AUTARK_COMPILE_COMMANDS, g_env.project.cache_dir);
+    setenv(AUTARK_COMPILE_COMMANDS_ENV, path_buf, 0);
+  } else if (getenv(AUTARK_COMPILE_COMMANDS_ENV) != 0) {
+    g_env.project.compile_commands = true;
   }
 }
 static void _project_command_env_read(void) {
@@ -7245,6 +7423,7 @@ void autark_run(int argc, const char **argv) {
   static const struct option long_options[] = {
     { "cache", 1, 0, 'H' },
     { "clean", 0, 0, 'c' },
+    { "compile-commands", 0, 0, 'k' },
     { "help", 0, 0, 'h' },
     { "verbose", 0, 0, 'V' },
     { "version", 0, 0, 'v' },
@@ -7265,7 +7444,7 @@ void autark_run(int argc, const char **argv) {
   bool version = false;
   const char *cdir = 0;
   struct ulist options = { .usize = sizeof(char*) };
-  for (int ch; (ch = getopt_long(argc, (void*) argv, "+H:chVvlR:C:D:J:IS", long_options, 0)) != -1; ) {
+  for (int ch; (ch = getopt_long(argc, (void*) argv, "+H:ckhVvlR:C:D:J:IS", long_options, 0)) != -1; ) {
     switch (ch) {
       case 'H':
         g_env.project.cache_dir = pool_strdup(g_env.pool, optarg);
@@ -7275,6 +7454,10 @@ void autark_run(int argc, const char **argv) {
         break;
       case 'c':
         g_env.project.cleanup = true;
+        break;
+      case 'k':
+        g_env.project.compile_commands = true;
+        g_env.project.compile_commands_own = getenv(AUTARK_COMPILE_COMMANDS_ENV) == 0;
         break;
       case 'v':
         version = true;
@@ -7347,6 +7530,9 @@ void autark_run(int argc, const char **argv) {
     if (v && (*v == '1' || *v == 'y' || *v == 'Y')) {
       g_env.verbose = true;
     }
+  }
+  if (g_env.project.compile_commands) {
+    g_env.project.cleanup = true;
   }
   char buf[PATH_MAX];
   const char *autark_home = getenv("AUTARK_HOME");

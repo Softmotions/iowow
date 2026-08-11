@@ -20,5 +20,9 @@ test:
 test-release:
 	BUILD_TYPE=Release IOWOW_RUN_TESTS=1 ./build.sh
 
+compile-commands:
+	IOWOW_BUILD_TESTS=1 BUILD_TYPE=Debug  ./build.sh -k
+	cp ./autark-cache/compile_commands.json ./compile_commands.json
+
 clean:
 	rm -rf ./autark-cache
