@@ -29,7 +29,7 @@ sources:
 	trap 'rm -rf "$$tmp_dir"' EXIT; \
 	./build.sh --prefix="$$tmp_dir" -S; \
 	base_dir="$$tmp_dir/share/iowow"; \
-	src_dir="$$(find "$$base_dir" -mindepth 1 -maxdepth 1 -type d -print -quit)"; \
+	src_dir="$$(find "$$base_dir" -mindepth 1 -maxdepth 1 -type d -name 'iowow-*' -print -quit)"; \
 	name="$$(basename "$$src_dir")"; \
 	tar -C "$$base_dir" -czf "$(CURDIR)/$$name.tar.gz" "$$name"; \
 	echo "Created: $(CURDIR)/$$name.tar.gz"
