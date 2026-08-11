@@ -20,6 +20,7 @@ iowow.mk
 *.dat
 *.fsm
 *.db
+*.tar.gz
 
 # Created by https://www.gitignore.io/api/jetbrains
 # Edit at https://www.gitignore.io/?templates=jetbrains
