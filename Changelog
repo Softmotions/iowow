@@ -1,9 +1,10 @@
-2025-07-19 Anton Adamansky  <adamansky@gmail.com>  [WIP]
+2026-08-18 Anton Adamansky  <adamansky@gmail.com>  [v1.5.0]
+  * Backported Fix heap OOB read past pattern buffer https://github.com/jserv/cregex/pull/2
   * Fix out-of-bounds pointer from iwrb_begin() at wrap boundary #59
   * json nodes of JBV_NONE type are not serialized and skipped (iwjser.c)
   * Added thread_initializer to iwtp (iwtp.h)
-  * Migration to Autark build system.
   * iwrb improvements and iwrb test cases (iwrb.h)
+  * Migration to Autark build system.
 
 2024-07-02  Anton Adamansky  <adamansky@gmail.com>  [v1.4.19]
   * Added iwcsv.h utility used to produce CSV formatted lines.
