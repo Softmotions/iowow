@@ -2,8 +2,8 @@ meta {
   name { iowow }
 
   version_major { 1 }
-  version_minor { 4 }
-  version_patch { 20 }
+  version_minor { 5 }
+  version_patch { 0 }
 
   description { The skiplist based persistent key/value storage engine. }
   website { https://github.com/Softmotions/iowow }

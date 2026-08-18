@@ -6,7 +6,7 @@
 # https://github.com/Softmotions/autark
 
 META_VERSION=0.9.8
-META_REVISION=b6f13a0
+META_REVISION=2fbde32
 cd "$(cd "$(dirname "$0")"; pwd -P)"
 
 prev_arg=""
@@ -62,7 +62,7 @@ cat <<'a292effa503b' > ${AUTARK_HOME}/autark.c
 #ifndef CONFIG_H
 #define CONFIG_H
 #define META_VERSION "0.9.8"
-#define META_REVISION "b6f13a0"
+#define META_REVISION "2fbde32"
 #define MACRO_MAX_RECURSIVE_CALLS 128
 #endif
 #define _AMALGAMATE_
@@ -7531,7 +7531,7 @@ void autark_run(int argc, const char **argv) {
       g_env.verbose = true;
     }
   }
-  if (g_env.project.compile_commands) {
+  if (g_env.project.compile_commands || (g_env.install.flags & INSTALL_FLG_SRC_WITH_DEPS)) {
     g_env.project.cleanup = true;
   }
   char buf[PATH_MAX];
