@@ -141,7 +141,7 @@ if { ${IOWOW_BUILD_SHARED_LIBS}
         -install_name ^{@rpath/ ${LIBIOWOW_SO_BIN}}
         -compatibility_version ${META_VERSION_MAJOR}
         -current_version ${META_VERSION}
-        -o ${LIBEJDB_SO_BIN}
+        -o ${LIBIOWOW_SO_BIN}
         ${CC_OBJS}
       }
       if { ${STRIP_CMD}
