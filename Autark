@@ -35,14 +35,20 @@ if { ${IOWOW_RUN_TESTS}
   }
 }
 
-if { eq { ${BUILD_TYPE} Release }
-  set {
-    STRIP_CMD strip --strip-debug
-  }
-}
-
 check {
   system.sh
+}
+
+if { eq { ${BUILD_TYPE} Release }
+  if { defined { SYSTEM_DARWIN }
+    set {
+      STRIP_CMD strip -S
+    }
+  } else {
+    set {
+      STRIP_CMD strip --strip-debug
+    }
+  }
 }
 
 set {
