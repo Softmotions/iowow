@@ -137,6 +137,9 @@ static cregex_node_t* parse_context(regex_parse_context *context, int depth) {
       /* Characters */
       case '\\':
         ch = *context->sp++;
+        if (ch == '\0') {
+          return NULL;
+        }
       /* fall-through */
       default:
 CHARACTER:
