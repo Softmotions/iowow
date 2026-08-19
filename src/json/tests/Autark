@@ -21,8 +21,8 @@ foreach {
 
 if { ${IOWOW_RUN_TESTS}
   run {
-    shell { ln -sf SS{data} ./data }
-    produces { ./data }
+    shell { ln -sf SS{data} CC{} }
+    produces { CC{data} }
   }
   foreach {
     OBJ
