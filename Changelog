@@ -1,3 +1,6 @@
+2026-08-19 Anton Adamansky  <adamansky@gmail.com>  [v1.5.1]
+  * Macos build fixes. (https://github.com/Softmotions/iowow/pull/60)
+
 2026-08-18 Anton Adamansky  <adamansky@gmail.com>  [v1.5.0]
   * Backported Fix heap OOB read past pattern buffer https://github.com/jserv/cregex/pull/2
   * Fix out-of-bounds pointer from iwrb_begin() at wrap boundary #59
