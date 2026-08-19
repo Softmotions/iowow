@@ -112,7 +112,7 @@ if { ${IOWOW_BUILD_SHARED_LIBS}
       ^{${LIBIOWOW_SO_BASE} . ${META_VERSION_MAJOR}}
     }
     run {
-      exec { ${CC} -shared -o ${LIBIOWOW_SO_BIN} ${CC_OBJS} }
+      exec { ${CC} -shared -o ${LIBIOWOW_SO_BIN} ${CC_OBJS} ${LDFLAGS} }
       if { ${STRIP_CMD}
         exec { ${STRIP_CMD} ${LIBIOWOW_SO_BIN} }
       }
@@ -143,6 +143,7 @@ if { ${IOWOW_BUILD_SHARED_LIBS}
         -current_version ${META_VERSION}
         -o ${LIBIOWOW_SO_BIN}
         ${CC_OBJS}
+        ${LDFLAGS}
       }
       if { ${STRIP_CMD}
         exec { ${STRIP_CMD} ${LIBIOWOW_SO_BIN} }
