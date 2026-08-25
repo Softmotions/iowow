@@ -13,7 +13,8 @@ set {
   if { defined { SYSTEM_ANDROID }
     -llog
   }
-  if { eq { ${SYSTEM_ARCH} mips }
+  if { or { eq { ${SYSTEM_ARCH} mips }
+            eq { ${SYSTEM_ARCH} ppc } }
     if { library { LIB_ATOMIC atomic atomic.so.1 libatomic.so.1 }
       -l ${LIB_ATOMIC}
     }
