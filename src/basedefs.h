@@ -75,6 +75,20 @@
 #define IW_INLINE static inline
 #endif
 
+#if defined(_MSC_VER)
+#define IW_NOINLINE __declspec(noinline)
+#elif defined(__has_attribute)
+#  if __has_attribute(noinline)
+#    define IW_NOINLINE __attribute__((noinline))
+#  else
+#    define IW_NOINLINE
+#  endif
+#elif defined(__GNUC__)
+#define IW_NOINLINE __attribute__((noinline))
+#else
+#define IW_NOINLINE
+#endif
+
 #define IW_SOFT_INLINE static inline
 
 #if __GNUC__ >= 4
