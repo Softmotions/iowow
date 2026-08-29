@@ -35,6 +35,7 @@ set {
   utils/utf8proc.h
   utils/pthread_spin_lock_shim.h
   utils/iwcsv.h
+  utils/iwstepbox.h
 }
 
 set {
