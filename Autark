@@ -1,9 +1,15 @@
+check {
+  system.sh
+  changelog_gnu.sh { S{Changelog} }
+}
+
 meta {
   name { iowow }
 
-  version_major { 1 }
-  version_minor { 5 }
-  version_patch { 2 }
+  version { ${CHANGELOG_VERSION} }
+  version_major { ${CHANGELOG_VERSION_MAJOR} }
+  version_minor { ${CHANGELOG_VERSION_MINOR} }
+  version_patch { ${CHANGELOG_VERSION_PATCH} }
 
   description { The skiplist based persistent key/value storage engine. }
   website { https://github.com/Softmotions/iowow }
@@ -20,11 +26,6 @@ option { ENABLE_UBSAN             Turn on UB sanitizer }
 option { ENABLE_DEBINFO           Generate debuginfo even in release mode }
 
 set {
-  META_VERSION
-  ^{ ${META_VERSION_MAJOR} . ${META_VERSION_MINOR} . ${META_VERSION_PATCH} }
-}
-
-set {
   META_REVISION
   @{ git rev-parse --short HEAD }
 }
@@ -35,9 +36,6 @@ if { ${IOWOW_RUN_TESTS}
   }
 }
 
-check {
-  system.sh
-}
 
 if { eq { ${BUILD_TYPE} Release }
   if { defined { SYSTEM_DARWIN }

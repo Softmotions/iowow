@@ -1,3 +1,6 @@
+2026-09-09 Anton Adamansky  <adamansky@gmail.com>  [v1.5.3-dev]
+  * Project versions now track Changelog.
+
 2026-09-08 Anton Adamansky  <adamansky@gmail.com>  [v1.5.2]
   * Fixed UB in iwulist_clone()
   * Fixed UB iwpool_split_string()
