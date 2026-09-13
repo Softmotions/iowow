@@ -3,7 +3,7 @@
 set -e
 set -x
 
-cd "$(dirname "$(readlink -f "$0")")"
+cd "$(dirname "$(readlink -f "$0")")/.."
 
 git pull origin master
 

@@ -138,7 +138,6 @@ install-sources {
   Autark
   Changelog
   LICENSE
-  Makefile
   README.md
   build.sh
   src/
