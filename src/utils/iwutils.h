@@ -408,12 +408,23 @@ IW_EXPORT char* iwu_file_read_as_buf_len(const char *path, size_t *out_len);
 
 /**
  * Read file to memory allocated buffer.
- * @param path File path
+ * @param path File path.
  * @param len_max Maxim number of bytes to read. If -1 then no limit set.
  * @param [out] Number of of bytes read actually.
- * @returns Zero(\0) terminated file data buffer. Or NULL in the case of error.
+ * @returns `\0` terminated file data buffer. Or NULL in the case of error.
  */
 IW_EXPORT char* iwu_file_read_as_buf_max(const char *path, ssize_t len_max, size_t *out_len);
+
+/**
+ * Writes a given 'buf' into the file identified by `path`.
+ * If `append` is true data will be appended to end of file
+ * otherwise file will truncated.
+ * @param path File path.
+ * @param buf Data buffer to write.
+ * @param len Data buffer len.
+ * @param append Append boolean flag.
+ */
+IW_EXPORT iwrc iwu_file_write_buf(const char *path, const char *buf, size_t len, bool append);
 
 /**
  * @brief Create X31 hash value.

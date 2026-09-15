@@ -26,10 +26,10 @@
  *************************************************************************************************/
 
 
-#include "iwcfg.h"
 #include "iwutils.h"
 #include "iwlog.h"
 #include "iwxstr.h"
+#include "iwfile.h"
 
 #include <limits.h>
 #include <sys/types.h>
@@ -225,6 +225,34 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
   return (c1 - c2);
 }
 
+iwrc iwu_file_write_buf(const char *path, const char *buf, size_t len, bool append) {
+  int flags = O_WRONLY | O_CREAT;
+  if (append) {
+    flags |= O_APPEND;
+  } else {
+    flags |= O_TRUNC;
+  }
+  int fd = open(path, flags, IWFS_DEFAULT_FILEMODE);
+  if (fd == -1) {
+    return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+  }
+  for (ssize_t w, tow = len; tow > 0; ) {
+    w = write(fd, buf + len - tow, tow);
+    if (w >= 0) {
+      tow -= w;
+    } else if (w < 0) {
+      if (errno == EAGAIN) {
+        continue;
+      }
+      int ret = errno;
+      close(fd);
+      return ret;
+    }
+  }
+  close(fd);
+  return 0;
+}
+
 char* iwu_file_read_as_buf_max(const char *path, ssize_t len_max, size_t *out_len) {
   IWXSTR *xstr = iwxstr_create_empty();
   if (!xstr) {
@@ -277,7 +305,6 @@ char* iwu_file_read_as_buf(const char *path) {
   return iwu_file_read_as_buf_len(path, &sz);
 }
 
-
 iwrc iwu_replace(
   IWXSTR           **result,
   const char        *data,
@@ -291,7 +318,7 @@ iwrc iwu_replace(
   }
 
   if (keysz < 0) {
-    for (keysz = 0; keys[keysz] != 0; ++keysz);
+    for (keysz = 0; keys[keysz] != 0; ++keysz) ;
   }
 
   iwrc rc = 0;

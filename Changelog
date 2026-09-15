@@ -1,5 +1,6 @@
 2026-09-09 Anton Adamansky  <adamansky@gmail.com>  [v1.5.3-dev]
   * Project versions now track Changelog.
+  * iwutils.c: Added iwu_file_write_buf()
 
 2026-09-08 Anton Adamansky  <adamansky@gmail.com>  [v1.5.2]
   * Fixed UB in iwulist_clone()
