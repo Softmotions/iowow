@@ -50,6 +50,18 @@ if { eq { ${BUILD_TYPE} Release }
 }
 
 set {
+  SANITIZER_FLAGS
+  if { ${ENABLE_ASAN}
+    -fsanitize=address
+    -fno-omit-frame-pointer
+  }
+  if { ${ENABLE_UBSAN}
+    -fsanitize=undefined
+    -fno-omit-frame-pointer
+  }
+}
+
+set {
   CFLAGS
   -std=gnu11
   -pedantic
@@ -65,15 +77,7 @@ set {
   -Wno-unused-function
   -Wno-unused-parameter
   -fPIC
-  if { ${ENABLE_ASAN}
-    -fsanitize=address
-    -fno-omit-frame-pointer
-  } else {
-    if { ${ENABLE_UBSAN}
-      -fsanitize=undefined
-      -fno-omit-frame-pointer
-    }
-  }
+  ..${SANITIZER_FLAGS}
   if { prefix { ${BUILD_TYPE} Debug }
     -O0
     -ggdb
