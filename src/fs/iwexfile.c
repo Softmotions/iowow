@@ -440,7 +440,10 @@ static iwrc _exfile_copy(struct iwfs_ext *f, off_t off, size_t siz, off_t noff) 
   RCRET(rc);
   struct iwfs_ext_impl *impl = f->impl;
   struct mmapslot *s = impl->mmslots;
-  if (s && s->mmap && (s->off == 0) && (s->len >= noff + siz)) { // fully mmaped file
+  if (  s && s->mmap && (s->off == 0) && (off >= 0) && (noff >= 0)
+     && (siz <= s->len)
+     && ((uint64_t) off <= s->len - siz)
+     && ((uint64_t) noff <= s->len - siz)) { // fully mmaped file
     rc = _exfile_ensure_size_lw(f, noff + siz);
     RCRET(rc);
     if (impl->dlsnr) {

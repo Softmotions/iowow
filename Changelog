@@ -1,5 +1,6 @@
 2026-09-09 Anton Adamansky  <adamansky@gmail.com>  [v1.5.3-dev]
-  * Autark: Fix brokwn ENABLE_ASAN.
+  * Autark: Fix broken ENABLE_ASAN.
+  * src/fs/iwexfile.c: Fixe crash in copy() (_exfile_copy)
   * Changelog: Project versions now track Changelog.
   * iwutils.c: Added iwu_file_write_buf()
 
