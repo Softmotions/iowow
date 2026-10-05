@@ -11,6 +11,7 @@ cc {
     iwkv_test9.c
     iwkv_test10.c
     iwkv_test11.c
+    iwkv_test12.c
   }
   ${CFLAGS_TESTS}
 }
@@ -38,5 +39,13 @@ if { ${IOWOW_RUN_TESTS}
       shell { %{${OBJ}} }
       consumes { %{${OBJ}} }
     }
+  }
+}
+
+if { ${IWKV_RUN_FUZZ}
+  run {
+    always
+    shell { iwkv_test12 }
+    consumes { iwkv_test12 }
   }
 }

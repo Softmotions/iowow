@@ -1,3 +1,34 @@
+option { IWKV_RUN_FUZZ            Build and run the iwkv fuzz test }
+option { IWKV_FUZZ_ITERS          Override default iwkv fuzz operations per storage mode }
+option { IWKV_FUZZ_ROUNDS         Override default iwkv corruption fuzz rounds }
+
+if { ${IWKV_RUN_FUZZ}
+# Fuzz test defaults. `IWKV_FUZZ_ITERS`/`IWKV_FUZZ_ROUNDS` may be supplied via
+# `-D` or the environment; otherwise reasonable defaults are used. The
+# byte-corruption fuzzer is enabled (non-zero rounds) only by IWKV_RUN_FUZZ.
+  if { !defined { IWKV_FUZZ_ITERS }
+    set {
+      IWKV_FUZZ_ITERS 2000
+    }
+  }
+
+  if { !defined { IWKV_FUZZ_ROUNDS }
+    set {
+      IWKV_FUZZ_ROUNDS 600
+    }
+  }
+
+  set {
+   root {
+     CFLAGS
+   }
+   -DIWKV_RUN_FUZZ=1
+   ^{-DIWKV_FUZZ_DEFAULT_ITERS= ${IWKV_FUZZ_ITERS}}
+   ^{-DIWKV_FUZZ_DEFAULT_ROUNDS= ${IWKV_FUZZ_ROUNDS}}
+   ..${CFLAGS}
+  }
+}
+
 set {
   parent {
     SOURCES

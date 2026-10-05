@@ -262,14 +262,17 @@ static iwrc _onopen(struct iwdlsnr *self, const char *path, int mode) {
 
 static iwrc _onclosing(struct iwdlsnr *self) {
   struct iwal *wal = (struct iwal*) self;
+  struct iwkv *iwkv = wal->iwkv;
 #ifdef IW_TESTS
   uint64_t tv = g_trigger;
   if (tv & IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE) {
+    iwkv->dlsnr = 0;
     _destroy(wal);
     return 0;
   }
 #endif
   iwrc rc = _checkpoint_exl(wal, 0, false);
+  iwkv->dlsnr = 0;
   _destroy(wal);
   return rc;
 }

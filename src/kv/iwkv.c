@@ -333,13 +333,18 @@ static WUR iwrc _wnw_db(struct iwdb *db, iwrc (*after)(struct iwdb *db)) {
 
 //--------------------------  DB
 
-static WUR iwrc _db_at(struct iwkv *iwkv, struct iwdb **dbp, off_t addr, uint8_t *mm) {
+static WUR iwrc _db_at(struct iwkv *iwkv, struct iwdb **dbp, off_t addr, uint8_t *mm, size_t mmsz) {
   iwrc rc = 0;
   uint8_t *rp, bv;
   uint32_t lv;
   int rci;
-  struct iwdb *db = calloc(1, sizeof(struct iwdb));
   *dbp = 0;
+  if ((addr < 0) || ((uint64_t) addr + DOFF_END > (uint64_t) mmsz)) {
+    rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
+    return rc;
+  }
+  struct iwdb *db = calloc(1, sizeof(struct iwdb));
   if (!db) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
@@ -429,14 +434,14 @@ static WUR iwrc _db_save(struct iwdb *db, bool newdb, uint8_t *mm) {
   return rc;
 }
 
-static WUR iwrc _db_load_chain(struct iwkv *iwkv, off_t addr, uint8_t *mm) {
+static WUR iwrc _db_load_chain(struct iwkv *iwkv, off_t addr, uint8_t *mm, size_t mmsz) {
   iwrc rc;
   struct iwdb *db = 0, *ndb;
   if (!addr) {
     return 0;
   }
   do {
-    rc = _db_at(iwkv, &ndb, addr, mm);
+    rc = _db_at(iwkv, &ndb, addr, mm, mmsz);
     RCRET(rc);
 
     if (db) {
@@ -3220,9 +3225,13 @@ iwrc iwkv_open(const struct iwkv_opts *opts, struct iwkv **iwkvp) {
       goto finish;
     }
 
-    RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
-    RCC(rc, finish, _db_load_chain(iwkv, dbaddr, mm));
-    fsm->release_mmap(fsm);
+    size_t mmsz = 0;
+    RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, &mmsz));
+    rc = _db_load_chain(iwkv, dbaddr, mm, mmsz);
+    IWRC(fsm->release_mmap(fsm), rc);
+    if (rc) {
+      goto finish;
+    }
   }
   (*iwkvp)->open = true;
 
