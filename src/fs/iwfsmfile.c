@@ -1713,7 +1713,9 @@ static iwrc _fsm_writehdr(struct iwfs_fsm *f, off_t off, const void *buf, off_t 
     if (fsm->dlsnr) {
       rc = fsm->dlsnr->onwrite(fsm->dlsnr, IWFSM_CUSTOM_HDR_DATA_OFFSET + off, buf, siz, 0);
     }
-    memmove(mm + IWFSM_CUSTOM_HDR_DATA_OFFSET + off, buf, (size_t) siz);
+    if (!rc) {
+      memmove(mm + IWFSM_CUSTOM_HDR_DATA_OFFSET + off, buf, (size_t) siz);
+    }
     IWRC(fsm->pool.release_mmap(&fsm->pool), rc);
   }
   return rc;

@@ -1384,11 +1384,16 @@ IW_INLINE WUR iwrc _sblk_destroy(struct iwlctx *lx, struct sblk **sblkp) {
         // Deallocate whole page
         rc = fsm->deallocate(fsm, paddr, SBLK_PAGE_SZ_V2);
       } else {
+        if (dlsnr) {
+          rc = dlsnr->onset(dlsnr, sblk->addr + SOFF_BPOS_U1_V2, 0, 1, 0);
+          if (rc) {
+            fsm->release_mmap(fsm);
+            _sblk_release(lx, sblkp);
+            return rc;
+          }
+        }
         memset(mm + sblk->addr + SOFF_BPOS_U1_V2, 0, 1);
         fsm->release_mmap(fsm);
-        if (dlsnr) {
-          dlsnr->onset(dlsnr, sblk->addr + SOFF_BPOS_U1_V2, 0, 1, 0);
-        }
       }
     }
 
@@ -3241,7 +3246,11 @@ iwrc iwkv_exclusive_unlock(struct iwkv *iwkv) {
 }
 
 iwrc iwkv_close(struct iwkv **iwkvp) {
-  ENSURE_OPEN((*iwkvp));
+  // `iwkv_close` must release resources even if the instance is in a fatal
+  // error state, so `fatalrc` is intentionally not checked here.
+  if (!iwkvp || !*iwkvp || !(*iwkvp)->open) {
+    return IW_ERROR_INVALID_STATE;
+  }
   struct iwkv *iwkv = *iwkvp;
   if (!__sync_bool_compare_and_swap(&iwkv->open, 1, 0)) {
     return IW_ERROR_INVALID_STATE;
@@ -3255,7 +3264,9 @@ iwrc iwkv_close(struct iwkv **iwkvp) {
     _db_release_lw(&db);
     db = ndb;
   }
-  IWRC(iwkv->fsm.close(&iwkv->fsm), rc);
+  if (iwkv->fsm.close) {
+    IWRC(iwkv->fsm.close(&iwkv->fsm), rc);
+  }
   // Below the memory cleanup only
   if (iwkv->dbs) {
     iwhmap_destroy(iwkv->dbs);

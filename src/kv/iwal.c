@@ -42,6 +42,7 @@ struct iwal {
   char    *path;                    /**< WAL file path */
   pthread_mutex_t *mtxp;            /**< Global WAL mutex */
   pthread_cond_t  *cpt_condp;       /**< Checkpoint thread cond variable */
+  pthread_cond_t  *bkp_condp;       /**< Online backup stage cond variable */
   pthread_t       *cptp;            /**< Checkpoint thread */
   iwrc (*wal_lock_interceptor)(bool, void*);
   /**< Optional function called
@@ -57,6 +58,7 @@ struct iwal {
   uint64_t checkpoint_ts;                /**< Last checkpoint timestamp milliseconds */
   pthread_mutex_t mtx;                   /**< Global WAL mutex */
   pthread_cond_t  cpt_cond;              /**< Checkpoint thread cond variable */
+  pthread_cond_t  bkp_cond;              /**< Online backup stage cond variable */
   pthread_t       cpt;                   /**< Checkpoint thread */
   struct iwkv    *iwkv;
 };
@@ -73,6 +75,17 @@ IW_INLINE iwrc _lock(struct iwal *wal) {
 IW_INLINE iwrc _unlock(struct iwal *wal) {
   int rci = pthread_mutex_unlock(wal->mtxp);
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
+}
+
+// Set the online-backup stage and wake threads waiting for it to change.
+// Must be called with `wal->mtx` held.
+IW_INLINE void _bkp_stage_set(struct iwal *wal, int stage) {
+  if (wal->bkp_stage != stage) {
+    wal->bkp_stage = stage;
+    if (wal->bkp_condp) {
+      pthread_cond_broadcast(wal->bkp_condp);
+    }
+  }
 }
 
 static iwrc _excl_lock(struct iwal *wal) {
@@ -113,6 +126,13 @@ static iwrc _init_locks(struct iwal *wal) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   wal->mtxp = &wal->mtx;
+  rci = pthread_cond_init(&wal->bkp_cond, 0);
+  if (rci) {
+    pthread_mutex_destroy(&wal->mtx);
+    wal->mtxp = 0;
+    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  }
+  wal->bkp_condp = &wal->bkp_cond;
   return 0;
 }
 
@@ -124,6 +144,9 @@ static void _wal_shutdown(struct iwal *wal) {
   if (wal->mtxp && wal->cpt_condp) {
     pthread_mutex_lock(wal->mtxp);
     pthread_cond_broadcast(wal->cpt_condp);
+    if (wal->bkp_condp) {
+      pthread_cond_broadcast(wal->bkp_condp);
+    }
     pthread_mutex_unlock(wal->mtxp);
   }
   if (wal->cptp) {
@@ -138,6 +161,10 @@ static void _destroy(struct iwal *wal) {
     if (!INVALIDHANDLE(wal->fh)) {
       iwp_unlock(wal->fh);
       iwp_closefh(wal->fh);
+    }
+    if (wal->bkp_condp) {
+      pthread_cond_destroy(wal->bkp_condp);
+      wal->bkp_condp = 0;
     }
     if (wal->cpt_condp) {
       pthread_cond_destroy(wal->cpt_condp);
@@ -307,9 +334,19 @@ static iwrc _onresize(struct iwdlsnr *self, off_t osize, off_t nsize, int flags,
   };
   iwrc rc = _lock(wal);
   RCRET(rc);
-  rc = _write_wl(wal, &wb, sizeof(wb), 0, 0);
-  RCGO(rc, finish);
+  // The main database file is being copied for an online backup and must not
+  // grow. Wait until the copy is complete; `bkp_stage` changes are broadcast
+  // under `wal->mtx`.
+  while (wal->bkp_condp && wal->bkp_stage == BKP_MAIN_COPY) {
+    int rci = pthread_cond_wait(wal->bkp_condp, wal->mtxp);
+    if (rci) {
+      _unlock(wal);
+      return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    }
+  }
+  RCC(rc, finish, _write_wl(wal, &wb, sizeof(wb), 0, 0));
   rc = _checkpoint_exl(wal, 0, true);
+
 finish:
   IWRC(_unlock(wal), rc);
   return rc;
@@ -347,7 +384,7 @@ static void _last_fix_and_reset_points(struct iwal *wal, uint8_t *wmm, off_t fsz
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (wb.len > avail) {
+        if (wb.len > avail - (off_t) sizeof(wb)) {
           return;
         }
         break;
@@ -373,7 +410,7 @@ static void _last_fix_and_reset_points(struct iwal *wal, uint8_t *wmm, off_t fsz
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (avail < wb.len) {
+        if (wb.len > avail - (off_t) sizeof(wb)) {
           return;
         }
         rp += wb.len;
@@ -387,11 +424,17 @@ static void _last_fix_and_reset_points(struct iwal *wal, uint8_t *wmm, off_t fsz
         break;
       }
       case WOP_SAVEPOINT: {
+        if (avail < sizeof(WBSAVEPOINT)) {
+          return;
+        }
         *fpos = (rp - wmm);
         rp += sizeof(WBSAVEPOINT);
         break;
       }
       case WOP_RESET: {
+        if (avail < sizeof(WBRESET)) {
+          return;
+        }
         *rpos = (rp - wmm);
         rp += sizeof(WBRESET);
         break;
@@ -436,6 +479,7 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
   if (wmm == MAP_FAILED) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
+  uint8_t *wmm_base = wmm;
   // Temporary turn off extf locking
   wal->applying = true;
 
@@ -443,7 +487,7 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
   extf->remove_mmap_unsafe(extf, 0);
   rc = extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_SHARED);
   if (rc) {
-    munmap(wmm, (size_t) pfsz);
+    munmap(wmm_base, (size_t) pfsz);
     wal->iwkv->fatalrc = rc;
     wal->applying = false;
     return rc;
@@ -473,6 +517,7 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
       // \_rpos
       wmm += rpos;
       fsz -= rpos;
+      fpos -= rpos;
     }
   } else if (wal->rollforward_offset > 0) {
     if (wal->rollforward_offset >= fsz) {
@@ -499,7 +544,7 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (wb.len > avail) {
+        if (wb.len > avail - (off_t) sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
         }
         if (ccrc && wb.crc) {
@@ -517,8 +562,13 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        rc = extf->probe_mmap_unsafe(extf, 0, &mm, &sp);
-        RCGO(rc, finish);
+        RCC(rc, finish, extf->probe_mmap_unsafe(extf, 0, &mm, &sp));
+
+        if (  (wb.off < 0) || (wb.len < 0)
+           || ((uint64_t) wb.len > (uint64_t) sp)
+           || ((uint64_t) wb.off > (uint64_t) sp - (uint64_t) wb.len)) {
+          _WAL_CORRUPTED("WAL WBSET range is out of bounds");
+        }
         memset(mm + wb.off, wb.val, (size_t) wb.len);
         break;
       }
@@ -529,8 +579,14 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        rc = extf->probe_mmap_unsafe(extf, 0, &mm, &sp);
-        RCGO(rc, finish);
+        RCC(rc, finish, extf->probe_mmap_unsafe(extf, 0, &mm, &sp));
+
+        if (  (wb.off < 0) || (wb.len < 0) || (wb.noff < 0)
+           || ((uint64_t) wb.len > (uint64_t) sp)
+           || ((uint64_t) wb.off > (uint64_t) sp - (uint64_t) wb.len)
+           || ((uint64_t) wb.noff > (uint64_t) sp - (uint64_t) wb.len)) {
+          _WAL_CORRUPTED("WAL WBCOPY range is out of bounds");
+        }
         memmove(mm + wb.noff, mm + wb.off, (size_t) wb.len);
         break;
       }
@@ -541,7 +597,7 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        if (avail < wb.len) {
+        if (wb.len > avail - (off_t) sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
         }
         if (ccrc && wb.crc) {
@@ -550,8 +606,13 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
             _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBWRITE)");
           }
         }
-        rc = extf->probe_mmap_unsafe(extf, 0, &mm, &sp);
-        RCGO(rc, finish);
+        RCC(rc, finish, extf->probe_mmap_unsafe(extf, 0, &mm, &sp));
+
+        if (  (wb.off < 0)
+           || ((uint64_t) wb.len > (uint64_t) sp)
+           || ((uint64_t) wb.off > (uint64_t) sp - (uint64_t) wb.len)) {
+          _WAL_CORRUPTED("WAL WBWRITE range is out of bounds");
+        }
         memmove(mm + wb.off, rp, wb.len);
         rp += wb.len;
         break;
@@ -563,11 +624,16 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
-        rc = extf->truncate_unsafe(extf, wb.nsize);
-        RCGO(rc, finish);
+        if (wb.nsize < 0) {
+          _WAL_CORRUPTED("Invalid WAL resize size");
+        }
+        RCC(rc, finish, extf->truncate_unsafe(extf, wb.nsize));
         break;
       }
       case WOP_SAVEPOINT:
+        if (avail < sizeof(WBSAVEPOINT)) {
+          _WAL_CORRUPTED("Premature end of WAL (WBSAVEPOINT)");
+        }
         if (fpos == rp - wmm) { // last fixpoint to
           WBSAVEPOINT wb;
           memcpy(&wb, rp, sizeof(wb));
@@ -579,6 +645,9 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         rp += sizeof(WBSAVEPOINT);
         break;
       case WOP_RESET: {
+        if (avail < sizeof(WBRESET)) {
+          _WAL_CORRUPTED("Premature end of WAL (WBRESET)");
+        }
         rp += sizeof(WBRESET);
         break;
       }
@@ -594,7 +663,7 @@ finish:
   if (!rc) {
     rc = extf->sync_mmap_unsafe(extf, 0, IWFS_SYNCDEFAULT);
   }
-  munmap(wmm, (size_t) pfsz);
+  munmap(wmm_base, (size_t) pfsz);
   IWRC(extf->remove_mmap_unsafe(extf, 0), rc);
   IWRC(extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
   if (!rc) {
@@ -670,15 +739,11 @@ static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint) {
     WBSAVEPOINT wb = {
       .id = WOP_SAVEPOINT
     };
-    rc = iwp_current_time_ms(&wb.ts, false);
-    RCGO(rc, finish);
-    rc = _write_wl(wal, &wb, sizeof(wb), 0, 0);
-    RCGO(rc, finish);
+    RCC(rc, finish, iwp_current_time_ms(&wb.ts, false));
+    RCC(rc, finish, _write_wl(wal, &wb, sizeof(wb), 0, 0));
   }
-  rc = _flush_wl(wal, true);
-  RCGO(rc, finish);
-  rc = iwkv->fsm.extfile(&iwkv->fsm, &extf);
-  RCGO(rc, finish);
+  RCC(rc, finish, _flush_wl(wal, true));
+  RCC(rc, finish, iwkv->fsm.extfile(&iwkv->fsm, &extf));
 
   rc = _rollforward_exl(wal, extf, 0);
   wal->mbytes = 0;
@@ -711,6 +776,14 @@ iwrc iwal_test_checkpoint(struct iwkv *iwkv) {
   rc = _checkpoint_exl(wal, 0, false);
   IWRC(_excl_unlock(wal), rc);
   return rc;
+}
+
+void iwal_test_set_bkp_main_copy(struct iwkv *iwkv, bool active) {
+  struct iwal *wal = (struct iwal*) iwkv->dlsnr;
+  if (wal && !_lock(wal)) {
+    _bkp_stage_set(wal, active ? BKP_MAIN_COPY : 0);
+    _unlock(wal);
+  }
 }
 
 #endif
@@ -905,12 +978,13 @@ iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file
   if (!wal) {
     return IWKV_ERROR_WAL_MODE_REQUIRED;
   }
+
   rc = _lock(wal);
   RCRET(rc);
   if (wal->bkp_stage) {
     rc = IWKV_ERROR_BACKUP_IN_PROGRESS;
   } else {
-    wal->bkp_stage = BKP_STARTED;
+    _bkp_stage_set(wal, BKP_STARTED);
   }
   _unlock(wal);
 
@@ -929,19 +1003,25 @@ iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file
   }
 #endif
 
-  // Flush all pending WAL changes
-  rc = _excl_lock(wal);
-  RCGO(rc, finish);
-  wal->bkp_stage = BKP_WAL_CLEANUP;
-  rc = _checkpoint_exl(wal, 0, false);
-  wal->bkp_stage = BKP_MAIN_COPY;
-  _excl_unlock(wal);
-  RCGO(rc, finish);
+  // Flush all pending WAL changes.
+  RCC(rc, finish, _excl_lock(wal));
 
-  // Copy main database file
+  _bkp_stage_set(wal, BKP_WAL_CLEANUP);
+  RCC(rc, unlock_excl, _checkpoint_exl(wal, 0, false));
+
+  // Capture the main file handle while still holding the exclusive lock.
+  // The main copy below must not take any exfile lock: `_onresize()` waits
+  // for `BKP_MAIN_COPY` to finish while holding the exfile write lock, so
+  // taking that lock here would deadlock the backup.
   IWFS_FSM_STATE fstate = { 0 };
-  rc = iwkv->fsm.state(&iwkv->fsm, &fstate);
-  RCGO(rc, finish);
+  RCC(rc, unlock_excl, iwkv->fsm.state(&iwkv->fsm, &fstate));
+  _bkp_stage_set(wal, BKP_MAIN_COPY);
+  RCC(rc, finish, _excl_unlock(wal));
+
+  // Copy the main database file.
+  // Concurrent writers only modify the private mmap and append to the WAL;
+  // a required file growth is deferred by `_onresize()` until this copy is
+  // complete, so the copied main file image stays stable.
   do {
     rc = iwp_pread(fstate.exfile.file.fh, off, buf, sizeof(buf), &sp);
     RCGO(rc, finish);
@@ -953,9 +1033,8 @@ iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file
   } while (sp > 0);
 
   // Copy most of WAL file content
-  rc = _lock(wal);
-  RCGO(rc, finish);
-  wal->bkp_stage = BKP_WAL_COPY1;
+  RCC(rc, finish, _lock(wal));
+  _bkp_stage_set(wal, BKP_WAL_COPY1);
   rc = _flush_wl(wal, false);
   _unlock(wal);
   RCGO(rc, finish);
@@ -963,8 +1042,7 @@ iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file
   fsize = off;
   off = 0;
   do {
-    rc = iwp_pread(wal->fh, off, buf, sizeof(buf), &sp);
-    RCGO(rc, finish);
+    RCC(rc, finish, iwp_pread(wal->fh, off, buf, sizeof(buf), &sp));
     if (sp > 0) {
       rc = iwp_write(fh, buf, sp);
       RCGO(rc, finish);
@@ -972,39 +1050,32 @@ iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file
     }
   } while (sp > 0);
 
-
   // Copy rest of WAL file in exclusive locked mode
-  rc = _excl_lock(wal);
-  RCGO(rc, finish);
-  wal->bkp_stage = BKP_WAL_COPY2;
-  rc = _savepoint_exl(wal, ts, true);
-  RCGO(rc, unlock);
+  RCC(rc, finish, _excl_lock(wal));
+  _bkp_stage_set(wal, BKP_WAL_COPY2);
+  RCC(rc, unlock_excl, _savepoint_exl(wal, ts, true));
   do {
-    rc = iwp_pread(wal->fh, off, buf, sizeof(buf), &sp);
-    RCGO(rc, unlock);
+    RCC(rc, unlock_excl, iwp_pread(wal->fh, off, buf, sizeof(buf), &sp));
     if (sp > 0) {
-      rc = iwp_write(fh, buf, sp);
-      RCGO(rc, unlock);
+      RCC(rc, unlock_excl, iwp_write(fh, buf, sp));
       off += sp;
     }
   } while (sp > 0);
 
   llv = IW_HTOILL(fsize);
-  rc = iwp_write(fh, &llv, sizeof(llv));
-  RCGO(rc, unlock);
+  RCC(rc, unlock_excl, iwp_write(fh, &llv, sizeof(llv)));
 
   lv = IW_HTOIL(IWKV_BACKUP_MAGIC);
-  rc = iwp_write(fh, &lv, sizeof(lv));
-  RCGO(rc, unlock);
+  RCC(rc, unlock_excl, iwp_write(fh, &lv, sizeof(lv)));
 
-unlock:
-  wal->bkp_stage = 0;
+unlock_excl:
+  _bkp_stage_set(wal, 0);
   IWRC(_excl_unlock(wal), rc);
 
 finish:
   if (rc) {
     _lock(wal);
-    wal->bkp_stage = 0;
+    _bkp_stage_set(wal, 0);
     _unlock(wal);
   } else {
     rc = iwal_poke_checkpoint(iwkv, true);

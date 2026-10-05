@@ -123,7 +123,7 @@ int main(void) {
   }
 
   /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwkv_test8", init_suite, clean_suite);
+  pSuite = CU_add_suite("iwkv_test10", init_suite, clean_suite);
 
   if (NULL == pSuite) {
     CU_cleanup_registry();

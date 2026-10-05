@@ -16,6 +16,8 @@ Testing/
 compile_commands.json
 iowow.mk
 .tern*
+.pi
+.conclusion.md
 *.iml
 *.dat
 *.fsm
