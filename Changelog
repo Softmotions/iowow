@@ -1,4 +1,7 @@
 2026-10-05 Anton Adamansky  <adamansky@gmail.com>  [v1.6.0-dev]
+  * iwrdb: Do not sync/truncate the file when iwrdb_open() fails early.
+  * iwarr: Fixed heap buffer overflow in iwlist_unshift().
+  * Fixed missing memory allocation checks (malloc/calloc/realloc/strdup) in iwjson, iwjsreg, iwrdb, iwarr, iwtp and iwstw.
   * iwkv: Fixed out-of-bounds reads in skiplist/kvblk traversal of corrupted database files.
   * iwkv: Fixed SIGSERV in iwkv_open on corrupted db file.
   * iwkv: Fixed deadlock on database open.

@@ -696,7 +696,11 @@ iwrc iwjsreg_get_str(struct iwjsreg *reg, const char *key, char **out) {
     if (n->key && strcmp(n->key, key) == 0) {
       if (n->type == JBV_STR) {
         *out = strdup(n->vptr);
-        found = true;
+        if (*out) {
+          found = true;
+        } else {
+          rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+        }
         break;
       }
     }

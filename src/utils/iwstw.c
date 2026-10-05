@@ -303,7 +303,7 @@ iwrc iwstw_start(const char *thread_name, int queue_limit, bool queue_blocking, 
     .queue_blocking = queue_blocking
   };
   if (thread_name) {
-    stw->thread_name = strdup(thread_name);
+    RCB(finish, stw->thread_name = strdup(thread_name));
   }
 
   rci = pthread_create(&stw->thr, 0, _worker_fn, stw);
@@ -320,5 +320,5 @@ finish:
   } else {
     *out_stw = stw;
   }
-  return 0;
+  return rc;
 }

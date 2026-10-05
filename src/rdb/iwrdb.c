@@ -146,8 +146,8 @@ iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *od
   }
   *odb = db;
   db->oflags = oflags;
-  db->path = strdup(path);
   db->fh = fh;
+  RCB(finish, db->path = strdup(path));
   if (bufsz) {
     db->buf = malloc(bufsz);
     if (!db->buf) {
@@ -160,8 +160,13 @@ iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *od
   rc = _initlocks(db);
 
 finish:
-  if (rc && db) {
-    iwrdb_close(&db, false);
+  if (rc) {
+    *odb = 0;
+    if (db) {
+      iwrdb_close(&db, true); // Do not sync/truncate a file left in a failed open state
+    } else if (!INVALIDHANDLE(fh)) {
+      iwp_closefh(fh);
+    }
   }
   return rc;
 }

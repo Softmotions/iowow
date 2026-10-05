@@ -627,23 +627,28 @@ void* iwlist_pop(IWLIST *list, size_t *osize, iwrc *orc) {
 }
 
 iwrc iwlist_unshift(IWLIST *list, const void *data, size_t data_size) {
+  char *val = malloc(data_size + 1);
+  if (!val) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
   if (!list->start) {
     if (list->num >= list->anum) {
       size_t anum = list->anum + list->num + 1;
       void *nptr = realloc(list->array, anum * sizeof(list->array[0]));
       if (!nptr) {
+        free(val);
         return iwrc_set_errno(IW_ERROR_ALLOC, errno);
       }
       list->anum = anum;
       list->array = nptr;
     }
     list->start = list->anum - list->num;
-    memmove(list->array + list->start, list->array, list->anum * sizeof(list->array[0]));
+    memmove(list->array + list->start, list->array, list->num * sizeof(list->array[0]));
   }
   size_t index = list->start - 1;
-  list->array[index].val = malloc(data_size + 1);
-  memcpy(list->array[index].val, data, data_size);
-  list->array[index].val[data_size] = '\0';
+  list->array[index].val = val;
+  memcpy(val, data, data_size);
+  val[data_size] = '\0';
   list->array[index].size = data_size;
   --list->start;
   ++list->num;
@@ -682,11 +687,15 @@ iwrc iwlist_insert(IWLIST *list, size_t index, const void *data, size_t data_siz
     list->anum = anum;
     list->array = nptr;
   }
+  char *val = malloc(data_size + 1);
+  if (!val) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
   memmove(list->array + index + 1, list->array + index,
           sizeof(list->array[0]) * (list->start + list->num - index));
-  list->array[index].val = malloc(data_size + 1);
-  memcpy(list->array[index].val, data, data_size);
-  list->array[index].val[data_size] = '\0';
+  list->array[index].val = val;
+  memcpy(val, data, data_size);
+  val[data_size] = '\0';
   list->array[index].size = data_size;
   list->num++;
   return 0;

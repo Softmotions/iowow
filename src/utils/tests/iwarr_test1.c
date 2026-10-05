@@ -1,5 +1,4 @@
 #include "iowow.h"
-#include "iwcfg.h"
 #include <CUnit/Basic.h>
 #include "iwarr.h"
 
@@ -38,6 +37,55 @@ void test_iwarr1(void) {
   }
 }
 
+void test_iwlist1(void) {
+  IWLIST list;
+  iwrc rc = iwlist_init(&list, 2); // Small initial capacity to force growth on unshift
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  CU_ASSERT_EQUAL_FATAL(iwlist_push(&list, "p0", 2), 0);
+  CU_ASSERT_EQUAL_FATAL(iwlist_push(&list, "p1", 2), 0);
+  CU_ASSERT_EQUAL_FATAL(iwlist_push(&list, "p2", 2), 0);
+  CU_ASSERT_EQUAL_FATAL(iwlist_length(&list), 3);
+
+  // Exercises the start == 0 shift path and the growth path of iwlist_unshift
+  CU_ASSERT_EQUAL_FATAL(iwlist_unshift(&list, "u0", 2), 0);
+  CU_ASSERT_EQUAL_FATAL(iwlist_unshift(&list, "u1", 2), 0);
+  CU_ASSERT_EQUAL_FATAL(iwlist_unshift(&list, "u2", 2), 0);
+
+  const char *exp[] = { "u2", "u1", "u0", "p0", "p1", "p2" };
+  CU_ASSERT_EQUAL_FATAL(iwlist_length(&list), 6);
+  for (size_t i = 0; i < 6; ++i) {
+    size_t sz = 0;
+    char *v = iwlist_at2(&list, i, &sz);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(v);
+    CU_ASSERT_EQUAL_FATAL(sz, 2);
+    CU_ASSERT_STRING_EQUAL(v, exp[i]);
+  }
+
+  CU_ASSERT_EQUAL_FATAL(iwlist_insert(&list, 1, "i1", 2), 0);
+  CU_ASSERT_EQUAL_FATAL(iwlist_length(&list), 7);
+  {
+    size_t sz = 0;
+    char *v = iwlist_at2(&list, 1, &sz);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(v);
+    CU_ASSERT_STRING_EQUAL(v, "i1");
+    v = iwlist_at2(&list, 6, &sz);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(v);
+    CU_ASSERT_STRING_EQUAL(v, "p2");
+  }
+
+  CU_ASSERT_EQUAL_FATAL(iwlist_set(&list, 0, "u2-long", 7), 0);
+  {
+    size_t sz = 0;
+    char *v = iwlist_at2(&list, 0, &sz);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(v);
+    CU_ASSERT_EQUAL_FATAL(sz, 7);
+    CU_ASSERT_STRING_EQUAL(v, "u2-long");
+  }
+
+  iwlist_destroy_keep(&list);
+}
+
 int main(void) {
   CU_pSuite pSuite = NULL;
 
@@ -56,6 +104,11 @@ int main(void) {
 
   /* Add the tests to the suite */
   if ((NULL == CU_add_test(pSuite, "test_iwarr1", test_iwarr1))) {
+    CU_cleanup_registry();
+    return CU_get_error();
+  }
+
+  if ((NULL == CU_add_test(pSuite, "test_iwlist1", test_iwlist1))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

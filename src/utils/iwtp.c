@@ -212,11 +212,11 @@ iwrc iwtp_start_by_spec(const struct iwtp_spec *spec, struct iwtp **out_tp) {
     .cond = PTHREAD_COND_INITIALIZER
   };
 
-  if (spec->thread_name_prefix) {
-    tp->thread_name_prefix = strdup(spec->thread_name_prefix);
-  }
-
   RCC(rc, finish, iwulist_init(&tp->threads, num_threads, sizeof(pthread_t)));
+
+  if (spec->thread_name_prefix) {
+    RCB(finish, tp->thread_name_prefix = strdup(spec->thread_name_prefix));
+  }
 
   for (size_t i = 0; i < num_threads; ++i) {
     pthread_t th;

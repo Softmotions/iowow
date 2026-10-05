@@ -3057,7 +3057,14 @@ static struct jbl_node* _jbl_merge_patch_node(
           return 0;
         }
         memset(target, 0, sizeof(*target));
-        target->key = strdup(patch->key);
+        if (patch->key) {
+          target->key = strdup(patch->key);
+          if (!target->key) {
+            free(target);
+            *rcp = iwrc_set_errno(IW_ERROR_ALLOC, errno);
+            return 0;
+          }
+        }
       }
       target->type = JBV_OBJECT;
       target->klidx = patch->klidx;
@@ -3176,7 +3183,11 @@ iwrc jbn_merge_patch_create(const char *path, struct jbl_node *val, struct iwpoo
     }
     p->child = n;
     n->parent = p;
-    n->key = pool ? key : strdup(key);
+    if (pool) {
+      n->key = key;
+    } else {
+      RCB(finish, n->key = strdup(key));
+    }
     n->klidx = strlen(key);
     p = n;
   }
