@@ -1,4 +1,5 @@
-2026-09-09 Anton Adamansky  <adamansky@gmail.com>  [v1.5.3-dev]
+2026-10-05 Anton Adamansky  <adamansky@gmail.com>  [v1.6.0-dev]
+  * iwkv: Fixed out-of-bounds reads in skiplist/kvblk traversal of corrupted database files.
   * iwkv: Fixed SIGSERV in iwkv_open on corrupted db file.
   * iwkv: Fixed deadlock on database open.
   * iwkv/wal: Fixed use after free in WAL.

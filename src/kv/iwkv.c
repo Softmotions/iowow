@@ -333,6 +333,11 @@ static WUR iwrc _wnw_db(struct iwdb *db, iwrc (*after)(struct iwdb *db)) {
 
 //--------------------------  DB
 
+/** Returns true if the [off, off + len) range fits into the mapped region. */
+IW_INLINE bool _mm_in_range(size_t mmsz, off_t off, uint64_t len) {
+  return (off >= 0) && ((uint64_t) off + len <= (uint64_t) mmsz);
+}
+
 static WUR iwrc _db_at(struct iwkv *iwkv, struct iwdb **dbp, off_t addr, uint8_t *mm, size_t mmsz) {
   iwrc rc = 0;
   uint8_t *rp, bv;
@@ -686,22 +691,52 @@ IW_INLINE void _kvblk_create(struct iwlctx *lx, off_t baddr, uint8_t kvbpow, str
   AAPOS_INC(lx->kaan);
 }
 
+IW_INLINE int _kvblk_read_vnum32(const uint8_t *p, const uint8_t *end, uint32_t *out) {
+  int i;
+  for (i = 0; i < 5; ++i) {
+    if (p + i >= end) {
+      return 0;
+    }
+    if (p[i] < 0x80U) {
+      break;
+    }
+  }
+  int step = 0;
+  *out = iw_readvnumbuf32(p, &step);
+  return step;
+}
+
+IW_INLINE int _kvblk_read_vnum64(const uint8_t *p, const uint8_t *end, uint64_t *out) {
+  int i;
+  for (i = 0; i < IW_VNUMBUFSZ; ++i) {
+    if (p + i >= end) {
+      return 0;
+    }
+    if (p[i] < 0x80U) {
+      break;
+    }
+  }
+  int step = 0;
+  *out = iw_readvnumbuf64(p, &step);
+  return step;
+}
+
 IW_INLINE WUR iwrc _kvblk_key_peek(
   const struct kvblk *kb,
   uint8_t idx, const uint8_t *mm, uint8_t **obuf,
   uint32_t *olen) {
   if (kb->pidx[idx].len) {
-    uint32_t klen, step;
+    uint32_t klen;
     const uint8_t *rp = mm + kb->addr + (1ULL << kb->szpow) - kb->pidx[idx].off;
-    IW_READVNUMBUF(rp, klen, step);
-    if (!klen) {
+    const uint8_t *rend = rp + kb->pidx[idx].len;
+    int step = _kvblk_read_vnum32(rp, rend, &klen);
+    if (!step || !klen || ((uint64_t) step + klen > kb->pidx[idx].len)) {
       *obuf = 0;
       *olen = 0;
       iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
       return IWKV_ERROR_CORRUPTED;
     }
-    rp += step;
-    *obuf = (uint8_t*) rp;
+    *obuf = (uint8_t*) rp + step;
     *olen = klen;
   } else {
     *obuf = 0;
@@ -715,13 +750,17 @@ IW_INLINE void _kvblk_value_peek(
   uint32_t *olen) {
   assert(idx < KVBLK_IDXNUM);
   if (kb->pidx[idx].len) {
-    uint32_t klen, step;
+    uint32_t klen;
     const uint8_t *rp = mm + kb->addr + (1ULL << kb->szpow) - kb->pidx[idx].off;
-    IW_READVNUMBUF(rp, klen, step);
-    rp += step;
-    rp += klen;
-    *obuf = (uint8_t*) rp;
-    *olen = kb->pidx[idx].len - klen - step;
+    const uint8_t *rend = rp + kb->pidx[idx].len;
+    int step = _kvblk_read_vnum32(rp, rend, &klen);
+    if (!step || ((uint64_t) step + klen > kb->pidx[idx].len)) {
+      *obuf = 0;
+      *olen = 0;
+      return;
+    }
+    *obuf = (uint8_t*) rp + step + klen;
+    *olen = kb->pidx[idx].len - klen - (uint32_t) step;
   } else {
     *obuf = 0;
     *olen = 0;
@@ -741,9 +780,11 @@ static WUR iwrc _kvblk_key_get(struct kvblk *kb, uint8_t *mm, uint8_t idx, struc
   }
   // [klen:vn,key,value]
   uint8_t *rp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
-  IW_READVNUMBUF(rp, klen, step);
+  uint32_t klen32 = 0;
+  step = _kvblk_read_vnum32(rp, rp + kvp->len, &klen32);
+  klen = (int32_t) klen32;
   rp += step;
-  if ((klen < 1) || (klen > kvp->len) || (klen > kvp->off)) {
+  if (!step || klen < 1 || ((uint64_t) step + (uint64_t) klen > (uint64_t) kvp->len)) {
     iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   }
@@ -774,9 +815,11 @@ static WUR iwrc _kvblk_value_get(struct kvblk *kb, uint8_t *mm, uint8_t idx, str
   }
   // [klen:vn,key,value]
   uint8_t *rp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
-  IW_READVNUMBUF(rp, klen, step);
+  uint32_t klen32 = 0;
+  step = _kvblk_read_vnum32(rp, rp + kvp->len, &klen32);
+  klen = (int32_t) klen32;
   rp += step;
-  if ((klen < 1) || (klen > kvp->len) || (klen > kvp->off)) {
+  if (!step || klen < 1 || ((uint64_t) step + (uint64_t) klen > (uint64_t) kvp->len)) {
     iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   }
@@ -813,9 +856,11 @@ static WUR iwrc _kvblk_kv_get(struct kvblk *kb, uint8_t *mm, uint8_t idx, struct
   }
   // [klen:vn,key,value]
   uint8_t *rp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
-  IW_READVNUMBUF(rp, klen, step);
+  uint32_t klen32 = 0;
+  step = _kvblk_read_vnum32(rp, rp + kvp->len, &klen32);
+  klen = (int32_t) klen32;
   rp += step;
-  if ((klen < 1) || (klen > kvp->len) || (klen > kvp->off)) {
+  if (!step || klen < 1 || ((uint64_t) step + (uint64_t) klen > (uint64_t) kvp->len)) {
     iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
     return IWKV_ERROR_CORRUPTED;
   }
@@ -866,22 +911,68 @@ static WUR iwrc _kvblk_at_mm(struct iwlctx *lx, off_t addr, uint8_t *mm, struct 
   memset(kb->pidx, 0, sizeof(kb->pidx));
 
   *blkp = 0;
+  if (IW_UNLIKELY(!_mm_in_range(lx->mmsz, addr, 1))) {
+    rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
+    goto finish;
+  }
   rp = mm + addr;
   memcpy(&kb->szpow, rp, 1);
   rp += 1;
+
+  if (IW_UNLIKELY((kb->szpow < 1) || (kb->szpow > 32))) {
+    rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
+    goto finish;
+  }
+
+  uint64_t bsz = 1ULL << kb->szpow;
+  if (IW_UNLIKELY(!_mm_in_range(lx->mmsz, addr, bsz))) {
+    rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
+    goto finish;
+  }
+
+  // All header/index reads below are bounded by the block end so that
+  // corrupted offsets cannot make us read outside the mapped region.
+  const uint8_t *bend = mm + addr + (bsz < KVBLK_MAX_NKV_SZ ? bsz : KVBLK_MAX_NKV_SZ);
+  if (IW_UNLIKELY(rp + 2 > bend)) {
+    rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
+    goto finish;
+  }
+
   IW_READSV(rp, sv, kb->idxsz);
   if (IW_UNLIKELY(kb->idxsz > KVBLK_MAX_IDX_SZ)) {
     rc = IWKV_ERROR_CORRUPTED;
     iwlog_ecode_error3(rc);
     goto finish;
   }
+
   for (uint8_t i = 0; i < KVBLK_IDXNUM; ++i) {
-    IW_READVNUMBUF64(rp, kb->pidx[i].off, step);
+    uint64_t off = 0;
+    uint32_t len = 0;
+    step = _kvblk_read_vnum64(rp, bend, &off);
+    if (IW_UNLIKELY(!step)) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      goto finish;
+    }
+    kb->pidx[i].off = (off_t) off;
     rp += step;
-    IW_READVNUMBUF(rp, kb->pidx[i].len, step);
+    step = _kvblk_read_vnum32(rp, bend, &len);
+    if (IW_UNLIKELY(!step)) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      goto finish;
+    }
+    kb->pidx[i].len = len;
     rp += step;
     if (kb->pidx[i].len) {
-      if (IW_UNLIKELY(!kb->pidx[i].off)) {
+      if (IW_UNLIKELY(  !kb->pidx[i].off
+                     || ((uint64_t) kb->pidx[i].off > bsz)
+                     || ((uint64_t) kb->pidx[i].len > bsz)
+                     || ((uint64_t) kb->pidx[i].len > (uint64_t) kb->pidx[i].off))) {
         rc = IWKV_ERROR_CORRUPTED;
         iwlog_ecode_error3(rc);
         goto finish;
@@ -895,7 +986,7 @@ static WUR iwrc _kvblk_at_mm(struct iwlctx *lx, off_t addr, uint8_t *mm, struct 
     kb->pidx[i].ridx = i;
   }
   *blkp = kb;
-  assert(rp - (mm + addr) <= (1ULL << kb->szpow));
+  assert(rp - (mm + addr) <= (int64_t) bsz);
   if (!kbp) {
     AAPOS_INC(lx->kaan);
   }
@@ -1589,8 +1680,16 @@ static WUR iwrc _sblk_at2(struct iwlctx *lx, off_t addr, sblk_flags_t flgs, stru
   sblk->bpos = 0;
   sblk->db = db;
 
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+  size_t mmsz = 0;
+  rc = fsm->acquire_mmap(fsm, 0, &mm, &mmsz);
   RCRET(rc);
+  lx->mmsz = mmsz;
+  // Reject block addresses outside the mapped file region (corrupted data).
+  if (addr && !_mm_in_range(mmsz, addr, SOFF_END)) {
+    rc = IWKV_ERROR_CORRUPTED;
+    iwlog_ecode_error3(rc);
+    goto finish;
+  }
 
   if (IW_UNLIKELY(addr == db->addr)) {
     uint8_t *rp = mm + addr + DOFF_N0_U4;
@@ -1640,7 +1739,7 @@ static WUR iwrc _sblk_at2(struct iwlctx *lx, off_t addr, sblk_flags_t flgs, stru
       goto finish;
     }
     memcpy(&sblk->pnum, rp++, 1);
-    if (sblk->pnum < 0) {
+    if ((sblk->pnum < 0) || ((int) sblk->pnum > (int) KVBLK_IDXNUM)) {
       rc = IWKV_ERROR_CORRUPTED;
       iwlog_ecode_error3(rc);
       goto finish;
@@ -1651,8 +1750,20 @@ static WUR iwrc _sblk_at2(struct iwlctx *lx, off_t addr, sblk_flags_t flgs, stru
     memcpy(&sblk->kvblkn, rp, 4);
     sblk->kvblkn = IW_ITOHL(sblk->kvblkn);
     rp += 4;
+    if (sblk->kvblkn && !_mm_in_range(mmsz, BLK2ADDR(sblk->kvblkn), KVBLK_HDRSZ)) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      goto finish;
+    }
     memcpy(sblk->pi, rp, KVBLK_IDXNUM);
     rp += KVBLK_IDXNUM;
+    for (int i = 0; i < KVBLK_IDXNUM; ++i) {
+      if (sblk->pi[i] >= KVBLK_IDXNUM) {
+        rc = IWKV_ERROR_CORRUPTED;
+        iwlog_ecode_error3(rc);
+        goto finish;
+      }
+    }
 
 #ifdef IW_BIGENDIAN
     for (int i = 0; i <= sblk->lvl; ++i) {

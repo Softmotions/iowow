@@ -245,6 +245,7 @@ struct iwlctx {
   iwkv_opflags opflags;            /**< Operation flags */
   sblk_flags_t sbflags;            /**< `SBLK` flags applied to all new/looked blocks in this context */
   iwlctx_op_t  op;                 /**< Context operation */
+  size_t       mmsz;               /**< Size of the mapped database region used for bounds checks */
   uint8_t      saan;               /**< Position of next free `SBLK` element in the `saa` area */
   uint8_t      kaan;               /**< Position of next free `struct kvblk` element in the `kaa` area */
   int8_t       nlvl;               /**< Level of new inserted/deleted `SBLK` node. -1 if no new node inserted/deleted */

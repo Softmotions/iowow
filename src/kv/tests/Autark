@@ -42,10 +42,3 @@ if { ${IOWOW_RUN_TESTS}
   }
 }
 
-if { ${IWKV_RUN_FUZZ}
-  run {
-    always
-    shell { iwkv_test12 }
-    consumes { iwkv_test12 }
-  }
-}

@@ -34,6 +34,9 @@ if { or { ${IWKV_RUN_FUZZ} ${IOWOW_RUN_TESTS} }
   set {
      IOWOW_BUILD_TESTS 1
   }
+  set {
+    IOWOW_RUN_TESTS 1
+  }
 }
 
 if { eq { ${BUILD_TYPE} Release }
