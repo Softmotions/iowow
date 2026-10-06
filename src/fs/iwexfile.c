@@ -444,7 +444,7 @@ static iwrc _exfile_copy(struct iwfs_ext *f, off_t off, size_t siz, off_t noff) 
      && (siz <= s->len)
      && ((uint64_t) off <= s->len - siz)
      && ((uint64_t) noff <= s->len - siz)) { // fully mmaped file
-    RCC(rc, finish, _exfile_ensure_size_lw(f, noff + siz));
+    assert((uint64_t) noff + siz <= impl->fsize);
     if (impl->dlsnr) {
       RCC(rc, finish, impl->dlsnr->onwrite(impl->dlsnr, noff, s->mmap + off, siz, 0));
     }
