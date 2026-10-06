@@ -390,11 +390,13 @@ static const char* _jbl_parse_value(
           if (IW_LIKELY(ctx->pool)) {
             node->vptr = "";
           } else {
-            node->vptr = malloc(1);
-            if (!node->vptr) {
+            char *vptr = malloc(1);
+            if (!vptr) {
               ctx->rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
               return 0;
             }
+            vptr[0] = '\0';
+            node->vptr = vptr;
           }
           node->vsize = 0;
         }

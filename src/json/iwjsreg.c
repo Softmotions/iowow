@@ -8,6 +8,7 @@
 
 #include <pthread.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -69,6 +70,30 @@ static iwrc _destroy_visitor(int lvl, struct jbl_node *n) {
   }
   free(n);
   return 0;
+}
+
+// Release the value payload held by a node turning it into a "blank" node.
+// Container nodes (object/array) are destroyed recursively.
+static void _node_value_clear(struct jbl_node *n) {
+  switch (n->type) {
+    case JBV_STR:
+      free((void*) n->vptr);
+      break;
+    case JBV_OBJECT:
+    case JBV_ARRAY: {
+      struct jbl_node *next = 0;
+      for (struct jbl_node *c = n->child; c; c = next) {
+        next = c->next;
+        jbn_visit2(c, 0, _destroy_visitor);
+      }
+      break;
+    }
+    default:
+      break;
+  }
+  n->child = 0;
+  n->vptr = 0;
+  n->vsize = 0;
 }
 
 static void _destroy(void *op) {
@@ -160,6 +185,57 @@ finish:
   return rc;
 }
 
+// Flush the directory entry produced by the atomic rename.
+static iwrc _sync_dir(const char *path) {
+  char *dir = strdup(path);
+  if (!dir) {
+    return iwrc_set_errno(IW_ERROR_ALLOC, errno);
+  }
+  char *sep = strrchr(dir, '/');
+  if (sep) {
+    if (sep == dir) {
+      sep[1] = '\0'; // Root directory "/"
+    } else {
+      *sep = '\0';
+    }
+  } else {
+    dir[0] = '.';
+    dir[1] = '\0';
+  }
+
+  iwrc rc = 0;
+#ifdef O_DIRECTORY
+  int fd = open(dir, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+#else
+  int fd = open(dir, O_RDONLY | O_CLOEXEC);
+#endif
+  if (fd < 0) {
+    int err = errno;
+    // A write-only directory (e.g. mode 0300) cannot be opened for reading;
+    // degrade to the previous best-effort behavior instead of failing the write.
+    if ((err != EACCES) && (err != EPERM)) {
+      rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, err);
+    }
+  } else {
+    if (fsync(fd) != 0) {
+      int err = errno;
+      bool unsupported = (err == EINVAL);
+#ifdef ENOTSUP
+      unsupported = unsupported || (err == ENOTSUP);
+#endif
+#ifdef EOPNOTSUPP
+      unsupported = unsupported || (err == EOPNOTSUPP);
+#endif
+      if (!unsupported) {
+        rc = iwrc_set_errno(IW_ERROR_IO_ERRNO, err);
+      }
+    }
+    close(fd);
+  }
+  free(dir);
+  return rc;
+}
+
 iwrc iwjsreg_sync(struct iwjsreg *reg) {
   if (!reg) {
     return IW_ERROR_INVALID_ARGS;
@@ -202,9 +278,14 @@ iwrc iwjsreg_sync(struct iwjsreg *reg) {
 
   RCN(finish, fflush(file));
   RCN(finish, fdatasync(fileno(file)));
-  RCN(finish, fclose(file));
-  file = 0;
+
+  { // Do not leave a dangling FILE* behind: on fclose() failure it must not be closed twice
+    FILE *f = file;
+    file = 0;
+    RCN(finish, fclose(f));
+  }
   RCN(finish, rename(reg->path_tmp, reg->path));
+  (void) _sync_dir(reg->path);
   reg->dirty = false;
 
 finish:
@@ -244,18 +325,17 @@ iwrc iwjsreg_remove(struct iwjsreg *reg, const char *key) {
   }
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
-    if (n->key && strncmp(n->key, key, n->klidx) == 0) {
+    if (n->key && strcmp(n->key, key) == 0) {
       jbn_remove_item(reg->root, n);
-      if (n->type == JBV_STR) {
-        free((void*) n->vptr);
-      }
-      free((void*) n->key);
-      free(n);
+      jbn_visit2(n, 0, _destroy_visitor);
       reg->dirty = true;
       break;
     }
   }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
+  if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
+    rc = iwjsreg_sync(reg);
+  }
   return rc;
 }
 
@@ -270,7 +350,7 @@ iwrc iwjsreg_set_str(struct iwjsreg *reg, const char *key, const char *value) {
 
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
-    if (n->key && strncmp(n->key, key, n->klidx) == 0) {
+    if (n->key && strcmp(n->key, key) == 0) {
       nn = n;
       break;
     }
@@ -282,12 +362,9 @@ iwrc iwjsreg_set_str(struct iwjsreg *reg, const char *key, const char *value) {
     RCB(finish, nkey = strdup(key));
     RCB(finish, nvalue = strdup(value));
   } else {
-    if (nn->type == JBV_STR) {
-      free((void*) nn->vptr);
-    } else {
-      nn->type = JBV_STR;
-    }
     RCB(finish, nvalue = strdup(value));
+    _node_value_clear(nn);
+    nn->type = JBV_STR;
   }
   reg->dirty = true;
 
@@ -366,9 +443,12 @@ iwrc iwjsreg_replace(struct iwjsreg *reg, const char *path, struct jbl_node *jso
     if (n != reg->root) {
       jbn_remove_item(p, n);
       jbn_visit2(n, 0, _destroy_visitor);
-    } else { // Remove the whoole tree keeping the reg->root
-      for (struct jbl_node *n = reg->root->child; n; n = n->next) {
-        jbn_visit2(n, 0, _destroy_visitor);
+    } else { // Remove the whole tree keeping the reg->root
+      struct jbl_node *child = reg->root->child;
+      while (child) {
+        struct jbl_node *next = child->next;
+        jbn_visit2(child, 0, _destroy_visitor);
+        child = next;
       }
       reg->root->child = 0;
     }
@@ -554,7 +634,7 @@ iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
 
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
-    if (n->key && strncmp(n->key, key, n->klidx) == 0) {
+    if (n->key && strcmp(n->key, key) == 0) {
       nn = n;
       break;
     }
@@ -567,9 +647,7 @@ iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
     nn->vi64 = value;
     RCB(finish, nkey = strdup(key));
   } else {
-    if (nn->type == JBV_STR) {
-      free((void*) nn->vptr);
-    }
+    _node_value_clear(nn);
     nn->type = JBV_I64;
     nn->vi64 = value;
   }
@@ -606,7 +684,7 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t 
 
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
-    if (n->key && strncmp(n->key, key, n->klidx) == 0) {
+    if (n->key && strcmp(n->key, key) == 0) {
       nn = n;
       break;
     }
@@ -617,14 +695,10 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t 
     nn_alloc = true;
     nn->type = JBV_I64;
     RCB(finish, nkey = strdup(key));
-  } else {
-    if (nn->type == JBV_STR) {
-      free((void*) nn->vptr);
-    }
-    if (nn->type != JBV_I64) {
-      nn->vi64 = 0;
-    }
+  } else if (nn->type != JBV_I64) {
+    _node_value_clear(nn);
     nn->type = JBV_I64;
+    nn->vi64 = 0;
   }
   nn->vi64 += inc;
   if (out) {
@@ -663,7 +737,7 @@ iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value) {
 
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
-    if (n->key && strncmp(n->key, key, n->klidx) == 0) {
+    if (n->key && strcmp(n->key, key) == 0) {
       nn = n;
       break;
     }
@@ -676,9 +750,7 @@ iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value) {
     nn->vbool = value;
     RCB(finish, nkey = strdup(key));
   } else {
-    if (nn->type == JBV_STR) {
-      free((void*) nn->vptr);
-    }
+    _node_value_clear(nn);
     nn->type = JBV_BOOL;
     nn->vbool = value;
   }

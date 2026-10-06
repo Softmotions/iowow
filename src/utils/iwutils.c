@@ -287,10 +287,12 @@ char* iwu_file_read_as_buf_max(const char *path, ssize_t len_max, size_t *out_le
     }
   }
 
+  close(fd);
   *out_len = iwxstr_size(xstr);
   return iwxstr_destroy_keep_ptr(xstr);
 
 error:
+  close(fd);
   *out_len = 0;
   iwxstr_destroy(xstr);
   return 0;

@@ -1,4 +1,6 @@
 2026-10-06 Anton Adamansky  <adamansky@gmail.com>  [v1.6.0-dev]
+  * iwjsreg: Fixed a lot of stability issues, data loss cases.
+  * iwutils/iwjser: Fixed file descriptor leak in iwu_file_read_as_buf_max() and uninitialized empty JSON string values when parsing without a pool.
   * Fixed unbalanced locks in failure paths of iwstw_shutdown(), iwexfile _exfile_copy() and iwrdb_munmap().
   * Fixed resource leaks on error paths in iwal, iwkv, iwexfile, iwfile, iwjson, iwjser and iwjsreg.
   * iwpool/iwfsmfile: Fixed use-after-free during pool and FSM tree teardown.
