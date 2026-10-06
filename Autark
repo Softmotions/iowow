@@ -30,12 +30,29 @@ set {
   @{ git rev-parse --short HEAD }
 }
 
-if { or { ${IWKV_RUN_FUZZ} ${IOWOW_RUN_TESTS} }
+if { ${IWKV_RUN_PERF}
+  # Performance test mode is exclusive: regular test cases are neither built
+  # nor started. Prefer a release build with debug info for meaningful results.
   set {
-     IOWOW_BUILD_TESTS 1
+    BUILD_TYPE ${BUILD_TYPE Release}
   }
   set {
-    IOWOW_RUN_TESTS 1
+    ENABLE_DEBINFO ${ENABLE_DEBINFO 1}
+  }
+  set {
+    IOWOW_BUILD_TESTS 0
+  }
+  set {
+    IOWOW_RUN_TESTS 0
+  }
+} else {
+  if { or { ${IWKV_RUN_FUZZ} ${IOWOW_RUN_TESTS} }
+    set {
+       IOWOW_BUILD_TESTS 1
+    }
+    set {
+      IOWOW_RUN_TESTS 1
+    }
   }
 }
 

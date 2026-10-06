@@ -1,0 +1,59 @@
+# iwkv performance benchmark tool.
+#
+# This build unit is included only when `IWKV_RUN_PERF` is set, so the tool is
+# built and executed exclusively in the performance test mode. Regular test
+# suites are neither built nor run in that mode, see the root `Autark`.
+#
+# Tuning options (defaults may also be overridden at runtime with CLI flags
+# or the environment variables of the same names):
+#   IWKV_PERF_NUM_THREADS       Threads used by the concurrent mode (default 8)
+#   IWKV_PERF_REPEATS           Iterations per combination, first is warm-up (default 3)
+#   IWKV_PERF_READ_PCT          Read percentage in read-mostly (default 95)
+#   IWKV_PERF_DATASET_SMALL_NUM Records in the small datasets (default 100000)
+#   IWKV_PERF_DATASET_LARGE_NUM Records in the large dataset (default 1000000)
+
+set {
+  IWKV_PERF_BIN
+  iwkv_perf
+}
+
+set {
+  IWKV_PERF_DEFS
+  ^{-DIWKV_PERF_NUM_THREADS= ${IWKV_PERF_NUM_THREADS 8}}
+  ^{-DIWKV_PERF_REPEATS= ${IWKV_PERF_REPEATS 3}}
+  ^{-DIWKV_PERF_READ_PCT= ${IWKV_PERF_READ_PCT 95}}
+  ^{-DIWKV_PERF_DATASET_SMALL_NUM= ${IWKV_PERF_DATASET_SMALL_NUM 100000}}
+  ^{-DIWKV_PERF_DATASET_LARGE_NUM= ${IWKV_PERF_DATASET_LARGE_NUM 1000000}}
+  ^{-DIWKV_PERF_GIT_REV= @{ git rev-parse --short HEAD }}
+}
+
+set {
+  IWKV_PERF_CFLAGS
+  -DIW_STATIC
+  ..${CFLAGS}
+  ..${IWKV_PERF_DEFS}
+}
+
+cc {
+  iwkv_perf.c
+  ${IWKV_PERF_CFLAGS}
+}
+
+run {
+  exec { ${CC} ${CC_OBJS} ${LIBIOWOW_A} ${LDFLAGS} -o ${IWKV_PERF_BIN} }
+  consumes {
+    ${CC_OBJS}
+    ${LIBIOWOW_A}
+  }
+  produces {
+    ${IWKV_PERF_BIN}
+  }
+}
+
+run {
+  always
+  shell { ${IWKV_PERF_BIN} ${IWKV_PERF_ARGS} }
+  consumes {
+    ${IWKV_PERF_BIN}
+  }
+}

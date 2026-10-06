@@ -1,6 +1,13 @@
 option { IWKV_RUN_FUZZ            Build and run the iwkv fuzz test }
 option { IWKV_FUZZ_ITERS          Override default iwkv fuzz operations per storage mode }
 option { IWKV_FUZZ_ROUNDS         Override default iwkv corruption fuzz rounds }
+option { IWKV_RUN_PERF            Build and run the iwkv performance tests }
+option { IWKV_PERF_NUM_THREADS    Number of threads used by the concurrent perf mode. Default: 8 }
+option { IWKV_PERF_REPEATS        Perf iterations per combination, the first one is a warm-up. Default: 3 }
+option { IWKV_PERF_READ_PCT       Read percentage in the read-mostly perf workload. Default: 95 }
+option { IWKV_PERF_DATASET_SMALL_NUM  Number of records in the small perf datasets. Default: 100000 }
+option { IWKV_PERF_DATASET_LARGE_NUM  Number of records in the large perf dataset. Default: 1000000 }
+option { IWKV_PERF_ARGS           Extra CLI arguments passed to the iwkv perf tool }
 
 if { ${IWKV_RUN_FUZZ}
 # Fuzz test defaults. `IWKV_FUZZ_ITERS`/`IWKV_FUZZ_ROUNDS` may be supplied via
@@ -52,6 +59,10 @@ set {
   }
   ..${CFLAGS}
   -I SS{}
+}
+
+if { ${IWKV_RUN_PERF}
+  include { perf/Autark }
 }
 
 if { ${IOWOW_BUILD_TESTS}
