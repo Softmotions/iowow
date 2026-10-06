@@ -348,7 +348,7 @@ iwrc iwp_rename_file(const char *src, const char *dst) {
       }
       return rc;
     } else {
-      return errno;
+      return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
     }
   }
   return 0;

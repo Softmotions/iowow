@@ -360,7 +360,8 @@ bool iwpool_destroy(struct iwpool *pool) {
   if (pool->parent) {
     _parent_remove_child(pool->parent, pool);
   }
-  for (struct iwpool *c = pool->children; c; c = c->next) {
+  for (struct iwpool *c = pool->children, *next; c; c = next) {
+    next = c->next;
     c->parent = 0;
     iwpool_destroy(c);
   }

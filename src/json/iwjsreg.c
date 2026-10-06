@@ -627,7 +627,7 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t 
     nn->type = JBV_I64;
   }
   nn->vi64 += inc;
-  if (*out) {
+  if (out) {
     *out = nn->vi64;
   }
   reg->dirty = true;

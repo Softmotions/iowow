@@ -483,11 +483,12 @@ static iwrc _fsm_blk_allocate_aligned_lw(
 }
 
 static void _fsm_node_destroy(struct iwavl_node *root) {
-  for (struct iwavl_node *n = iwavl_first_in_postorder(root), *p;
-       n && (p = iwavl_get_parent(n), 1);
-       n = iwavl_next_in_postorder(n, p)) {
+  for (struct iwavl_node *n = iwavl_first_in_postorder(root); n; ) {
+    struct iwavl_node *p = iwavl_get_parent(n);
+    struct iwavl_node *next = iwavl_next_in_postorder(n, p);
     struct bkey_node *bk = iwavl_entry(n, struct bkey_node, node);
     free(bk);
+    n = next;
   }
 }
 
