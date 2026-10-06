@@ -1,5 +1,7 @@
 # iwkv performance tests
 
+**NOTE: iwkv performance tests are DeepSeek AI generated code.**
+
 `iwkv_perf` is a self-contained performance benchmark for the iwkv key/value
 storage engine. It is built and executed only in the dedicated performance
 test mode and is not part of the regular test suites.

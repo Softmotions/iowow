@@ -3,6 +3,8 @@
  *
  * iwkv performance benchmark tool.
  *
+ * NOTE: iwkv performance tests are DeepSeek AI generated code.
+ *
  * Workloads:
  *   crud        create -> read -> update -> delete passes over the dataset
  *   read-mostly loaded dataset followed by a mixed read/update pass
