@@ -1096,6 +1096,7 @@ iwrc _init_cpt(struct iwal *wal) {
     // do not start checkpoint thread
     return 0;
   }
+  iwrc rc = 0;
   pthread_attr_t pattr;
   pthread_condattr_t cattr;
   int rci = pthread_condattr_init(&cattr);
@@ -1105,25 +1106,32 @@ iwrc _init_cpt(struct iwal *wal) {
 #if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
   rci = pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
   if (rci) {
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    goto finish;
   }
 #endif
   rci = pthread_cond_init(&wal->cpt_cond, &cattr);
   if (rci) {
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    goto finish;
   }
   wal->cpt_condp = &wal->cpt_cond;
   rci = pthread_attr_init(&pattr);
   if (rci) {
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    goto finish;
   }
   pthread_attr_setdetachstate(&pattr, PTHREAD_CREATE_JOINABLE);
   rci = pthread_create(&wal->cpt, &pattr, _cpt_worker_fn, wal);
   if (rci) {
-    return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  } else {
+    wal->cptp = &wal->cpt;
   }
-  wal->cptp = &wal->cpt;
-  return 0;
+  pthread_attr_destroy(&pattr);
+finish:
+  pthread_condattr_destroy(&cattr);
+  return rc;
 }
 
 iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fsm_opts *fsmopts, bool recover_backup) {

@@ -1738,6 +1738,20 @@ void jbn_add_item(struct jbl_node *parent, struct jbl_node *node) {
   _jbn_add_item(parent, node);
 }
 
+// Free a node allocated outside of an `iwpool` along with its dynamically
+// allocated key/value strings.
+static void _jbn_free_allocated_node(struct jbl_node *n) {
+  if (n) {
+    if (n->key) {
+      free((void*) n->key);
+    }
+    if ((n->type == JBV_STR) && n->vptr) {
+      free((void*) n->vptr);
+    }
+    free(n);
+  }
+}
+
 iwrc jbn_add_item_str(
   struct jbl_node  *parent,
   const char       *key,
@@ -1760,7 +1774,8 @@ iwrc jbn_add_item_str(
   }
   if (parent->type == JBV_OBJECT) {
     if (!key) {
-      return IW_ERROR_INVALID_ARGS;
+      rc = IW_ERROR_INVALID_ARGS;
+      goto finish;
     }
     if (IW_LIKELY(pool)) {
       n->key = iwpool_strdup(pool, key, &rc);
@@ -1788,6 +1803,9 @@ iwrc jbn_add_item_str(
     *node_out = n;
   }
 finish:
+  if (!n->parent && !pool) {
+    _jbn_free_allocated_node(n);
+  }
   return rc;
 }
 
@@ -1807,7 +1825,8 @@ iwrc jbn_add_item_null(struct jbl_node *parent, const char *key, struct iwpool *
   }
   if (parent->type == JBV_OBJECT) {
     if (!key) {
-      return IW_ERROR_INVALID_ARGS;
+      rc = IW_ERROR_INVALID_ARGS;
+      goto finish;
     }
     if (IW_LIKELY(pool)) {
       n->key = iwpool_strdup(pool, key, &rc);
@@ -1821,6 +1840,9 @@ iwrc jbn_add_item_null(struct jbl_node *parent, const char *key, struct iwpool *
   n->type = JBV_NULL;
   jbn_add_item(parent, n);
 finish:
+  if (!n->parent && !pool) {
+    _jbn_free_allocated_node(n);
+  }
   return rc;
 }
 
@@ -1845,7 +1867,8 @@ iwrc jbn_add_item_i64(
   }
   if (parent->type == JBV_OBJECT) {
     if (!key) {
-      return IW_ERROR_INVALID_ARGS;
+      rc = IW_ERROR_INVALID_ARGS;
+      goto finish;
     }
     if (IW_LIKELY(pool)) {
       n->key = iwpool_strdup(pool, key, &rc);
@@ -1862,6 +1885,9 @@ iwrc jbn_add_item_i64(
     *node_out = n;
   }
 finish:
+  if (!n->parent && !pool) {
+    _jbn_free_allocated_node(n);
+  }
   return rc;
 }
 
@@ -1886,7 +1912,8 @@ iwrc jbn_add_item_f64(
   }
   if (parent->type == JBV_OBJECT) {
     if (!key) {
-      return IW_ERROR_INVALID_ARGS;
+      rc = IW_ERROR_INVALID_ARGS;
+      goto finish;
     }
     if (IW_LIKELY(pool)) {
       n->key = iwpool_strdup(pool, key, &rc);
@@ -1903,6 +1930,9 @@ iwrc jbn_add_item_f64(
     *node_out = n;
   }
 finish:
+  if (!n->parent && !pool) {
+    _jbn_free_allocated_node(n);
+  }
   return rc;
 }
 
@@ -1927,7 +1957,8 @@ iwrc jbn_add_item_bool(
   }
   if (parent->type == JBV_OBJECT) {
     if (!key) {
-      return IW_ERROR_INVALID_ARGS;
+      rc = IW_ERROR_INVALID_ARGS;
+      goto finish;
     }
     if (IW_LIKELY(pool)) {
       n->key = iwpool_strdup(pool, key, &rc);
@@ -1944,6 +1975,9 @@ iwrc jbn_add_item_bool(
     *node_out = n;
   }
 finish:
+  if (!n->parent && !pool) {
+    _jbn_free_allocated_node(n);
+  }
   return rc;
 }
 
@@ -1963,7 +1997,8 @@ iwrc jbn_add_item_obj(struct jbl_node *parent, const char *key, struct jbl_node 
   }
   if (parent->type == JBV_OBJECT) {
     if (!key) {
-      return IW_ERROR_INVALID_ARGS;
+      rc = IW_ERROR_INVALID_ARGS;
+      goto finish;
     }
     if (IW_LIKELY(pool)) {
       n->key = iwpool_strdup(pool, key, &rc);
@@ -1979,6 +2014,9 @@ iwrc jbn_add_item_obj(struct jbl_node *parent, const char *key, struct jbl_node 
     *out = n;
   }
 finish:
+  if (!n->parent && !pool) {
+    _jbn_free_allocated_node(n);
+  }
   return rc;
 }
 
@@ -1998,7 +2036,8 @@ iwrc jbn_add_item_arr(struct jbl_node *parent, const char *key, struct jbl_node 
   }
   if (parent->type == JBV_OBJECT) {
     if (!key) {
-      return IW_ERROR_INVALID_ARGS;
+      rc = IW_ERROR_INVALID_ARGS;
+      goto finish;
     }
     if (IW_LIKELY(pool)) {
       n->key = iwpool_strdup(pool, key, &rc);
@@ -2014,6 +2053,9 @@ iwrc jbn_add_item_arr(struct jbl_node *parent, const char *key, struct jbl_node 
     *out = n;
   }
 finish:
+  if (!n->parent && !pool) {
+    _jbn_free_allocated_node(n);
+  }
   return rc;
 }
 

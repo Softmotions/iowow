@@ -94,6 +94,7 @@ iwrc iwstw_shutdown(struct iwstw * *stwp, bool wait_for_all) {
   pthread_t st = pthread_self();
   if (stw->thr == pthread_self()) {
     iwlog_error("iwstw | Thread iwstw_shutdown() from self thread: %lu", (unsigned long) st);
+    pthread_mutex_unlock(&stw->mtx);
     return IW_ERROR_ASSERTION;
   }
   if (!wait_for_all) {
@@ -102,7 +103,7 @@ iwrc iwstw_shutdown(struct iwstw * *stwp, bool wait_for_all) {
       struct _task *o = t;
       t = t->next;
       if (stw->on_task_discard) {
-        stw->on_task_discard(t->fn, t->arg);
+        stw->on_task_discard(o->fn, o->arg);
       }
       free(o);
     }
@@ -118,6 +119,7 @@ iwrc iwstw_shutdown(struct iwstw * *stwp, bool wait_for_all) {
   pthread_mutex_unlock(&stw->mtx);
   pthread_join(stw->thr, 0);
   pthread_cond_destroy(&stw->cond);
+  pthread_cond_destroy(&stw->cond_queue);
   pthread_mutex_destroy(&stw->mtx);
 
   free(stw->thread_name);
@@ -217,7 +219,7 @@ iwrc iwstw_schedule_only(struct iwstw *stw, iwstw_task_f fn, void *arg) {
     struct _task *o = t;
     t = t->next;
     if (stw->on_task_discard) {
-      stw->on_task_discard(t->fn, t->arg);
+      stw->on_task_discard(o->fn, o->arg);
     }
     free(o);
   }

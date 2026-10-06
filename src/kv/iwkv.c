@@ -360,6 +360,7 @@ static WUR iwrc _db_at(struct iwkv *iwkv, struct iwdb **dbp, off_t addr, uint8_t
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
 #endif
   rci = pthread_rwlock_init(&db->rwl, &attr);
+  pthread_rwlockattr_destroy(&attr);
   if (rci) {
     free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -620,6 +621,7 @@ static WUR iwrc _db_create_lw(struct iwkv *iwkv, dbid_t dbid, iwdb_flags_t dbflg
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
 #endif
   rci = pthread_rwlock_init(&db->rwl, &attr);
+  pthread_rwlockattr_destroy(&attr);
   if (rci) {
     free(db);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
@@ -3243,6 +3245,8 @@ iwrc iwkv_open(const struct iwkv_opts *opts, struct iwkv **iwkvp) {
   if (iwkv->fmt_version > IWKV_FORMAT) {
     rc = IWKV_ERROR_INCOMPATIBLE_DB_FORMAT;
     iwlog_ecode_error3(rc);
+    free(*iwkvp);
+    *iwkvp = 0;
     return rc;
   }
 
@@ -3252,6 +3256,7 @@ iwrc iwkv_open(const struct iwkv_opts *opts, struct iwkv **iwkvp) {
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
 #endif
   rci = pthread_rwlock_init(&iwkv->rwl, &attr);
+  pthread_rwlockattr_destroy(&attr);
   if (rci) {
     free(*iwkvp);
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);

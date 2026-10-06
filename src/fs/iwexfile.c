@@ -444,16 +444,15 @@ static iwrc _exfile_copy(struct iwfs_ext *f, off_t off, size_t siz, off_t noff) 
      && (siz <= s->len)
      && ((uint64_t) off <= s->len - siz)
      && ((uint64_t) noff <= s->len - siz)) { // fully mmaped file
-    rc = _exfile_ensure_size_lw(f, noff + siz);
-    RCRET(rc);
+    RCC(rc, finish, _exfile_ensure_size_lw(f, noff + siz));
     if (impl->dlsnr) {
-      rc = impl->dlsnr->onwrite(impl->dlsnr, noff, s->mmap + off, siz, 0);
-      RCRET(rc);
+      RCC(rc, finish, impl->dlsnr->onwrite(impl->dlsnr, noff, s->mmap + off, siz, 0));
     }
     memmove(s->mmap + noff, s->mmap + off, siz);
   } else {
     IWRC(impl->file.copy(&impl->file, off, siz, noff), rc);
   }
+finish:
   IWRC(_exfile_unlock(f), rc);
   return rc;
 }
@@ -918,6 +917,9 @@ finish:
   if (rc) {
     if (f->impl) {
       _exfile_destroylocks(f->impl);
+      if (f->impl->file.impl) {
+        f->impl->file.close(&f->impl->file);
+      }
       free(f->impl);
       f->impl = 0;
     }

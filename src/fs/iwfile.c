@@ -189,6 +189,8 @@ iwrc iwfs_file_open(struct iwfs_file *f, const struct iwfs_file_opts *_opts) {
     if (  !l->onopen || !l->onclosing || !l->oncopy || !l->onresize
        || !l->onset || !l->onsynced || !l->onwrite) {
       iwlog_ecode_error2(IW_ERROR_INVALID_ARGS, "Invalid 'opts->dlsnr' specified");
+      f->impl = 0;
+      free(impl);
       return IW_ERROR_INVALID_ARGS;
     }
   }
@@ -297,7 +299,6 @@ iwrc iwfs_file_open(struct iwfs_file *f, const struct iwfs_file_opts *_opts) {
   }
 finish:
   if (rc) {
-    impl->ostatus = IWFS_OPEN_FAIL;
     if (opts->path) {
       free((char*) opts->path);
     }

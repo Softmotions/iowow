@@ -1,4 +1,6 @@
 2026-10-05 Anton Adamansky  <adamansky@gmail.com>  [v1.6.0-dev]
+  * Fixed unbalanced locks in failure paths of iwstw_shutdown(), iwexfile _exfile_copy() and iwrdb_munmap().
+  * Fixed resource leaks on error paths in iwal, iwkv, iwexfile, iwfile, iwjson, iwjser and iwjsreg.
   * iwrdb: Do not sync/truncate the file when iwrdb_open() fails early.
   * iwarr: Fixed heap buffer overflow in iwlist_unshift().
   * Fixed missing memory allocation checks (malloc/calloc/realloc/strdup) in iwjson, iwjsreg, iwrdb, iwarr, iwtp and iwstw.

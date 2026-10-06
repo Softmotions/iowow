@@ -266,6 +266,7 @@ iwrc iwjsreg_set_str(struct iwjsreg *reg, const char *key, const char *value) {
   }
   struct jbl_node *nn = 0;
   char *nkey = 0, *nvalue = 0;
+  bool nn_alloc = false;
 
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
@@ -276,6 +277,7 @@ iwrc iwjsreg_set_str(struct iwjsreg *reg, const char *key, const char *value) {
   }
   if (!nn) {
     RCB(finish, nn = calloc(1, sizeof(*nn)));
+    nn_alloc = true;
     nn->type = JBV_STR;
     RCB(finish, nkey = strdup(key));
     RCB(finish, nvalue = strdup(value));
@@ -301,6 +303,9 @@ finish:
       nn->klidx = strlen(nn->key);
       jbn_add_item(reg->root, nn);
     }
+  }
+  if (nn_alloc && !nn->parent) {
+    free(nn);
   }
 
   IWRC(reg->unlock_fn(reg->fn_data), rc);
@@ -545,6 +550,7 @@ iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
   }
   struct jbl_node *nn = 0;
   char *nkey = 0;
+  bool nn_alloc = false;
 
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
@@ -556,6 +562,7 @@ iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
 
   if (!nn) {
     RCB(finish, nn = calloc(1, sizeof(*nn)));
+    nn_alloc = true;
     nn->type = JBV_I64;
     nn->vi64 = value;
     RCB(finish, nkey = strdup(key));
@@ -578,6 +585,9 @@ finish:
       jbn_add_item(reg->root, nn);
     }
   }
+  if (nn_alloc && !nn->parent) {
+    free(nn);
+  }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
@@ -592,6 +602,7 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t 
   }
   struct jbl_node *nn = 0;
   char *nkey = 0;
+  bool nn_alloc = false;
 
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
@@ -603,6 +614,7 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t 
 
   if (!nn) {
     RCB(finish, nn = calloc(1, sizeof(*nn)));
+    nn_alloc = true;
     nn->type = JBV_I64;
     RCB(finish, nkey = strdup(key));
   } else {
@@ -630,6 +642,9 @@ finish:
       jbn_add_item(reg->root, nn);
     }
   }
+  if (nn_alloc && !nn->parent) {
+    free(nn);
+  }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {
     rc = iwjsreg_sync(reg);
@@ -644,6 +659,7 @@ iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value) {
   }
   struct jbl_node *nn = 0;
   char *nkey = 0;
+  bool nn_alloc = false;
 
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
@@ -655,6 +671,7 @@ iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value) {
 
   if (!nn) {
     RCB(finish, nn = calloc(1, sizeof(*nn)));
+    nn_alloc = true;
     nn->type = JBV_BOOL;
     nn->vbool = value;
     RCB(finish, nkey = strdup(key));
@@ -676,6 +693,9 @@ finish:
       nn->klidx = strlen(nkey);
       jbn_add_item(reg->root, nn);
     }
+  }
+  if (nn_alloc && !nn->parent) {
+    free(nn);
   }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
   if (!rc && (reg->flags & IWJSREG_AUTOSYNC)) {

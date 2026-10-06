@@ -68,6 +68,7 @@ static iwrc _initlocks(IWRDB db) {
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
 #endif
   int rci = pthread_rwlock_init(db->cwl, &attr);
+  pthread_rwlockattr_destroy(&attr);
   if (rci) {
     free(db->cwl);
     db->cwl = 0;
@@ -377,5 +378,6 @@ void iwrdb_munmap(IWRDB db) {
       db->mm = 0;
       db->msiz = 0;
     }
+    _unlock(db);
   }
 }

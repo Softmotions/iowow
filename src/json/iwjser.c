@@ -590,6 +590,20 @@ static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *
   return rc;
 }
 
+// Free a `jbl_node` allocated outside of an `iwpool` along with its
+// dynamically allocated key/value strings. Required by post-order
+// `jbn_visit2()` based teardown of partially built trees.
+static iwrc _jbl_free_node_visitor(int lvl, struct jbl_node *n) {
+  if (n->key) {
+    free((void*) n->key);
+  }
+  if ((n->type == JBV_STR) && n->vptr) {
+    free((void*) n->vptr);
+  }
+  free(n);
+  return 0;
+}
+
 static struct jbl_node* _jbl_clone_node_struct(struct jbl_node *src, struct iwpool *pool) {
   struct jbl_node *n = pool ? iwpool_calloc(sizeof(*n), pool) : calloc(1, sizeof(*n));
   if (!n) {
@@ -604,14 +618,14 @@ static struct jbl_node* _jbl_clone_node_struct(struct jbl_node *src, struct iwpo
   if (src->key) {
     n->key = pool ? iwpool_strndup2(pool, src->key, src->klidx) : strndup(src->key, src->klidx);
     if (!n->key) {
-      return 0;
+      goto error;
     }
   }
   switch (src->type) {
     case JBV_STR: {
       n->vptr = pool ? iwpool_strndup2(pool, src->vptr, src->vsize) : strndup(src->vptr, src->vsize);
       if (!n->vptr) {
-        return 0;
+        goto error;
       }
       break;
     }
@@ -629,6 +643,12 @@ static struct jbl_node* _jbl_clone_node_struct(struct jbl_node *src, struct iwpo
   }
 
   return n;
+
+error:
+  if (!pool) {
+    _jbl_free_node_visitor(0, n);
+  }
+  return 0;
 }
 
 static jbn_visitor_cmd_t _jbl_clone_node_visit(
@@ -675,7 +695,12 @@ iwrc jbn_clone(struct jbl_node *src, struct jbl_node **targetp, struct iwpool *p
     .op = n
   };
   iwrc rc = jbn_visit(src, 0, &vctx, _jbl_clone_node_visit);
-  RCRET(rc);
+  if (rc) {
+    if (!pool) {
+      jbn_visit2(n, 0, _jbl_free_node_visitor);
+    }
+    return rc;
+  }
   *targetp = n;
   return 0;
 }
