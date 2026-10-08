@@ -1671,20 +1671,21 @@ IW_INLINE WUR iwrc _sblk_create(
   return _sblk_create_v2(lx, nlevel, kvbpow, lower, upper, oblk);
 }
 
-static WUR iwrc _sblk_at2(struct iwlctx *lx, off_t addr, sblk_flags_t flgs, struct sblk *sblk) {
-  iwrc rc;
-  uint8_t *mm;
+static WUR iwrc _sblk_at2_mm(
+  struct iwlctx *lx,
+  off_t          addr,
+  sblk_flags_t   flgs,
+  struct sblk   *sblk,
+  uint8_t       *mm,
+  size_t         mmsz) {
+  iwrc rc = 0;
   uint32_t lv;
   sblk_flags_t flags = lx->sbflags | flgs;
   struct iwdb *db = lx->db;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
   sblk->kvblk = 0;
   sblk->bpos = 0;
   sblk->db = db;
 
-  size_t mmsz = 0;
-  rc = fsm->acquire_mmap(fsm, 0, &mm, &mmsz);
-  RCRET(rc);
   lx->mmsz = mmsz;
   // Reject block addresses outside the mapped file region (corrupted data).
   if (addr && !_mm_in_range(mmsz, addr, SOFF_END)) {
@@ -1759,8 +1760,19 @@ static WUR iwrc _sblk_at2(struct iwlctx *lx, off_t addr, sblk_flags_t flgs, stru
     }
     memcpy(sblk->pi, rp, KVBLK_IDXNUM);
     rp += KVBLK_IDXNUM;
-    for (int i = 0; i < KVBLK_IDXNUM; ++i) {
-      if (sblk->pi[i] >= KVBLK_IDXNUM) {
+
+    // Every `pi` slot must be < KVBLK_IDXNUM (32, a power of two), i.e. the top
+    // 3 bits of every byte must be zero. OR the array by machine words and test
+    // the mask once instead of running 32 separate compare-and-branch checks.
+    {
+      uint64_t pimask = 0;
+      for (int i = 0; i < KVBLK_IDXNUM; i += 8) {
+        uint64_t w;
+        memcpy(&w, sblk->pi + i, sizeof(w));
+        pimask |= w;
+      }
+      // pi[i] >= KVBLK_IDXNUM equivalent
+      if (IW_UNLIKELY(pimask & 0xE0E0E0E0E0E0E0E0ULL)) {
         rc = IWKV_ERROR_CORRUPTED;
         iwlog_ecode_error3(rc);
         goto finish;
@@ -1797,7 +1809,32 @@ static WUR iwrc _sblk_at2(struct iwlctx *lx, off_t addr, sblk_flags_t flgs, stru
   }
 
 finish:
-  fsm->release_mmap(fsm);
+  return rc;
+}
+
+static WUR iwrc _sblk_at2(struct iwlctx *lx, off_t addr, sblk_flags_t flgs, struct sblk *sblk) {
+  uint8_t *mm;
+  size_t mmsz = 0;
+  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, &mmsz);
+  RCRET(rc);
+  rc = _sblk_at2_mm(lx, addr, flgs, sblk, mm, mmsz);
+  IWRC(fsm->release_mmap(fsm), rc);
+  return rc;
+}
+
+IW_INLINE WUR iwrc _sblk_at_mm(
+  struct iwlctx *lx,
+  off_t          addr,
+  sblk_flags_t   flgs,
+  struct sblk  **sblkp,
+  uint8_t       *mm,
+  size_t         mmsz) {
+  *sblkp = 0;
+  struct sblk *sblk = &lx->saa[lx->saan];
+  iwrc rc = _sblk_at2_mm(lx, addr, flgs, sblk, mm, mmsz);
+  AAPOS_INC(lx->saan);
+  *sblkp = sblk;
   return rc;
 }
 
@@ -2229,7 +2266,7 @@ static WUR iwrc _sblk_rmkv(struct sblk *sblk, uint8_t idx) {
 
 //--------------------------  struct iwlctx
 
-WUR iwrc _lx_sblk_cmp_key(struct iwlctx *lx, struct sblk *sblk, int *resp) {
+WUR iwrc _lx_sblk_cmp_key(struct iwlctx *lx, struct sblk *sblk, int *resp, uint8_t *mm) {
   int res = 0;
   iwrc rc = 0;
   iwdb_flags_t dbflg = sblk->db->dbflg;
@@ -2253,32 +2290,24 @@ WUR iwrc _lx_sblk_cmp_key(struct iwlctx *lx, struct sblk *sblk, int *resp) {
     res = _cmp_keys_prefix(dbflg, sblk->lk, lkl, key);
     if (res == 0) {
       uint32_t kl;
-      uint8_t *mm, *k;
-      IWFS_FSM *fsm = &lx->db->iwkv->fsm;
-      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      if (rc) {
-        *resp = 0;
-        return rc;
-      }
+      uint8_t *k;
       if (!sblk->kvblk) {
         rc = _sblk_loadkvblk_mm(lx, sblk, mm);
         if (rc) {
           *resp = 0;
-          fsm->release_mmap(fsm);
           return rc;
         }
       }
       rc = _kvblk_key_peek(sblk->kvblk, sblk->pi[0], mm, &k, &kl);
       RCRET(rc);
       res = _cmp_keys(dbflg, k, kl, key);
-      fsm->release_mmap(fsm);
     }
   }
   *resp = res;
   return rc;
 }
 
-static WUR iwrc _lx_roll_forward(struct iwlctx *lx, uint8_t lvl) {
+static WUR iwrc _lx_roll_forward(struct iwlctx *lx, uint8_t lvl, uint8_t *mm, size_t mmsz) {
   iwrc rc = 0;
   int cret;
   struct sblk *sblk;
@@ -2294,16 +2323,16 @@ static WUR iwrc _lx_roll_forward(struct iwlctx *lx, uint8_t lvl) {
       } else if (lx->plower[ulvl] && (lx->plower[ulvl]->addr == blkaddr)) {
         sblk = lx->plower[ulvl];
       } else {
-        rc = _sblk_at(lx, blkaddr, 0, &sblk);
+        rc = _sblk_at_mm(lx, blkaddr, 0, &sblk, mm, mmsz);
       }
     } else {
-      rc = _sblk_at(lx, blkaddr, 0, &sblk);
+      rc = _sblk_at_mm(lx, blkaddr, 0, &sblk, mm, mmsz);
     }
     RCRET(rc);
 #ifndef NDEBUG
     ++lx->num_cmps;
 #endif
-    rc = _lx_sblk_cmp_key(lx, sblk, &cret);
+    rc = _lx_sblk_cmp_key(lx, sblk, &cret, mm);
     RCRET(rc);
     if ((cret > 0) || (lx->upper_addr == sblk->addr)) { // upper > key
       lx->upper = sblk;
@@ -2319,11 +2348,18 @@ static WUR iwrc _lx_find_bounds(struct iwlctx *lx) {
   iwrc rc = 0;
   int lvl;
   blkn_t blkn;
+  uint8_t *mm;
+  size_t mmsz = 0;
+  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
   struct sblk *dblk = &lx->dblk;
+
+  // Acquire the exfile mmap once for the whole descent instead of once per visited skiplist node.
+  rc = fsm->acquire_mmap(fsm, 0, &mm, &mmsz);
+  RCRET(rc);
   if (!dblk->addr) {
     struct sblk *s;
-    rc = _sblk_at(lx, lx->db->addr, 0, &s);
-    RCRET(rc);
+    rc = _sblk_at_mm(lx, lx->db->addr, 0, &s, mm, mmsz);
+    RCGO(rc, finish);
     memcpy(dblk, s, sizeof(*dblk));
   }
   if (!lx->lower) {
@@ -2336,8 +2372,7 @@ static WUR iwrc _lx_find_bounds(struct iwlctx *lx) {
   }
   lvl = lx->lower->lvl;
   while (lvl > -1) {
-    rc = _lx_roll_forward(lx, (uint8_t) lvl);
-    RCRET(rc);
+    RCC(rc, finish, _lx_roll_forward(lx, (uint8_t) lvl, mm, mmsz));
     if (lx->upper) {
       blkn = ADDR2BLK(lx->upper->addr);
     } else {
@@ -2350,7 +2385,10 @@ static WUR iwrc _lx_find_bounds(struct iwlctx *lx) {
       }
     } while (lvl-- && lx->lower->n[lvl] == blkn);
   }
-  return 0;
+
+finish:
+  IWRC(fsm->release_mmap(fsm), rc);
+  return rc;
 }
 
 static iwrc _lx_release_mm(struct iwlctx *lx, uint8_t *mm) {

@@ -77,6 +77,8 @@
 
 // Number of `KV` blocks in struct kvblk
 #define KVBLK_IDXNUM 32U
+// `_sblk_at2_mm()` validates all `pi` slots with a word-wise byte-mask check.
+static_assert((KVBLK_IDXNUM % 8) == 0, "KVBLK_IDXNUM must be a multiple of 8");
 
 // Initial `struct kvblk` size power of 2
 #define KVBLK_INISZPOW 9U
