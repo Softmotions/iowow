@@ -1802,6 +1802,7 @@ static WUR iwrc _sblk_at2_mm(
     sblk->lkl = 0;
     sblk->pnum = KVBLK_IDXNUM;
     memset(sblk->pi, 0, sizeof(sblk->pi));
+    memset(sblk->n, 0, sizeof(sblk->n));
     IW_READLV(rp, lv, sblk->p0);
     if (!sblk->p0) {
       sblk->p0 = ADDR2BLK(db->addr);
@@ -2357,10 +2358,8 @@ static WUR iwrc _lx_find_bounds(struct iwlctx *lx) {
   rc = fsm->acquire_mmap(fsm, 0, &mm, &mmsz);
   RCRET(rc);
   if (!dblk->addr) {
-    struct sblk *s;
-    rc = _sblk_at_mm(lx, lx->db->addr, 0, &s, mm, mmsz);
+    rc = _sblk_at2_mm(lx, lx->db->addr, 0, dblk, mm, mmsz);
     RCGO(rc, finish);
-    memcpy(dblk, s, sizeof(*dblk));
   }
   if (!lx->lower) {
     lx->lower = &lx->dblk;
@@ -3573,6 +3572,14 @@ iwrc iwkv_db_destroy(struct iwdb **dbp) {
   return rc;
 }
 
+IW_INLINE void _iwlctx_init(struct iwlctx *lx, struct iwdb *db, const struct iwkv_val *key, struct iwkv_val *val) {
+  memset(lx, 0, offsetof(struct iwlctx, saa));
+  lx->db = db;
+  lx->key = key;
+  lx->val = val;
+  lx->nlvl = -1;
+}
+
 iwrc iwkv_puth(
   struct iwdb *db, const struct iwkv_val *key, const struct iwkv_val *val,
   iwkv_opflags opflags, iwkv_put_handler_fn ph, void *phop) {
@@ -3595,16 +3602,13 @@ iwrc iwkv_puth(
   iwrc rc = _to_effective_key(db, key, &ekey, nbuf);
   RCRET(rc);
 
-  struct iwlctx lx = {
-    .db = db,
-    .key = &ekey,
-    .val = (struct iwkv_val*) val,
-    .nlvl = -1,
-    .op = IWLCTX_PUT,
-    .opflags = opflags,
-    .ph = ph,
-    .phop = phop
-  };
+  struct iwlctx lx;
+  _iwlctx_init(&lx, db, &ekey, (struct iwkv_val*) val);
+  lx.op = IWLCTX_PUT;
+  lx.opflags = opflags;
+  lx.ph = ph;
+  lx.phop = phop;
+
   API_DB_WLOCK(db, rci);
   rc = _lx_put_lw(&lx);
   API_DB_UNLOCK(db, rci, rc);
@@ -3622,19 +3626,6 @@ iwrc iwkv_put(struct iwdb *db, const struct iwkv_val *key, const struct iwkv_val
   return iwkv_puth(db, key, val, opflags, 0, 0);
 }
 
-// Initializes the lookup-relevant part of a read-only `struct iwlctx`.
-// The trailing `saa`/`kaa`/`nbuf`/`incbuf` scratch areas are used only by
-// write operations and are intentionally left untouched: zeroing the whole
-// context (about 41Kb) on every read burns store bandwidth and evicts data
-// needed by the skiplist traversal.
-IW_INLINE void _iwlctx_init_read(struct iwlctx *lx, struct iwdb *db, const struct iwkv_val *key, struct iwkv_val *val) {
-  memset(lx, 0, offsetof(struct iwlctx, saa));
-  lx->db = db;
-  lx->key = key;
-  lx->val = val;
-  lx->nlvl = -1;
-}
-
 iwrc iwkv_get(struct iwdb *db, const struct iwkv_val *key, struct iwkv_val *oval) {
   if (!db || !db->iwkv || !key || !oval) {
     return IW_ERROR_INVALID_ARGS;
@@ -3647,7 +3638,7 @@ iwrc iwkv_get(struct iwdb *db, const struct iwkv_val *key, struct iwkv_val *oval
   RCRET(rc);
 
   struct iwlctx lx;
-  _iwlctx_init_read(&lx, db, &ekey, oval);
+  _iwlctx_init(&lx, db, &ekey, oval);
   oval->size = 0;
   API_DB_RLOCK(db, rci);
   rc = _lx_get_lr(&lx);
@@ -3672,7 +3663,7 @@ iwrc iwkv_get_copy(struct iwdb *db, const struct iwkv_val *key, void *vbuf, size
   RCRET(rc);
 
   struct iwlctx lx;
-  _iwlctx_init_read(&lx, db, &ekey, 0);
+  _iwlctx_init(&lx, db, &ekey, 0);
   API_DB_RLOCK(db, rci);
   rc = _lx_find_bounds(&lx);
   RCGO(rc, finish);
@@ -3803,16 +3794,16 @@ iwrc iwkv_del(struct iwdb *db, const struct iwkv_val *key, iwkv_opflags opflags)
   uint8_t nbuf[IW_VNUMBUFSZ];
   iwrc rc = _to_effective_key(db, key, &ekey, nbuf);
   RCRET(rc);
-  struct iwlctx lx = {
-    .db = db,
-    .key = &ekey,
-    .nlvl = -1,
-    .op = IWLCTX_DEL,
-    .opflags = opflags
-  };
+
+  struct iwlctx lx;
+  _iwlctx_init(&lx, db, &ekey, 0);
+  lx.op = IWLCTX_DEL;
+  lx.opflags = opflags;
+
   API_DB_WLOCK(db, rci);
   rc = _lx_del_lw(&lx);
   API_DB_UNLOCK(db, rci, rc);
+
   if (!rc) {
     if (lx.opflags & IWKV_SYNC) {
       rc = _iwkv_sync(iwkv, 0);
