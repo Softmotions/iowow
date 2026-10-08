@@ -101,6 +101,17 @@ static_assert((KVBLK_IDXNUM % 8) == 0, "KVBLK_IDXNUM must be a multiple of 8");
 
 #define BLK2ADDR(blk_) (((uint64_t) (blk_)) << IWKV_FSM_BPOW)
 
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
+#if __has_builtin(__builtin_prefetch) || \
+    (defined(__GNUC__) && (__GNUC__ >= 3))
+#define IWKV_PREFETCH(addr__) __builtin_prefetch(addr__)
+#else
+#define IWKV_PREFETCH(addr__) ((void) 0)
+#endif
+
 struct iwkv;
 struct iwdb;
 

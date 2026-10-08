@@ -2333,6 +2333,14 @@ static WUR iwrc _lx_roll_forward(struct iwlctx *lx, uint8_t lvl, uint8_t *mm, si
 #ifndef NDEBUG
     ++lx->num_cmps;
 #endif
+    if (lvl) {
+      blkn_t nxt = sblk->n[lvl - 1];
+      if (nxt) {
+        IWKV_PREFETCH(mm + BLK2ADDR(nxt));
+      }
+    } else if (sblk->kvblkn) {
+      IWKV_PREFETCH(mm + BLK2ADDR(sblk->kvblkn));
+    }
     rc = _lx_sblk_cmp_key(lx, sblk, &cret, mm);
     RCRET(rc);
     if ((cret > 0) || (lx->upper_addr == sblk->addr)) { // upper > key
