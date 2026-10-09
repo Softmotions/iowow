@@ -1,5 +1,5 @@
 2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1-dev]
-	* iwkv: WAL rework. Changed WAL file format to be more compact	~2-3x.
+	* iwkv: WAL rework. Changed WAL file format to be more compact	~1.5-2.5x.
 					NOTE: WAL file format changed, so upgrade to this version requires the regular database reopen.
 					Online backups from previous versions are not compatible this vesion.
   * iwkv: Fixed durability issues which may lead to db corruption if app crashed during database file resize.

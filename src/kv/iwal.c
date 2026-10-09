@@ -46,10 +46,8 @@ struct iwal_pentry {
   uint32_t len;
   uint32_t arena_off;               /**< Offset of the latest data in the arena */
   uint32_t arena_base_off;          /**< Offset of the window-start data in the arena */
-  uint32_t fill_val;                /**< Value for a `WOP_SET` fill entry */
   int32_t  prev;
   int32_t  next;
-  uint8_t  is_fill;                 /**< Entry is a `WOP_SET` fill, not data */
   uint8_t  has_base;                /**< Entry keeps window-start bytes for diffing */
 };
 
@@ -68,20 +66,15 @@ struct iwal {
   size_t pending_cap;             /**< Max bytes kept by the coalescing set */
   size_t checkpoint_buffer_sz;    /**< Checkpoint buffer size in bytes. */
 
-  size_t   dirty_page_sz;           /**< Page size used for dirty-page accounting */
-  uint8_t *dirty_bitmap;            /**< Bitmap of dirty main-file pages */
-  size_t   dirty_bitmap_cap;        /**< Bytes allocated for `dirty_bitmap` */
-
-  atomic_size_t dirty_pages;        /**< Number of set bits in `dirty_bitmap` */
-  uint32_t      bufpos;             /**< Current position in buffer */
-  uint32_t      bufsz;              /**< Size of buffer */
-  HANDLE   fh;                      /**< File handle */
-  uint8_t *buf;                     /**< File buffer */
-  char    *path;                    /**< WAL file path */
-  pthread_mutex_t *mtxp;            /**< Global WAL mutex */
-  pthread_cond_t  *cpt_condp;       /**< Checkpoint thread cond variable */
-  pthread_cond_t  *bkp_condp;       /**< Online backup stage cond variable */
-  pthread_t       *cptp;            /**< Checkpoint thread */
+  uint32_t bufpos;             /**< Current position in buffer */
+  uint32_t bufsz;              /**< Size of buffer */
+  HANDLE   fh;                 /**< File handle */
+  uint8_t *buf;                /**< File buffer */
+  char    *path;               /**< WAL file path */
+  pthread_mutex_t *mtxp;       /**< Global WAL mutex */
+  pthread_cond_t  *cpt_condp;  /**< Checkpoint thread cond variable */
+  pthread_cond_t  *bkp_condp;  /**< Online backup stage cond variable */
+  pthread_t       *cptp;       /**< Checkpoint thread */
   iwrc (*wal_lock_interceptor)(bool, void*);
   /**< Optional function called
        - before acquiring
@@ -117,7 +110,7 @@ typedef struct iwal IWAL;
 
 static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint);
 static iwrc _resize_rollforward_exl(struct iwal *wal, IWFS_EXT *extf, off_t target);
-static void _account_write(struct iwal *wal, off_t off, off_t len);
+static void _account_write(struct iwal *wal, off_t len);
 
 IW_INLINE iwrc _lock(struct iwal *wal) {
   int rci = pthread_mutex_lock(wal->mtxp);
@@ -230,7 +223,6 @@ static void _destroy(struct iwal *wal) {
     free(wal->pents);
     free(wal->phash);
     free(wal->parena);
-    free(wal->dirty_bitmap);
     if (wal->buf) {
       wal->buf -= sizeof(WBSEP);
       free(wal->buf);
@@ -419,15 +411,8 @@ static iwrc _flush_pending(struct iwal *wal) {
   iwrc rc = 0;
   for (int32_t e = wal->pents_head; e != -1; e = wal->pents[e].next) {
     struct iwal_pentry *pe = &wal->pents[e];
-    if (pe->is_fill) {
-      WBSET wb = {
-        .id = WOP_SET,
-        .val = pe->fill_val,
-        .off = pe->off,
-        .len = pe->len
-      };
-      rc = _append_wl(wal, &wb, sizeof(wb), 0, 0);
-    } else if (pe->has_base) {
+    const uint8_t *cur = wal->parena + pe->arena_off;
+    if (pe->has_base) {
       // Emit only the net change since the first write of this region in the
       // current flushing window, as a single compact patch record. The union
       // keeps `hdr` properly aligned while `blob` is the serialized record.
@@ -437,7 +422,6 @@ static iwrc _flush_pending(struct iwal *wal) {
       } patch;
       WBPATCH *wb = &patch.hdr;
       const uint8_t *base = wal->parena + pe->arena_base_off;
-      const uint8_t *cur = wal->parena + pe->arena_off;
       wb->id = WOP_PATCH;
       wb->off = pe->off;
       uint8_t *p = patch.blob + sizeof(*wb);
@@ -460,17 +444,29 @@ static iwrc _flush_pending(struct iwal *wal) {
         p += slen;
       }
       wb->len = (uint32_t) (p - (patch.blob + sizeof(*wb)));
-      if (wb->len) {
+      if (!wb->len) {
+        continue; // Region is unchanged since the start of the window.
+      }
+      if (sizeof(WBPATCH) + wb->len < sizeof(WBWRITE) + pe->len) {
         rc = _append_wl(wal, patch.blob, (off_t) (p - patch.blob), 0, 0);
+      } else {
+        // The patch is not smaller than the raw region: log the raw bytes.
+        WBWRITE ww = {
+          .id = WOP_WRITE,
+          .crc = wal->check_cp_crc ? iwu_crc32(cur, pe->len, 0) : 0,
+          .len = pe->len,
+          .off = pe->off
+        };
+        rc = _append_wl(wal, &ww, sizeof(ww), cur, pe->len);
       }
     } else {
       WBWRITE wb = {
         .id = WOP_WRITE,
-        .crc = wal->check_cp_crc ? iwu_crc32(wal->parena + pe->arena_off, pe->len, 0) : 0,
+        .crc = wal->check_cp_crc ? iwu_crc32(cur, pe->len, 0) : 0,
         .len = pe->len,
         .off = pe->off
       };
-      rc = _append_wl(wal, &wb, sizeof(wb), wal->parena + pe->arena_off, pe->len);
+      rc = _append_wl(wal, &wb, sizeof(wb), cur, pe->len);
     }
     RCRET(rc);
   }
@@ -479,7 +475,7 @@ static iwrc _flush_pending(struct iwal *wal) {
 }
 
 /// Flush all pending coalesced writes and then the intermediate WAL buffer.
-static iwrc _flush_wl(struct iwal *wal, bool sync) {
+IW_INLINE iwrc _flush_wl(struct iwal *wal, bool sync) {
   iwrc rc = _flush_pending(wal);
   RCRET(rc);
   return _flush_buf(wal, sync);
@@ -487,28 +483,13 @@ static iwrc _flush_wl(struct iwal *wal, bool sync) {
 
 /// Emit a WAL record, making sure all preceding coalesced writes are on the
 /// log before it (ordering barrier).
-static iwrc _write_wl(struct iwal *wal, const void *op, off_t oplen, const uint8_t *data, off_t len) {
+IW_INLINE iwrc _write_wl(struct iwal *wal, const void *op, off_t oplen, const uint8_t *data, off_t len) {
   iwrc rc = _flush_pending(wal);
   RCRET(rc);
   return _append_wl(wal, op, oplen, data, len);
 }
 
-/// Invalidate the retained window-start bytes of any diffed entry that a `SET`
-/// fill partially overlaps. Such a fill changes bytes behind the entry's back,
-/// so a later diff against the old base would be wrong; the entry falls back to
-/// emitting its full current content. `SET` records are rare, so the linear
-/// scan is acceptable.
-static void _pending_invalidate_overlap(struct iwal *wal, off_t off, uint32_t len) {
-  const off_t end = off + (off_t) len;
-  for (int32_t e = wal->pents_head; e != -1; e = wal->pents[e].next) {
-    struct iwal_pentry *pe = &wal->pents[e];
-    if (pe->has_base && (pe->off < end) && (off < pe->off + (off_t) pe->len)) {
-      pe->has_base = 0;
-    }
-  }
-}
-
-/// Coalesce a plain file write, a `SET` fill, or a diff-capable write.
+/// Coalesce a plain file write or a diff-capable write.
 ///
 /// Repeated operations on the same region (same offset and length) replace the
 /// previous pending value instead of appending a new record. When @a old is not
@@ -519,17 +500,15 @@ static iwrc _write_pending_wl(
   off_t          off,
   const uint8_t *old,
   const uint8_t *data,
-  uint32_t       len,
-  uint8_t        fill,
-  uint32_t       fill_val) {
+  uint32_t       len) {
   iwrc rc = 0;
   wal->synched = false;
   if (!len) {
     return 0;
   }
-  _account_write(wal, off, len);
+  _account_write(wal, len);
   const bool diff = old && (len <= IWAL_DIFF_MAXLEN);
-  if (!fill && !diff && len > wal->coalesce_maxlen && (_pending_lookup(wal, off, len) < 0)) {
+  if (!diff && len > wal->coalesce_maxlen && (_pending_lookup(wal, off, len) < 0)) {
     // Large one-shot write: bypass the coalescing set to avoid its extra copy
     // and hash bookkeeping. This is an ordering barrier for pending writes.
     WBWRITE wb = {
@@ -542,28 +521,16 @@ static iwrc _write_pending_wl(
     RCRET(rc);
     return _append_wl(wal, &wb, sizeof(wb), data, len);
   }
-  if (!fill && wal->parena_pos + len + (diff ? len : 0) > wal->pending_cap) {
-    // Bound the memory used by the coalescing set.
-    rc = _flush_wl(wal, false);
+  if (wal->parena_pos + len + (diff ? len : 0) > wal->pending_cap) {
+    // Bound the memory used by the coalescing set. Only the pending set is
+    // serialized here; the intermediate WAL buffer is flushed when it fills up.
+    rc = _flush_pending(wal);
     RCRET(rc);
   }
   int32_t e = _pending_lookup(wal, off, len);
   if (e >= 0) {
     struct iwal_pentry *pe = &wal->pents[e];
-    const bool was_fill = pe->is_fill;
-    pe->is_fill = fill;
-    pe->fill_val = fill_val;
-    if (fill) {
-      pe->has_base = 0;
-    }
-    if (!fill) {
-      if (was_fill) { // entry was a `SET` fill, no arena storage allocated yet
-        RCC(rc, finish, _pending_arena_ensure(wal, len));
-        pe->arena_off = (uint32_t) wal->parena_pos;
-        wal->parena_pos += len;
-      }
-      memcpy(wal->parena + pe->arena_off, data, len);
-    }
+    memcpy(wal->parena + pe->arena_off, data, len);
     if (e != wal->pents_tail) { // keep entries ordered by last operation time
       if (pe->prev >= 0) {
         wal->pents[pe->prev].next = pe->next;
@@ -578,37 +545,28 @@ static iwrc _write_pending_wl(
       wal->pents[wal->pents_tail].next = e;
       wal->pents_tail = e;
     }
-    if (fill) {
-      _pending_invalidate_overlap(wal, off, len);
-    }
     return 0;
   }
   RCC(rc, finish, _pending_ensure(wal, (size_t) wal->pents_num + 1));
   RCC(rc, finish, _pending_hash_ensure(wal));
-  if (!fill) {
-    RCC(rc, finish, _pending_arena_ensure(wal, len + (diff ? len : 0)));
-  }
+  RCC(rc, finish, _pending_arena_ensure(wal, len + (diff ? len : 0)));
   int32_t ni = (int32_t) wal->pents_num++;
   struct iwal_pentry *pe = &wal->pents[ni];
   pe->off = off;
   pe->len = len;
-  pe->is_fill = fill;
   pe->has_base = diff ? 1 : 0;
-  pe->fill_val = fill_val;
   pe->arena_off = 0;
   pe->arena_base_off = 0;
   pe->prev = wal->pents_tail;
   pe->next = -1;
-  if (!fill) {
-    if (diff) {
-      pe->arena_base_off = (uint32_t) wal->parena_pos;
-      memcpy(wal->parena + wal->parena_pos, old, len);
-      wal->parena_pos += len;
-    }
-    pe->arena_off = (uint32_t) wal->parena_pos;
-    memcpy(wal->parena + wal->parena_pos, data, len);
+  if (diff) {
+    pe->arena_base_off = (uint32_t) wal->parena_pos;
+    memcpy(wal->parena + wal->parena_pos, old, len);
     wal->parena_pos += len;
   }
+  pe->arena_off = (uint32_t) wal->parena_pos;
+  memcpy(wal->parena + wal->parena_pos, data, len);
+  wal->parena_pos += len;
   if (wal->pents_tail >= 0) {
     wal->pents[wal->pents_tail].next = ni;
   } else {
@@ -616,9 +574,6 @@ static iwrc _write_pending_wl(
   }
   wal->pents_tail = ni;
   _pending_hash_put(wal, ni);
-  if (fill) {
-    _pending_invalidate_overlap(wal, off, len);
-  }
 finish:
   return rc;
 }
@@ -638,21 +593,7 @@ static iwrc _onwrite_diff(
   }
   iwrc rc = _lock(wal);
   RCRET(rc);
-  rc = _write_pending_wl(wal, off, old, new, (uint32_t) len, 0, 0);
-  IWRC(_unlock(wal), rc);
-  return rc;
-}
-
-IW_INLINE iwrc _write_write_op(
-  struct iwal   *wal,
-  off_t          off,
-  const uint8_t *data,
-  uint32_t       len,
-  uint8_t        fill,
-  uint32_t       fill_val) {
-  iwrc rc = _lock(wal);
-  RCRET(rc);
-  rc = _write_pending_wl(wal, off, 0, data, len, fill, fill_val);
+  rc = _write_pending_wl(wal, off, old, new, (uint32_t) len);
   IWRC(_unlock(wal), rc);
   return rc;
 }
@@ -687,76 +628,35 @@ static iwrc _onclosing(struct iwdlsnr *self) {
   return rc;
 }
 
-//-------------------------- Dirty-page accounting
-
-/// Ensure the dirty-page bitmap can cover at least @a npages pages.
-static bool _dirty_reserve(struct iwal *wal, size_t npages) {
-  const size_t need = (npages + 7) >> 3;
-  if (need <= wal->dirty_bitmap_cap) {
-    return true;
-  }
-  size_t cap = wal->dirty_bitmap_cap ? wal->dirty_bitmap_cap : 4096;
-  while (cap < need) {
-    cap <<= 1;
-  }
-  uint8_t *nb = realloc(wal->dirty_bitmap, cap);
-  if (!nb) {
-    return false;
-  }
-  memset(nb + wal->dirty_bitmap_cap, 0, cap - wal->dirty_bitmap_cap);
-  wal->dirty_bitmap = nb;
-  wal->dirty_bitmap_cap = cap;
-  return true;
-}
-
-/// Mark [off, off + len) dirty at page granularity.
-static bool _dirty_mark(struct iwal *wal, off_t off, off_t len) {
-  if (len <= 0) {
-    return true;
-  }
-  const size_t ps = wal->dirty_page_sz;
-  const uint64_t first = (uint64_t) off / ps;
-  const uint64_t last = ((uint64_t) off + (uint64_t) len - 1) / ps;
-  if (!_dirty_reserve(wal, (size_t) last + 1)) {
-    return false;
-  }
-  for (uint64_t p = first; p <= last; ++p) {
-    uint8_t *b = &wal->dirty_bitmap[p >> 3];
-    const uint8_t m = (uint8_t) (1U << (p & 7));
-    if (!(*b & m)) {
-      *b |= m;
-      ++wal->dirty_pages;
-    }
-  }
-  return true;
-}
-
-static void _dirty_reset(struct iwal *wal) {
-  if (wal->dirty_pages && wal->dirty_bitmap) {
-    memset(wal->dirty_bitmap, 0, wal->dirty_bitmap_cap);
-  }
-  wal->dirty_pages = 0;
-}
-
-/// Account one logged private-mmap mutation. `mbytes` bounds the WAL size and
-/// recovery cost; the dirty-page set bounds the private copy-on-write memory.
-static void _account_write(struct iwal *wal, off_t off, off_t len) {
-  if (len <= 0) {
-    return;
-  }
+/// Account one logged write. `mbytes` bounds the WAL size and recovery cost.
+IW_INLINE void _account_write(struct iwal *wal, off_t len) {
   wal->mbytes += (size_t) len;
-  if (!_dirty_mark(wal, off, len)) {
-    // Could not grow the dirty set: fall back to forcing a checkpoint.
-    wal->force_cp = true;
-  }
 }
 
+/// A `SET` fill is an ordering barrier: the pending coalescing set is
+/// serialized before it. This keeps every retained window-start base in sync
+/// with the region content produced by the preceding WAL records, so a fill can
+/// never make a base stale.
 static iwrc _onset(struct iwdlsnr *self, off_t off, uint8_t val, off_t len, int flags) {
   struct iwal *wal = (struct iwal*) self;
   if (wal->applying) {
     return 0;
   }
-  return _write_write_op(wal, off, 0, (uint32_t) len, 1, val);
+  if (len <= 0) {
+    return 0;
+  }
+  WBSET wb = {
+    .id = WOP_SET,
+    .val = val,
+    .off = off,
+    .len = len
+  };
+  iwrc rc = _lock(wal);
+  RCRET(rc);
+  _account_write(wal, len);
+  rc = _write_wl(wal, &wb, sizeof(wb), 0, 0);
+  IWRC(_unlock(wal), rc);
+  return rc;
 }
 
 static iwrc _oncopy(struct iwdlsnr *self, off_t off, off_t len, off_t noff, int flags) {
@@ -772,7 +672,7 @@ static iwrc _oncopy(struct iwdlsnr *self, off_t off, off_t len, off_t noff, int 
   };
   iwrc rc = _lock(wal);
   RCRET(rc);
-  _account_write(wal, noff, len);
+  _account_write(wal, len);
   rc = _write_wl(wal, &wb, sizeof(wb), 0, 0);
   IWRC(_unlock(wal), rc);
   return rc;
@@ -784,7 +684,11 @@ static iwrc _onwrite(struct iwdlsnr *self, off_t off, const void *buf, off_t len
   if (wal->applying) {
     return 0;
   }
-  return _write_write_op(wal, off, buf, (uint32_t) len, 0, 0);
+  iwrc rc = _lock(wal);
+  RCRET(rc);
+  rc = _write_pending_wl(wal, off, 0, buf, (uint32_t) len);
+  IWRC(_unlock(wal), rc);
+  return rc;
 }
 
 static iwrc _onresize(struct iwdlsnr *self, off_t osize, off_t nsize, int flags, bool *handled) {
@@ -1160,8 +1064,8 @@ static iwrc _apply_wl_records(
       }
     }
 #ifdef IW_TESTS
-    if (atomic_load(&_test_crash_rollforward_after) > 0
-        && atomic_fetch_sub(&_test_crash_rollforward_after, 1) == 1) {
+    if (  atomic_load(&_test_crash_rollforward_after) > 0
+       && atomic_fetch_sub(&_test_crash_rollforward_after, 1) == 1) {
       // Simulate a hard process crash in the middle of WAL rollforward.
       // Dirty MAP_SHARED pages of the main file survive the process, so the
       // next open has to recover from the WAL exactly as after a real crash.
@@ -1407,13 +1311,8 @@ IW_INLINE bool _need_checkpoint(struct iwal *wal) {
   if (wal->force_cp) {
     return true;
   }
-  // Bound the private copy-on-write footprint: the number of distinct pages
-  // dirtied since the last checkpoint.
-  if (wal->dirty_pages * wal->dirty_page_sz >= wal->checkpoint_buffer_sz) {
-    return true;
-  }
-  // Bound the WAL size and recovery cost. A workload that rewrites a small set
-  // of pages keeps the dirty-page count low while still appending WAL records.
+  // Bound the WAL size and recovery cost by the cumulative logged write
+  // volume since the last checkpoint.
   return wal->mbytes >= wal->checkpoint_buffer_sz;
 }
 
@@ -1443,7 +1342,6 @@ static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint) {
 
   rc = _rollforward_exl(wal, extf, 0);
   wal->mbytes = 0;
-  _dirty_reset(wal);
   wal->synched = true;
   iwp_current_time_ms(&wal->checkpoint_ts, true);
   if (tsp) {
@@ -1933,11 +1831,6 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
   }
 
   wal->check_cp_crc = opts->wal.check_crc_on_checkpoint;
-
-  wal->dirty_page_sz = iwp_page_size();
-  if (!wal->dirty_page_sz) {
-    wal->dirty_page_sz = 4096;
-  }
 
   wal->coalesce_maxlen = IWAL_COALESCE_MAXLEN;
 
