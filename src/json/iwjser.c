@@ -12,7 +12,7 @@
 
 /** JSON parsing context */
 typedef struct JCTX {
-  IWPOOL *pool;
+  struct iwpool   *pool;
   struct jbl_node *root;
   const char      *buf;
   const char      *sp;
@@ -51,7 +51,7 @@ static struct jbl_node* _jbl_json_create_node(
   const char      *key,
   int              klidx,
   struct jbl_node *parent,
-  JCTX            *ctx) {
+  struct JCTX     *ctx) {
   struct jbl_node *node;
   if (IW_LIKELY(ctx->pool)) {
     node = iwpool_calloc(sizeof(*node), ctx->pool);
@@ -74,7 +74,7 @@ static struct jbl_node* _jbl_json_create_node(
   return node;
 }
 
-IW_INLINE void _jbl_skip_bom(JCTX *ctx) {
+IW_INLINE void _jbl_skip_bom(struct JCTX *ctx) {
   const char *p = ctx->buf;
   if ((p[0] == '\xEF') && (p[1] == '\xBB') && (p[2] == '\xBF')) {
     ctx->buf += 3;
@@ -94,7 +94,9 @@ IW_INLINE int _jbl_hex(char c) {
   return -1;
 }
 
-static int _jbl_unescape_json_string(JCTX *ctx, const char q, const char *p, char *d, int dlen, const char **end) {
+static int _jbl_unescape_json_string(
+  struct JCTX *ctx, const char q, const char *p, char *d, int dlen,
+  const char **end) {
   char c;
   char *ds = d;
   char *de = d + dlen;
@@ -197,7 +199,7 @@ static int _jbl_unescape_json_string(JCTX *ctx, const char q, const char *p, cha
   return 0;
 }
 
-static const char* _jbl_parse_js_key(const char **key, const char *p, JCTX *ctx) {
+static const char* _jbl_parse_js_key(const char **key, const char *p, struct JCTX *ctx) {
   char c, q = 0;
   while ((c = *p++)) {
     if (!q && (c == '\'' || c == '"')) {
@@ -246,7 +248,7 @@ static const char* _jbl_parse_js_key(const char **key, const char *p, JCTX *ctx)
   return 0;
 }
 
-static const char* _jbl_parse_json_key(const char **key, const char *p, JCTX *ctx) {
+static const char* _jbl_parse_json_key(const char **key, const char *p, struct JCTX *ctx) {
   char c;
   while ((c = *p++)) {
     if (c == '"') {
@@ -295,7 +297,7 @@ static const char* _jbl_parse_json_key(const char **key, const char *p, JCTX *ct
 }
 
 static const char* _jbl_parse_value(
-  JCTX *ctx,
+  struct JCTX *ctx,
   int lvl,
   struct jbl_node *parent,
   const char *key, int klidx,
@@ -654,7 +656,7 @@ error:
 }
 
 static jbn_visitor_cmd_t _jbl_clone_node_visit(
-  int lvl, struct jbl_node *n, const char *key, int klidx, JBN_VCTX *vctx,
+  int lvl, struct jbl_node *n, const char *key, int klidx, struct jbn_vctx *vctx,
   iwrc *rc) {
   if (lvl < 0) {
     return JBL_VCMD_OK;
@@ -691,7 +693,7 @@ iwrc jbn_clone(struct jbl_node *src, struct jbl_node **targetp, struct iwpool *p
   if (!n) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  JBN_VCTX vctx = {
+  struct jbn_vctx vctx = {
     .pool = pool,
     .root = n,
     .op = n
@@ -745,7 +747,7 @@ iwrc jbl_as_json_alloc(struct jbl *jbl, jbl_print_flags_t pf, char **out) {
 
 iwrc jbn_from_json(const char *json, struct jbl_node **node, struct iwpool *pool) {
   *node = 0;
-  JCTX ctx = {
+  struct JCTX ctx = {
     .pool = pool,
     .buf = json
   };
@@ -757,7 +759,7 @@ iwrc jbn_from_json(const char *json, struct jbl_node **node, struct iwpool *pool
 
 iwrc jbn_from_js(const char *json, struct jbl_node **node, struct iwpool *pool) {
   *node = 0;
-  JCTX ctx = {
+  struct JCTX ctx = {
     .pool = pool,
     .buf = json,
     .js = true

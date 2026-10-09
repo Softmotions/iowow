@@ -465,7 +465,7 @@ void* iwulist_array(struct iwulist *list) {
 //                      Array list implementation                        //
 ///////////////////////////////////////////////////////////////////////////
 
-iwrc iwlist_init(IWLIST *list, size_t anum) {
+iwrc iwlist_init(struct iwlist *list, size_t anum) {
   if (!anum) {
     anum = 32;
   }
@@ -479,8 +479,8 @@ iwrc iwlist_init(IWLIST *list, size_t anum) {
   return 0;
 }
 
-IWLIST* iwlist_create(size_t anum) {
-  IWLIST *list = malloc(sizeof(*list));
+struct iwlist* iwlist_create(size_t anum) {
+  struct iwlist *list = malloc(sizeof(*list));
   if (!list) {
     return 0;
   }
@@ -491,9 +491,9 @@ IWLIST* iwlist_create(size_t anum) {
   return list;
 }
 
-void iwlist_destroy_keep(IWLIST *list) {
+void iwlist_destroy_keep(struct iwlist *list) {
   if (list) {
-    IWLISTITEM *array = list->array;
+    struct iwlistitem *array = list->array;
     if (array) {
       size_t end = list->start + list->num;
       for (size_t i = list->start; i < end; ++i) {
@@ -508,7 +508,7 @@ void iwlist_destroy_keep(IWLIST *list) {
   }
 }
 
-void iwlist_destroy(IWLIST **listp) {
+void iwlist_destroy(struct iwlist **listp) {
   if (listp) {
     if (*listp) {
       iwlist_destroy_keep(*listp);
@@ -518,21 +518,21 @@ void iwlist_destroy(IWLIST **listp) {
   }
 }
 
-size_t iwlist_length(const IWLIST *list) {
+size_t iwlist_length(const struct iwlist *list) {
   return list->num;
 }
 
-IWLIST* iwlist_clone(const IWLIST *list) {
+struct iwlist* iwlist_clone(const struct iwlist *list) {
   size_t num = list->num;
   if (!num) {
     return iwlist_create(0);
   }
-  IWLIST *nlist = malloc(sizeof(*nlist));
+  struct iwlist *nlist = malloc(sizeof(*nlist));
   if (!nlist) {
     return 0;
   }
-  const IWLISTITEM *array = list->array + list->start;
-  IWLISTITEM *narray = malloc(sizeof(*narray) * num);
+  const struct iwlistitem *array = list->array + list->start;
+  struct iwlistitem *narray = malloc(sizeof(*narray) * num);
   if (!narray) {
     free(nlist);
     return 0;
@@ -554,7 +554,7 @@ IWLIST* iwlist_clone(const IWLIST *list) {
   return nlist;
 }
 
-void* iwlist_at(const IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
+void* iwlist_at(const struct iwlist *list, size_t index, size_t *osize, iwrc *orc) {
   *orc = 0;
   if (index >= list->num) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
@@ -567,7 +567,7 @@ void* iwlist_at(const IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
   return list->array[index].val;
 }
 
-void* iwlist_at2(const IWLIST *list, size_t index, size_t *osize) {
+void* iwlist_at2(const struct iwlist *list, size_t index, size_t *osize) {
   if (index >= list->num) {
     return 0;
   }
@@ -578,7 +578,7 @@ void* iwlist_at2(const IWLIST *list, size_t index, size_t *osize) {
   return list->array[index].val;
 }
 
-void* iwlist_get(const IWLIST *list, size_t index, size_t *osize) {
+void* iwlist_get(const struct iwlist *list, size_t index, size_t *osize) {
   if (index >= list->num) {
     return 0;
   }
@@ -589,7 +589,7 @@ void* iwlist_get(const IWLIST *list, size_t index, size_t *osize) {
   return list->array[index].val;
 }
 
-iwrc iwlist_push(IWLIST *list, const void *data, size_t data_size) {
+iwrc iwlist_push(struct iwlist *list, const void *data, size_t data_size) {
   size_t index = list->start + list->num;
   if (index >= list->anum) {
     size_t anum = list->anum + list->num + 1;
@@ -600,7 +600,7 @@ iwrc iwlist_push(IWLIST *list, const void *data, size_t data_size) {
     list->anum = anum;
     list->array = nptr;
   }
-  IWLISTITEM *array = list->array;
+  struct iwlistitem *array = list->array;
   array[index].val = malloc(data_size + 1);
   if (!array[index].val) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -612,7 +612,7 @@ iwrc iwlist_push(IWLIST *list, const void *data, size_t data_size) {
   return 0;
 }
 
-void* iwlist_pop(IWLIST *list, size_t *osize, iwrc *orc) {
+void* iwlist_pop(struct iwlist *list, size_t *osize, iwrc *orc) {
   *orc = 0;
   if (!list->num) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
@@ -626,7 +626,7 @@ void* iwlist_pop(IWLIST *list, size_t *osize, iwrc *orc) {
   return list->array[index].val;
 }
 
-iwrc iwlist_unshift(IWLIST *list, const void *data, size_t data_size) {
+iwrc iwlist_unshift(struct iwlist *list, const void *data, size_t data_size) {
   char *val = malloc(data_size + 1);
   if (!val) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
@@ -655,7 +655,7 @@ iwrc iwlist_unshift(IWLIST *list, const void *data, size_t data_size) {
   return 0;
 }
 
-void* iwlist_shift(IWLIST *list, size_t *osize, iwrc *orc) {
+void* iwlist_shift(struct iwlist *list, size_t *osize, iwrc *orc) {
   *orc = 0;
   if (!list->num) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
@@ -673,7 +673,7 @@ void* iwlist_shift(IWLIST *list, size_t *osize, iwrc *orc) {
   return rv;
 }
 
-iwrc iwlist_insert(IWLIST *list, size_t index, const void *data, size_t data_size) {
+iwrc iwlist_insert(struct iwlist *list, size_t index, const void *data, size_t data_size) {
   if (index > list->num) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -701,7 +701,7 @@ iwrc iwlist_insert(IWLIST *list, size_t index, const void *data, size_t data_siz
   return 0;
 }
 
-iwrc iwlist_set(IWLIST *list, size_t index, const void *data, size_t data_size) {
+iwrc iwlist_set(struct iwlist *list, size_t index, const void *data, size_t data_size) {
   if (index >= list->num) {
     return IW_ERROR_OUT_OF_BOUNDS;
   }
@@ -719,7 +719,7 @@ iwrc iwlist_set(IWLIST *list, size_t index, const void *data, size_t data_size) 
   return 0;
 }
 
-void* iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
+void* iwlist_remove(struct iwlist *list, size_t index, size_t *osize, iwrc *orc) {
   *orc = 0;
   if (index >= list->num) {
     *orc = IW_ERROR_OUT_OF_BOUNDS;
@@ -734,7 +734,9 @@ void* iwlist_remove(IWLIST *list, size_t index, size_t *osize, iwrc *orc) {
   return rv;
 }
 
-void iwlist_sort(IWLIST *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*), void *op) {
+void iwlist_sort(
+  struct iwlist *list, int (*compar)(const struct iwlistitem*, const struct iwlistitem*, void*),
+  void *op) {
   sort_r(list->array + list->start, list->num, sizeof(list->array[0]),
          (int (*)(const void*, const void*, void*)) compar, op);
 }

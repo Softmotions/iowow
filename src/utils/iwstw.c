@@ -81,7 +81,7 @@ static void* _worker_fn(void *op) {
   return 0;
 }
 
-iwrc iwstw_shutdown(struct iwstw * *stwp, bool wait_for_all) {
+iwrc iwstw_shutdown(struct iwstw **stwp, bool wait_for_all) {
   if (!stwp || !*stwp) {
     return 0;
   }

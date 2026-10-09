@@ -60,7 +60,7 @@ int clean_suite(void) {
   return 0;
 }
 
-uint64_t iwfs_fsmdbg_number_of_free_areas(IWFS_FSM *f);
+uint64_t iwfs_fsmdbg_number_of_free_areas(struct iwfs_fsm *f);
 uint64_t iwfs_fsmdbg_find_next_set_bit(
   const uint64_t *addr,
   uint64_t        offset_bit,
@@ -71,9 +71,9 @@ uint64_t iwfs_fsmdbg_find_prev_set_bit(
   uint64_t        offset_bit,
   uint64_t        min_offset_bit,
   int            *found);
-void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
-iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d);
-iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f, int blimit);
+void iwfs_fsmdbg_dump_fsm_tree(struct iwfs_fsm *f, const char *hdr);
+iwrc iwfs_fsmdbg_state(struct iwfs_fsm *f, struct iwfs_fsmdbg_state *d);
+iwrc iwfs_fsmdb_dump_fsm_bitmap(struct iwfs_fsm *f, int blimit);
 
 void test_fsm_bitmap(void) {
 #define BMSZ1 16
@@ -221,7 +221,7 @@ void test_fsm_bitmap(void) {
 
 void test_fsm_open_close(void) {
   iwrc rc;
-  IWFS_FSM_OPTS opts = {
+  struct iwfs_fsm_opts opts = {
     .exfile = {
       .file = { .path = "test_fsm_open_close.fsm", .lock_mode = IWP_WLOCK },
       .rspolicy = iw_exfile_szpolicy_fibo,
@@ -233,8 +233,8 @@ void test_fsm_open_close(void) {
   };
 
   size_t aunit = iwp_alloc_unit();
-  IWFS_FSMDBG_STATE state1, state2;
-  IWFS_FSM fsm;
+  struct iwfs_fsmdbg_state state1, state2;
+  struct iwfs_fsm fsm;
   rc = iwfs_fsmfile_open(&fsm, &opts);
   CU_ASSERT_FALSE_FATAL(rc);
   rc = iwfs_fsmdbg_state(&fsm, &state1);
@@ -274,8 +274,8 @@ void test_fsm_uniform_alloc_mmap_all(void) {
 
 void test_fsm_uniform_alloc_impl(int mmap_all) {
   iwrc rc;
-  IWFS_FSMDBG_STATE state1, state2;
-  IWFS_FSM_OPTS opts = {
+  struct iwfs_fsmdbg_state state1, state2;
+  struct iwfs_fsm_opts opts = {
     .exfile = {
       .file = {
         .path = "test_fsm_uniform_alloc.fsm",
@@ -299,7 +299,7 @@ void test_fsm_uniform_alloc_impl(int mmap_all) {
 #define bcnt 4096
   ASLOT aslots[bcnt];
 
-  IWFS_FSM fsm;
+  struct iwfs_fsm fsm;
   rc = iwfs_fsmfile_open(&fsm, &opts);
   CU_ASSERT_FALSE_FATAL(rc);
 
@@ -389,7 +389,7 @@ void test_fsm_uniform_alloc_impl(int mmap_all) {
   CU_ASSERT_FALSE_FATAL(rc);
 
   if (iwp_alloc_unit() == 4096) {
-    IWP_FILE_STAT st;
+    struct iwp_file_stat st;
     rc = iwp_fstat("test_fsm_uniform_alloc.fsm", &st);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL(st.size, iwp_alloc_unit() * 3);
@@ -405,12 +405,12 @@ typedef struct FSMREC {
 } FSMREC;
 
 typedef struct {
-  int       maxrecs;
-  int       avgrecsz;
-  IWFS_FSM *fsm;
-  volatile int numrecs;
-  FSMREC      *reclist;
-  FSMREC      *head;
+  int maxrecs;
+  int avgrecsz;
+  struct iwfs_fsm *fsm;
+  volatile int     numrecs;
+  struct FSMREC   *reclist;
+  struct FSMREC   *head;
   int blkpow;
 } FSMRECTASK;
 
@@ -419,8 +419,8 @@ typedef struct {
 static void* recordsthr(void *op) {
   FSMRECTASK *task = op;
   iwrc rc;
-  FSMREC *rec, *tmp;
-  IWFS_FSM *fsm = task->fsm;
+  struct FSMREC *rec, *tmp;
+  struct iwfs_fsm *fsm = task->fsm;
   size_t sp;
 
   const int maxrsize = IW_ROUNDUP(task->avgrecsz * 3, 1 << task->blkpow);
@@ -540,7 +540,7 @@ void test_block_allocation_impl(int mmap_all, int nthreads, int numrec, int avgr
   iwrc rc;
   pthread_t *tlist = malloc(nthreads * sizeof(pthread_t));
 
-  IWFS_FSM_OPTS opts = {
+  struct iwfs_fsm_opts opts = {
     .exfile = {
       .file = { .path = path, .omode = IWFS_OTRUNC },
       .rspolicy = iw_exfile_szpolicy_fibo
@@ -551,8 +551,8 @@ void test_block_allocation_impl(int mmap_all, int nthreads, int numrec, int avgr
   };
 
   FSMRECTASK task;
-  FSMREC *rec, *prev;
-  IWFS_FSM fsm;
+  struct FSMREC *rec, *prev;
+  struct iwfs_fsm fsm;
   rc = iwfs_fsmfile_open(&fsm, &opts);
   CU_ASSERT_FALSE_FATAL(rc);
 
@@ -597,9 +597,9 @@ void test_block_allocation1_mmap_all(void) {
 
 void test_block_allocation1_impl(int mmap_all) {
   iwrc rc;
-  IWFS_FSM fsm;
+  struct iwfs_fsm fsm;
   int psize = iwp_alloc_unit();
-  IWFS_FSM_OPTS opts = {
+  struct iwfs_fsm_opts opts = {
     .exfile = {
       .file = {
         .path = "test_block_allocation1.fsm",

@@ -20,9 +20,9 @@ typedef struct entry {
 } entry_t;
 
 typedef struct {
-  entry_t *entries;
-  uint32_t used;
-  uint32_t total;
+  struct entry *entries;
+  uint32_t      used;
+  uint32_t      total;
 } bucket_t;
 
 typedef struct lru_node {
@@ -63,7 +63,7 @@ void iwhmap_kv_free(void *key, void *val) {
   free(val);
 }
 
-IW_INLINE uint32_t _n_buckets(hmap_t *hm) {
+IW_INLINE uint32_t _n_buckets(struct iwhmap *hm) {
   return hm->buckets_mask + 1;
 }
 
@@ -140,7 +140,7 @@ struct iwhmap* iwhmap_create(
     kv_free_fn = _noop_kv_free;
   }
 
-  hmap_t *hm = malloc(sizeof(*hm));
+  struct iwhmap *hm = malloc(sizeof(*hm));
   if (!hm) {
     return 0;
   }
@@ -165,7 +165,7 @@ struct iwhmap* iwhmap_create_u64(void (*kv_free_fn)(void*, void*)) {
   if (!kv_free_fn) {
     kv_free_fn = _noop_uint64_kv_free;
   }
-  hmap_t *hm = iwhmap_create(_uint64_cmp, _hash_uint64_key, kv_free_fn);
+  struct iwhmap *hm = iwhmap_create(_uint64_cmp, _hash_uint64_key, kv_free_fn);
   if (hm) {
     if (sizeof(uintptr_t) >= sizeof(uint64_t)) {
       hm->int_key_as_pointer_value = true;
@@ -175,7 +175,7 @@ struct iwhmap* iwhmap_create_u64(void (*kv_free_fn)(void*, void*)) {
 }
 
 struct iwhmap* iwhmap_create_u32(void (*kv_free_fn)(void*, void*)) {
-  hmap_t *hm = iwhmap_create(_uint32_cmp, _hash_uint32_key, kv_free_fn);
+  struct iwhmap *hm = iwhmap_create(_uint32_cmp, _hash_uint32_key, kv_free_fn);
   if (hm) {
     hm->int_key_as_pointer_value = true;
   }
@@ -186,10 +186,10 @@ struct iwhmap* iwhmap_create_str(void (*kv_free_fn)(void*, void*)) {
   return iwhmap_create((int (*)(const void*, const void*)) strcmp, _hash_buf_key, kv_free_fn);
 }
 
-static entry_t* _entry_find(struct iwhmap *hm, const void *key, uint32_t hash) {
+static struct entry* _entry_find(struct iwhmap *hm, const void *key, uint32_t hash) {
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
-  entry_t *entry = bucket->entries;
-  for (entry_t *end = entry + bucket->used; entry < end; ++entry) {
+  struct entry *entry = bucket->entries;
+  for (struct entry *end = entry + bucket->used; entry < end; ++entry) {
     if (hash == entry->hash && hm->cmp_fn(key, entry->key) == 0) {
       return entry;
     }
@@ -197,8 +197,8 @@ static entry_t* _entry_find(struct iwhmap *hm, const void *key, uint32_t hash) {
   return 0;
 }
 
-static entry_t* _entry_add(struct iwhmap *hm, void *key, uint32_t hash) {
-  entry_t *entry;
+static struct entry* _entry_add(struct iwhmap *hm, void *key, uint32_t hash) {
+  struct entry *entry;
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
 
   if (bucket->used + 1 >= bucket->total) {
@@ -207,7 +207,7 @@ static entry_t* _entry_add(struct iwhmap *hm, void *key, uint32_t hash) {
       return 0;
     }
     uint32_t new_total = bucket->total + STEPS;
-    entry_t *new_entries = realloc(bucket->entries, new_total * sizeof(new_entries[0]));
+    struct entry *new_entries = realloc(bucket->entries, new_total * sizeof(new_entries[0]));
     if (!new_entries) {
       return 0;
     }
@@ -215,7 +215,7 @@ static entry_t* _entry_add(struct iwhmap *hm, void *key, uint32_t hash) {
     bucket->total = new_total;
   }
   entry = bucket->entries;
-  for (entry_t *end = entry + bucket->used; entry < end; ++entry) {
+  for (struct entry *end = entry + bucket->used; entry < end; ++entry) {
     // NOLINTNEXTLINE (clang-analyzer-core.UndefinedBinaryOperatorResult)
     if ((hash == entry->hash) && (hm->cmp_fn(key, entry->key) == 0)) {
       return entry;
@@ -232,7 +232,7 @@ static entry_t* _entry_add(struct iwhmap *hm, void *key, uint32_t hash) {
   return entry;
 }
 
-static void _rehash(hmap_t *hm, uint32_t num_buckets) {
+static void _rehash(struct iwhmap *hm, uint32_t num_buckets) {
   bucket_t *buckets = calloc(num_buckets, sizeof(*buckets));
   if (!buckets) {
     return;
@@ -243,17 +243,17 @@ static void _rehash(hmap_t *hm, uint32_t num_buckets) {
   bucket_t *bucket,
            *bucket_end = hm->buckets + _n_buckets(hm);
 
-  hmap_t hm_copy = *hm;
+  struct iwhmap hm_copy = *hm;
   hm_copy.count = 0;
   hm_copy.buckets_mask = num_buckets - 1;
   hm_copy.buckets = buckets;
 
   for (bucket = hm->buckets; bucket < bucket_end; ++bucket) {
-    entry_t *entry_old = bucket->entries;
+    struct entry *entry_old = bucket->entries;
     if (entry_old) {
-      entry_t *entry_old_end = entry_old + bucket->used;
+      struct entry *entry_old_end = entry_old + bucket->used;
       for ( ; entry_old < entry_old_end; ++entry_old) {
-        entry_t *entry_new = _entry_add(&hm_copy, entry_old->key, entry_old->hash);
+        struct entry *entry_new = _entry_add(&hm_copy, entry_old->key, entry_old->hash);
         if (!entry_new) {
           goto fail;
         }
@@ -282,7 +282,7 @@ fail:
   free(buckets);
 }
 
-static void _lru_entry_update(struct iwhmap *hm, entry_t *entry) {
+static void _lru_entry_update(struct iwhmap *hm, struct entry *entry) {
   if (entry->lru_node) {
     entry->lru_node->key = entry->key;
     if (entry->lru_node->next) {
@@ -315,7 +315,7 @@ static void _lru_entry_update(struct iwhmap *hm, entry_t *entry) {
   }
 }
 
-static void _lru_entry_remove(struct iwhmap *hm, entry_t *entry) {
+static void _lru_entry_remove(struct iwhmap *hm, struct entry *entry) {
   if (entry->lru_node->next) {
     struct lru_node *prev = entry->lru_node->prev;
     if (prev) {
@@ -336,7 +336,7 @@ static void _lru_entry_remove(struct iwhmap *hm, entry_t *entry) {
 
 void* iwhmap_get(struct iwhmap *hm, const void *key) {
   uint32_t hash = hm->hash_key_fn(key);
-  entry_t *entry = _entry_find(hm, key, hash);
+  struct entry *entry = _entry_find(hm, key, hash);
   if (entry) {
     if (hm->lru_ev) {
       _lru_entry_update(hm, entry);
@@ -347,7 +347,7 @@ void* iwhmap_get(struct iwhmap *hm, const void *key) {
   }
 }
 
-static void _entry_remove(struct iwhmap *hm, bucket_t *bucket, entry_t *entry) {
+static void _entry_remove(struct iwhmap *hm, bucket_t *bucket, struct entry *entry) {
   if (entry->lru_node) {
     _lru_entry_remove(hm, entry);
   }
@@ -355,7 +355,7 @@ static void _entry_remove(struct iwhmap *hm, bucket_t *bucket, entry_t *entry) {
   hm->kv_free_fn(hm->int_key_as_pointer_value ? 0 : entry->key, entry->val);
 
   if (bucket->used > 1) {
-    entry_t *entry_last = bucket->entries + bucket->used - 1;
+    struct entry *entry_last = bucket->entries + bucket->used - 1;
     if (entry != entry_last) {
       memcpy(entry, entry_last, sizeof(*entry));
     }
@@ -369,7 +369,7 @@ static void _entry_remove(struct iwhmap *hm, bucket_t *bucket, entry_t *entry) {
     uint32_t steps_used = bucket->used / STEPS;
     uint32_t steps_total = bucket->total / STEPS;
     if (steps_used + 1 < steps_total) {
-      entry_t *entries_new = realloc(bucket->entries, ((size_t) steps_used + 1) * STEPS * sizeof(entries_new[0]));
+      struct entry *entries_new = realloc(bucket->entries, ((size_t) steps_used + 1) * STEPS * sizeof(entries_new[0]));
       if (entries_new) {
         bucket->entries = entries_new;
         bucket->total = (steps_used + 1) * STEPS;
@@ -381,7 +381,7 @@ static void _entry_remove(struct iwhmap *hm, bucket_t *bucket, entry_t *entry) {
 bool iwhmap_remove(struct iwhmap *hm, const void *key) {
   uint32_t hash = hm->hash_key_fn(key);
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
-  entry_t *entry = _entry_find(hm, key, hash);
+  struct entry *entry = _entry_find(hm, key, hash);
   if (entry) {
     _entry_remove(hm, bucket, entry);
     return true;
@@ -404,7 +404,7 @@ bool iwhmap_remove_u32(struct iwhmap *hm, uint32_t key) {
 
 iwrc iwhmap_put(struct iwhmap *hm, void *key, void *val) {
   uint32_t hash = hm->hash_key_fn(key);
-  entry_t *entry = _entry_add(hm, key, hash);
+  struct entry *entry = _entry_add(hm, key, hash);
   if (!entry) {
     return iwrc_set_errno(IW_ERROR_ERRNO, errno);
   }
@@ -447,7 +447,7 @@ iwrc iwhmap_put_str(struct iwhmap *hm, const char *key_, void *val) {
 
 iwrc iwhmap_rename(struct iwhmap *hm, const void *key_old, void *key_new) {
   uint32_t hash = hm->hash_key_fn(key_old);
-  entry_t *entry = _entry_find(hm, key_old, hash);
+  struct entry *entry = _entry_find(hm, key_old, hash);
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
 
   if (entry) {
@@ -520,7 +520,7 @@ bool iwhmap_iter_next(struct iwhmap_iter *iter) {
   if (!iter->hm) {
     return false;
   }
-  entry_t *entry;
+  struct entry *entry;
   bucket_t *bucket = iter->hm->buckets + iter->bucket;
 
   ++iter->entry;
@@ -548,7 +548,7 @@ void iwhmap_clear(struct iwhmap *hm) {
     return;
   }
   for (bucket_t *b = hm->buckets, *be = hm->buckets + _n_buckets(hm); b < be; ++b) {
-    for (entry_t *e = b->entries, *ee = b->entries + b->used; e < ee; ++e) {
+    for (struct entry *e = b->entries, *ee = b->entries + b->used; e < ee; ++e) {
       hm->kv_free_fn(hm->int_key_as_pointer_value ? 0 : e->key, e->val);
     }
     free(b->entries);
@@ -564,8 +564,8 @@ void iwhmap_clear(struct iwhmap *hm) {
       hm->buckets_mask = MIN_BUCKETS - 1;
     }
   }
-  for (lru_node_t *n = hm->lru_first; n; ) {
-    lru_node_t *nn = n->next;
+  for (struct lru_node *n = hm->lru_first; n; ) {
+    struct lru_node *nn = n->next;
     free(n);
     n = nn;
   }
@@ -579,14 +579,14 @@ void iwhmap_destroy(struct iwhmap *hm) {
   }
   for (bucket_t *b = hm->buckets, *be = hm->buckets + _n_buckets(hm); b < be; ++b) {
     if (b->entries) {
-      for (entry_t *e = b->entries, *ee = b->entries + b->used; e < ee; ++e) {
+      for (struct entry *e = b->entries, *ee = b->entries + b->used; e < ee; ++e) {
         hm->kv_free_fn(hm->int_key_as_pointer_value ? 0 : e->key, e->val);
       }
       free(b->entries);
     }
   }
-  for (lru_node_t *n = hm->lru_first; n; ) {
-    lru_node_t *nn = n->next;
+  for (struct lru_node *n = hm->lru_first; n; ) {
+    struct lru_node *nn = n->next;
     free(n);
     n = nn;
   }

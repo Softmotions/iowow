@@ -109,7 +109,7 @@ static void _destroy(void *op) {
 
 static iwrc _load(struct iwjsreg *reg) {
   iwrc rc = 0;
-  JBL jbl = 0;
+  struct jbl *jbl = 0;
   size_t flen = 0;
   char *fbuf = iwu_file_read_as_buf_len(reg->path, &flen);
   if (!fbuf) {
@@ -245,7 +245,7 @@ iwrc iwjsreg_sync(struct iwjsreg *reg) {
   }
 
   iwrc rc = 0;
-  JBL jbl = 0;
+  struct jbl *jbl = 0;
   FILE *file = 0;
 
   RCRET(reg->wlock_fn(reg->fn_data));

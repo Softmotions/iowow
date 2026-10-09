@@ -38,7 +38,7 @@ void test_iwarr1(void) {
 }
 
 void test_iwlist1(void) {
-  IWLIST list;
+  struct iwlist list;
   iwrc rc = iwlist_init(&list, 2); // Small initial capacity to force growth on unshift
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 

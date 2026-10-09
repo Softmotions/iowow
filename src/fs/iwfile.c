@@ -160,7 +160,7 @@ iwrc iwfs_file_open(struct iwfs_file *f, const struct iwfs_file_opts *_opts) {
 
   struct iwfs_file_opts *opts;
   struct iwfs_file_impl *impl;
-  IWP_FILE_STAT fstat;
+  struct iwp_file_stat fstat;
   iwfs_omode omode;
   iwrc rc;
   int mode;

@@ -54,10 +54,10 @@ int clean_suite(void) {
 
 void iwfs_exfile_test1(void) {
   iwrc rc = 0;
-  IWFS_EXT ef;
+  struct iwfs_ext ef;
 
   const char *path = "iwfs_exfile_test1.dat";
-  IWFS_EXT_OPTS opts = {
+  struct iwfs_ext_opts opts = {
     .file = {
       .path = path,
       .lock_mode = IWP_WLOCK,
@@ -80,7 +80,7 @@ void iwfs_exfile_test1(void) {
   IWRC(ef.write(&ef, 1, 0, 0, &sp), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  IWP_FILE_STAT fstat;
+  struct iwp_file_stat fstat;
   IWRC(iwp_fstat(path, &fstat), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL(sp, 0);
@@ -122,9 +122,9 @@ void iwfs_exfile_test1(void) {
 
 void iwfs_exfile_test1_2(void) {
   iwrc rc = 0;
-  IWFS_EXT f;
+  struct iwfs_ext f;
   const char *path = "exfile_test1_2-"; // Temp file prefix
-  IWFS_EXT_OPTS opts = {
+  struct iwfs_ext_opts opts = {
     .file = {
       .path = path,
       .omode = IWFS_OTMP | IWFS_OUNLINK
@@ -133,14 +133,14 @@ void iwfs_exfile_test1_2(void) {
   rc = iwfs_exfile_open(&f, &opts);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  IWFS_EXT_STATE state;
+  struct iwfs_ext_state state;
   rc = f.state(&f, &state);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   char *tpath = strdup(state.file.opts.path);
   fprintf(stderr, "\nTmp file: %s\n", tpath);
 
-  IWP_FILE_STAT fstat;
+  struct iwp_file_stat fstat;
   rc = iwp_fstat(tpath, &fstat);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -156,8 +156,8 @@ void iwfs_exfile_test1_2(void) {
 
 void test_fibo_inc(void) {
   const char *path = "test_fibo_inc.dat";
-  IWFS_EXT ef;
-  IWFS_EXT_OPTS opts = {
+  struct iwfs_ext ef;
+  struct iwfs_ext_opts opts = {
     .file = {
       .path = path,
       .lock_mode = IWP_WLOCK,
@@ -179,7 +179,7 @@ void test_fibo_inc(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   size_t psize = iwp_alloc_unit();
-  IWP_FILE_STAT fstat;
+  struct iwp_file_stat fstat;
   IWRC(iwp_fstat(path, &fstat), rc);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL_FATAL(fstat.size, psize);
@@ -218,8 +218,8 @@ void test_mmap1(void) {
   uint8_t *cdata = malloc(dsize);
 
   const char *path = "test_mmap1.dat";
-  IWFS_EXT ef;
-  IWFS_EXT_OPTS opts = { .file = { .path = path, .omode = IWFS_OTRUNC }, .use_locks = 0 };
+  struct iwfs_ext ef;
+  struct iwfs_ext_opts opts = { .file = { .path = path, .omode = IWFS_OTRUNC }, .use_locks = 0 };
 
   for (int i = 0; i < dsize; ++i) {
     data[i] = iwu_rand_range(256);

@@ -109,7 +109,7 @@ iwrc iwp_sleep(uint64_t ms) {
   return rc;
 }
 
-iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fs) {
+iwrc iwp_fstat(const char *path, struct iwp_file_stat *fs) {
   memset(fs, 0, sizeof(*fs));
   struct stat st = { 0 };
   if (stat(path, &st)) {
@@ -129,7 +129,7 @@ iwrc iwp_fstat(const char *path, IWP_FILE_STAT *fs) {
   return 0;
 }
 
-iwrc iwp_fstath(HANDLE fh, IWP_FILE_STAT *fs) {
+iwrc iwp_fstath(HANDLE fh, struct iwp_file_stat *fs) {
   memset(fs, 0, sizeof(*fs));
   BY_HANDLE_FILE_INFORMATION info;
   if (INVALIDHANDLE(fh)) {

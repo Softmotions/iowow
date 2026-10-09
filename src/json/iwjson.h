@@ -426,7 +426,7 @@ IW_EXPORT iwrc jbn_copy_path(
   const char      *target_path,
   bool             overwrite_on_nulls,
   bool             no_src_clone,
-  IWPOOL          *pool);
+  struct iwpool   *pool);
 
 /**
  * @brief Copies a set of values pointed by `paths` zero terminated array
@@ -447,7 +447,7 @@ IW_EXPORT iwrc jbn_copy_paths(
   const char     **paths,
   bool             overwrite_on_nulls,
   bool             no_src_clone,
-  IWPOOL          *pool);
+  struct iwpool   *pool);
 
 /**
  * @brief Clones a given `src` struct jbl* object and stores it in memory allocated from `pool`.
@@ -576,9 +576,9 @@ IW_EXPORT int jbn_path_compare_bool(struct jbl_node *n, const char *path, bool b
  * @param jp          JSON pointer.
  * @param [out] res   Output value holder
  */
-IW_EXPORT iwrc jbl_at2(struct jbl *jbl, JBL_PTR jp, struct jbl **res);
+IW_EXPORT iwrc jbl_at2(struct jbl *jbl, struct jbl_ptr *jp, struct jbl **res);
 
-IW_EXPORT iwrc jbn_at2(struct jbl_node *node, JBL_PTR jp, struct jbl_node **res);
+IW_EXPORT iwrc jbn_at2(struct jbl_node *node, struct jbl_ptr *jp, struct jbl_node **res);
 
 /**
  * @brief Represent `jbl` document as raw data buffer.
@@ -650,7 +650,7 @@ IW_EXPORT iwrc jbl_create_iterator_holder(struct jbl **jblp);
  * @param jbl struct jbl* object to iterate
  * @param iter Iterator state placeholder allocated by `jbl_create_iter_placeholder()`
  */
-IW_EXPORT iwrc jbl_iterator_init(struct jbl *jbl, JBL_iterator *iter);
+IW_EXPORT iwrc jbl_iterator_init(struct jbl *jbl, struct jbl_iterator *iter);
 
 /**
  * @brief Get next value from JBL_iterator.
@@ -661,7 +661,7 @@ IW_EXPORT iwrc jbl_iterator_init(struct jbl *jbl, JBL_iterator *iter);
  * @param pkey    Key value holder. Zero in the case of iteration over array.
  * @param klen    Key length or array index in the case of iteration over array.
  */
-IW_EXPORT bool jbl_iterator_next(JBL_iterator *iter, struct jbl *holder, char **pkey, int *klen);
+IW_EXPORT bool jbl_iterator_next(struct jbl_iterator *iter, struct jbl *holder, char **pkey, int *klen);
 
 //--- struct jbl_node*
 
@@ -883,7 +883,7 @@ IW_EXPORT iwrc jbn_add_item_i64(
   const char       *key,
   int64_t           val,
   struct jbl_node **node_out,
-  IWPOOL           *pool);
+  struct iwpool    *pool);
 
 /**
  * @brief Adds fp number JSON node to the given `parent` node.
@@ -899,7 +899,7 @@ IW_EXPORT iwrc jbn_add_item_f64(
   const char       *key,
   double            val,
   struct jbl_node **node_out,
-  IWPOOL           *pool);
+  struct iwpool    *pool);
 
 /**
  * @brief Add nested object under the given `key`
@@ -945,7 +945,7 @@ IW_EXPORT iwrc jbn_add_item_bool(
   const char       *key,
   bool              val,
   struct jbl_node **node_out,
-  IWPOOL           *pool);
+  struct iwpool    *pool);
 
 /**
  * @brief Add item from the `parent` container.
@@ -955,7 +955,7 @@ IW_EXPORT void jbn_remove_item(struct jbl_node *parent, struct jbl_node *child);
 /**
  * @brief Remove subtree from `target` node pointed by `path`
  */
-IW_EXPORT struct jbl_node* jbn_detach2(struct jbl_node *target, JBL_PTR path);
+IW_EXPORT struct jbl_node* jbn_detach2(struct jbl_node *target, struct jbl_ptr *path);
 
 IW_EXPORT struct jbl_node* jbn_detach(struct jbl_node *target, const char *path);
 
@@ -978,7 +978,7 @@ IW_EXPORT int jbn_length(struct jbl_node *node);
  * @param path      JSON path string. Not zero.
  * @param [out] jpp Holder for parsed path structure. Not zero.
  */
-IW_EXPORT iwrc jbl_ptr_alloc(const char *path, JBL_PTR *jpp);
+IW_EXPORT iwrc jbl_ptr_alloc(const char *path, struct jbl_ptr **jpp);
 
 /**
  * @brief Parses rfc6901 JSON path.
@@ -987,19 +987,19 @@ IW_EXPORT iwrc jbl_ptr_alloc(const char *path, JBL_PTR *jpp);
  * @param [out] jpp JSON path string. Not zero.
  * @param pool  Pool used for memory allocation. Not zero.
  */
-IW_EXPORT iwrc jbl_ptr_alloc_pool(const char *path, JBL_PTR *jpp, struct iwpool *pool);
+IW_EXPORT iwrc jbl_ptr_alloc_pool(const char *path, struct jbl_ptr **jpp, struct iwpool *pool);
 
 /**
  * @brief Compare JSON pointers.
  */
-IW_EXPORT int jbl_ptr_cmp(JBL_PTR p1, JBL_PTR p2);
+IW_EXPORT int jbl_ptr_cmp(struct jbl_ptr *p1, struct jbl_ptr *p2);
 
 /**
  * @brief Serialize JSON pointer to as text.
  * @param ptr   JSON pointer. Not zero.
  * @param xstr  Output string buffer. Not zero.
  */
-IW_EXPORT iwrc jbl_ptr_serialize(JBL_PTR ptr, IWXSTR *xstr);
+IW_EXPORT iwrc jbl_ptr_serialize(struct jbl_ptr *ptr, struct iwxstr *xstr);
 
 /**
  * @brief struct jbl_node* visitor context
@@ -1017,10 +1017,10 @@ typedef struct jbn_vctx {
  * Call with lvl: `-1` means end of visiting whole object tree.
  */
 typedef jbn_visitor_cmd_t (*JBN_VISITOR)(
-  int lvl, struct jbl_node *n, const char *key, int klidx, JBN_VCTX *vctx,
+  int lvl, struct jbl_node *n, const char *key, int klidx, struct jbn_vctx *vctx,
   iwrc *rc);
 
-IW_EXPORT iwrc jbn_visit(struct jbl_node *node, int lvl, JBN_VCTX *vctx, JBN_VISITOR visitor);
+IW_EXPORT iwrc jbn_visit(struct jbl_node *node, int lvl, struct jbn_vctx *vctx, JBN_VISITOR visitor);
 
 IW_EXPORT iwrc jbn_visit2(struct jbl_node *node, int lvl, iwrc (*visitor)(int, struct jbl_node*));
 
@@ -1028,9 +1028,9 @@ IW_EXPORT iwrc jbn_visit2(struct jbl_node *node, int lvl, iwrc (*visitor)(int, s
 
 IW_EXPORT iwrc jbn_patch_auto(struct jbl_node *root, struct jbl_node *patch, struct iwpool *pool);
 
-IW_EXPORT iwrc jbn_patch(struct jbl_node *root, const JBL_PATCH *patch, size_t cnt, struct iwpool *pool);
+IW_EXPORT iwrc jbn_patch(struct jbl_node *root, const struct jbl_patch *patch, size_t cnt, struct iwpool *pool);
 
-IW_EXPORT iwrc jbl_patch(struct jbl *jbl, const JBL_PATCH *patch, size_t cnt);
+IW_EXPORT iwrc jbl_patch(struct jbl *jbl, const struct jbl_patch *patch, size_t cnt);
 
 IW_EXPORT iwrc jbl_patch_from_json(struct jbl *jbl, const char *patchjson);
 

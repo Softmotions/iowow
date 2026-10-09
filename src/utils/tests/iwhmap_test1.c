@@ -52,7 +52,7 @@ static void test_murmur_hash(void) {
 static void test_basic_crud_str(void) {
   char kbuf[64];
   char vbuf[64];
-  IWHMAP *hm = iwhmap_create_str(iwhmap_kv_free);
+  struct iwhmap *hm = iwhmap_create_str(iwhmap_kv_free);
   CU_ASSERT_PTR_NOT_NULL_FATAL(hm);
   for (int i = 0; i < 10000; ++i) {
     snprintf(kbuf, sizeof(kbuf), "key%d", i);
@@ -91,7 +91,7 @@ static void test_basic_crud_str(void) {
 }
 
 static void test_lru1(void) {
-  IWHMAP *hm = iwhmap_create_u32(0);
+  struct iwhmap *hm = iwhmap_create_u32(0);
   CU_ASSERT_PTR_NOT_NULL_FATAL(hm);
 
   // Init LRU mode max 2 records in map
@@ -128,7 +128,7 @@ static void test_lru1(void) {
 
 static void test_lru2(void) {
   iwrc rc = 0;
-  IWHMAP *hm = iwhmap_create_u32(0);
+  struct iwhmap *hm = iwhmap_create_u32(0);
   CU_ASSERT_PTR_NOT_NULL_FATAL(hm);
   iwhmap_lru_init(hm, iwhmap_lru_eviction_max_count, (void*) (uintptr_t) 1024UL);
   for (int i = 0; i < 2048; ++i) {

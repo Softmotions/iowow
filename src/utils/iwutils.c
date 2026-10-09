@@ -254,7 +254,7 @@ iwrc iwu_file_write_buf(const char *path, const char *buf, size_t len, bool appe
 }
 
 char* iwu_file_read_as_buf_max(const char *path, ssize_t len_max, size_t *out_len) {
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
   if (!xstr) {
     return 0;
   }
@@ -308,7 +308,7 @@ char* iwu_file_read_as_buf(const char *path) {
 }
 
 iwrc iwu_replace(
-  IWXSTR           **result,
+  struct iwxstr    **result,
   const char        *data,
   int                datalen,
   const char        *keys[],
@@ -335,8 +335,8 @@ iwrc iwu_replace(
   const char *start = data;
   const char *ptr = start;
 
-  IWXSTR *bbuf = 0;
-  IWXSTR *inter = 0;
+  struct iwxstr *bbuf = 0;
+  struct iwxstr *inter = 0;
   bbuf = iwxstr_create(datalen);
   RCA(bbuf, finish);
   inter = iwxstr_create(datalen);

@@ -1,4 +1,5 @@
 2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1-dev]
+  * Refacroring: Struct type aliases are replaced by unaliased `struct` type clauses.
 	* iwkv: WAL rework. Changed WAL file format to be more compact	~1.5-2.5x.
 					NOTE: WAL file format changed, so upgrade to this version requires the regular database reopen.
 					Online backups from previous versions are not compatible this vesion.

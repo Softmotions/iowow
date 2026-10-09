@@ -14,20 +14,20 @@ int clean_suite(void) {
 }
 
 static void iwkv_test9_1(void) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test9_1.db",
     .oflags = IWKV_TRUNC
   };
-  IWKV kv = NULL;
+  struct iwkv *kv = NULL;
   iwrc rc = iwkv_open(&opts, &kv);
   assert(rc == 0);
-  IWDB db = NULL;
+  struct iwdb *db = NULL;
   rc = iwkv_db(kv, 1, 0, &db);
   assert(rc == 0);
 
   {
     unsigned char ip1[4] = { 1, 0, 142, 235 };
-    IWKV_val ikey, ival;
+    struct iwkv_val ikey, ival;
     ikey.data = ip1;
     ikey.size = 4;
     ival.data = (void*) "";
@@ -39,7 +39,7 @@ static void iwkv_test9_1(void) {
 
   {
     unsigned char ip2[4] = { 1, 0, 145, 2 };
-    IWKV_val ikey, ival;
+    struct iwkv_val ikey, ival;
     ikey.data = ip2;
     ikey.size = 4;
     ival.data = (void*) "";

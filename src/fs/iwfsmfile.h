@@ -183,11 +183,11 @@ typedef struct iwfs_fsm_state {
 } IWFS_FSM_STATE;
 
 typedef struct iwfs_fsmdbg_state {
-  IWFS_FSM_STATE state;
-  uint64_t       bmoff;
-  uint64_t       bmlen;
-  uint64_t       lfbklen;
-  uint64_t       lfbkoff;
+  struct iwfs_fsm_state state;
+  uint64_t bmoff;
+  uint64_t bmlen;
+  uint64_t lfbklen;
+  uint64_t lfbkoff;
 } IWFS_FSMDBG_STATE;
 
 /**
@@ -349,10 +349,10 @@ typedef struct iwfs_fsm {
   iwrc (*sync)(struct iwfs_fsm *f, iwfs_sync_flags flags);
 
   /** @see IWFS_FILE::state */
-  iwrc (*state)(struct iwfs_fsm *f, IWFS_FSM_STATE *state);
+  iwrc (*state)(struct iwfs_fsm *f, struct iwfs_fsm_state *state);
 
   /** get access to the underlying iwextfile instance */
-  iwrc (*extfile)(struct iwfs_fsm *f, IWFS_EXT **ext);
+  iwrc (*extfile)(struct iwfs_fsm *f, struct iwfs_ext **ext);
 } IWFS_FSM;
 
 /**

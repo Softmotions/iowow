@@ -14,17 +14,17 @@ typedef struct VN {
 } VN;
 
 typedef struct CTX {
-  VN *vn;
+  struct VN *vn;
   int vnsz;
   pthread_cond_t  cond;
   pthread_mutex_t mtx;
   int       readynum;
   const int thrnum;
-  IWDB      db;
+  struct iwdb *db;
 } CTX;
 
 typedef struct TASK {
-  CTX      *ctx;
+  struct CTX *ctx;
   int       start;
   int       cnt;
   pthread_t thr;
@@ -39,7 +39,7 @@ int clean_suite(void) {
   return 0;
 }
 
-static int logstage(FILE *f, const char *name, IWDB db) {
+static int logstage(FILE *f, const char *name, struct iwdb *db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
   iwkvd_db(f, db, /*IWKVD_PRINT_NO_LEVEVELS*/ 0, 0);
   fflush(f);
@@ -47,8 +47,8 @@ static int logstage(FILE *f, const char *name, IWDB db) {
 }
 
 static void* iwkv_test1_worker(void *op) {
-  TASK *t = op;
-  CTX *ctx = t->ctx;
+  struct TASK *t = op;
+  struct CTX *ctx = t->ctx;
   int mynum;
   int rci = pthread_mutex_lock(&ctx->mtx);
   CU_ASSERT_EQUAL_FATAL(rci, 0);
@@ -61,7 +61,7 @@ static void* iwkv_test1_worker(void *op) {
   }
   pthread_mutex_unlock(&ctx->mtx);
 
-  IWKV_val key, val;
+  struct iwkv_val key, val;
   for (int i = 0; i < t->cnt; ++i) {
     uint64_t k = t->start + i;
     uint64_t v = k;
@@ -79,9 +79,9 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   FILE *f = fopen("iwkv_test3_1.log", "w+");
   CU_ASSERT_PTR_NOT_NULL(f);
   const int nrecs = thrnum * recth;
-  TASK *tasks = calloc(thrnum, sizeof(*tasks));
-  VN *arr = calloc(nrecs, sizeof(*arr));
-  CTX ctx = {
+  struct TASK *tasks = calloc(thrnum, sizeof(*tasks));
+  struct VN *arr = calloc(nrecs, sizeof(*arr));
+  struct CTX ctx = {
     .vn = arr,
     .vnsz = nrecs,
     .mtx = PTHREAD_MUTEX_INITIALIZER,
@@ -106,7 +106,7 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
     arr[i].kn = knt;
   }
 
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test3_1.db",
     .oflags = IWKV_TRUNC,
     .wal = {
@@ -114,8 +114,8 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
       .checkpoint_buffer_sz = 1024 * 1024
     }
   };
-  IWKV iwkv;
-  IWKV_val key, val;
+  struct iwkv *iwkv;
+  struct iwkv_val key, val;
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 

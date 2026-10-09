@@ -370,7 +370,7 @@ IW_EXPORT void* iwlist_remove(struct iwlist *list, size_t index, size_t *osize, 
  * @param op User data
  */
 IW_EXPORT void iwlist_sort(
-  struct iwlist *list, int (*compar)(const IWLISTITEM*, const IWLISTITEM*, void*),
+  struct iwlist *list, int (*compar)(const struct iwlistitem*, const struct iwlistitem*, void*),
   void *op);
 
 IW_EXTERN_C_END;

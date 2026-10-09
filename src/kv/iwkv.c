@@ -486,7 +486,7 @@ struct dispose_db_ctx {
 static iwrc _db_dispose_chain(struct dispose_db_ctx *dctx) {
   iwrc rc = 0;
   uint8_t *mm, kvszpow;
-  IWFS_FSM *fsm = &dctx->iwkv->fsm;
+  struct iwfs_fsm *fsm = &dctx->iwkv->fsm;
   blkn_t sbn = dctx->sbn, kvblkn;
   off_t page = 0;
 
@@ -543,7 +543,7 @@ static WUR iwrc _db_destroy_lw(struct iwdb **dbp) {
   struct iwkv *iwkv = db->iwkv;
   struct iwdb *prev = db->prev;
   struct iwdb *next = db->next;
-  IWFS_FSM *fsm = &iwkv->fsm;
+  struct iwfs_fsm *fsm = &iwkv->fsm;
   uint32_t first_sblkn;
 
   if (!iwhmap_get_u32(iwkv->dbs, db->id)) {
@@ -609,7 +609,7 @@ static WUR iwrc _db_create_lw(struct iwkv *iwkv, dbid_t dbid, iwdb_flags_t dbflg
   int rci;
   uint8_t *mm = 0;
   off_t baddr = 0, blen;
-  IWFS_FSM *fsm = &iwkv->fsm;
+  struct iwfs_fsm *fsm = &iwkv->fsm;
   *odb = 0;
   struct iwdb *db = calloc(1, sizeof(struct iwdb));
   if (!db) {
@@ -1124,7 +1124,7 @@ static WUR iwrc _kvblk_rmkv(struct kvblk *kb, uint8_t idx, kvblk_rmkv_opts_t opt
   iwrc rc = 0;
   uint8_t *mm = 0;
   struct iwdlsnr *dlsnr = kb->db->iwkv->dlsnr;
-  IWFS_FSM *fsm = &kb->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &kb->db->iwkv->fsm;
   if (kb->pidx[idx].off >= kb->maxoff) {
     kb->maxoff = 0;
     for (int i = 0; i < KVBLK_IDXNUM; ++i) {
@@ -1201,7 +1201,7 @@ static WUR iwrc _kvblk_addkv(
   struct kvp *kvp;
   struct iwdb *db = kb->db;
   bool compound = !raw_key && (db->dbflg & IWDB_COMPOUND_KEYS);
-  IWFS_FSM *fsm = &db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &db->iwkv->fsm;
   bool compacted = false;
   struct iwdlsnr *dlsnr = kb->db->iwkv->dlsnr;
   struct iwkv_val *uval = (struct iwkv_val*) val;
@@ -1335,7 +1335,7 @@ static WUR iwrc _kvblk_updatev(
   struct kvp *kvp = &kb->pidx[pidx];
   size_t kbsz = 1ULL << kb->szpow;                            // kvblk size
   off_t freesz = kbsz - KVBLK_HDRSZ - kb->idxsz - kb->maxoff; // free space available
-  IWFS_FSM *fsm = &db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &db->iwkv->fsm;
 
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
@@ -1458,7 +1458,7 @@ IW_INLINE WUR iwrc _sblk_destroy(struct iwlctx *lx, struct sblk **sblkp) {
   if (!(sblk->flags & SBLK_DB)) {
     uint8_t kvb_szpow, *mm;
     struct iwdlsnr *dlsnr = lx->db->iwkv->dlsnr;
-    IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+    struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
     off_t kvb_addr = BLK2ADDR(sblk->kvblkn);
     rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCRET(rc);
@@ -1531,7 +1531,7 @@ static WUR iwrc _sblk_create_v1(
   struct sblk *sblk;
   struct kvblk *kvblk;
   off_t blen;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   if (kvbpow < KVBLK_INISZPOW) {
     kvbpow = KVBLK_INISZPOW;
   }
@@ -1612,7 +1612,7 @@ static WUR iwrc _sblk_create_v2(
   struct sblk  **oblk) {
   off_t baddr = 0;
   uint8_t bpos = 0, *mm;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   struct sblk *_lower = lower;
   struct sblk *_upper = upper;
 
@@ -1816,7 +1816,7 @@ finish:
 static WUR iwrc _sblk_at2(struct iwlctx *lx, off_t addr, sblk_flags_t flgs, struct sblk *sblk) {
   uint8_t *mm;
   size_t mmsz = 0;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, &mmsz);
   RCRET(rc);
   rc = _sblk_at2_mm(lx, addr, flgs, sblk, mm, mmsz);
@@ -1929,7 +1929,7 @@ static WUR iwrc _sblk_sync_mm(struct iwlctx *lx, struct sblk *sblk, uint8_t *mm)
 IW_INLINE WUR iwrc _sblk_sync(struct iwlctx *lx, struct sblk *sblk) {
   if ((sblk->flags & SBLK_DURTY) || (sblk->kvblk && (sblk->kvblk->flags & KVBLK_DURTY))) {
     uint8_t *mm;
-    IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+    struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
     iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
     RCRET(rc);
     rc = _sblk_sync_mm(lx, sblk, mm);
@@ -2115,7 +2115,7 @@ static WUR iwrc _sblk_addkv(struct sblk *sblk, struct iwlctx *lx) {
   uint8_t *mm, idx, kvidx;
   struct iwdb *db = sblk->db;
   struct kvblk *kvblk = sblk->kvblk;
-  IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &sblk->db->iwkv->fsm;
   if (sblk->pnum >= KVBLK_IDXNUM) {
     return _IWKV_RC_KVBLOCK_FULL;
   }
@@ -2206,7 +2206,7 @@ static WUR iwrc _sblk_rmkv(struct sblk *sblk, uint8_t idx) {
   assert(sblk && sblk->kvblk);
   struct iwdb *db = sblk->db;
   struct kvblk *kvblk = sblk->kvblk;
-  IWFS_FSM *fsm = &sblk->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &sblk->db->iwkv->fsm;
   assert(kvblk && idx < sblk->pnum && sblk->pi[idx] < KVBLK_IDXNUM);
 
   iwrc rc = _kvblk_rmkv(kvblk, sblk->pi[idx], 0);
@@ -2367,7 +2367,7 @@ static WUR iwrc _lx_find_bounds(struct iwlctx *lx) {
   blkn_t blkn;
   uint8_t *mm;
   size_t mmsz = 0;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   struct sblk *dblk = &lx->dblk;
 
   // Acquire the exfile mmap once for the whole descent instead of once per visited skiplist node.
@@ -2463,7 +2463,7 @@ finish:
 
 static iwrc _lx_release(struct iwlctx *lx) {
   uint8_t *mm;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   iwrc rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   rc = _lx_release_mm(lx, mm);
@@ -2505,7 +2505,7 @@ static iwrc _lx_split_addkv(struct iwlctx *lx, int idx, struct sblk *sblk) {
     RCRET(rc);
 
     struct iwkv_val key, val;
-    IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+    struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
     for (int8_t i = pivot, end = sblk->pnum; i < end; ++i) {
       uint8_t *mm;
       rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
@@ -2598,7 +2598,7 @@ static WUR iwrc _lx_addkv(struct iwlctx *lx) {
   bool found, uadd;
   uint8_t *mm = 0, idx;
   struct sblk *sblk = lx->lower;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   if (lx->nlvl > -1) {
     rc = _lx_init_chute(lx);
     RCRET(rc);
@@ -2741,7 +2741,7 @@ IW_INLINE WUR iwrc _lx_get_lr(struct iwlctx *lx) {
   RCRET(rc);
   bool found;
   uint8_t *mm, idx;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   lx->val->size = 0;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
@@ -2859,7 +2859,7 @@ static WUR iwrc _lx_del_lw(struct iwlctx *lx) {
   bool found;
   uint8_t *mm = 0, idx;
   struct iwdb *db = lx->db;
-  IWFS_FSM *fsm = &db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &db->iwkv->fsm;
   struct sblk *sblk;
 
   rc = _lx_find_bounds(lx);
@@ -2904,7 +2904,7 @@ IW_INLINE WUR iwrc _cursor_get_ge_idx(struct iwlctx *lx, IWKV_cursor_op op, uint
   RCRET(rc);
   bool found;
   uint8_t *mm, idx;
-  IWFS_FSM *fsm = &lx->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   rc = _sblk_loadkvblk_mm(lx, lx->lower, mm);
@@ -3100,7 +3100,7 @@ iwrc iwkv_state(struct iwkv *iwkv, struct iwfs_fsm_state *out) {
   }
   int rci;
   API_RLOCK(iwkv, rci);
-  IWFS_FSM fsm = iwkv->fsm;
+  struct iwfs_fsm fsm = iwkv->fsm;
   iwrc rc = fsm.state(&fsm, out);
   API_UNLOCK(iwkv, rci, rc);
   return rc;
@@ -3175,7 +3175,7 @@ static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_
   RCGO(rc, finish);
 
   waloff = IW_ITOHLL(waloff);
-  if (((waloff != pos) && (waloff > pos - sizeof(WBSEP))) || (waloff & (aunit - 1))) {
+  if (((waloff != pos) && (waloff > pos - sizeof(struct wbsep))) || (waloff & (aunit - 1))) {
     goto finish;
   }
 
@@ -3469,7 +3469,7 @@ static iwrc _iwkv_sync(struct iwkv *iwkv, iwfs_sync_flags _flags) {
   if (iwkv->dlsnr) {
     rc = iwal_poke_savepoint(iwkv);
   } else {
-    IWFS_FSM *fsm = &iwkv->fsm;
+    struct iwfs_fsm *fsm = &iwkv->fsm;
     pthread_rwlock_wrlock(&iwkv->rwl);
     iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
     rc = fsm->sync(fsm, flags);
@@ -3490,7 +3490,7 @@ iwrc iwkv_sync(struct iwkv *iwkv, iwfs_sync_flags _flags) {
     rc = iwal_savepoint_exl(iwkv, true);
     iwkv_exclusive_unlock(iwkv);
   } else {
-    IWFS_FSM *fsm = &iwkv->fsm;
+    struct iwfs_fsm *fsm = &iwkv->fsm;
     pthread_rwlock_wrlock(&iwkv->rwl);
     iwfs_sync_flags flags = IWFS_FDATASYNC | _flags;
     rc = fsm->sync(fsm, flags);

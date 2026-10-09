@@ -392,7 +392,7 @@ typedef const char* (*iwu_replace_mapper)(const char *key, void *op);
  * @param mapper_op Replacement mapper opaque data
  */
 IW_EXPORT iwrc iwu_replace(
-  IWXSTR           **result,
+  struct iwxstr    **result,
   const char        *data,
   int                datalen,
   const char        *keys[],

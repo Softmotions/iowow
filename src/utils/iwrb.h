@@ -72,7 +72,7 @@ IW_EXPORT size_t iwrb_num_cached(const struct iwrb *rb);
 
 IW_EXPORT void iwrb_iter_init(const struct iwrb *rb, struct iwrb_iter *iter);
 
-IW_EXPORT void* iwrb_iter_prev(IWRB_ITER *iter);
+IW_EXPORT void* iwrb_iter_prev(struct iwrb_iter *iter);
 
 IW_EXTERN_C_END;
 #endif

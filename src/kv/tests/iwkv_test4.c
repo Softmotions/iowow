@@ -43,11 +43,11 @@ int clean_suite(void) {
 
 static void iwkv_test4_4(void) {
   char *path = "iwkv_test4_4.db";
-  IWKV iwkv;
-  IWDB db1;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db1;
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC,
     .random_seed = g_seed,
@@ -81,11 +81,11 @@ static void iwkv_test4_4(void) {
 
 static void iwkv_test4_3_impl(int fmt_version) {
   char *path = "iwkv_test4_3.db";
-  IWKV iwkv;
-  IWDB db1;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db1;
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
     .random_seed = g_seed,
@@ -178,14 +178,14 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
   g_rnd_data_pos = 0;
   char kbuf[100];
   iwrc rc;
-  IWKV iwkv;
-  IWDB db1;
+  struct iwkv *iwkv;
+  struct iwdb *db1;
   if (walpath) {
     unlink(walpath);
   }
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV_OPTS opts = {
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC,
     .random_seed = g_seed,
@@ -239,14 +239,14 @@ static void iwkv_test4_2(void) {
 
 static void iwkv_test1_impl(char *path, const char *walpath) {
   iwrc rc;
-  IWKV iwkv;
-  IWDB db1, db2;
+  struct iwkv *iwkv;
+  struct iwdb *db1, *db2;
   if (walpath) {
     unlink(walpath);
   }
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV_OPTS opts = {
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC,
     .wal = {

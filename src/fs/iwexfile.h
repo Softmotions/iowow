@@ -136,9 +136,9 @@ IW_EXPORT off_t iw_exfile_szpolicy_mul(
  * @see iwrc iwfs_exfile_open(IWFS_EXT *f, const IWFS_EXT_OPTS *opts)
  */
 typedef struct iwfs_ext_opts {
-  IWFS_FILE_OPTS file; /**< Underlying file options */
-  off_t initial_size;  /**< Initial file size */
-  bool  use_locks;     /**< If `true` file operations will be guarded by rw lock. Default: `false` */
+  struct iwfs_file_opts file; /**< Underlying file options */
+  off_t initial_size;         /**< Initial file size */
+  bool  use_locks;            /**< If `true` file operations will be guarded by rw lock. Default: `false` */
 
   iw_ext_rspolicy_fp rspolicy; /**< File resize policy function ptr. Default:
                                   `exact size policy`  */
@@ -178,8 +178,7 @@ typedef struct iwfs_ext {
    *
    * @see off_t iw_exfile_szpolicy_fibo(off_t nsize, off_t csize, struct
    * IWFS_EXT *f, void **ctx)
-   * @see off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT
-   * *f, void **ctx)
+   * @see off_t iw_exfile_szpolicy_mul(off_t nsize, off_t csize, struct IWFS_EXT **f, void **ctx)
    */
   iwrc (*ensure_size)(struct iwfs_ext *f, off_t off);
 
@@ -306,7 +305,7 @@ typedef struct iwfs_ext {
   iwrc (*sync)(struct iwfs_ext *f, iwfs_sync_flags flags);
 
   /**  @see IWFS_FILE::state */
-  iwrc (*state)(struct iwfs_ext *f, IWFS_EXT_STATE *state);
+  iwrc (*state)(struct iwfs_ext *f, struct iwfs_ext_state *state);
 
   /**  @see IWFS_FILE::copy */
   iwrc (*copy)(struct iwfs_ext *f, off_t off, size_t siz, off_t noff);

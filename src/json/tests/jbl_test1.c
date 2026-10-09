@@ -21,11 +21,11 @@ void _jbl_test1_1(int num, iwrc expected, jbl_print_flags_t pf) {
   iwrc rc;
   char path[64];
   char path_expected[64];
-  JBL_NODE node = 0;
+  struct jbl_node *node = 0;
   struct iwpool *pool;
   char *data;
   char *edata = 0;
-  IWXSTR *res = iwxstr_create_empty();
+  struct iwxstr *res = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(res);
 
   snprintf(path, sizeof(path), "data%c%03d.json", IW_PATH_CHR, num);
@@ -86,11 +86,11 @@ void jbl_test1_2(void) {
                      "\"n\\\"um2\":10.1226222, "
                      "\"list\":[3,2.1,1,\"one\", \"two\", "
                      "{}, {\"z\":false, \"t\":true}]}";
-  JBL jbl;
+  struct jbl *jbl;
   iwrc rc = jbl_from_json(&jbl, data);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   rc = jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false);
@@ -110,7 +110,7 @@ void jbl_test1_2(void) {
 }
 
 static void jbl_test1_3(void) {
-  JBL_PTR jp;
+  struct jbl_ptr *jp;
   iwrc rc = jbl_ptr_alloc("/", &jp);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL(jp->cnt, 1);
@@ -181,7 +181,7 @@ static void jbl_test1_4(void) {
         strdup("{'foo':'bar','foo2':{'foo3':{'foo4':'bar4'},'foo5':'bar5'},"
                "'num1':1,'list1':['one','two',{'three':3}]}"),
         '\'', '"');
-  JBL jbl, at, at2;
+  struct jbl *jbl, *at, *at2;
   const char *sval;
   int ival;
   iwrc rc = jbl_from_json(&jbl, data);
@@ -256,7 +256,7 @@ static void jbl_test1_4(void) {
 }
 
 static void jbl_test1_5(void) {
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   //  { "foo": "bar",
@@ -274,11 +274,11 @@ static void jbl_test1_5(void) {
         strdup("{'foo':'bar','foo2':{'foo3':{'foo4':'bar4'},'foo5':'bar5'},"
                "'num1':1,'list1':['one','two',{'three':3}]}"),
         '\'', '"');
-  JBL jbl;
+  struct jbl *jbl;
   int res = 0;
 
   // Remove ROOT
-  JBL_PATCH p1[] = { { .op = JBP_REMOVE, .path = "/" } };
+  struct jbl_patch p1[] = { { .op = JBP_REMOVE, .path = "/" } };
   iwrc rc = jbl_from_json(&jbl, data);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbl_patch(jbl, p1, sizeof(p1) / sizeof(p1[0]));
@@ -287,7 +287,7 @@ static void jbl_test1_5(void) {
 
 
   // Remove "/foo"
-  JBL_PATCH p2[] = { { .op = JBP_REMOVE, .path = "/foo" } };
+  struct jbl_patch p2[] = { { .op = JBP_REMOVE, .path = "/foo" } };
   rc = jbl_from_json(&jbl, data);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbl_patch(jbl, p2, sizeof(p2) / sizeof(p2[0]));
@@ -303,7 +303,7 @@ static void jbl_test1_5(void) {
 
   // Remove /foo2/foo3/foo4
   // Remove /list1/1
-  JBL_PATCH p3[] = {
+  struct jbl_patch p3[] = {
     { .op = JBP_REMOVE, .path = "/foo2/foo3/foo4" },
     { .op = JBP_REMOVE, .path = "/list1/1" }
   };
@@ -322,9 +322,9 @@ static void jbl_test1_5(void) {
   free(data);
 }
 
-static void apply_patch(const char *data, const char *patch, const char *result, IWXSTR *xstr, iwrc *rcp) {
+static void apply_patch(const char *data, const char *patch, const char *result, struct iwxstr *xstr, iwrc *rcp) {
   CU_ASSERT_TRUE_FATAL(data && patch && xstr && rcp);
-  JBL jbl = 0;
+  struct jbl *jbl = 0;
   char *data2 = iwu_replace_char(strdup(data), '\'', '"');
   char *patch2 = iwu_replace_char(strdup(patch), '\'', '"');
   char *result2 = result ? iwu_replace_char(strdup(result), '\'', '"') : 0;
@@ -359,9 +359,9 @@ finish:
   *rcp = rc;
 }
 
-static void apply_merge_patch(const char *data, const char *patch, const char *result, IWXSTR *xstr, iwrc *rcp) {
+static void apply_merge_patch(const char *data, const char *patch, const char *result, struct iwxstr *xstr, iwrc *rcp) {
   CU_ASSERT_TRUE_FATAL(data && patch && xstr && rcp);
-  JBL jbl = 0;
+  struct jbl *jbl = 0;
   char *data2 = iwu_replace_char(strdup(data), '\'', '"');
   char *patch2 = iwu_replace_char(strdup(patch), '\'', '"');
   char *result2 = result ? iwu_replace_char(strdup(result), '\'', '"') : 0;
@@ -399,7 +399,7 @@ finish:
 // Run tests: https://github.com/json-patch/json-patch-tests/blob/master/spec_tests.json
 static void jbl_test1_6(void) {
   iwrc rc;
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   apply_patch("{'foo':'bar','foo2':{'foo3':{'foo4':'bar4'},'foo5':'bar5'},'num1':1,'list1':['one','two',{'three':3}]}",
@@ -628,7 +628,7 @@ static void jbl_test1_6(void) {
 
 static void jbl_test1_7(void) {
   iwrc rc;
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   // #233
@@ -722,7 +722,7 @@ static void jbl_test1_7(void) {
 }
 
 static void jbl_test1_8(void) {
-  JBL jbl, nested, at;
+  struct jbl *jbl, *nested, *at;
   iwrc rc = jbl_create_empty_object(&jbl);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -773,14 +773,14 @@ static void jbl_test1_9(void) {
                      "\"list\":[3,2.1,1,\"one\" \"two\", "
                      "{}, {\"z\":false, \"arr\":[9,8], \"t\":true}]}";
 
-  JBL_NODE n, cn;
+  struct jbl_node *n, *cn;
   iwrc rc = jbn_from_json(data, &n, pool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_clone(n, &cn, cpool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   iwpool_destroy(pool);
@@ -800,14 +800,14 @@ static void jbl_test1_9(void) {
 static void jbl_test1_10(void) {
   struct iwpool *pool = iwpool_create(512);
   struct iwpool *tpool = iwpool_create(512);
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
 
   const char *src_data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
                          "\"n\\\"um2\":10.1226222, "
                          "\"list\":[3,2.1,1,\"one\" \"two\", "
                          "{}, {\"z\":false, \"arr\":[9,8], \"t\":true}]}";
   const char *tgt_data = "{\"test\":{\"nested1\":22}}";
-  JBL_NODE n1, n2;
+  struct jbl_node *n1, *n2;
   iwrc rc = jbn_from_json(src_data, &n1, pool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -837,7 +837,7 @@ static void jbl_test1_10(void) {
 
 static void jbl_test1_11(void) {
   struct iwpool *pool = iwpool_create(512);
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
 
   const char *src_data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
                          "\"n\\\"um2\":10.1226222, "
@@ -845,7 +845,7 @@ static void jbl_test1_11(void) {
                          "{}, {\"z\":false, \"arr\":[9,8], \"t\":true}]}";
   const char *tgt_data = "{\"test\":{\"nested1\":22}, \"list\":[0,99]}";
 
-  JBL_NODE n1, n2;
+  struct jbl_node *n1, *n2;
   iwrc rc = jbn_from_json(src_data, &n1, pool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -868,7 +868,7 @@ static void jbl_test1_11(void) {
 
 void jbl_test1_12(void) {
   struct iwpool *pool = iwpool_create_empty();
-  JBL_NODE n;
+  struct jbl_node *n;
   iwrc rc = jbn_from_json("{\"foo\":1.1}", &n, pool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   iwpool_destroy(pool);
@@ -876,7 +876,7 @@ void jbl_test1_12(void) {
 
 void jbl_test1_13(void) {
   struct iwpool *pool = iwpool_create_empty();
-  JBL_NODE n, n2;
+  struct jbl_node *n, *n2;
   iwrc rc = jbn_from_js("{foo:'bar', z:null, x: .1, y:-.1, 'baz':1, \"gaz\":['one','two']}", &n, pool);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbn_at(n, "/foo", &n2);

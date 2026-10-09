@@ -177,7 +177,7 @@ typedef struct perf_config {
   const char *output;
 } perf_config;
 
-static perf_config g_cfg = {
+static struct perf_config g_cfg = {
   .wl_mask = PERF_BIT(PERF_WORKLOAD_CRUD) | PERF_BIT(PERF_WORKLOAD_READ_MOSTLY),
   .ds_mask = 0xfu,
   .conc_mask = 0x3u,
@@ -219,7 +219,7 @@ typedef struct perf_zipf {
   double   eta;
 } perf_zipf;
 
-static perf_dataset perf_datasets[] = {
+static struct perf_dataset perf_datasets[] = {
   { "small32", 0, 16, 16, false, false, 0 },
   { "small240", 0, 16, 224, false, false, 0 },
   { "small1016", 0, 16, 1000, false, false, 0 },
@@ -238,7 +238,7 @@ typedef struct perf_hist {
   uint64_t max;
 } perf_hist;
 
-static void perf_hist_record(perf_hist *h, uint64_t ns) {
+static void perf_hist_record(struct perf_hist *h, uint64_t ns) {
   unsigned idx;
   if (ns <= 1) {
     idx = (unsigned) ns;
@@ -256,7 +256,7 @@ static void perf_hist_record(perf_hist *h, uint64_t ns) {
   }
 }
 
-static void perf_hist_merge(perf_hist *dst, const perf_hist *src) {
+static void perf_hist_merge(struct perf_hist *dst, const struct perf_hist *src) {
   for (unsigned i = 0; i < PERF_HIST_BUCKETS; ++i) {
     dst->b[i] += src->b[i];
   }
@@ -267,7 +267,7 @@ static void perf_hist_merge(perf_hist *dst, const perf_hist *src) {
   }
 }
 
-static uint64_t perf_hist_percentile(const perf_hist *h, double p) {
+static uint64_t perf_hist_percentile(const struct perf_hist *h, double p) {
   if (!h->count) {
     return 0;
   }
@@ -288,8 +288,8 @@ static uint64_t perf_hist_percentile(const perf_hist *h, double p) {
 /* ------------------------------------------------------------ structures */
 
 typedef struct perf_ctx {
-  IWDB db;
-  const perf_dataset *ds;
+  struct iwdb *db;
+  const struct perf_dataset *ds;
   uint64_t nrecs;
   size_t   ksz;
   size_t   vsz;
@@ -308,7 +308,7 @@ typedef struct perf_ctx {
   int  read_pct;
   int  miss_pct;
   bool scan_desc;   /* Engine iterates keys in descending order */
-  perf_zipf *zipf;
+  struct perf_zipf  *zipf;
   pthread_barrier_t *bar;
 } perf_ctx;
 
@@ -317,13 +317,13 @@ struct perf_task;
 typedef void (*perf_worker_fn)(struct perf_task *t);
 
 typedef struct perf_task {
-  perf_ctx      *ctx;
-  perf_worker_fn fn;
-  int       tid;
-  uint64_t  kstart, kcnt;        /* Key range */
-  uint64_t  ostart, ocnt;        /* Operation range */
-  uint64_t  reads, writes, misses, scanned;
-  perf_hist lat;
+  struct perf_ctx *ctx;
+  perf_worker_fn   fn;
+  int      tid;
+  uint64_t kstart, kcnt;        /* Key range */
+  uint64_t ostart, ocnt;        /* Operation range */
+  uint64_t reads, writes, misses, scanned;
+  struct perf_hist lat;
   uint8_t  *val_ins;
   uint8_t  *val_upd;
   uint8_t  *read_buf;
@@ -339,7 +339,7 @@ typedef struct perf_phase {
 } perf_phase;
 
 typedef struct perf_iter {
-  perf_phase ph[PERF_PHASE_MAX];
+  struct perf_phase ph[PERF_PHASE_MAX];
   int      nph;
   double   metric_secs;
   uint64_t metric_ops;
@@ -350,15 +350,15 @@ typedef struct perf_iter {
 } perf_iter;
 
 typedef struct perf_result {
-  perf_dataset      *ds;
-  enum perf_workload wl;
+  struct perf_dataset *ds;
+  enum perf_workload   wl;
   enum perf_durability dur;
-  bool      concurrent;
-  int       nthreads;
-  int       nmeasured;
-  perf_iter iters[PERF_MAX_REPEATS];
-  perf_hist lat;
-  double    thr_med, thr_min, thr_max;
+  bool concurrent;
+  int  nthreads;
+  int  nmeasured;
+  struct perf_iter iters[PERF_MAX_REPEATS];
+  struct perf_hist lat;
+  double thr_med, thr_min, thr_max;
 } perf_result;
 
 /* -------------------------------------------------------------- helpers */
@@ -474,7 +474,7 @@ static bool perf_val_match(const void *data, size_t size, uint64_t idx) {
   return got == idx && p[8] <= 1;
 }
 
-static void perf_task_verify(perf_task *t, const void *data, size_t size, uint64_t idx) {
+static void perf_task_verify(struct perf_task *t, const void *data, size_t size, uint64_t idx) {
   int v = t->ctx->verify;
   if (v == PERF_VERIFY_OFF) {
     return;
@@ -538,7 +538,7 @@ static void perf_fmt_ns(uint64_t ns, char *buf, size_t bufsz) {
 }
 
 static uint64_t perf_file_size(const char *path) {
-  IWP_FILE_STAT st;
+  struct iwp_file_stat st;
   memset(&st, 0, sizeof(st));
   iwrc rc = iwp_fstat(path, &st);
   return rc ? 0 : st.size;
@@ -554,7 +554,7 @@ static void perf_track_peak(const char *path, uint64_t *peak) {
   }
 }
 
-static void perf_sample_sizes(const char *dbpath, const char *walpath, perf_iter *it) {
+static void perf_sample_sizes(const char *dbpath, const char *walpath, struct perf_iter *it) {
   perf_track_peak(dbpath, &it->db_peak_size);
   perf_track_peak(walpath, &it->wal_peak_size);
 }
@@ -569,7 +569,7 @@ static double perf_zipf_zeta(uint64_t n, double theta) {
   return sum;
 }
 
-static void perf_zipf_init(perf_zipf *z, uint64_t n, double theta) {
+static void perf_zipf_init(struct perf_zipf *z, uint64_t n, double theta) {
   z->n = n;
   z->theta = theta;
   z->zeta_2 = perf_zipf_zeta(2, theta);
@@ -578,7 +578,7 @@ static void perf_zipf_init(perf_zipf *z, uint64_t n, double theta) {
   z->eta = (1.0 - pow(2.0 / (double) n, 1.0 - theta)) / (1.0 - z->zeta_2 / z->zeta_n);
 }
 
-static uint64_t perf_zipf_next(perf_zipf *z, uint64_t *rng) {
+static uint64_t perf_zipf_next(struct perf_zipf *z, uint64_t *rng) {
   double u = (double) (perf_rand_next(rng) >> 11) * (1.0 / 9007199254740992.0);
   double uz = u * z->zeta_n;
   if (uz < 1.0) {
@@ -591,7 +591,7 @@ static uint64_t perf_zipf_next(perf_zipf *z, uint64_t *rng) {
   return ret < z->n ? ret : z->n - 1;
 }
 
-static uint64_t perf_pick_idx(perf_task *t, perf_ctx *ctx) {
+static uint64_t perf_pick_idx(struct perf_task *t, struct perf_ctx *ctx) {
   if (ctx->keyspace == PERF_KS_SHARED) {
     if (ctx->key_dist == PERF_KD_ZIPFIAN && ctx->zipf && ctx->zipf->n) {
       return perf_hash64(perf_zipf_next(ctx->zipf, &t->rng)) % ctx->nrecs;
@@ -606,11 +606,11 @@ static uint64_t perf_pick_idx(perf_task *t, perf_ctx *ctx) {
 
 /* --------------------------------------------------------------- workers */
 
-static void perf_insert(perf_task *t) {
-  perf_ctx *ctx = t->ctx;
+static void perf_insert(struct perf_task *t) {
+  struct perf_ctx *ctx = t->ctx;
   iwkv_opflags oflags = ctx->sync ? IWKV_SYNC : 0;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
   key.size = ctx->ksz;
   val.size = ctx->vsz;
   val.data = t->val_ins;
@@ -635,11 +635,11 @@ static void perf_insert(perf_task *t) {
   }
 }
 
-static void perf_update(perf_task *t) {
-  perf_ctx *ctx = t->ctx;
+static void perf_update(struct perf_task *t) {
+  struct perf_ctx *ctx = t->ctx;
   iwkv_opflags oflags = ctx->sync ? IWKV_SYNC : 0;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
   key.size = ctx->ksz;
   val.size = ctx->vsz;
   val.data = t->val_upd;
@@ -664,10 +664,10 @@ static void perf_update(perf_task *t) {
   }
 }
 
-static void perf_delete(perf_task *t) {
-  perf_ctx *ctx = t->ctx;
+static void perf_delete(struct perf_task *t) {
+  struct perf_ctx *ctx = t->ctx;
   iwkv_opflags oflags = ctx->sync ? IWKV_SYNC : 0;
-  IWKV_val key = { 0 };
+  struct iwkv_val key = { 0 };
   key.size = ctx->ksz;
   for (uint64_t i = 0; i < t->kcnt; ++i) {
     key.data = (void*) (ctx->keys + (size_t) (t->kstart + i) * ctx->ksz);
@@ -686,9 +686,9 @@ static void perf_delete(perf_task *t) {
   }
 }
 
-static void perf_read(perf_task *t) {
-  perf_ctx *ctx = t->ctx;
-  IWKV_val key = { 0 };
+static void perf_read(struct perf_task *t) {
+  struct perf_ctx *ctx = t->ctx;
+  struct iwkv_val key = { 0 };
   key.size = ctx->ksz;
   for (uint64_t i = 0; i < t->kcnt; ++i) {
     uint64_t idx = t->kstart + i;
@@ -708,7 +708,7 @@ static void perf_read(perf_task *t) {
       }
       perf_task_verify(t, t->read_buf, vsz, idx);
     } else {
-      IWKV_val val = { 0 };
+      struct iwkv_val val = { 0 };
       uint64_t t0 = 0;
       if (ctx->record_lat) {
         t0 = perf_now_ns();
@@ -727,10 +727,10 @@ static void perf_read(perf_task *t) {
   }
 }
 
-static void perf_mixed(perf_task *t) {
-  perf_ctx *ctx = t->ctx;
+static void perf_mixed(struct perf_task *t) {
+  struct perf_ctx *ctx = t->ctx;
   iwkv_opflags oflags = ctx->sync ? IWKV_SYNC : 0;
-  IWKV_val key = { 0 };
+  struct iwkv_val key = { 0 };
   key.size = ctx->ksz;
   for (uint64_t i = 0; i < t->ocnt; ++i) {
     bool is_write = (ctx->read_pct < 100) && ((t->ostart + i) % 100) >= (uint64_t) ctx->read_pct;
@@ -740,7 +740,7 @@ static void perf_mixed(perf_task *t) {
       if (ctx->vsz >= 9) {
         perf_val_set(t->val_upd, idx, 1);
       }
-      IWKV_val val = { 0 };
+      struct iwkv_val val = { 0 };
       val.size = ctx->vsz;
       val.data = t->val_upd;
       uint64_t t0 = 0;
@@ -790,7 +790,7 @@ static void perf_mixed(perf_task *t) {
         ++t->reads;
       }
     } else {
-      IWKV_val val = { 0 };
+      struct iwkv_val val = { 0 };
       uint64_t t0 = 0;
       if (ctx->record_lat) {
         t0 = perf_now_ns();
@@ -816,10 +816,10 @@ static void perf_mixed(perf_task *t) {
   }
 }
 
-static void perf_scan(perf_task *t) {
-  perf_ctx *ctx = t->ctx;
-  IWKV_cursor cur = 0;
-  IWKV_val first = { 0 };
+static void perf_scan(struct perf_task *t) {
+  struct perf_ctx *ctx = t->ctx;
+  struct iwkv_cursor *cur = 0;
+  struct iwkv_val first = { 0 };
   uint64_t first_idx = ctx->scan_desc ? (ctx->nrecs - 1 - t->kstart) : t->kstart;
   first.size = ctx->ksz;
   /* The scan workload uses ordered keys, so index order matches sorted key
@@ -835,7 +835,7 @@ static void perf_scan(perf_task *t) {
     perf_die("iwkv_cursor_to_key", rc);
   }
   for (uint64_t i = 0; i < t->kcnt; ++i) {
-    IWKV_val val = { 0 };
+    struct iwkv_val val = { 0 };
     uint64_t t0 = 0;
     if (ctx->record_lat) {
       t0 = perf_now_ns();
@@ -870,8 +870,8 @@ static void perf_scan(perf_task *t) {
 }
 
 /* Probes the engine iteration direction using the first two ordered keys. */
-static bool perf_scan_descending(perf_ctx *ctx) {
-  IWKV_cursor cur = 0;
+static bool perf_scan_descending(struct perf_ctx *ctx) {
+  struct iwkv_cursor *cur = 0;
   uint64_t i0 = 0, i1 = 0;
   bool have1 = false;
   if (iwkv_cursor_open(ctx->db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0)) {
@@ -881,7 +881,7 @@ static bool perf_scan_descending(perf_ctx *ctx) {
     if (iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) {
       break;
     }
-    IWKV_val k = { 0 };
+    struct iwkv_val k = { 0 };
     if (iwkv_cursor_key(cur, &k)) {
       break;
     }
@@ -901,7 +901,7 @@ static bool perf_scan_descending(perf_ctx *ctx) {
 /* ---------------------------------------------------------- phase runner */
 
 static void* perf_thread_entry(void *arg) {
-  perf_task *t = arg;
+  struct perf_task *t = arg;
   if (t->ctx->bar) {
     pthread_barrier_wait(t->ctx->bar);
   }
@@ -909,28 +909,28 @@ static void* perf_thread_entry(void *arg) {
   return 0;
 }
 
-static uint64_t perf_phase_ops(const perf_phase *ph) {
+static uint64_t perf_phase_ops(const struct perf_phase *ph) {
   return ph->reads + ph->writes + ph->misses + ph->scanned;
 }
 
 static void perf_run_phase(
-  perf_ctx      *ctx,
-  perf_worker_fn fn,
-  uint64_t       key_units,
-  uint64_t       op_units,
-  perf_hist     *collect,
-  perf_phase    *out) {
+  struct perf_ctx   *ctx,
+  perf_worker_fn     fn,
+  uint64_t           key_units,
+  uint64_t           op_units,
+  struct perf_hist  *collect,
+  struct perf_phase *out) {
   memset(out, 0, sizeof(*out));
   int nt = ctx->concurrent ? ctx->nthreads : 1;
   if (nt < 1) {
     nt = 1;
   }
-  perf_task *tasks = calloc((size_t) nt, sizeof(*tasks));
+  struct perf_task *tasks = calloc((size_t) nt, sizeof(*tasks));
   if (!tasks) {
     perf_die("calloc", 0);
   }
   for (int i = 0; i < nt; ++i) {
-    perf_task *t = &tasks[i];
+    struct perf_task *t = &tasks[i];
     t->ctx = ctx;
     t->fn = fn;
     t->tid = i;
@@ -986,7 +986,7 @@ static void perf_run_phase(
   }
   ctx->record_lat = false;
   for (int i = 0; i < nt; ++i) {
-    perf_task *t = &tasks[i];
+    struct perf_task *t = &tasks[i];
     out->reads += t->reads;
     out->writes += t->writes;
     out->misses += t->misses;
@@ -1008,11 +1008,11 @@ static void perf_run_iteration(
   enum perf_workload   wl,
   bool                 concurrent,
   enum perf_durability dur,
-  perf_dataset        *ds,
+  struct perf_dataset *ds,
   const uint8_t       *keys,
   const uint8_t       *val_tmpl,
-  perf_iter           *it,
-  perf_hist           *metric_lat) {
+  struct perf_iter    *it,
+  struct perf_hist    *metric_lat) {
   memset(it, 0, sizeof(*it));
   char path[PATH_MAX];
   char walpath[PATH_MAX];
@@ -1023,25 +1023,25 @@ static void perf_run_iteration(
   unlink(path);
   unlink(walpath);
 
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC,
     .wal = {
       .enabled = (dur != PERF_DURABILITY_WAL_OFF)
     }
   };
-  IWKV iwkv = 0;
+  struct iwkv *iwkv = 0;
   iwrc rc = iwkv_open(&opts, &iwkv);
   if (rc) {
     perf_die("iwkv_open", rc);
   }
-  IWDB db = 0;
+  struct iwdb *db = 0;
   rc = iwkv_db(iwkv, 1, 0, &db);
   if (rc) {
     perf_die("iwkv_db", rc);
   }
 
-  perf_ctx ctx;
+  struct perf_ctx ctx;
   memset(&ctx, 0, sizeof(ctx));
   ctx.db = db;
   ctx.ds = ds;
@@ -1132,8 +1132,8 @@ static void perf_run_combination(
   enum perf_workload   wl,
   bool                 concurrent,
   enum perf_durability dur,
-  perf_dataset        *ds,
-  perf_result         *res) {
+  struct perf_dataset *ds,
+  struct perf_result  *res) {
   memset(res, 0, sizeof(*res));
   res->ds = ds;
   res->wl = wl;
@@ -1166,9 +1166,9 @@ static void perf_run_combination(
   int nmeasured = 0;
   double thr[PERF_MAX_REPEATS];
   for (int it = 0; it < total; ++it) {
-    perf_hist iter_lat;
+    struct perf_hist iter_lat;
     memset(&iter_lat, 0, sizeof(iter_lat));
-    perf_iter result;
+    struct perf_iter result;
     perf_run_iteration(wl, concurrent, dur, ds, keys, val_tmpl, &result, &iter_lat);
     if (it == 0 && total > 1) {
       continue; /* Warm-up iteration */
@@ -1300,9 +1300,9 @@ static void perf_json_str(FILE *f, const char *s) {
   fputc('"', f);
 }
 
-static int perf_median_iter(const perf_result *r);
+static int perf_median_iter(const struct perf_result *r);
 
-static void perf_print_text(FILE *f, const perf_result *r) {
+static void perf_print_text(FILE *f, const struct perf_result *r) {
   char recbuf[32];
   char keybuf[24];
   char valbuf[24];
@@ -1314,7 +1314,7 @@ static void perf_print_text(FILE *f, const perf_result *r) {
   char walfbuf[32];
   char dbpair[48];
   char walpair[48];
-  const perf_iter *mi = &r->iters[perf_median_iter(r)];
+  const struct perf_iter *mi = &r->iters[perf_median_iter(r)];
   perf_fmt_count(r->ds->nrecs, cntbuf, sizeof(cntbuf));
   snprintf(recbuf, sizeof(recbuf), "records=%s", cntbuf);
   snprintf(keybuf, sizeof(keybuf), "key=%zuB", r->ds->ksz);
@@ -1333,7 +1333,7 @@ static void perf_print_text(FILE *f, const perf_result *r) {
   fprintf(f, "    throughput: median %.0f ops/s (min %.0f, max %.0f)\n",
           r->thr_med, r->thr_min, r->thr_max);
   for (int i = 0; i < mi->nph; ++i) {
-    const perf_phase *ph = &mi->ph[i];
+    const struct perf_phase *ph = &mi->ph[i];
     double rate = ph->secs > 0 ? (double) perf_phase_ops(ph) / ph->secs : 0.0;
     fprintf(f, "    %-7s %8.3f s %12.0f ops/s\n", perf_phase_names[r->wl][i], ph->secs, rate);
   }
@@ -1351,7 +1351,7 @@ static void perf_print_text(FILE *f, const perf_result *r) {
   fprintf(f, "    db: %-21swal: %s\n", dbpair, walpair);
 }
 
-static int perf_median_iter(const perf_result *r) {
+static int perf_median_iter(const struct perf_result *r) {
   int midx = 0;
   double best = 1e300;
   for (int i = 0; i < r->nmeasured; ++i) {
@@ -1366,13 +1366,13 @@ static int perf_median_iter(const perf_result *r) {
   return midx;
 }
 
-static void perf_print_summary(FILE *f, const perf_result *results, size_t num) {
+static void perf_print_summary(FILE *f, const struct perf_result *results, size_t num) {
   fprintf(f, "\n\n=== Summary (median measured throughput) ===\n");
   fprintf(f, "%-12s %-6s %-9s %-9s %12s %10s %14s %14s %12s\n",
           "workload", "conc", "durability", "dataset", "ops", "secs", "median ops/s", "max ops/s", "db peak");
   for (size_t i = 0; i < num; ++i) {
-    const perf_result *r = &results[i];
-    const perf_iter *mi = &r->iters[perf_median_iter(r)];
+    const struct perf_result *r = &results[i];
+    const struct perf_iter *mi = &r->iters[perf_median_iter(r)];
     char dbbuf[32];
     perf_fmt_size(mi->db_peak_size, dbbuf, sizeof(dbbuf));
     fprintf(f, "%-12s %-6s %-9s %-9s %12" PRIu64 " %10.3f %14.0f %14.0f %12s\n",
@@ -1382,7 +1382,7 @@ static void perf_print_summary(FILE *f, const perf_result *results, size_t num) 
   }
 }
 
-static void perf_print_json(FILE *f, const perf_result *results, size_t num) {
+static void perf_print_json(FILE *f, const struct perf_result *results, size_t num) {
   fprintf(f, "{\n");
   fprintf(f, "  \"tool\": \"iwkv_perf\",\n");
   fprintf(f, "  \"provenance\": {\n");
@@ -1416,7 +1416,7 @@ static void perf_print_json(FILE *f, const perf_result *results, size_t num) {
   fprintf(f, "]\n  },\n");
   fprintf(f, "  \"results\": [\n");
   for (size_t i = 0; i < num; ++i) {
-    const perf_result *r = &results[i];
+    const struct perf_result *r = &results[i];
     fprintf(f, "    {\n      \"workload\": ");
     perf_json_str(f, perf_workload_names[r->wl]);
     fprintf(f, ", \"concurrency\": ");
@@ -1440,10 +1440,10 @@ static void perf_print_json(FILE *f, const perf_result *results, size_t num) {
             r->lat.count ? r->lat.sum / r->lat.count : 0,
             perf_hist_percentile(&r->lat, 50.0), perf_hist_percentile(&r->lat, 90.0),
             perf_hist_percentile(&r->lat, 99.0), perf_hist_percentile(&r->lat, 99.9), r->lat.max);
-    const perf_iter *mi = &r->iters[perf_median_iter(r)];
+    const struct perf_iter *mi = &r->iters[perf_median_iter(r)];
     fprintf(f, "      \"phases\": [");
     for (int j = 0; j < mi->nph; ++j) {
-      const perf_phase *ph = &mi->ph[j];
+      const struct perf_phase *ph = &mi->ph[j];
       fprintf(f, "%s{\"name\": ", j ? ", " : "");
       perf_json_str(f, perf_phase_names[r->wl][j]);
       fprintf(f, ", \"secs\": %.6f, \"ops\": %" PRIu64 "}", ph->secs, perf_phase_ops(ph));
@@ -1461,14 +1461,14 @@ static void perf_print_json(FILE *f, const perf_result *results, size_t num) {
   fprintf(f, "  ]\n}\n");
 }
 
-static void perf_print_csv(FILE *f, const perf_result *results, size_t num) {
+static void perf_print_csv(FILE *f, const struct perf_result *results, size_t num) {
   fprintf(f,
           "workload,concurrency,durability,dataset,records,key_size,value_size,threads,iterations,"
           "median_ops_s,min_ops_s,max_ops_s,lat_mean_ns,lat_p50_ns,lat_p99_ns,db_peak_bytes,db_final_bytes,"
           "wal_peak_bytes,wal_final_bytes\n");
   for (size_t i = 0; i < num; ++i) {
-    const perf_result *r = &results[i];
-    const perf_iter *mi = &r->iters[perf_median_iter(r)];
+    const struct perf_result *r = &results[i];
+    const struct perf_iter *mi = &r->iters[perf_median_iter(r)];
     fprintf(f,
             "%s,%s,%s,%s,%" PRIu64 ",%zu,%zu,%d,%d,%.0f,%.0f,%.0f,%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%"
             PRIu64 ",%" PRIu64 ",%" PRIu64 "\n",
@@ -1559,7 +1559,7 @@ static const char* perf_next_token(const char **p, char *buf, size_t bufsz) {
   return buf;
 }
 
-static bool perf_parse_mask(const char *v, const perf_nameval *map, unsigned *out) {
+static bool perf_parse_mask(const char *v, const struct perf_nameval *map, unsigned *out) {
   char buf[64];
   const char *p = v;
   unsigned m = 0;
@@ -1617,25 +1617,25 @@ static int perf_name_index(const char *v, const char* const *names, int num) {
 }
 
 static bool perf_parse_args(int argc, char **argv) {
-  static const perf_nameval wlmap[] = {
+  static const struct perf_nameval wlmap[] = {
     { "crud", PERF_BIT(PERF_WORKLOAD_CRUD) },
     { "read-mostly", PERF_BIT(PERF_WORKLOAD_READ_MOSTLY) },
     { "scan", PERF_BIT(PERF_WORKLOAD_SCAN) },
     { 0, 0 }
   };
-  static const perf_nameval dsmap[] = {
+  static const struct perf_nameval dsmap[] = {
     { "small32", PERF_BIT(0) },
     { "small240", PERF_BIT(1) },
     { "small1016", PERF_BIT(2) },
     { "large32", PERF_BIT(3) },
     { 0, 0 }
   };
-  static const perf_nameval concmap[] = {
+  static const struct perf_nameval concmap[] = {
     { "single", PERF_BIT(0) },
     { "multi", PERF_BIT(1) },
     { 0, 0 }
   };
-  static const perf_nameval durmap[] = {
+  static const struct perf_nameval durmap[] = {
     { "off", PERF_BIT(PERF_DURABILITY_WAL_OFF) },
     { "on", PERF_BIT(PERF_DURABILITY_WAL_ON) },
     { "sync", PERF_BIT(PERF_DURABILITY_WAL_SYNC) },
@@ -1783,9 +1783,9 @@ static void perf_zipf_prepare(void) {
     return;
   }
   for (size_t i = 0; i < PERF_DS_NUM; ++i) {
-    perf_dataset *ds = &perf_datasets[i];
+    struct perf_dataset *ds = &perf_datasets[i];
     if (!ds->zipf_ready) {
-      ds->zipf = malloc(sizeof(perf_zipf));
+      ds->zipf = malloc(sizeof(struct perf_zipf));
       if (!ds->zipf) {
         perf_die("malloc", 0);
       }
@@ -1864,7 +1864,7 @@ int main(int argc, char **argv) {
 
   unsigned ncombos = perf_popcount(g_cfg.wl_mask) * perf_popcount(g_cfg.conc_mask)
                      * perf_popcount(g_cfg.dur_mask) * (unsigned) PERF_DS_NUM;
-  perf_result *results = calloc(ncombos ? ncombos : 1, sizeof(*results));
+  struct perf_result *results = calloc(ncombos ? ncombos : 1, sizeof(*results));
   if (!results) {
     perf_die("calloc", 0);
   }

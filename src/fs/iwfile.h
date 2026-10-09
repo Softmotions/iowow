@@ -177,7 +177,7 @@ typedef struct iwfs_file {
    *
    * @see struct IWFS_FILE_STATE
    */
-  iwrc (*state)(struct iwfs_file *f, IWFS_FILE_STATE *state);
+  iwrc (*state)(struct iwfs_file *f, struct iwfs_file_state *state);
 
   /**
    * @brief Copy data within a file

@@ -79,8 +79,8 @@ typedef struct fuzz_rec {
 
 static uint8_t fuzz_key[FUZZ_NKEYS][FUZZ_KEYMAX];
 static size_t fuzz_klen[FUZZ_NKEYS];
-static fuzz_rec fuzz_live[FUZZ_NKEYS];
-static fuzz_rec fuzz_durable[FUZZ_NKEYS];
+static struct fuzz_rec fuzz_live[FUZZ_NKEYS];
+static struct fuzz_rec fuzz_durable[FUZZ_NKEYS];
 static uint8_t fuzz_val[FUZZ_MAXVAL];
 
 int init_suite(void) {
@@ -101,20 +101,20 @@ static uint32_t fuzz_env_u32(const char *name, uint32_t def) {
 
 //--------------------------  Reference model
 
-static void fuzz_rec_free(fuzz_rec *r) {
+static void fuzz_rec_free(struct fuzz_rec *r) {
   free(r->data);
   r->data = 0;
   r->size = 0;
   r->present = false;
 }
 
-static void fuzz_model_clear(fuzz_rec *m) {
+static void fuzz_model_clear(struct fuzz_rec *m) {
   for (int i = 0; i < FUZZ_NKEYS; ++i) {
     fuzz_rec_free(&m[i]);
   }
 }
 
-static void fuzz_rec_set(fuzz_rec *r, const uint8_t *data, size_t size) {
+static void fuzz_rec_set(struct fuzz_rec *r, const uint8_t *data, size_t size) {
   free(r->data);
   r->data = 0;
   r->size = size;
@@ -126,7 +126,7 @@ static void fuzz_rec_set(fuzz_rec *r, const uint8_t *data, size_t size) {
   }
 }
 
-static void fuzz_model_copy(fuzz_rec *dst, const fuzz_rec *src) {
+static void fuzz_model_copy(struct fuzz_rec *dst, const struct fuzz_rec *src) {
   for (int i = 0; i < FUZZ_NKEYS; ++i) {
     fuzz_rec_free(&dst[i]);
     if (src[i].present) {
@@ -180,26 +180,26 @@ static void fuzz_rand_fill(size_t sz) {
 
 //--------------------------  Database operations
 
-static iwrc fuzz_db_put(IWDB db, int i, const uint8_t *v, size_t vsz, iwkv_opflags of) {
-  IWKV_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
-  IWKV_val val = { .data = (void*) v, .size = vsz };
+static iwrc fuzz_db_put(struct iwdb *db, int i, const uint8_t *v, size_t vsz, iwkv_opflags of) {
+  struct iwkv_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
+  struct iwkv_val val = { .data = (void*) v, .size = vsz };
   return iwkv_put(db, &key, &val, of);
 }
 
-static iwrc fuzz_db_del(IWDB db, int i, iwkv_opflags of) {
-  IWKV_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
+static iwrc fuzz_db_del(struct iwdb *db, int i, iwkv_opflags of) {
+  struct iwkv_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
   return iwkv_del(db, &key, of);
 }
 
-static iwrc fuzz_db_get(IWDB db, int i, IWKV_val *val) {
-  IWKV_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
+static iwrc fuzz_db_get(struct iwdb *db, int i, struct iwkv_val *val) {
+  struct iwkv_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
   return iwkv_get(db, &key, val);
 }
 
 //--------------------------  Verification
 
-static void fuzz_verify_key(IWDB db, int i, const fuzz_rec *m) {
-  IWKV_val val = { 0 };
+static void fuzz_verify_key(struct iwdb *db, int i, const struct fuzz_rec *m) {
+  struct iwkv_val val = { 0 };
   iwrc rc = fuzz_db_get(db, i, &val);
   if (m[i].present) {
     CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -213,7 +213,7 @@ static void fuzz_verify_key(IWDB db, int i, const fuzz_rec *m) {
   }
 }
 
-static void fuzz_verify_all(IWDB db, const fuzz_rec *m) {
+static void fuzz_verify_all(struct iwdb *db, const struct fuzz_rec *m) {
   for (int i = 0; i < FUZZ_NKEYS; ++i) {
     fuzz_verify_key(db, i, m);
   }
@@ -235,7 +235,7 @@ static int fuzz_key_cmp(const void *a, const void *b) {
 
 // Walk the whole database with a cursor and check that it yields exactly the
 // present records in the engine key order.
-static void fuzz_verify_cursor(IWDB db, const fuzz_rec *m) {
+static void fuzz_verify_cursor(struct iwdb *db, const struct fuzz_rec *m) {
   int order[FUZZ_NKEYS];
   int n = 0;
   for (int i = 0; i < FUZZ_NKEYS; ++i) {
@@ -245,7 +245,7 @@ static void fuzz_verify_cursor(IWDB db, const fuzz_rec *m) {
   }
   qsort(order, n, sizeof(int), fuzz_key_cmp);
 
-  IWKV_cursor cur = 0;
+  struct iwkv_cursor *cur = 0;
   iwrc rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -253,7 +253,7 @@ static void fuzz_verify_cursor(IWDB db, const fuzz_rec *m) {
     int i = order[j];
     rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
-    IWKV_val k = { 0 }, v = { 0 };
+    struct iwkv_val k = { 0 }, v = { 0 };
     rc = iwkv_cursor_get(cur, &k, &v);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL_FATAL(k.size, fuzz_klen[i]);
@@ -273,7 +273,7 @@ static void fuzz_verify_cursor(IWDB db, const fuzz_rec *m) {
 
 //--------------------------  Open / reopen helpers
 
-static void fuzz_opts_init(IWKV_OPTS *opts, const char *path, int mode) {
+static void fuzz_opts_init(struct iwkv_opts *opts, const char *path, int mode) {
   memset(opts, 0, sizeof(*opts));
   opts->path = path;
   opts->oflags = IWKV_TRUNC;
@@ -297,14 +297,14 @@ static void fuzz_opts_init(IWKV_OPTS *opts, const char *path, int mode) {
   }
 }
 
-static void fuzz_open(IWKV_OPTS *opts, IWKV *kvp, IWDB *dbp) {
+static void fuzz_open(struct iwkv_opts *opts, struct iwkv **kvp, struct iwdb **dbp) {
   iwrc rc = iwkv_open(opts, kvp);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(*kvp, 1, 0, dbp);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-static void fuzz_close(IWKV *kvp, bool crash) {
+static void fuzz_close(struct iwkv **kvp, bool crash) {
   if (crash) {
     iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
     iwrc rc = iwkv_close(kvp);
@@ -318,19 +318,19 @@ static void fuzz_close(IWKV *kvp, bool crash) {
 
 //--------------------------  Operation fuzz driver
 
-static void fuzz_cursor_mutate(IWDB db) {
+static void fuzz_cursor_mutate(struct iwdb *db) {
   int i = (int) iwu_rand_range(FUZZ_NKEYS);
   if (!fuzz_live[i].present) {
     return;
   }
-  IWKV_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
-  IWKV_cursor cur = 0;
+  struct iwkv_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
+  struct iwkv_cursor *cur = 0;
   iwrc rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_EQ, &key);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   if (iwu_rand_range(100) < 60) {
     size_t vsz = fuzz_rand_val_size();
     fuzz_rand_fill(vsz);
-    IWKV_val val = { .data = fuzz_val, .size = vsz };
+    struct iwkv_val val = { .data = fuzz_val, .size = vsz };
     rc = iwkv_cursor_set(cur, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     fuzz_rec_set(&fuzz_live[i], fuzz_val, vsz);
@@ -357,11 +357,11 @@ static void fuzz_run(const char *path, int mode, uint32_t seed, uint32_t iters) 
   fuzz_model_clear(fuzz_live);
   fuzz_model_clear(fuzz_durable);
 
-  IWKV_OPTS opts;
+  struct iwkv_opts opts;
   fuzz_opts_init(&opts, path, mode);
 
-  IWKV kv = 0;
-  IWDB db = 0;
+  struct iwkv *kv = 0;
+  struct iwdb *db = 0;
   fuzz_open(&opts, &kv, &db);
 
   for (uint32_t it = 0; it < iters; ++it) {
@@ -499,7 +499,7 @@ static void fuzz_corrupt(void *buf, size_t sz) {
 // Child side of a corruption fuzzing attempt: the engine must either report
 // an error or recover to a state it can traverse; it must never crash.
 static void fuzz_corrupt_open_verify(const char *path) {
-  IWKV_OPTS opts;
+  struct iwkv_opts opts;
   memset(&opts, 0, sizeof(opts));
   opts.path = path;
   opts.wal.enabled = true;
@@ -508,18 +508,18 @@ static void fuzz_corrupt_open_verify(const char *path) {
   opts.wal.savepoint_timeout_sec = UINT32_MAX;
   opts.wal.checkpoint_timeout_sec = UINT32_MAX;
 
-  IWKV kv = 0;
+  struct iwkv *kv = 0;
   iwrc rc = iwkv_open(&opts, &kv);
   if (!rc) {
-    IWDB db = 0;
+    struct iwdb *db = 0;
     rc = iwkv_db(kv, 1, 0, &db);
     if (!rc && db) {
-      IWKV_cursor cur = 0;
+      struct iwkv_cursor *cur = 0;
       rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
       if (!rc) {
         uint32_t guard = 0;
         while ((iwkv_cursor_to(cur, IWKV_CURSOR_NEXT) == 0) && (guard++ < (1U << 20))) {
-          IWKV_val k = { 0 }, v = { 0 };
+          struct iwkv_val k = { 0 }, v = { 0 };
           if (iwkv_cursor_get(cur, &k, &v)) {
             break;
           }
@@ -638,7 +638,7 @@ static void fuzz_corrupt_build(const char *path, const char *srcpath, bool keep_
   unlink(srcpath);
   unlink(srcwal);
 
-  IWKV_OPTS opts;
+  struct iwkv_opts opts;
   memset(&opts, 0, sizeof(opts));
   opts.path = srcpath;
   opts.oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE;
@@ -648,8 +648,8 @@ static void fuzz_corrupt_build(const char *path, const char *srcpath, bool keep_
   opts.wal.savepoint_timeout_sec = UINT32_MAX;
   opts.wal.checkpoint_timeout_sec = UINT32_MAX;
 
-  IWKV kv = 0;
-  IWDB db = 0;
+  struct iwkv *kv = 0;
+  struct iwdb *db = 0;
   fuzz_open(&opts, &kv, &db);
 
   uint8_t vbuf[4096];
@@ -660,8 +660,8 @@ static void fuzz_corrupt_build(const char *path, const char *srcpath, bool keep_
       vbuf[j] = (uint8_t) (i + j);
     }
     snprintf(kbuf, sizeof(kbuf), "%05d", i);
-    IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
-    IWKV_val val = { .data = vbuf, .size = vsz };
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { .data = vbuf, .size = vsz };
     iwrc rc = iwkv_put(db, &key, &val, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
   }
@@ -784,9 +784,9 @@ static void iwkv_test12_5_malformed_dbaddr(void) {
   unlink(path);
   unlink(walpath);
 
-  IWKV_OPTS opts = { .path = path, .oflags = IWKV_TRUNC };
-  IWKV kv = 0;
-  IWDB db = 0;
+  struct iwkv_opts opts = { .path = path, .oflags = IWKV_TRUNC };
+  struct iwkv *kv = 0;
+  struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &kv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(kv, 1, 0, &db);
@@ -820,13 +820,13 @@ static void iwkv_test12_6_malformed_fsm_hdr(void) {
   unlink(path);
   unlink(walpath);
 
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC,
     .wal = { .enabled = true }
   };
-  IWKV kv = 0;
-  IWDB db = 0;
+  struct iwkv *kv = 0;
+  struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &kv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(kv, 1, 0, &db);

@@ -11,14 +11,14 @@ char vbuf[VBUFSZ];
 
 extern int8_t iwkv_next_level;
 
-static int logstage(FILE *f, const char *name, IWDB db) {
+static int logstage(FILE *f, const char *name, struct iwdb *db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
   iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS, 0);
   fflush(f);
   return rci < 0 ? rci : 0;
 }
 
-static int logstage2(FILE *f, const char *name, IWDB db) {
+static int logstage2(FILE *f, const char *name, struct iwdb *db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
   iwkvd_db(f, db, IWKVD_PRINT_NO_LEVEVELS | IWKVD_PRINT_VALS, 0);
   fflush(f);
@@ -67,11 +67,11 @@ static void iwkv_test3_impl(int fmt_version) {
   CU_ASSERT_PTR_NOT_NULL(f);
 
   iwrc rc;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV iwkv;
-  IWDB db1;
-  IWKV_OPTS opts = {
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv *iwkv;
+  struct iwdb *db1;
+  struct iwkv_opts opts = {
     .path = "iwkv_test1_3.db",
     .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
@@ -132,11 +132,11 @@ static void iwkv_test2_impl(int fmt_version) {
   CU_ASSERT_PTR_NOT_NULL(f);
 
   iwrc rc;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV iwkv;
-  IWDB db1;
-  IWKV_OPTS opts = {
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv *iwkv;
+  struct iwdb *db1;
+  struct iwkv_opts opts = {
     .path = "iwkv_test1_2.db",
     .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
@@ -253,18 +253,18 @@ static void iwkv_test1_impl(int fmt_version) {
   char buf[128];
   size_t vsize;
 
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test1.db",
     .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
   // Test open/close
-  IWKV iwkv;
-  IWDB db1, db2, db3;
+  struct iwkv *iwkv;
+  struct iwdb *db1, *db2, *db3;
   iwrc rc;
-  IWKV_val key = { .data = "foo" };
+  struct iwkv_val key = { .data = "foo" };
   key.size = strlen(key.data);
-  IWKV_val val = { .data = "bar" };
+  struct iwkv_val val = { .data = "bar" };
   val.size = strlen(val.data);
 
   rc = iwkv_open(&opts, &iwkv);
@@ -469,7 +469,7 @@ static void iwkv_test1_impl(int fmt_version) {
   logstage(f, "fill up second block", db1);
 
   // Check basic cursor operations
-  IWKV_cursor cur1;
+  struct iwkv_cursor *cur1;
 
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -495,8 +495,8 @@ static void iwkv_test1_impl(int fmt_version) {
 
   int i = 0;
   do {
-    IWKV_val key;
-    IWKV_val val;
+    struct iwkv_val key;
+    struct iwkv_val val;
     iwrc rc2 = iwkv_cursor_get(cur1, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc2, 0);
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
@@ -526,8 +526,8 @@ static void iwkv_test1_impl(int fmt_version) {
   --i;
   rc = iwkv_cursor_open(db1, &cur1, IWKV_CURSOR_BEFORE_FIRST, 0);
   while (!(rc = iwkv_cursor_to(cur1, IWKV_CURSOR_NEXT))) {
-    IWKV_val key;
-    IWKV_val val;
+    struct iwkv_val key;
+    struct iwkv_val val;
     iwrc rc2 = iwkv_cursor_get(cur1, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc2, 0);
     snprintf(kbuf, KBUFSZ, "%03dkkk", i);
@@ -543,8 +543,8 @@ static void iwkv_test1_impl(int fmt_version) {
 
   // Set cursor to key
   do {
-    IWKV_val key;
-    IWKV_val val;
+    struct iwkv_val key;
+    struct iwkv_val val;
     snprintf(kbuf, KBUFSZ, "%03dkkk", 30);
     snprintf(vbuf, VBUFSZ, "%03dval", 30);
     key.data = kbuf;
@@ -679,20 +679,20 @@ static void iwkv_test1_v2(void) {
 }
 
 static void iwkv_test8_impl(int fmt_version) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test1_8.db",
     .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
-  IWKV iwkv;
-  IWDB db1;
-  IWKV_cursor cur;
-  IWKV_val key;
-  IWKV_val val = {
+  struct iwkv *iwkv;
+  struct iwdb *db1;
+  struct iwkv_cursor *cur;
+  struct iwkv_val key;
+  struct iwkv_val val = {
     .data = "foo",
     .size = sizeof("foo") - 1
   };
-  IWKV_val oval;
+  struct iwkv_val oval;
   size_t ksz;
   uint64_t llv = 1;
   uint64_t llv2;
@@ -767,14 +767,14 @@ static void iwkv_test8_v2(void) {
 }
 
 static void iwkv_test7_impl(int fmt_version) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test1_7.db",
     .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
   };
-  IWKV iwkv;
-  IWDB db1;
-  IWKV_val key, val;
+  struct iwkv *iwkv;
+  struct iwdb *db1;
+  struct iwkv_val key, val;
   int64_t llv;
   key.data = "foo";
   key.size = strlen(key.data);
@@ -818,7 +818,7 @@ static void iwkv_test7_v2(void) {
 }
 
 static void iwkv_test6_impl(int fmt_version) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test1_6.db",
     .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
@@ -827,9 +827,9 @@ static void iwkv_test6_impl(int fmt_version) {
   // Test open/close
   char kbuf[100];
   char *vbuf = malloc(vbsiz);
-  IWKV iwkv;
-  IWDB db1;
-  IWKV_val key, val;
+  struct iwkv *iwkv;
+  struct iwdb *db1;
+  struct iwkv_val key, val;
 
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -859,11 +859,11 @@ static void iwkv_test6_v2(void) {
 }
 
 static void iwkv_test9(void) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "garbage.data",
   };
   // Test open/close
-  IWKV iwkv;
+  struct iwkv *iwkv;
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL(rc, IWFS_ERROR_INVALID_FILEMETA);
   rc = iwkv_close(&iwkv);

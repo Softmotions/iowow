@@ -11,15 +11,15 @@
 #include <unistd.h>
 
 // Defined in `src/kv/iwal.c` (IW_TESTS only)
-iwrc iwal_test_checkpoint(IWKV iwkv);
-void iwal_test_set_bkp_main_copy(IWKV iwkv, bool active);
+iwrc iwal_test_checkpoint(struct iwkv *iwkv);
+void iwal_test_set_bkp_main_copy(struct iwkv *iwkv, bool active);
 void iwal_test_crash_on_rollforward(int nops);
 
-#define NREC        8192
-#define KBUFSZ      64
-#define VALBUF_SZ   20000
+#define NREC      8192
+#define KBUFSZ    64
+#define VALBUF_SZ 20000
 
-static char    kbuf[KBUFSZ];
+static char kbuf[KBUFSZ];
 static uint8_t vbuf[VALBUF_SZ];
 
 int init_suite(void) {
@@ -32,7 +32,7 @@ int clean_suite(void) {
 
 // Logical state model
 static bool present[NREC];
-static int  version[NREC];
+static int version[NREC];
 
 static size_t val_len(int i, int ver) {
   if (ver == 1) {
@@ -51,43 +51,43 @@ static void key_of(int i) {
   snprintf(kbuf, KBUFSZ, "%08d", i);
 }
 
-static iwrc put_ver(IWDB db, int i, int ver) {
+static iwrc put_ver(struct iwdb *db, int i, int ver) {
   key_of(i);
-  IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
+  struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
   size_t len = val_len(i, ver);
   if (len > VALBUF_SZ) {
     return IW_ERROR_INVALID_ARGS;
   }
   val_fill(vbuf, len, i, ver);
-  IWKV_val val = { .data = vbuf, .size = len };
+  struct iwkv_val val = { .data = vbuf, .size = len };
   return iwkv_put(db, &key, &val, 0);
 }
 
-static iwrc put_custom(IWDB db, int i, size_t len, int seed) {
+static iwrc put_custom(struct iwdb *db, int i, size_t len, int seed) {
   key_of(i);
-  IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
+  struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
   if (len > VALBUF_SZ) {
     return IW_ERROR_INVALID_ARGS;
   }
   val_fill(vbuf, len, i, seed);
-  IWKV_val val = { .data = vbuf, .size = len };
+  struct iwkv_val val = { .data = vbuf, .size = len };
   return iwkv_put(db, &key, &val, 0);
 }
 
 static void iwkv_test11_1(void) {
   const char *path = "iwkv_test11_1.db";
   const char *walpath = "iwkv_test11_1.db-wal";
-  IWKV iwkv;
-  IWDB db;
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
     .wal = {
       .enabled = true,
       .wal_buffer_sz = 64 * 1024,
       .checkpoint_buffer_sz = 1ULL << 40,
-      .savepoint_timeout_sec = UINT32_MAX,
-      .checkpoint_timeout_sec = UINT32_MAX
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
     }
   };
 
@@ -127,7 +127,7 @@ static void iwkv_test11_1(void) {
       continue;
     }
     key_of(i);
-    IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
     rc = iwkv_del(db, &key, 0);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     present[i] = false;
@@ -163,8 +163,8 @@ static void iwkv_test11_1(void) {
 
   for (int i = 0; i < NREC; ++i) {
     key_of(i);
-    IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
-    IWKV_val val = { 0 };
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { 0 };
     rc = iwkv_get(db, &key, &val);
     if (present[i]) {
       CU_ASSERT_EQUAL_FATAL(rc, 0);
@@ -185,16 +185,16 @@ static void iwkv_test11_1(void) {
 static void iwkv_test11_2(void) {
   const char *path = "iwkv_test11_2.db";
   const char *walpath = "iwkv_test11_2.db-wal";
-  IWKV iwkv;
-  IWDB db;
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
     .wal = {
       .enabled = true,
       .checkpoint_buffer_sz = 1ULL << 40,
-      .savepoint_timeout_sec = UINT32_MAX,
-      .checkpoint_timeout_sec = UINT32_MAX
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
     }
   };
 
@@ -248,8 +248,8 @@ static void iwkv_test11_2(void) {
   // Data must survive the WAL truncation (it is in the main file now).
   for (int i = 0; i < 1024; ++i) {
     key_of(i);
-    IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
-    IWKV_val val = { 0 };
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { 0 };
     rc = iwkv_get(db, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     if (i == 0) {
@@ -274,8 +274,8 @@ static void iwkv_test11_2(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   for (int i = 0; i < 1024; ++i) {
     key_of(i);
-    IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
-    IWKV_val val = { 0 };
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { 0 };
     rc = iwkv_get(db, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     iwkv_val_dispose(&val);
@@ -289,16 +289,16 @@ static void iwkv_test11_3(void) {
   const char *walpath = "iwkv_test11_3.db-wal";
   const char *bkpath = "iwkv_test11_3_bkp.db";
   const char *bkwalpath = "iwkv_test11_3_bkp.db-wal";
-  IWKV iwkv;
-  IWDB db;
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
     .wal = {
       .enabled = true,
       .checkpoint_buffer_sz = 1ULL << 40,
-      .savepoint_timeout_sec = UINT32_MAX,
-      .checkpoint_timeout_sec = UINT32_MAX
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
     }
   };
 
@@ -354,8 +354,8 @@ static void iwkv_test11_3(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   for (int i = 0; i < 200; ++i) {
     key_of(i);
-    IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
-    IWKV_val val = { 0 };
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { 0 };
     rc = iwkv_get(db, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     size_t len = 100 + (size_t) i;
@@ -376,8 +376,8 @@ static void iwkv_test11_3(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   for (int i = 0; i < 100; ++i) {
     key_of(i);
-    IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
-    IWKV_val val = { 0 };
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { 0 };
     rc = iwkv_get(db, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL_FATAL(val.size, 100 + (size_t) i);
@@ -385,8 +385,8 @@ static void iwkv_test11_3(void) {
   }
   for (int i = 100; i < 200; ++i) {
     key_of(i);
-    IWKV_val key = { .data = kbuf, .size = strlen(kbuf) };
-    IWKV_val val = { 0 };
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { 0 };
     rc = iwkv_get(db, &key, &val);
     CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
   }
@@ -397,16 +397,16 @@ static void iwkv_test11_3(void) {
 static void iwkv_test11_4(void) {
   const char *path = "iwkv_test11_4.db";
   const char *walpath = "iwkv_test11_4.db-wal";
-  IWKV iwkv;
-  IWDB db;
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC,
     .wal = {
       .enabled = true,
       .checkpoint_buffer_sz = 1ULL << 40,
-      .savepoint_timeout_sec = UINT32_MAX,
-      .checkpoint_timeout_sec = UINT32_MAX
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
     }
   };
 
@@ -428,9 +428,9 @@ static void iwkv_test11_4(void) {
   // which makes the recovery parser visit the malformed record.
   FILE *f = fopen(walpath, "wb");
   CU_ASSERT_PTR_NOT_NULL_FATAL(f);
-  WBSEP wbsep = { .id = WOP_SEP, .crc = 0, .len = 0 };
-  WBSET wbset = { .id = WOP_SET, .val = 0, .off = 0, .len = (off_t) -1 };
-  WBSAVEPOINT wbsp = { .id = WOP_SAVEPOINT, .ts = 1 };
+  struct wbsep wbsep = { .id = WOP_SEP, .crc = 0, .len = 0 };
+  struct wbset wbset = { .id = WOP_SET, .val = 0, .off = 0, .len = (off_t) -1 };
+  struct wbsavepoint wbsp = { .id = WOP_SAVEPOINT, .ts = 1 };
   CU_ASSERT_EQUAL(fwrite(&wbsep, 1, sizeof(wbsep), f), sizeof(wbsep));
   CU_ASSERT_EQUAL(fwrite(&wbset, 1, sizeof(wbset), f), sizeof(wbset));
   CU_ASSERT_EQUAL(fwrite(&wbsp, 1, sizeof(wbsp), f), sizeof(wbsp));
@@ -447,13 +447,13 @@ static void iwkv_test11_4(void) {
 }
 
 typedef struct T115 {
-  IWDB         db;
+  struct iwdb *db;
   volatile int done;
-  iwrc         rc;
+  iwrc rc;
 } T115;
 
 static void* t115_writer(void *ctx_) {
-  T115 *ctx = ctx_;
+  struct T115 *ctx = ctx_;
   const size_t sz = 4UL * 1024 * 1024;
   uint8_t *buf = malloc(sz);
   if (!buf) {
@@ -462,8 +462,8 @@ static void* t115_writer(void *ctx_) {
     return 0;
   }
   memset(buf, 0x3c, sz);
-  IWKV_val key = { .data = (void*) "growkey", .size = 7 };
-  IWKV_val val = { .data = buf, .size = sz };
+  struct iwkv_val key = { .data = (void*) "growkey", .size = 7 };
+  struct iwkv_val val = { .data = buf, .size = sz };
   ctx->rc = iwkv_put(ctx->db, &key, &val, 0);
   free(buf);
   ctx->done = 1;
@@ -476,16 +476,16 @@ static void* t115_writer(void *ctx_) {
 static void iwkv_test11_5(void) {
   const char *path = "iwkv_test11_5.db";
   const char *walpath = "iwkv_test11_5.db-wal";
-  IWKV iwkv;
-  IWDB db;
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
     .wal = {
       .enabled = true,
       .checkpoint_buffer_sz = 1ULL << 40,
-      .savepoint_timeout_sec = UINT32_MAX,
-      .checkpoint_timeout_sec = UINT32_MAX
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
     }
   };
 
@@ -498,7 +498,7 @@ static void iwkv_test11_5(void) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   iwal_test_set_bkp_main_copy(iwkv, true);
-  T115 ctx = { .db = db, .done = 0, .rc = 0 };
+  struct T115 ctx = { .db = db, .done = 0, .rc = 0 };
   pthread_t t;
   int rci = pthread_create(&t, 0, t115_writer, &ctx);
   CU_ASSERT_EQUAL_FATAL(rci, 0);
@@ -511,8 +511,8 @@ static void iwkv_test11_5(void) {
   pthread_join(t, 0);
   CU_ASSERT_EQUAL_FATAL(ctx.rc, 0);
 
-  IWKV_val key = { .data = (void*) "growkey", .size = 7 };
-  IWKV_val val = { 0 };
+  struct iwkv_val key = { .data = (void*) "growkey", .size = 7 };
+  struct iwkv_val val = { 0 };
   rc = iwkv_get(db, &key, &val);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_EQUAL_FATAL(val.size, 4UL * 1024 * 1024);
@@ -548,19 +548,19 @@ static void iwkv_test11_6_impl(int crash_after) {
   pid_t pid = fork();
   CU_ASSERT_NOT_EQUAL_FATAL(pid, -1);
   if (pid == 0) {
-    IWKV_OPTS opts = {
+    struct iwkv_opts opts = {
       .path = path,
       .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
       .wal = {
         .enabled = true,
         .wal_buffer_sz = 8192,
         .checkpoint_buffer_sz = 1ULL << 40,
-        .savepoint_timeout_sec = UINT32_MAX,
-        .checkpoint_timeout_sec = UINT32_MAX
+          .savepoint_timeout_sec = UINT32_MAX,
+          .checkpoint_timeout_sec = UINT32_MAX
       }
     };
-    IWKV iwkv = 0;
-    IWDB db = 0;
+    struct iwkv *iwkv = 0;
+    struct iwdb *db = 0;
     iwrc rc = iwkv_open(&opts, &iwkv);
     if (rc) {
       _exit(10);
@@ -577,8 +577,8 @@ static void iwkv_test11_6_impl(int crash_after) {
       }
       char kb[32];
       snprintf(kb, sizeof(kb), "%08d", i);
-      IWKV_val k = { .data = kb, .size = strlen(kb) };
-      IWKV_val v = { .data = v1, .size = sizeof(v1) };
+      struct iwkv_val k = { .data = kb, .size = strlen(kb) };
+      struct iwkv_val v = { .data = v1, .size = sizeof(v1) };
       rc = iwkv_put(db, &k, &v, 0);
       if (rc) {
         _exit(12);
@@ -598,8 +598,8 @@ static void iwkv_test11_6_impl(int crash_after) {
       }
       char kb[32];
       snprintf(kb, sizeof(kb), "%08d", i);
-      IWKV_val k = { .data = kb, .size = strlen(kb) };
-      IWKV_val v = { .data = v2, .size = sizeof(v2) };
+      struct iwkv_val k = { .data = kb, .size = strlen(kb) };
+      struct iwkv_val v = { .data = v2, .size = sizeof(v2) };
       rc = iwkv_put(db, &k, &v, 0);
       if (rc) {
         _exit(14);
@@ -616,8 +616,8 @@ static void iwkv_test11_6_impl(int crash_after) {
 
     static uint8_t big[4 * 1024 * 1024];
     memset(big, 0x5a, sizeof(big));
-    IWKV_val k = { .data = (void*) "bigkey", .size = 6 };
-    IWKV_val v = { .data = big, .size = sizeof(big) };
+    struct iwkv_val k = { .data = (void*) "bigkey", .size = 6 };
+    struct iwkv_val v = { .data = big, .size = sizeof(big) };
     rc = iwkv_put(db, &k, &v, 0);
     (void) rc;
     _exit(15); // The crash hook did not fire: no growth checkpoint happened.
@@ -628,18 +628,18 @@ static void iwkv_test11_6_impl(int crash_after) {
   CU_ASSERT_TRUE_FATAL(WIFEXITED(status));
   CU_ASSERT_EQUAL_FATAL(WEXITSTATUS(status), 99);
 
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = path,
     .oflags = IWKV_NO_TRIM_ON_CLOSE,
     .wal = {
       .enabled = true,
       .checkpoint_buffer_sz = 1ULL << 40,
-      .savepoint_timeout_sec = UINT32_MAX,
-      .checkpoint_timeout_sec = UINT32_MAX
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
     }
   };
-  IWKV iwkv = 0;
-  IWDB db = 0;
+  struct iwkv *iwkv = 0;
+  struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db);
@@ -655,8 +655,8 @@ static void iwkv_test11_6_impl(int crash_after) {
     }
     char kb[32];
     snprintf(kb, sizeof(kb), "%08d", i);
-    IWKV_val k = { .data = kb, .size = strlen(kb) };
-    IWKV_val v = { 0 };
+    struct iwkv_val k = { .data = kb, .size = strlen(kb) };
+    struct iwkv_val v = { 0 };
     rc = iwkv_get(db, &k, &v);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     CU_ASSERT_EQUAL_FATAL(v.size, sizeof(v2));

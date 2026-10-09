@@ -31,7 +31,7 @@ typedef struct SREC {
 
 #define _srec_cmp(r1, r2) ((r1).id - (r2).id)
 
-KBTREE_INIT(rt, SREC, _srec_cmp)
+KBTREE_INIT(rt, struct SREC, _srec_cmp)
 
 FILE *fstress1;
 kbtree_t(rt) * rt;
@@ -64,7 +64,7 @@ int init_suite(void) {
     }
     buf[j] = '\0';
     fprintf(fstress1, "%08d:%s\n", i, buf);
-    SREC rec = {
+    struct SREC rec = {
       .id = i,
       .addr = addr,
       .rsz = rsz,
@@ -88,8 +88,8 @@ int clean_suite(void) {
 }
 
 void test_stress(char *path, int bpow, bool mmap_all) {
-  IWFS_FSM fsm;
-  IWFS_FSM_OPTS opts = {
+  struct iwfs_fsm fsm;
+  struct iwfs_fsm_opts opts = {
     .exfile = {
       .file = {
         .path = path,
@@ -109,12 +109,12 @@ void test_stress(char *path, int bpow, bool mmap_all) {
   char *buf = malloc(2 * RECSZ + 1);
   for (int i = 0; i < NRECS; ++i) {
     size_t sp;
-    SREC k = { .id = i };
+    struct SREC k = { .id = i };
     iwfs_fsm_aflags aflags = IWFSM_SOLID_ALLOCATED_SPACE | IWFSM_ALLOC_NO_OVERALLOCATE;
     uint32_t rop = iwu_rand_u32();
     if ((i > 0) && (!(rop % 3) || !(rop % 5))) {
       k.id = iwu_rand_range(i);
-      SREC *pr = kb_getp(rt, rt, &k);
+      struct SREC *pr = kb_getp(rt, rt, &k);
       CU_ASSERT_PTR_NOT_NULL_FATAL(pr);
       if (!pr->freed) {
         if ((rop % 3)) { // deallocate previous
@@ -149,7 +149,7 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     }
 
     k.id = i;
-    SREC *r = kb_getp(rt, rt, &k);
+    struct SREC *r = kb_getp(rt, rt, &k);
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
     fseek(fstress1, r->addr + 8 + 1, SEEK_SET);
     fread(buf, r->rsz, 1, fstress1);
@@ -184,8 +184,8 @@ void test_stress(char *path, int bpow, bool mmap_all) {
   char *buf2 = malloc(2 * RECSZ + 1);
   for (int i = 0; i < NRECS; ++i) {
     size_t sp;
-    SREC k = { .id = i };
-    SREC *r = kb_getp(rt, rt, &k);
+    struct SREC k = { .id = i };
+    struct SREC *r = kb_getp(rt, rt, &k);
     CU_ASSERT_PTR_NOT_NULL_FATAL(r);
     if (r->freed) {
       continue;

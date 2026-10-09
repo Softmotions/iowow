@@ -19,8 +19,8 @@ int clean_suite(void) {
 }
 
 static void iwkv_test10_1_impl(int fmt_version) {
-  IWKV iwkv;
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwkv_opts opts = {
     .path = fmt_version > 1 ? "iwkv_test10_1_v2.db" : "iwkv_test10_1_v1.db",
     .oflags = IWKV_TRUNC,
     .wal = {
@@ -32,11 +32,11 @@ static void iwkv_test10_1_impl(int fmt_version) {
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
   for (int i = 0; i < 1024; ++i) {
-    IWDB db;
+    struct iwdb *db;
     rc = iwkv_db(iwkv, i, 0, &db);
     CU_ASSERT_EQUAL_FATAL(rc, 0);
     for (int j = 0; j < 1024; ++j) {
-      IWKV_val key, val;
+      struct iwkv_val key, val;
       snprintf(kbuf, KBUFSZ, "%d", j);
       snprintf(vbuf, VBUFSZ, "%03dval", j);
       key.data = kbuf;
@@ -50,7 +50,7 @@ static void iwkv_test10_1_impl(int fmt_version) {
 
   for (int i = 0; i < 1024; ++i) {
     if ((i % 2)) {
-      IWDB db;
+      struct iwdb *db;
       rc = iwkv_db(iwkv, i, 0, &db);
       CU_ASSERT_EQUAL_FATAL(rc, 0);
       rc = iwkv_db_destroy(&db);
@@ -67,11 +67,11 @@ static void iwkv_test10_1_impl(int fmt_version) {
 
   for (int i = 0; i < 1024; ++i) {
     if (!(i % 2)) {
-      IWDB db;
+      struct iwdb *db;
       rc = iwkv_db(iwkv, i, 0, &db);
       CU_ASSERT_EQUAL_FATAL(rc, 0);
       for (int j = 0; j < 1024; ++j) {
-        IWKV_val key, val;
+        struct iwkv_val key, val;
         int cret = 0;
         snprintf(kbuf, KBUFSZ, "%d", j);
         snprintf(vbuf, VBUFSZ, "%03dval", j);
@@ -89,7 +89,7 @@ static void iwkv_test10_1_impl(int fmt_version) {
 
   for (int i = 0; i < 1024; ++i) {
     if (!(i % 2)) {
-      IWDB db;
+      struct iwdb *db;
       rc = iwkv_db(iwkv, i, 0, &db);
       CU_ASSERT_EQUAL_FATAL(rc, 0);
       rc = iwkv_db_destroy(&db);

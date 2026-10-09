@@ -3,12 +3,12 @@
 #include <stdlib.h>
 
 int main(void) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "example1.db",
     .oflags = IWKV_TRUNC // Cleanup database before open
   };
-  IWKV iwkv;
-  IWDB mydb;
+  struct iwkv *iwkv;
+  struct iwdb *mydb;
   iwrc rc = iwkv_open(&opts, &iwkv);
   if (rc) {
     iwlog_ecode_error3(rc);
@@ -23,7 +23,7 @@ int main(void) {
     return 1;
   }
   // Work with db: put/get value
-  IWKV_val key, val;
+  struct iwkv_val key, val;
   key.data = "foo";
   key.size = strlen(key.data);
   val.data = "bar";

@@ -34,7 +34,7 @@
 
 #include <pthread.h>
 
-void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr);
+void iwfs_fsmdbg_dump_fsm_tree(struct iwfs_fsm *f, const char *hdr);
 
 /**
  * Free-space blocks-tree key.
@@ -1154,7 +1154,7 @@ start:
   if (!rc && (opts & IWFSM_SYNC_BMAP)) {
     uint64_t *bmptr;
     if (!_fsm_bmptr(fsm, &bmptr)) {
-      IWFS_EXT *pool = &fsm->pool;
+      struct iwfs_ext *pool = &fsm->pool;
       rc = pool->sync_mmap(pool, fsm->bmoff, IWFS_SYNCDEFAULT);
     }
   }
@@ -1352,11 +1352,11 @@ static iwrc _fsm_read_meta_lr(struct fsm *fsm) {
   return rc;
 }
 
-static iwrc _fsm_init_new_lw(struct fsm *fsm, const IWFS_FSM_OPTS *opts) {
+static iwrc _fsm_init_new_lw(struct fsm *fsm, const struct iwfs_fsm_opts *opts) {
   FSM_ENSURE_OPEN(fsm);
   iwrc rc;
   uint64_t bmlen, bmoff;
-  IWFS_EXT *pool = &fsm->pool;
+  struct iwfs_ext *pool = &fsm->pool;
   assert(fsm->aunit && fsm->bpow);
 
   fsm->hdrlen = opts->hdrlen + IWFSM_CUSTOM_HDR_DATA_OFFSET;
@@ -1384,7 +1384,7 @@ static iwrc _fsm_init_existing_lw(struct fsm *fsm) {
   iwrc rc;
   size_t sp;
   uint8_t *mm;
-  IWFS_EXT *pool = &fsm->pool;
+  struct iwfs_ext *pool = &fsm->pool;
 
   RCC(rc, finish, _fsm_read_meta_lr(fsm));
 
@@ -1770,13 +1770,13 @@ finish:
   return rc;
 }
 
-static iwrc _fsm_extfile(struct iwfs_fsm *f, IWFS_EXT **ext) {
+static iwrc _fsm_extfile(struct iwfs_fsm *f, struct iwfs_ext **ext) {
   FSM_ENSURE_OPEN2(f);
   *ext = &f->impl->pool;
   return 0;
 }
 
-static iwrc _fsm_state(struct iwfs_fsm *f, IWFS_FSM_STATE *state) {
+static iwrc _fsm_state(struct iwfs_fsm *f, struct iwfs_fsm_state *state) {
   FSM_ENSURE_OPEN2(f);
   struct fsm *fsm = f->impl;
   iwrc rc = _fsm_ctrl_rlock(fsm);
@@ -1793,7 +1793,7 @@ static iwrc _fsm_state(struct iwfs_fsm *f, IWFS_FSM_STATE *state) {
   return rc;
 }
 
-iwrc iwfs_fsmfile_open(IWFS_FSM *f, const IWFS_FSM_OPTS *opts) {
+iwrc iwfs_fsmfile_open(struct iwfs_fsm *f, const struct iwfs_fsm_opts *opts) {
   assert(f && opts);
   iwrc rc = 0;
   struct iwfs_ext_state fstate = { 0 };
@@ -1906,7 +1906,7 @@ iwrc iwfs_fsmfile_init(void) {
 *                                      Debug API                                                *
 *************************************************************************************************/
 
-uint64_t iwfs_fsmdbg_number_of_free_areas(IWFS_FSM *f) {
+uint64_t iwfs_fsmdbg_number_of_free_areas(struct iwfs_fsm *f) {
   struct fsm *fsm = f->impl;
   return fsm->fsmnum;
 }
@@ -1923,7 +1923,7 @@ uint64_t iwfs_fsmdbg_find_prev_set_bit(
   return _fsm_find_prev_set_bit(addr, offset_bit, min_offset_bit, found);
 }
 
-void iwfs_fsmdbg_dump_fsm_tree(IWFS_FSM *f, const char *hdr) {
+void iwfs_fsmdbg_dump_fsm_tree(struct iwfs_fsm *f, const char *hdr) {
   assert(f);
   struct fsm *fsm = f->impl;
   fprintf(stderr, "FSM TREE: %s\n", hdr);
@@ -1949,7 +1949,7 @@ const char* byte_to_binary(int x) {
   return b;
 }
 
-iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f) {
+iwrc iwfs_fsmdb_dump_fsm_bitmap(struct iwfs_fsm *f) {
   assert(f);
   size_t sp;
   uint8_t *mm;
@@ -1984,7 +1984,7 @@ iwrc iwfs_fsmdb_dump_fsm_bitmap(IWFS_FSM *f) {
   return 0;
 }
 
-iwrc iwfs_fsmdbg_state(IWFS_FSM *f, IWFS_FSMDBG_STATE *d) {
+iwrc iwfs_fsmdbg_state(struct iwfs_fsm *f, struct iwfs_fsmdbg_state *d) {
   FSM_ENSURE_OPEN2(f);
   struct fsm *fsm = f->impl;
   iwrc rc = _fsm_ctrl_rlock(fsm);

@@ -17,15 +17,15 @@ int clean_suite(void) {
 }
 
 static void iwkv_test2_1(void) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test2_1.db",
     .oflags = IWKV_TRUNC
   };
   const uint64_t numrec = 1000000; // 1M
   // Test open/close
-  IWKV iwkv;
-  IWDB db1;
-  IWKV_val key, val;
+  struct iwkv *iwkv;
+  struct iwdb *db1;
+  struct iwkv_val key, val;
   iwrc rc = iwkv_open(&opts, &iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 

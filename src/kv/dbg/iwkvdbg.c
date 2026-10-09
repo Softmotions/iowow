@@ -4,11 +4,11 @@ void iwkvd_trigger_xor(uint64_t val) {
   g_trigger ^= val;
 }
 
-void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
+void iwkvd_kvblk(FILE *f, struct kvblk *kb, int maxvlen) {
   assert(f && kb && kb->addr);
   uint8_t *mm, *vbuf, *kbuf;
   uint32_t klen, vlen;
-  IWFS_FSM *fsm = &kb->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &kb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(kb->addr);
   fprintf(f, "\n === KVBLK[%u] maxoff=%" PRIx64 ", zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n", // -V576
           blkn, (int64_t) kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
@@ -19,7 +19,7 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
     return;
   }
   for (int i = 0; i < KVBLK_IDXNUM; ++i) {
-    KVP *kvp = &kb->pidx[i];
+    struct kvp *kvp = &kb->pidx[i];
     rc = _kvblk_key_peek(kb, i, mm, &kbuf, &klen);
     if (rc) {
       iwlog_ecode_error3(rc);
@@ -35,13 +35,13 @@ void iwkvd_kvblk(FILE *f, KVBLK *kb, int maxvlen) {
 
 #define IWKVD_MAX_VALSZ 96
 
-iwrc iwkvd_sblk(FILE *f, struct iwlctx *lx, SBLK *sb, int flags) {
+iwrc iwkvd_sblk(FILE *f, struct iwlctx *lx, struct sblk *sb, int flags) {
   assert(sb && sb->addr);
   uint32_t lkl = 0;
   char lkbuf[PREFIX_KEY_LEN_V2 + 1] = { 0 };
   uint8_t *mm, *vbuf, *kbuf;
   uint32_t klen, vlen;
-  IWFS_FSM *fsm = &sb->db->iwkv->fsm;
+  struct iwfs_fsm *fsm = &sb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(sb->addr);
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
   if (rc) {
@@ -94,13 +94,13 @@ iwrc iwkvd_sblk(FILE *f, struct iwlctx *lx, SBLK *sb, int flags) {
   return rc;
 }
 
-IWFS_FSM* iwkvd_fsm(IWKV kv) {
+struct iwfs_fsm* iwkvd_fsm(struct iwkv *kv) {
   return &kv->fsm;
 }
 
-void iwkvd_db(FILE *f, IWDB db, int flags, int plvl) {
+void iwkvd_db(FILE *f, struct iwdb *db, int flags, int plvl) {
   assert(db);
-  SBLK *sb, *tail;
+  struct sblk *sb, *tail;
   struct iwlctx lx = {
     .db = db,
     .nlvl = -1

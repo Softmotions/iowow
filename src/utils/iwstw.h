@@ -52,7 +52,7 @@ typedef void (*iwstw_on_task_discard_f)(iwstw_task_f task, void *arg);
  * @param queue_blocking If true iwstw_schedule will block when queue reached its limit.
  * @param[out] stwp_out Pointer to worker handler to be initialized.
  */
-IW_EXPORT iwrc iwstw_start(const char *thread_name, int queue_limit, bool queue_blocking, IWSTW *out_stw);
+IW_EXPORT iwrc iwstw_start(const char *thread_name, int queue_limit, bool queue_blocking, struct iwstw **out_stw);
 
 /**
  * @brief Shutdowns worker and disposes all resources.
@@ -63,7 +63,7 @@ IW_EXPORT iwrc iwstw_start(const char *thread_name, int queue_limit, bool queue_
  * @param stw Pointer to worker handler which should be destroyed.
  * @param wait_for_all If true worker will wait for completion of all enqueued tasks before shutdown.
  */
-IW_EXPORT iwrc iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
+IW_EXPORT iwrc iwstw_shutdown(struct iwstw **stwp, bool wait_for_all);
 
 /**
  * @brief Schedule task for execution.
@@ -74,29 +74,29 @@ IW_EXPORT iwrc iwstw_shutdown(IWSTW *stwp, bool wait_for_all);
  *        or `IW_ERROR_OVERFLOW` will be returned.
  * @note If worker is in process of stopping `IW_ERROR_INVALID_STATE` will be returned.
  */
-IW_EXPORT iwrc iwstw_schedule(IWSTW stw, iwstw_task_f task, void *task_arg);
+IW_EXPORT iwrc iwstw_schedule(struct iwstw *stw, iwstw_task_f task, void *task_arg);
 
 /**
  * @brief Schedule task for execution discading all pending tasks on queue.
  * @note If worker is in process of stopping `IW_ERROR_INVALID_STATE` will be returned.
  */
-IW_EXPORT iwrc iwstw_schedule_only(IWSTW stw, iwstw_task_f task, void *task_arg);
+IW_EXPORT iwrc iwstw_schedule_only(struct iwstw *stw, iwstw_task_f task, void *task_arg);
 
 /**
  * @brief Schedule task only if task queue is empty.
  */
-IW_EXPORT iwrc iwstw_schedule_empty_only(IWSTW stw, iwstw_task_f task, void *task_arg, bool *out_scheduled);
+IW_EXPORT iwrc iwstw_schedule_empty_only(struct iwstw *stw, iwstw_task_f task, void *task_arg, bool *out_scheduled);
 
 /**
  * @brief Set on task discard callback function.
  * Called when pending task removed from queue and will not be executed.
  */
-IW_EXPORT void iwstw_set_on_task_discard(IWSTW stw, iwstw_on_task_discard_f on_task_discard);
+IW_EXPORT void iwstw_set_on_task_discard(struct iwstw *stw, iwstw_on_task_discard_f on_task_discard);
 
 /**
  * @brief Returns size of tasks queue.
  */
-IW_EXPORT int iwstw_queue_size(IWSTW stw);
+IW_EXPORT int iwstw_queue_size(struct iwstw *stw);
 
 IW_EXTERN_C_END;
 #endif

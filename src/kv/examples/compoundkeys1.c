@@ -45,13 +45,13 @@ static struct chat_root_s rooms[] = {
 };
 
 static iwrc run(void) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "compoundkeys.db",
     .oflags = IWKV_TRUNC
   };
-  IWKV iwkv;
-  IWDB db;
-  IWKV_cursor cur = 0;
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_cursor *cur = 0;
   iwrc rc = iwkv_open(&opts, &iwkv);
   RCRET(rc);
 
@@ -63,16 +63,16 @@ static iwrc run(void) {
     int j = 0;
     struct chat_root_s *room = &rooms[i];
     for (struct user_s *user = &room->users[0]; user->id; user = &room->users[++j]) {
-      IWKV_val key = { .data = room->name, .size = strlen(room->name), .compound = user->id };
-      IWKV_val val = { .data = user->name, .size = strlen(user->name) };
+      struct iwkv_val key = { .data = room->name, .size = strlen(room->name), .compound = user->id };
+      struct iwkv_val val = { .data = user->name, .size = strlen(user->name) };
       RCC(rc, finish, iwkv_put(db, &key, &val, 0));
     }
   }
 
   // Get specific user from the room
   {
-    IWKV_val key = { .data = "Webinar room", .size = sizeof("Webinar room") - 1, .compound = 2 };
-    IWKV_val val;
+    struct iwkv_val key = { .data = "Webinar room", .size = sizeof("Webinar room") - 1, .compound = 2 };
+    struct iwkv_val val;
     RCC(rc, finish, iwkv_get(db, &key, &val));
     fprintf(stdout, "\n>>>> Found: '%.*s' in room '%s' by id: %d\n",
             (int) val.size, (char*) val.data,
@@ -84,7 +84,7 @@ static iwrc run(void) {
   {
     size_t len = strlen(rooms[0].name);
     fprintf(stdout, "\n>>>> Iterate over all members in %s\n", rooms[0].name);
-    IWKV_val val, key = { .data = rooms[0].name, .size = len };
+    struct iwkv_val val, key = { .data = rooms[0].name, .size = len };
     RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
     do {
       RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));

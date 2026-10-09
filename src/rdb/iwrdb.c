@@ -35,24 +35,24 @@ struct iwrdb {
   off_t    end;
 };
 
-IW_INLINE iwrc _wlock(IWRDB db) {
+IW_INLINE iwrc _wlock(struct iwrdb *db) {
   _ENSURE_OPEN(db);
   int rci = db->cwl ? pthread_rwlock_wrlock(db->cwl) : 0;
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
-IW_INLINE iwrc _rlock(IWRDB db) {
+IW_INLINE iwrc _rlock(struct iwrdb *db) {
   _ENSURE_OPEN(db);
   int rci = db->cwl ? pthread_rwlock_rdlock(db->cwl) : 0;
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
-IW_INLINE iwrc _unlock(IWRDB db) {
+IW_INLINE iwrc _unlock(struct iwrdb *db) {
   int rci = db->cwl ? pthread_rwlock_unlock(db->cwl) : 0;
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
-static iwrc _initlocks(IWRDB db) {
+static iwrc _initlocks(struct iwrdb *db) {
   if (db->oflags & IWRDB_NOLOCKS) {
     db->cwl = 0;
     return 0;
@@ -77,7 +77,7 @@ static iwrc _initlocks(IWRDB db) {
   return 0;
 }
 
-static iwrc _destroy_locks(IWRDB db) {
+static iwrc _destroy_locks(struct iwrdb *db) {
   iwrc rc = 0;
   if (db->cwl) {
     pthread_rwlock_destroy(db->cwl);
@@ -87,7 +87,7 @@ static iwrc _destroy_locks(IWRDB db) {
   return rc;
 }
 
-static iwrc _flush_lw(IWRDB db) {
+static iwrc _flush_lw(struct iwrdb *db) {
   if (db->bp) {
     iwrc rc = iwp_write(db->fh, db->buf, db->bp);
     RCRET(rc);
@@ -97,7 +97,7 @@ static iwrc _flush_lw(IWRDB db) {
   return 0;
 }
 
-static iwrc _append_lw(IWRDB db, const void *data, int len, uint64_t *oref) {
+static iwrc _append_lw(struct iwrdb *db, const void *data, int len, uint64_t *oref) {
   iwrc rc = 0;
   *oref = 0;
 
@@ -120,10 +120,10 @@ static iwrc _append_lw(IWRDB db, const void *data, int len, uint64_t *oref) {
   return rc;
 }
 
-iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, IWRDB *odb) {
+iwrc iwrdb_open(const char *path, iwrdb_oflags_t oflags, size_t bufsz, struct iwrdb **odb) {
   assert(path && odb);
   iwrc rc = 0;
-  IWRDB db = 0;
+  struct iwrdb *db = 0;
   *odb = 0;
 
 #ifndef _WIN32
@@ -172,7 +172,7 @@ finish:
   return rc;
 }
 
-iwrc iwrdb_sync(IWRDB db) {
+iwrc iwrdb_sync(struct iwrdb *db) {
   iwrc rc;
   rc = _wlock(db);
   RCRET(rc);
@@ -186,9 +186,9 @@ finish:
   return rc;
 }
 
-iwrc iwrdb_close(IWRDB *rdb, bool no_sync) {
+iwrc iwrdb_close(struct iwrdb **rdb, bool no_sync) {
   iwrc rc = 0;
-  IWRDB db;
+  struct iwrdb *db;
   if (!rdb || !*rdb) {
     return 0;
   }
@@ -210,7 +210,7 @@ iwrc iwrdb_close(IWRDB *rdb, bool no_sync) {
   return rc;
 }
 
-iwrc iwrdb_append(IWRDB db, const void *data, int len, uint64_t *oref) {
+iwrc iwrdb_append(struct iwrdb *db, const void *data, int len, uint64_t *oref) {
   iwrc rc = _wlock(db);
   RCRET(rc);
   rc = _append_lw(db, data, len, oref);
@@ -218,7 +218,7 @@ iwrc iwrdb_append(IWRDB db, const void *data, int len, uint64_t *oref) {
   return rc;
 }
 
-iwrc iwrdb_patch(IWRDB db, uint64_t ref, off_t skip, const void *data, int len) {
+iwrc iwrdb_patch(struct iwrdb *db, uint64_t ref, off_t skip, const void *data, int len) {
   iwrc rc;
   size_t sz;
   off_t sz2;
@@ -254,7 +254,7 @@ finish:
   return rc;
 }
 
-iwrc iwrdb_read(IWRDB db, uint64_t ref, off_t skip, void *buf, int len) {
+iwrc iwrdb_read(struct iwrdb *db, uint64_t ref, off_t skip, void *buf, int len) {
   iwrc rc;
   uint8_t *wp = buf;
   off_t to_read = len;
@@ -304,7 +304,7 @@ finish:
   return rc;
 }
 
-HANDLE iwrdb_file_handle(IWRDB db) {
+HANDLE iwrdb_file_handle(struct iwrdb *db) {
   if (!_rlock(db)) {
     HANDLE h = db->fh;
     _unlock(db);
@@ -313,7 +313,7 @@ HANDLE iwrdb_file_handle(IWRDB db) {
   return INVALID_HANDLE_VALUE;
 }
 
-off_t iwrdb_offset_end(IWRDB db) {
+off_t iwrdb_offset_end(struct iwrdb *db) {
   if (!_rlock(db)) {
     off_t ret = db->end + db->bp;
     _unlock(db);
@@ -322,7 +322,7 @@ off_t iwrdb_offset_end(IWRDB db) {
   return -1;
 }
 
-uint8_t* iwrdb_mmap(IWRDB db, bool readonly, int madv, size_t *msiz) {
+uint8_t* iwrdb_mmap(struct iwrdb *db, bool readonly, int madv, size_t *msiz) {
   *msiz = 0;
   if (_rlock(db)) {
     return MAP_FAILED;
@@ -371,7 +371,7 @@ finish:
   return mm;
 }
 
-void iwrdb_munmap(IWRDB db) {
+void iwrdb_munmap(struct iwrdb *db) {
   if (!_wlock(db)) {
     if (db->mm) {
       munmap(db->mm, db->msiz);

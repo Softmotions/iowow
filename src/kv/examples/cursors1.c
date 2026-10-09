@@ -35,13 +35,13 @@ static struct data_s {
 };
 
 static iwrc run(void) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "cursor1.db",
     .oflags = IWKV_TRUNC // Cleanup database before open
   };
-  IWKV iwkv;
-  IWDB db;
-  IWKV_cursor cur = 0;
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_cursor *cur = 0;
   iwrc rc = iwkv_open(&opts, &iwkv);
   RCRET(rc);
 
@@ -50,15 +50,15 @@ static iwrc run(void) {
 
   for (int i = 0; i < sizeof(_points) / sizeof(_points[0]); ++i) {
     struct data_s *n = &_points[i];
-    IWKV_val key = { .data = (void*) n->club, .size = strlen(n->club) };
-    IWKV_val val = { .data = &n->points, .size = sizeof(n->points) };
+    struct iwkv_val key = { .data = (void*) n->club, .size = strlen(n->club) };
+    struct iwkv_val val = { .data = &n->points, .size = sizeof(n->points) };
     RCC(rc, finish, iwkv_put(db, &key, &val, 0));
   }
 
   fprintf(stdout, ">>>> Traverse in descending order\n");
   RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0));
   while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT)) == 0) {
-    IWKV_val key, val;
+    struct iwkv_val key, val;
     RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
     fprintf(stdout, "%.*s: %u\n",
             (int) key.size, (char*) key.data,
@@ -71,7 +71,7 @@ static iwrc run(void) {
   fprintf(stdout, "\n>>>> Traverse in ascending order\n");
   RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_AFTER_LAST, 0));
   while ((rc = iwkv_cursor_to(cur, IWKV_CURSOR_PREV)) == 0) {
-    IWKV_val key, val;
+    struct iwkv_val key, val;
     RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));
     fprintf(stdout, "%.*s: %u\n",
             (int) key.size, (char*) key.data,
@@ -84,7 +84,7 @@ static iwrc run(void) {
   // Select all keys greater or equal than: Manchester United
   {
     fprintf(stdout, "\n>>>> Records GE: %s\n", _points[9].club);
-    IWKV_val key = { .data = (void*) _points[9].club, .size = strlen(_points[9].club) }, val;
+    struct iwkv_val key = { .data = (void*) _points[9].club, .size = strlen(_points[9].club) }, val;
     RCC(rc, finish, iwkv_cursor_open(db, &cur, IWKV_CURSOR_GE, &key));
     do {
       RCC(rc, finish, iwkv_cursor_get(cur, &key, &val));

@@ -16,13 +16,13 @@ int clean_suite(void) {
 
 static void iwkv_test6_1_impl(int fmt_version) {
   iwrc rc;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV iwkv;
-  IWDB db;
-  IWKV_cursor cur;
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_cursor *cur;
 
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test6_1.db",
     .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version
@@ -54,7 +54,7 @@ static void iwkv_test6_1_impl(int fmt_version) {
     key.size = sizeof(i);
     for (uint32_t j = 0; j < 10; ++j) {
       key.compound = j;
-      IWKV_val ckey;
+      struct iwkv_val ckey;
       rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_EQ, &key);
       CU_ASSERT_EQUAL_FATAL(rc, 0);
       rc = iwkv_cursor_key(cur, &ckey);
@@ -82,13 +82,13 @@ void iwkv_test6_1_v2(void) {
 
 static void iwkv_test6_2_impl(int fmt_version) {
   iwrc rc;
-  IWKV iwkv;
-  IWDB db;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
   char kbuf[PREFIX_KEY_LEN_V2];
 
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test6_2.db",
     .oflags = IWKV_TRUNC,
     .fmt_version = fmt_version

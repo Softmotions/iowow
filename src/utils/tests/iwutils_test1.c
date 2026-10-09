@@ -27,7 +27,7 @@ static const char* _replace_mapper1(const char *key, void *op) {
 }
 
 static void test_iwu_replace_into(void) {
-  IWXSTR *res = 0;
+  struct iwxstr *res = 0;
   const char *data = "What you said about my {}?";
   const char *keys[] = { "{}", "$", "?", "you", "my" };
   iwrc rc = iwu_replace(&res, data, strlen(data), keys, 5, _replace_mapper1, 0);
@@ -132,8 +132,8 @@ static void test_iwpool_printf(void) {
 
 static void test_iwrb1(void) {
   int *p;
-  IWRB_ITER iter;
-  IWRB *rb = iwrb_create(sizeof(int), 7);
+  struct iwrb_iter iter;
+  struct iwrb *rb = iwrb_create(sizeof(int), 7);
   CU_ASSERT_PTR_NOT_NULL_FATAL(rb);
   CU_ASSERT_EQUAL(iwrb_num_cached(rb), 0);
   int idx = 0;

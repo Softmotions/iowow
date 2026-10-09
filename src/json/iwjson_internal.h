@@ -74,7 +74,7 @@ iwrc _jbl_write_json_string(const char *str, int len, jbl_json_printer pt, void 
 iwrc _jbl_node_from_binn(const binn *bn, struct jbl_node **node, bool clone_strings, struct iwpool *pool);
 iwrc _jbl_binn_from_node(binn *res, struct jbl_node *node);
 iwrc _jbl_from_node(struct jbl *jbl, struct jbl_node *node);
-bool _jbl_at(struct jbl *jbl, JBL_PTR jp, struct jbl *res);
+bool _jbl_at(struct jbl *jbl, struct jbl_ptr *jp, struct jbl *res);
 int _jbl_compare_nodes(struct jbl_node *n1, struct jbl_node *n2, iwrc *rcp);
 
 typedef jbl_visitor_cmd_t (*jbl_visitor)(int lvl, binn *bv, const char *key, int idx, struct jbl_vctx *vctx, iwrc *rc);

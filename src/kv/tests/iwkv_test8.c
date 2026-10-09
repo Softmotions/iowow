@@ -5,7 +5,7 @@
 #include "iwkv_internal.h"
 #include "iwth.h"
 
-iwrc iwal_test_checkpoint(IWKV iwkv);
+iwrc iwal_test_checkpoint(struct iwkv *iwkv);
 
 #define KBUFSZ 1024
 #define VBUFSZ 1024
@@ -30,11 +30,11 @@ int clean_suite(void) {
 }
 
 static void iwkv_test8_1(void) {
-  IWKV iwkv;
-  IWDB db;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv_opts opts = {
     .path = "iwkv_test8_1.db",
     .oflags = IWKV_TRUNC,
     .wal = {
@@ -101,22 +101,22 @@ typedef struct T82 {
   pthread_barrier_t barrier;
   pthread_cond_t    cond;
   pthread_mutex_t   mtx;
-  IWKV iwkv;
-  IWKV iwkvcheck;
+  struct iwkv      *iwkv;
+  struct iwkv      *iwkvcheck;
 } T82;
 
 static void* t82(void *ctx_) {
-  T82 *ctx = ctx_;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
+  struct T82 *ctx = ctx_;
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
 
-  iwrc rc = iwkv_open(&(IWKV_OPTS) {
+  iwrc rc = iwkv_open(&(struct iwkv_opts) {
     .path = "iwkv_test8_2_check.db",
     .oflags = IWKV_TRUNC,
   }, &ctx->iwkvcheck);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
-  IWDB db, dbc;
+  struct iwdb *db, *dbc;
   rc = iwkv_db(ctx->iwkv, 1, 0, &db);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -174,7 +174,7 @@ static void* t82(void *ctx_) {
 }
 
 static void iwkv_test8_2(void) {
-  IWKV_OPTS opts = {
+  struct iwkv_opts opts = {
     .path = "iwkv_test8_2.db",
     .oflags = IWKV_TRUNC,
     .wal = {
@@ -182,7 +182,7 @@ static void iwkv_test8_2(void) {
     }
   };
 
-  T82 ctx = { 0 };
+  struct T82 ctx = { 0 };
   iwrc rc = iwkv_open(&opts, &ctx.iwkv);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
 
@@ -204,9 +204,9 @@ static void iwkv_test8_2(void) {
 
   size_t sp;
   int cnt1 = 0, cnt2 = 0;
-  IWKV iwkv;
-  IWKV_cursor cur;
-  IWDB db;
+  struct iwkv *iwkv;
+  struct iwkv_cursor *cur;
+  struct iwdb *db;
 
   // Now restore our backup
   opts.path = "iwkv_test8_2_bkp.db";

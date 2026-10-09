@@ -1256,7 +1256,7 @@ iwrc _jbl_visit(binn_iter *iter, int lvl, struct jbl_vctx *vctx, jbl_visitor vis
   return rc;
 }
 
-iwrc jbn_visit(struct jbl_node *node, int lvl, JBN_VCTX *vctx, JBN_VISITOR visitor) {
+iwrc jbn_visit(struct jbl_node *node, int lvl, struct jbn_vctx *vctx, JBN_VISITOR visitor) {
   iwrc rc = 0;
   if (lvl > JBL_MAX_NESTING_LEVEL) {
     return JBL_ERROR_MAX_NESTING_LEVEL_EXCEEDED;
@@ -1347,7 +1347,7 @@ IW_INLINE bool _jbl_visitor_update_jptr_cursor(struct jbl_vctx *vctx, int lvl, c
   return false;
 }
 
-IW_INLINE bool _jbn_visitor_update_jptr_cursor(JBN_VCTX *vctx, int lvl, const char *key, int idx) {
+IW_INLINE bool _jbn_visitor_update_jptr_cursor(struct jbn_vctx *vctx, int lvl, const char *key, int idx) {
   struct jbl_ptr *jp = vctx->op;
   if (lvl < jp->cnt) {
     if (vctx->pos >= lvl) {
@@ -1480,7 +1480,7 @@ static jbn_visitor_cmd_t _jbn_get_visitor(
   struct jbl_node *n,
   const char      *key,
   int              klidx,
-  JBN_VCTX        *vctx,
+  struct jbn_vctx *vctx,
   iwrc            *rc) {
   if (lvl < 0) { // EOF
     return JBL_VCMD_OK;
@@ -1501,7 +1501,7 @@ iwrc jbn_at2(struct jbl_node *node, struct jbl_ptr *jp, struct jbl_node **res) {
     *res = node;
     return 0;
   }
-  JBN_VCTX vctx = {
+  struct jbn_vctx vctx = {
     .root = node,
     .op = jp,
     .pos = -1
@@ -2162,13 +2162,13 @@ void jbn_remove_item(struct jbl_node *parent, struct jbl_node *child) {
 }
 
 static iwrc _jbl_create_node(
-  JBLDRCTX         *ctx,
-  const binn       *bv,
-  struct jbl_node  *parent,
-  const char       *key,
-  int               klidx,
-  struct jbl_node **node,
-  bool              clone_strings) {
+  struct jbl_ldr_ctx *ctx,
+  const binn         *bv,
+  struct jbl_node    *parent,
+  const char         *key,
+  int                 klidx,
+  struct jbl_node   **node,
+  bool                clone_strings) {
   if (node) {
     *node = 0;
   }
@@ -2290,12 +2290,12 @@ finish:
 }
 
 static iwrc _jbl_node_from_binn_impl(
-  JBLDRCTX        *ctx,
-  const binn      *bn,
-  struct jbl_node *parent,
-  char            *key,
-  int              klidx,
-  bool             clone_strings) {
+  struct jbl_ldr_ctx *ctx,
+  const binn         *bn,
+  struct jbl_node    *parent,
+  char               *key,
+  int                 klidx,
+  bool                clone_strings) {
   binn bv;
   binn_iter iter;
   iwrc rc = 0;
@@ -2347,7 +2347,7 @@ static iwrc _jbl_node_from_binn_impl(
 }
 
 iwrc _jbl_node_from_binn(const binn *bn, struct jbl_node **node, bool clone_strings, struct iwpool *pool) {
-  JBLDRCTX ctx = {
+  struct jbl_ldr_ctx ctx = {
     .pool = pool
   };
   iwrc rc = _jbl_node_from_binn_impl(&ctx, bn, 0, 0, -1, clone_strings);

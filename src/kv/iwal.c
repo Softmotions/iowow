@@ -115,7 +115,7 @@ struct iwal {
 typedef struct iwal IWAL;
 
 static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint);
-static iwrc _resize_rollforward_exl(struct iwal *wal, IWFS_EXT *extf, off_t target);
+static iwrc _resize_rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, off_t target);
 static void _account_write(struct iwal *wal, off_t len);
 
 IW_INLINE iwrc _lock(struct iwal *wal) {
@@ -230,7 +230,7 @@ static void _destroy(struct iwal *wal) {
     free(wal->phash);
     free(wal->parena);
     if (wal->buf) {
-      wal->buf -= sizeof(WBSEP);
+      wal->buf -= sizeof(struct wbsep);
       free(wal->buf);
     }
     free(wal);
@@ -241,14 +241,14 @@ static iwrc _flush_buf(struct iwal *wal, bool sync) {
   iwrc rc = 0;
   if (wal->bufpos) {
     uint32_t crc = wal->check_cp_crc ? iwu_crc32(wal->buf, wal->bufpos, 0) : 0;
-    WBSEP sep = {
+    struct wbsep sep = {
       .id = WOP_SEP,
       .crc = crc,
       .len = wal->bufpos
     };
-    size_t wz = wal->bufpos + sizeof(WBSEP);
-    uint8_t *wp = wal->buf - sizeof(WBSEP);
-    memcpy(wp, &sep, sizeof(WBSEP));
+    size_t wz = wal->bufpos + sizeof(struct wbsep);
+    uint8_t *wp = wal->buf - sizeof(struct wbsep);
+    memcpy(wp, &sep, sizeof(struct wbsep));
     rc = iwp_write(wal->fh, wp, wz);
     RCRET(rc);
     wal->bufpos = 0;
@@ -423,10 +423,10 @@ static iwrc _flush_pending(struct iwal *wal) {
       // current flushing window, as a single compact patch record. The union
       // keeps `hdr` properly aligned while `blob` is the serialized record.
       union {
-        WBPATCH hdr;
-        uint8_t blob[sizeof(WBPATCH) + IWAL_DIFF_MAXLEN * (size_t) 4 + 16];
+        struct wbpatch hdr;
+        uint8_t blob[sizeof(struct wbpatch) + IWAL_DIFF_MAXLEN * (size_t) 4 + 16];
       } patch;
-      WBPATCH *wb = &patch.hdr;
+      struct wbpatch *wb = &patch.hdr;
       const uint8_t *base = wal->parena + pe->arena_base_off;
       wb->id = WOP_PATCH;
       wb->off = pe->off;
@@ -453,11 +453,11 @@ static iwrc _flush_pending(struct iwal *wal) {
       if (!wb->len) {
         continue; // Region is unchanged since the start of the window.
       }
-      if (sizeof(WBPATCH) + wb->len < sizeof(WBWRITE) + pe->len) {
+      if (sizeof(struct wbpatch) + wb->len < sizeof(struct wbwrite) + pe->len) {
         rc = _append_wl(wal, patch.blob, (off_t) (p - patch.blob), 0, 0);
       } else {
         // The patch is not smaller than the raw region: log the raw bytes.
-        WBWRITE ww = {
+        struct wbwrite ww = {
           .id = WOP_WRITE,
           .crc = wal->check_cp_crc ? iwu_crc32(cur, pe->len, 0) : 0,
           .len = pe->len,
@@ -466,7 +466,7 @@ static iwrc _flush_pending(struct iwal *wal) {
         rc = _append_wl(wal, &ww, sizeof(ww), cur, pe->len);
       }
     } else {
-      WBWRITE wb = {
+      struct wbwrite wb = {
         .id = WOP_WRITE,
         .crc = wal->check_cp_crc ? iwu_crc32(cur, pe->len, 0) : 0,
         .len = pe->len,
@@ -517,7 +517,7 @@ static iwrc _write_pending_wl(
   if (!diff && len > wal->coalesce_maxlen && (_pending_lookup(wal, off, len) < 0)) {
     // Large one-shot write: bypass the coalescing set to avoid its extra copy
     // and hash bookkeeping. This is an ordering barrier for pending writes.
-    WBWRITE wb = {
+    struct wbwrite wb = {
       .id = WOP_WRITE,
       .crc = wal->check_cp_crc ? iwu_crc32(data, len, 0) : 0,
       .len = len,
@@ -651,7 +651,7 @@ static iwrc _onset(struct iwdlsnr *self, off_t off, uint8_t val, off_t len, int 
   if (len <= 0) {
     return 0;
   }
-  WBSET wb = {
+  struct wbset wb = {
     .id = WOP_SET,
     .val = val,
     .off = off,
@@ -670,7 +670,7 @@ static iwrc _oncopy(struct iwdlsnr *self, off_t off, off_t len, off_t noff, int 
   if (wal->applying) {
     return 0;
   }
-  WBCOPY wb = {
+  struct wbcopy wb = {
     .id = WOP_COPY,
     .off = off,
     .len = len,
@@ -704,7 +704,7 @@ static iwrc _onresize(struct iwdlsnr *self, off_t osize, off_t nsize, int flags,
     return 0;
   }
   *handled = true;
-  WBRESIZE wb = {
+  struct wbresize wb = {
     .id = WOP_RESIZE,
     .osize = osize,
     .nsize = nsize
@@ -722,7 +722,7 @@ static iwrc _onresize(struct iwdlsnr *self, off_t osize, off_t nsize, int flags,
   }
   RCC(rc, finish, _write_wl(wal, &wb, sizeof(wb), 0, 0));
   if ((wal->bkp_stage == 0) && (wal->rollforward_offset == 0)) {
-    IWFS_EXT *extf;
+    struct iwfs_ext *extf;
     RCC(rc, finish, _flush_wl(wal, true));
     RCC(rc, finish, wal->iwkv->fsm.extfile(&wal->iwkv->fsm, &extf));
     off_t target = (nsize > osize) ? nsize : osize;
@@ -763,7 +763,7 @@ static void _last_fix_and_reset_points(struct iwal *wal, uint8_t *wmm, off_t fsz
     }
     switch (opid) {
       case WOP_SEP: {
-        WBSEP wb;
+        struct wbsep wb;
         if (avail < sizeof(wb)) {
           return;
         }
@@ -775,21 +775,21 @@ static void _last_fix_and_reset_points(struct iwal *wal, uint8_t *wmm, off_t fsz
         break;
       }
       case WOP_SET: {
-        if (avail < sizeof(WBSET)) {
+        if (avail < sizeof(struct wbset)) {
           return;
         }
-        rp += sizeof(WBSET);
+        rp += sizeof(struct wbset);
         break;
       }
       case WOP_COPY: {
-        if (avail < sizeof(WBCOPY)) {
+        if (avail < sizeof(struct wbcopy)) {
           return;
         }
-        rp += sizeof(WBCOPY);
+        rp += sizeof(struct wbcopy);
         break;
       }
       case WOP_WRITE: {
-        WBWRITE wb;
+        struct wbwrite wb;
         if (avail < sizeof(wb)) {
           return;
         }
@@ -802,7 +802,7 @@ static void _last_fix_and_reset_points(struct iwal *wal, uint8_t *wmm, off_t fsz
         break;
       }
       case WOP_PATCH: {
-        WBPATCH wb;
+        struct wbpatch wb;
         if (avail < sizeof(wb)) {
           return;
         }
@@ -815,26 +815,26 @@ static void _last_fix_and_reset_points(struct iwal *wal, uint8_t *wmm, off_t fsz
         break;
       }
       case WOP_RESIZE: {
-        if (avail < sizeof(WBRESIZE)) {
+        if (avail < sizeof(struct wbresize)) {
           return;
         }
-        rp += sizeof(WBRESIZE);
+        rp += sizeof(struct wbresize);
         break;
       }
       case WOP_SAVEPOINT: {
-        if (avail < sizeof(WBSAVEPOINT)) {
+        if (avail < sizeof(struct wbsavepoint)) {
           return;
         }
         *fpos = (rp - wmm);
-        rp += sizeof(WBSAVEPOINT);
+        rp += sizeof(struct wbsavepoint);
         break;
       }
       case WOP_RESET: {
-        if (avail < sizeof(WBRESET)) {
+        if (avail < sizeof(struct wbreset)) {
           return;
         }
         *rpos = (rp - wmm);
-        rp += sizeof(WBRESET);
+        rp += sizeof(struct wbreset);
         break;
       }
       default: {
@@ -874,7 +874,7 @@ static int _wal_read_vnum32(uint8_t **pp, const uint8_t *end, uint32_t *out) {
 ///
 /// Returns IWKV_ERROR_CORRUPTED_WAL_FILE on a malformed WAL.
 static iwrc _apply_wl_records(
-  struct iwal *wal, IWFS_EXT *extf, uint8_t *wmm, off_t fsz,
+  struct iwal *wal, struct iwfs_ext *extf, uint8_t *wmm, off_t fsz,
   off_t stop_off, off_t min_apply_off, bool apply_resize, bool notify_fixpoint) {
   assert(wal->bufpos == 0);
   iwrc rc = 0;
@@ -900,7 +900,7 @@ static iwrc _apply_wl_records(
     }
     switch (opid) {
       case WOP_SEP: {
-        WBSEP wb;
+        struct wbsep wb;
         if (avail < sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
         }
@@ -918,7 +918,7 @@ static iwrc _apply_wl_records(
         break;
       }
       case WOP_SET: {
-        WBSET wb;
+        struct wbset wb;
         if (avail < sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBSET)");
         }
@@ -938,7 +938,7 @@ static iwrc _apply_wl_records(
         break;
       }
       case WOP_COPY: {
-        WBCOPY wb;
+        struct wbcopy wb;
         if (avail < sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBCOPY)");
         }
@@ -959,7 +959,7 @@ static iwrc _apply_wl_records(
         break;
       }
       case WOP_WRITE: {
-        WBWRITE wb;
+        struct wbwrite wb;
         if (avail < sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
         }
@@ -990,7 +990,7 @@ static iwrc _apply_wl_records(
         break;
       }
       case WOP_PATCH: {
-        WBPATCH wb;
+        struct wbpatch wb;
         if (avail < sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBPATCH)");
         }
@@ -1026,7 +1026,7 @@ static iwrc _apply_wl_records(
         break;
       }
       case WOP_RESIZE: {
-        WBRESIZE wb;
+        struct wbresize wb;
         if (avail < sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBRESIZE)");
         }
@@ -1042,12 +1042,12 @@ static iwrc _apply_wl_records(
         break;
       }
       case WOP_SAVEPOINT:
-        if (avail < sizeof(WBSAVEPOINT)) {
+        if (avail < sizeof(struct wbsavepoint)) {
           _WAL_CORRUPTED("Premature end of WAL (WBSAVEPOINT)");
         }
         if (stop_off && (stop_off == roff)) { // last fixpoint to
           if (notify_fixpoint) {
-            WBSAVEPOINT wb;
+            struct wbsavepoint wb;
             memcpy(&wb, rp, sizeof(wb));
             iwlog_warn("Database recovered at point of time: %"
                        PRIu64
@@ -1055,13 +1055,13 @@ static iwrc _apply_wl_records(
           }
           goto finish;
         }
-        rp += sizeof(WBSAVEPOINT);
+        rp += sizeof(struct wbsavepoint);
         break;
       case WOP_RESET: {
-        if (avail < sizeof(WBRESET)) {
+        if (avail < sizeof(struct wbreset)) {
           _WAL_CORRUPTED("Premature end of WAL (WBRESET)");
         }
-        rp += sizeof(WBRESET);
+        rp += sizeof(struct wbreset);
         break;
       }
       default: {
@@ -1131,7 +1131,7 @@ static iwrc _wal_window(
       }
       // WBSEP__WBRESET
       //        \_rpos
-      rpos -= sizeof(WBSEP);
+      rpos -= sizeof(struct wbsep);
       // WBSEP__WBRESET
       // \_rpos
       *wmm += rpos;
@@ -1148,7 +1148,7 @@ static iwrc _wal_window(
   return 0;
 }
 
-static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode) {
+static iwrc _rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, int recover_mode) {
   assert(wal->bufpos == 0);
   off_t fsz = 0;
   iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
@@ -1197,7 +1197,7 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
     } else {
       // Don't truncate WAL during online backup.
       // Just append the WBRESET mark
-      WBRESET wb = {
+      struct wbreset wb = {
         .id = WOP_RESET
       };
       IWRC(_flush_wl(wal, false), rc);
@@ -1207,7 +1207,7 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
       IWRC(iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz), rc);
       if (!rc) {
         // rollforward_offset points here --> WBSEP __ WBRESET __ EOF
-        wal->rollforward_offset = fsz - (sizeof(WBSEP) + sizeof(WBRESET));
+        wal->rollforward_offset = fsz - (sizeof(struct wbsep) + sizeof(struct wbreset));
       }
     }
   }
@@ -1233,7 +1233,7 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
 ///
 /// The WAL is left untouched, so recovery still stops at the last savepoint and
 /// the in-progress operation is discarded on a crash.
-static iwrc _resize_rollforward_exl(struct iwal *wal, IWFS_EXT *extf, off_t target) {
+static iwrc _resize_rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, off_t target) {
   assert(wal->bufpos == 0);
   off_t fsz = 0;
   iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
@@ -1293,15 +1293,15 @@ static iwrc _resize_rollforward_exl(struct iwal *wal, IWFS_EXT *extf, off_t targ
   return rc;
 }
 
-static iwrc _recover_wl(struct iwkv *iwkv, struct iwal *wal, IWFS_FSM_OPTS *fsmopts, bool recover_backup) {
+static iwrc _recover_wl(struct iwkv *iwkv, struct iwal *wal, struct iwfs_fsm_opts *fsmopts, bool recover_backup) {
   off_t fsz = 0;
   iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
   RCRET(rc);
   if (!fsz) { // empty wal log
     return 0;
   }
-  IWFS_EXT extf;
-  IWFS_EXT_OPTS extopts;
+  struct iwfs_ext extf;
+  struct iwfs_ext_opts extopts;
   memcpy(&extopts, &fsmopts->exfile, sizeof(extopts));
   extopts.use_locks = false;
   extopts.file.omode = IWFS_OCREATE | IWFS_OWRITE;
@@ -1332,12 +1332,12 @@ static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint) {
     return 0;
   }
   iwrc rc = 0;
-  IWFS_EXT *extf;
+  struct iwfs_ext *extf;
   struct iwkv *iwkv = wal->iwkv;
   if (!no_fixpoint) {
     wal->force_cp = false;
     wal->force_sp = false;
-    WBSAVEPOINT wb = {
+    struct wbsavepoint wb = {
       .id = WOP_SAVEPOINT
     };
     RCC(rc, finish, iwp_current_time_ms(&wb.ts, false));
@@ -1444,7 +1444,7 @@ iwrc _savepoint_exl(struct iwal *wal, uint64_t *tsp, bool sync) {
     *tsp = 0;
   }
   wal->force_sp = false;
-  WBSAVEPOINT wbfp = {
+  struct wbsavepoint wbfp = {
     .id = WOP_SAVEPOINT
   };
   iwrc rc = iwp_current_time_ms(&wbfp.ts, false);
@@ -1618,7 +1618,7 @@ iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file
   // The main copy below must not take any exfile lock: `_onresize()` waits
   // for `BKP_MAIN_COPY` to finish while holding the exfile write lock, so
   // taking that lock here would deadlock the backup.
-  IWFS_FSM_STATE fstate = { 0 };
+  struct iwfs_fsm_state fstate = { 0 };
   RCC(rc, unlock_excl, iwkv->fsm.state(&iwkv->fsm, &fstate));
   _bkp_stage_set(wal, BKP_MAIN_COPY);
   RCC(rc, finish, _excl_unlock(wal));
@@ -1847,8 +1847,8 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     goto finish;
   }
-  wal->buf += sizeof(WBSEP);
-  wal->bufsz = wal->wal_buffer_sz - sizeof(WBSEP);
+  wal->buf += sizeof(struct wbsep);
+  wal->bufsz = wal->wal_buffer_sz - sizeof(struct wbsep);
 
   // Now open WAL file
 

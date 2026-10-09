@@ -25,12 +25,12 @@ int clean_suite(void) {
 
 static void iwkv_test5_2(void) {
   iwrc rc;
-  IWKV iwkv;
-  IWDB db;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV_cursor cur1;
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv_cursor *cur1;
+  struct iwkv_opts opts = {
     .path = "iwkv_test5_2.db",
     .oflags = IWKV_TRUNC
   };
@@ -107,12 +107,12 @@ static void iwkv_test5_2(void) {
 
 static void iwkv_test5_1(void) {
   iwrc rc;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV iwkv;
-  IWDB db;
-  IWKV_cursor cur1, cur2;
-  IWKV_OPTS opts = {
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_cursor *cur1, *cur2;
+  struct iwkv_opts opts = {
     .path = "iwkv_test5_1.db",
     .oflags = IWKV_TRUNC
   };

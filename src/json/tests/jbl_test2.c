@@ -15,11 +15,11 @@ int clean_suite(void) {
 }
 
 static void test_jbn_xml(void) {
-  IWXSTR *xstr = iwxstr_create_empty();
+  struct iwxstr *xstr = iwxstr_create_empty();
   struct iwpool *pool = iwpool_create_empty();
   CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
 
-  JBL_NODE n;
+  struct jbl_node *n;
   const char *val = "{"
                     "\">attr\":\"attrvalue\""
                     "\">attr2\":\"ss < ' xx\""

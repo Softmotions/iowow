@@ -25,11 +25,11 @@ int clean_suite(void) {
 
 static void iwkv_test7_1_impl(int direction) {
   iwrc rc;
-  IWKV iwkv;
-  IWDB db;
-  IWKV_val key = { 0 };
-  IWKV_val val = { 0 };
-  IWKV_OPTS opts = {
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_val key = { 0 };
+  struct iwkv_val val = { 0 };
+  struct iwkv_opts opts = {
     .path = direction > 0 ? "iwkv_test7_2_fwd.db" : "iwkv_test7_2_back.db",
     .oflags = IWKV_TRUNC,
     .random_seed = g_seed
@@ -71,8 +71,8 @@ static void iwkv_test7_1_impl(int direction) {
 static void iwkv_test7_1(void) {
   iwkv_test7_1_impl(1);
   iwkv_test7_1_impl(-1);
-  IWP_FILE_STAT fwd_s = { 0 };
-  IWP_FILE_STAT back_s = { 0 };
+  struct iwp_file_stat fwd_s = { 0 };
+  struct iwp_file_stat back_s = { 0 };
   iwrc rc = iwp_fstat("iwkv_test7_2_fwd.db", &fwd_s);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwp_fstat("iwkv_test7_2_back.db", &back_s);
