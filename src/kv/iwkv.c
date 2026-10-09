@@ -1881,8 +1881,12 @@ static WUR iwrc _sblk_sync_mm(struct iwlctx *lx, struct sblk *sblk, uint8_t *mm)
       return rc;
     } else {
       uint8_t *wp = mm + sblk->addr;
+      uint8_t old[SOFF_END];
       sblk_flags_t flags = (sblk->flags & SBLK_PERSISTENT_FLAGS);
       uint8_t uflags = flags;
+      if (dlsnr && dlsnr->onwrite_diff) {
+        memcpy(old, mm + sblk->addr, SOFF_END);
+      }
       assert(sblk->lkl <= PREFIX_KEY_LEN_V2);
       // [u1:flags,lvl:u1,lkl:u1,pnum:u1,p0:u4,kblk:u4,[pi0:u1,... pi32],n0-n23:u4,lk:u116]:u256
       wp += SOFF_FLAGS_U1;
@@ -1907,7 +1911,11 @@ static WUR iwrc _sblk_sync_mm(struct iwlctx *lx, struct sblk *sblk, uint8_t *mm)
       memcpy(wp++, &sblk->bpos, 1);
       memcpy(wp, sblk->lk, (size_t) sblk->lkl);
       if (dlsnr) {
-        rc = dlsnr->onwrite(dlsnr, sblk->addr, mm + sblk->addr, SOFF_END, 0);
+        if (dlsnr->onwrite_diff) {
+          rc = dlsnr->onwrite_diff(dlsnr, sblk->addr, old, mm + sblk->addr, SOFF_END, 0);
+        } else {
+          rc = dlsnr->onwrite(dlsnr, sblk->addr, mm + sblk->addr, SOFF_END, 0);
+        }
         RCRET(rc);
       }
     }

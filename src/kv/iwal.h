@@ -43,6 +43,7 @@ typedef enum {
   WOP_RESIZE,
   WOP_SAVEPOINT,
   WOP_RESET,
+  WOP_PATCH,     /**< Compact multi-span changed-byte patch */
   WOP_SEP = 127, /**< WAL file separator */
 } wop_t;
 
@@ -95,6 +96,20 @@ typedef struct wbsavepoint {
   uint8_t  pad[3];
   uint64_t ts;
 } WBSAVEPOINT;
+
+/// Compact patch of changed byte spans inside one contiguous region.
+///
+/// The payload following the header is a sequence of spans, each encoded as
+/// `[span_off:vn][span_len:vn][data:span_len]`, where `span_off` is relative to
+/// `off`. Spans are applied in order, so they may overlap.
+/// Used to log only the bytes actually changed by a larger in-place write
+/// (for example a skiplist block) instead of the whole buffer.
+typedef struct wbpatch {
+  uint8_t  id;
+  uint8_t  pad[3];
+  uint32_t len;  /**< Total byte length of the span payload */
+  off_t    off;  /**< Region base offset used by span offsets */
+} WBPATCH;
 #pragma pack(pop)
 
 iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fsm_opts *fsmopts, bool recover_backup);

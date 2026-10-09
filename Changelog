@@ -1,4 +1,7 @@
 2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1-dev]
+	* iwkv: WAL rework. Changed WAL file format to be more compact	~2-3x.
+					NOTE: WAL file format changed, so upgrade to this version requires the regular database reopen.
+					Online backups from previous versions are not compatible this vesion.
   * iwkv: Fixed durability issues which may lead to db corruption if app crashed during database file resize.
   * iwkv: Performance refactoring stage-2. Skiplist memory map locking optimisation. Multi-thread throughput ~4–5x.
   * iwkv: Performance refactoring stage-1. Gained read performance boost by ~20%.
