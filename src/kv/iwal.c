@@ -37,6 +37,12 @@ static atomic_int _test_crash_rollforward_after = -1;
 /// Maximum region length handled by the compact changed-byte patch path.
 #define IWAL_DIFF_MAXLEN 512U
 
+#ifndef IWAL_PENDING_CAP
+/// Default maximum size of the write-coalescing set arena, used when
+/// `IWKV_WAL_OPTS.pending_buffer_sz` is not set.
+#define IWAL_PENDING_CAP (256UL * 1024)
+#endif
+
 /// A pending (coalesced) WAL write. Entries are kept in last-write order via
 /// the intrusive doubly linked list (see `pents_head`/`pents_tail`), so that
 /// serialization emits each dirty region exactly once at the position of its
@@ -1791,10 +1797,12 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
     wal->wal_buffer_sz = 4096;
   }
 
-  // Bound the memory held by the coalescing set. Measurements show that the
-  // create-phase CPU cost tracks this footprint, so it is kept well below the
-  // WAL buffer size.
-  wal->pending_cap = wal->wal_buffer_sz / 16;
+  // Bound the memory held by the coalescing set. This is independent of the
+  // WAL buffer size: it only controls how long repeated writes to the same
+  // region are merged before they are serialized into the WAL buffer.
+  wal->pending_cap
+    = opts->wal.pending_buffer_sz > 0
+      ? opts->wal.pending_buffer_sz : IWAL_PENDING_CAP;
   if (wal->pending_cap < 65536) {
     wal->pending_cap = 65536;
   }

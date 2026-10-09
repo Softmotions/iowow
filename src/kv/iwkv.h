@@ -153,6 +153,14 @@ struct iwkv_wal_opts {
        exclusive database lock by WAL checkpoint thread.
        In the case of `before lock` first argument will be set to true */
   void *wal_lock_interceptor_opaque; /**< Opaque data for `wal_lock_interceptor` */
+  /**
+   * Max size of the write-coalescing set in bytes.
+   * Repeated writes to the same region are merged before they are serialized
+   * into the WAL buffer. A larger value coalesces over a longer window, which
+   * yields a more compact WAL at the cost of more resident memory.
+   * Default: 256Kb, minimal: 64Kb.
+   */
+  size_t pending_buffer_sz;
 };
 
 typedef struct iwkv_wal_opts IWKV_WAL_OPTS;
