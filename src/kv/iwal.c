@@ -1785,7 +1785,7 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
 #if defined __ANDROID__ || defined TARGET_OS_IPHONE
       2UL * 1024 * 1024; // 2M
 #else
-      8UL * 1024 * 1024; // 8M
+      4UL * 1024 * 1024; // 4M
 #endif
   if (wal->wal_buffer_sz < 4096) {
     wal->wal_buffer_sz = 4096;

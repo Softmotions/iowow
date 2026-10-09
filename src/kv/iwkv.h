@@ -145,7 +145,7 @@ struct iwkv_wal_opts {
   uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds. Default: 10 sec */
   uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 300 sec (5 min); */
   size_t   wal_buffer_sz;           /**< WAL file intermediate buffer size. Default: 4Mb */
-  uint64_t checkpoint_buffer_sz;    /**< Max size of changed bytes to force checkpoint. Default: 2Gb */
+  uint64_t checkpoint_buffer_sz;    /**< Max size of changed bytes to force checkpoint. Default: 1Gb */
   iwrc     (*wal_lock_interceptor)(bool, void*);
   /**< Optional function called
        - before acquiring
