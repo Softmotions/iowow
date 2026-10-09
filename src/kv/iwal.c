@@ -6,16 +6,16 @@
 #ifdef _WIN32
 #include "win32/mman/mman.h"
 #else
-
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
 #endif
-
 #include <sys/mman.h>
-
 #endif
 
+#ifdef IW_TESTS
 extern atomic_uint_fast64_t g_trigger;
+static atomic_int _test_crash_rollforward_after = -1;
+#endif
 
 #define BKP_STARTED     0x1       /**< Backup started */
 #define BKP_WAL_CLEANUP 0x2       /**< Do checkpoint and truncate WAL file */
@@ -66,6 +66,7 @@ struct iwal {
 typedef struct iwal IWAL;
 
 static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint);
+static iwrc _resize_rollforward_exl(struct iwal *wal, IWFS_EXT *extf, off_t target);
 
 IW_INLINE iwrc _lock(struct iwal *wal) {
   int rci = pthread_mutex_lock(wal->mtxp);
@@ -77,8 +78,8 @@ IW_INLINE iwrc _unlock(struct iwal *wal) {
   return (rci ? iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci) : 0);
 }
 
-// Set the online-backup stage and wake threads waiting for it to change.
-// Must be called with `wal->mtx` held.
+/// Set the online-backup stage and wake threads waiting for it to change.
+/// Must be called with `wal->mtx` held.
 IW_INLINE void _bkp_stage_set(struct iwal *wal, int stage) {
   if (wal->bkp_stage != stage) {
     wal->bkp_stage = stage;
@@ -337,9 +338,8 @@ static iwrc _onresize(struct iwdlsnr *self, off_t osize, off_t nsize, int flags,
   };
   iwrc rc = _lock(wal);
   RCRET(rc);
-  // The main database file is being copied for an online backup and must not
-  // grow. Wait until the copy is complete; `bkp_stage` changes are broadcast
-  // under `wal->mtx`.
+  // The main database file is being copied for an online backup and must not grow.
+  // Wait until the copy is complete; `bkp_stage` changes are broadcast under `wal->mtx`.
   while (wal->bkp_condp && wal->bkp_stage == BKP_MAIN_COPY) {
     int rci = pthread_cond_wait(wal->bkp_condp, wal->mtxp);
     if (rci) {
@@ -348,7 +348,16 @@ static iwrc _onresize(struct iwdlsnr *self, off_t osize, off_t nsize, int flags,
     }
   }
   RCC(rc, finish, _write_wl(wal, &wb, sizeof(wb), 0, 0));
-  rc = _checkpoint_exl(wal, 0, true);
+  if ((wal->bkp_stage == 0) && (wal->rollforward_offset == 0)) {
+    IWFS_EXT *extf;
+    RCC(rc, finish, _flush_wl(wal, true));
+    RCC(rc, finish, wal->iwkv->fsm.extfile(&wal->iwkv->fsm, &extf));
+    off_t target = (nsize > osize) ? nsize : osize;
+    rc = _resize_rollforward_exl(wal, extf, target);
+  } else {
+    // Online backup or an active rollforward offset: use the regular fixpoint checkpoint path.
+    rc = _checkpoint_exl(wal, 0, false);
+  }
 
 finish:
   IWRC(_unlock(wal), rc);
@@ -450,51 +459,25 @@ static void _last_fix_and_reset_points(struct iwal *wal, uint8_t *wmm, off_t fsz
   }
 }
 
-static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode) {
+/// Applies the WAL records in [wmm, wmm + fsz) to the current exfile mapping.
+///
+/// `min_apply_off` allows an already committed prefix to be parsed and validated
+/// without being re-applied. A non-zero `stop_off` stops the application right
+/// before the WOP_SAVEPOINT located at that offset (used by recovery). When
+/// `apply_resize` is false WOP_RESIZE records are validated but not applied,
+/// which is required when re-applying into a private mapping whose COW pages
+/// would otherwise be discarded by a remap.
+///
+/// Returns IWKV_ERROR_CORRUPTED_WAL_FILE on a malformed WAL.
+static iwrc _apply_wl_records(
+  struct iwal *wal, IWFS_EXT *extf, uint8_t *wmm, off_t fsz,
+  off_t stop_off, off_t min_apply_off, bool apply_resize, bool notify_fixpoint) {
   assert(wal->bufpos == 0);
-  off_t fsz = 0;
-  iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
-  RCRET(rc);
-  if (!fsz) { // empty wal log
-    return 0;
-  }
+  iwrc rc = 0;
   size_t sp;
-  uint8_t *mm;
+  uint8_t *mm = 0;
   const bool ccrc = wal->check_cp_crc;
-  off_t fpos = 0; // checkpoint
-#ifndef _WIN32
-  off_t pfsz = IW_ROUNDUP(fsz, iwp_page_size());
-  uint8_t *wmm = mmap(0, (size_t) pfsz, PROT_READ, MAP_PRIVATE, wal->fh, 0);
-  #if defined(MADV_SEQUENTIAL) || defined(MADV_DONTFORK)
-  int adv = 0;
-  #ifdef MADV_SEQUENTIAL
-  adv |= MADV_SEQUENTIAL;
-  #endif
-  #ifdef MADV_DONTFORK
-  adv |= MADV_DONTFORK;
-  #endif
-  madvise(wmm, (size_t) fsz, adv);
-  #endif
-#else
-  off_t pfsz = fsz;
-  uint8_t *wmm = mmap(0, 0, PROT_READ, MAP_PRIVATE, wal->fh, 0);
-#endif
-  if (wmm == MAP_FAILED) {
-    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
-  }
-  uint8_t *wmm_base = wmm;
-  // Temporary turn off extf locking
-  wal->applying = true;
-
-  // Remap fsm in MAP_SHARED mode
-  extf->remove_mmap_unsafe(extf, 0);
-  rc = extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_SHARED);
-  if (rc) {
-    munmap(wmm_base, (size_t) pfsz);
-    wal->iwkv->fatalrc = rc;
-    wal->applying = false;
-    return rc;
-  }
+  uint8_t *rp = wmm;
 
 #define _WAL_CORRUPTED(msg_) do {             \
           rc = IWKV_ERROR_CORRUPTED_WAL_FILE; \
@@ -502,38 +485,10 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
           goto finish;                        \
 } while (0);
 
-  if (recover_mode) {
-    off_t rpos; // reset point
-    _last_fix_and_reset_points(wal, wmm, fsz, &fpos, &rpos);
-    if (!fpos) {
-      goto finish;
-    }
-    if ((rpos > 0) && (recover_mode == 1)) {
-      // Recover from last known reset point
-      if (fpos < rpos) {
-        goto finish;
-      }
-      // WBSEP__WBRESET
-      //        \_rpos
-      rpos -= sizeof(WBSEP);
-      // WBSEP__WBRESET
-      // \_rpos
-      wmm += rpos;
-      fsz -= rpos;
-      fpos -= rpos;
-    }
-  } else if (wal->rollforward_offset > 0) {
-    if (wal->rollforward_offset >= fsz) {
-      _WAL_CORRUPTED("Invalid rollforward offset");
-    }
-    wmm += wal->rollforward_offset;
-    fsz -= wal->rollforward_offset;
-  }
-
-  uint8_t *rp = wmm;
   for (uint32_t i = 0; rp - wmm < fsz; ++i) {
     uint8_t opid;
     off_t avail = fsz - (rp - wmm);
+    off_t roff = rp - wmm;
     memcpy(&opid, rp, 1);
     if ((i == 0) && (opid != WOP_SEP)) {
       rc = IWKV_ERROR_CORRUPTED_WAL_FILE;
@@ -565,6 +520,9 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
+        if (roff < min_apply_off) {
+          break;
+        }
         RCC(rc, finish, extf->probe_mmap_unsafe(extf, 0, &mm, &sp));
 
         if (  (wb.off < 0) || (wb.len < 0)
@@ -582,6 +540,9 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         }
         memcpy(&wb, rp, sizeof(wb));
         rp += sizeof(wb);
+        if (roff < min_apply_off) {
+          break;
+        }
         RCC(rc, finish, extf->probe_mmap_unsafe(extf, 0, &mm, &sp));
 
         if (  (wb.off < 0) || (wb.len < 0) || (wb.noff < 0)
@@ -609,6 +570,10 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
             _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBWRITE)");
           }
         }
+        if (roff < min_apply_off) {
+          rp += wb.len;
+          break;
+        }
         RCC(rc, finish, extf->probe_mmap_unsafe(extf, 0, &mm, &sp));
 
         if (  (wb.off < 0)
@@ -630,6 +595,9 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         if (wb.nsize < 0) {
           _WAL_CORRUPTED("Invalid WAL resize size");
         }
+        if (!apply_resize || (roff < min_apply_off)) {
+          break;
+        }
         RCC(rc, finish, extf->truncate_unsafe(extf, wb.nsize));
         break;
       }
@@ -637,12 +605,14 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         if (avail < sizeof(WBSAVEPOINT)) {
           _WAL_CORRUPTED("Premature end of WAL (WBSAVEPOINT)");
         }
-        if (fpos == rp - wmm) { // last fixpoint to
-          WBSAVEPOINT wb;
-          memcpy(&wb, rp, sizeof(wb));
-          iwlog_warn("Database recovered at point of time: %"
-                     PRIu64
-                     " ms since epoch\n", wb.ts);
+        if (stop_off && (stop_off == roff)) { // last fixpoint to
+          if (notify_fixpoint) {
+            WBSAVEPOINT wb;
+            memcpy(&wb, rp, sizeof(wb));
+            iwlog_warn("Database recovered at point of time: %"
+                       PRIu64
+                       " ms since epoch\n", wb.ts);
+          }
           goto finish;
         }
         rp += sizeof(WBSAVEPOINT);
@@ -659,10 +629,121 @@ static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode)
         break;
       }
     }
+#ifdef IW_TESTS
+    if (atomic_load(&_test_crash_rollforward_after) > 0
+        && atomic_fetch_sub(&_test_crash_rollforward_after, 1) == 1) {
+      // Simulate a hard process crash in the middle of WAL rollforward.
+      // Dirty MAP_SHARED pages of the main file survive the process, so the
+      // next open has to recover from the WAL exactly as after a real crash.
+      _exit(99);
+    }
+#endif
   }
-#undef _WAL_CORRUPTED
 
 finish:
+#undef _WAL_CORRUPTED
+  return rc;
+}
+
+// Maps the WAL file for reading. On failure returns MAP_FAILED.
+static uint8_t* _wal_mmap(struct iwal *wal, off_t fsz, off_t *pfsz) {
+#ifndef _WIN32
+  *pfsz = IW_ROUNDUP(fsz, iwp_page_size());
+  uint8_t *wmm = mmap(0, (size_t) *pfsz, PROT_READ, MAP_PRIVATE, wal->fh, 0);
+  #if defined(MADV_SEQUENTIAL) || defined(MADV_DONTFORK)
+  int adv = 0;
+  #ifdef MADV_SEQUENTIAL
+  adv |= MADV_SEQUENTIAL;
+  #endif
+  #ifdef MADV_DONTFORK
+  adv |= MADV_DONTFORK;
+  #endif
+  madvise(wmm, (size_t) fsz, adv);
+  #endif
+  return wmm;
+#else
+  *pfsz = fsz;
+  return mmap(0, 0, PROT_READ, MAP_PRIVATE, wal->fh, 0);
+#endif
+}
+
+/// Computes the effective WAL window and the offset of the last savepoint.
+/// In recovery modes the window may be advanced to the last reset point, in
+/// checkpoint mode to `wal->rollforward_offset`. When no savepoint is found
+/// `*fpos` is left at 0 and the caller must not apply anything in recovery mode.
+static iwrc _wal_window(
+  struct iwal *wal, uint8_t *wmm_base, off_t fsz, int recover_mode,
+  uint8_t **wmm, off_t *wfsz, off_t *fpos) {
+  *wmm = wmm_base;
+  *wfsz = fsz;
+  *fpos = 0;
+  if (recover_mode) {
+    off_t rpos; // reset point
+    _last_fix_and_reset_points(wal, wmm_base, fsz, fpos, &rpos);
+    if (!*fpos) {
+      return 0;
+    }
+    if ((rpos > 0) && (recover_mode == 1)) {
+      // Recover from last known reset point
+      if (*fpos < rpos) {
+        *fpos = 0;
+        return 0;
+      }
+      // WBSEP__WBRESET
+      //        \_rpos
+      rpos -= sizeof(WBSEP);
+      // WBSEP__WBRESET
+      // \_rpos
+      *wmm += rpos;
+      *wfsz -= rpos;
+      *fpos -= rpos;
+    }
+  } else if (wal->rollforward_offset > 0) {
+    if (wal->rollforward_offset >= fsz) {
+      return IWKV_ERROR_CORRUPTED_WAL_FILE;
+    }
+    *wmm += wal->rollforward_offset;
+    *wfsz -= wal->rollforward_offset;
+  }
+  return 0;
+}
+
+static iwrc _rollforward_exl(struct iwal *wal, IWFS_EXT *extf, int recover_mode) {
+  assert(wal->bufpos == 0);
+  off_t fsz = 0;
+  iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
+  RCRET(rc);
+  if (!fsz) { // empty wal log
+    return 0;
+  }
+  off_t pfsz = 0;
+  uint8_t *wmm_base = _wal_mmap(wal, fsz, &pfsz);
+  if (wmm_base == MAP_FAILED) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+  uint8_t *wmm = 0;
+  off_t wfsz = 0, fpos = 0;
+  rc = _wal_window(wal, wmm_base, fsz, recover_mode, &wmm, &wfsz, &fpos);
+  if (rc) {
+    munmap(wmm_base, (size_t) pfsz);
+    return rc;
+  }
+  // Temporary turn off extf locking
+  wal->applying = true;
+
+  // Remap fsm in MAP_SHARED mode
+  extf->remove_mmap_unsafe(extf, 0);
+  rc = extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_SHARED);
+  if (rc) {
+    munmap(wmm_base, (size_t) pfsz);
+    wal->iwkv->fatalrc = rc;
+    wal->applying = false;
+    return rc;
+  }
+
+  if (!recover_mode || fpos) {
+    rc = _apply_wl_records(wal, extf, wmm, wfsz, fpos, 0, true, recover_mode != 0);
+  }
   if (!rc) {
     rc = extf->sync_mmap_unsafe(extf, 0, IWFS_SYNCDEFAULT);
   }
@@ -694,6 +775,80 @@ finish:
     wal->iwkv->fatalrc = rc;
   }
   wal->synched = true;
+  wal->applying = false;
+  return rc;
+}
+
+/// Mid-operation growth/shrink.
+///
+/// A growth/shrink is requested from inside an in-progress logical operation, so
+/// the WAL tail after the last savepoint is not a consistent database state. The
+/// main file must never advance past a savepoint, therefore:
+///
+///  1. only the committed prefix (up to the last savepoint) is applied to the
+///     shared main file and made durable;
+///  2. the file is resized to the pending `target` size;
+///  3. the uncommitted tail is re-applied into the freshly remapped private
+///     mapping, restoring the in-progress state.
+///
+/// The WAL is left untouched, so recovery still stops at the last savepoint and
+/// the in-progress operation is discarded on a crash.
+static iwrc _resize_rollforward_exl(struct iwal *wal, IWFS_EXT *extf, off_t target) {
+  assert(wal->bufpos == 0);
+  off_t fsz = 0;
+  iwrc rc = iwp_lseek(wal->fh, 0, IWP_SEEK_END, &fsz);
+  RCRET(rc);
+  if (!fsz) { // empty wal log
+    return 0;
+  }
+  off_t pfsz = 0;
+  uint8_t *wmm_base = _wal_mmap(wal, fsz, &pfsz);
+  if (wmm_base == MAP_FAILED) {
+    return iwrc_set_errno(IW_ERROR_ERRNO, errno);
+  }
+  uint8_t *wmm = 0;
+  off_t wfsz = 0, fpos = 0;
+  rc = _wal_window(wal, wmm_base, fsz, 1, &wmm, &wfsz, &fpos);
+  if (rc) {
+    munmap(wmm_base, (size_t) pfsz);
+    return rc;
+  }
+  wal->applying = true;
+
+  // Phase 1: commit the prefix up to the last savepoint into the shared file.
+  extf->remove_mmap_unsafe(extf, 0);
+  rc = extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_SHARED);
+  if (rc) {
+    munmap(wmm_base, (size_t) pfsz);
+    wal->iwkv->fatalrc = rc;
+    wal->applying = false;
+    return rc;
+  }
+  if (fpos) {
+    rc = _apply_wl_records(wal, extf, wmm, wfsz, fpos, 0, true, false);
+    if (!rc) {
+      // Nothing is applied without a savepoint, so there is nothing to sync
+      // (and an empty file has a zero-length mapping).
+      rc = extf->sync_mmap_unsafe(extf, 0, IWFS_SYNCDEFAULT);
+    }
+  }
+  IWRC(extf->remove_mmap_unsafe(extf, 0), rc);
+  IWRC(extf->add_mmap_unsafe(extf, 0, SIZE_T_MAX, IWFS_MMAP_PRIVATE), rc);
+
+  // Phase 2: resize first (a remap would discard restored COW pages), then
+  // restore the uncommitted tail into the private mapping. The committed prefix
+  // is skipped and trailing WOP_RESIZE records are no-ops at this point.
+  if (!rc) {
+    rc = extf->truncate_unsafe(extf, target);
+  }
+  if (!rc) {
+    rc = _apply_wl_records(wal, extf, wmm, wfsz, 0, fpos, false, false);
+  }
+
+  munmap(wmm_base, (size_t) pfsz);
+  if (rc && !wal->iwkv->fatalrc) {
+    wal->iwkv->fatalrc = rc;
+  }
   wal->applying = false;
   return rc;
 }
@@ -768,6 +923,10 @@ finish:
 }
 
 #ifdef IW_TESTS
+
+void iwal_test_crash_on_rollforward(int nops) {
+  atomic_store(&_test_crash_rollforward_after, nops);
+}
 
 iwrc iwal_test_checkpoint(struct iwkv *iwkv) {
   if (!iwkv->dlsnr) {

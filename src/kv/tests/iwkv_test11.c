@@ -1,14 +1,19 @@
 #include "iwkv.h"
 #include "iwlog.h"
-#include "iwutils.h"
 #include "iwkv_tests.h"
 #include "iwkv_internal.h"
 
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 // Defined in `src/kv/iwal.c` (IW_TESTS only)
 iwrc iwal_test_checkpoint(IWKV iwkv);
 void iwal_test_set_bkp_main_copy(IWKV iwkv, bool active);
+void iwal_test_crash_on_rollforward(int nops);
 
 #define NREC        8192
 #define KBUFSZ      64
@@ -519,6 +524,159 @@ static void iwkv_test11_5(void) {
   unlink(walpath);
 }
 
+// Regression test for the mid-operation growth/shrink checkpoint.
+//
+// A resize is requested from inside an in-progress operation. Committing the
+// whole WAL prefix at that point (the old behaviour) produced a main file that
+// was a partially applied operation and could not be repaired by recovery,
+// because recovery is redo-only and stops at the last savepoint.
+//
+// `_resize_rollforward_exl()` now commits only the prefix up to the last
+// savepoint and re-applies the uncommitted tail into the private mapping, so the
+// main file only ever advances to a savepoint. This test commits the updates
+// with `iwkv_sync()` (a savepoint), then crashes the process inside the
+// rollforward triggered by the following growth write, reopens the database and
+// verifies that the committed updates survived while the in-progress operation
+// was discarded without corrupting the database.
+static void iwkv_test11_6_impl(int crash_after) {
+  const char *path = "iwkv_test11_6.db";
+  const char *walpath = "iwkv_test11_6.db-wal";
+
+  unlink(path);
+  unlink(walpath);
+
+  pid_t pid = fork();
+  CU_ASSERT_NOT_EQUAL_FATAL(pid, -1);
+  if (pid == 0) {
+    IWKV_OPTS opts = {
+      .path = path,
+      .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
+      .wal = {
+        .enabled = true,
+        .wal_buffer_sz = 8192,
+        .checkpoint_buffer_sz = 1ULL << 40,
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
+      }
+    };
+    IWKV iwkv = 0;
+    IWDB db = 0;
+    iwrc rc = iwkv_open(&opts, &iwkv);
+    if (rc) {
+      _exit(10);
+    }
+    rc = iwkv_db(iwkv, 1, 0, &db);
+    if (rc) {
+      _exit(11);
+    }
+
+    uint8_t v1[64];
+    for (int i = 0; i < 16; ++i) {
+      for (size_t j = 0; j < sizeof(v1); ++j) {
+        v1[j] = (uint8_t) (i + (int) j);
+      }
+      char kb[32];
+      snprintf(kb, sizeof(kb), "%08d", i);
+      IWKV_val k = { .data = kb, .size = strlen(kb) };
+      IWKV_val v = { .data = v1, .size = sizeof(v1) };
+      rc = iwkv_put(db, &k, &v, 0);
+      if (rc) {
+        _exit(12);
+      }
+    }
+    // Move the base state into the main file and truncate the WAL. Everything
+    // after this point lives only in the private mmap and in the WAL.
+    rc = iwal_test_checkpoint(iwkv);
+    if (rc) {
+      _exit(13);
+    }
+
+    uint8_t v2[400];
+    for (int i = 0; i < 16; ++i) {
+      for (size_t j = 0; j < sizeof(v2); ++j) {
+        v2[j] = (uint8_t) (i * 7 + (int) j * 3 + 0xA5);
+      }
+      char kb[32];
+      snprintf(kb, sizeof(kb), "%08d", i);
+      IWKV_val k = { .data = kb, .size = strlen(kb) };
+      IWKV_val v = { .data = v2, .size = sizeof(v2) };
+      rc = iwkv_put(db, &k, &v, 0);
+      if (rc) {
+        _exit(14);
+      }
+    }
+    // Make the updates durable with a savepoint. The main file is still at the
+    // base checkpoint; the WAL now holds [updates][savepoint].
+    rc = iwkv_sync(iwkv, 0);
+    if (rc) {
+      _exit(16);
+    }
+
+    iwal_test_crash_on_rollforward(crash_after);
+
+    static uint8_t big[4 * 1024 * 1024];
+    memset(big, 0x5a, sizeof(big));
+    IWKV_val k = { .data = (void*) "bigkey", .size = 6 };
+    IWKV_val v = { .data = big, .size = sizeof(big) };
+    rc = iwkv_put(db, &k, &v, 0);
+    (void) rc;
+    _exit(15); // The crash hook did not fire: no growth checkpoint happened.
+  }
+
+  int status = 0;
+  waitpid(pid, &status, 0);
+  CU_ASSERT_TRUE_FATAL(WIFEXITED(status));
+  CU_ASSERT_EQUAL_FATAL(WEXITSTATUS(status), 99);
+
+  IWKV_OPTS opts = {
+    .path = path,
+    .oflags = IWKV_NO_TRIM_ON_CLOSE,
+    .wal = {
+      .enabled = true,
+      .checkpoint_buffer_sz = 1ULL << 40,
+      .savepoint_timeout_sec = UINT32_MAX,
+      .checkpoint_timeout_sec = UINT32_MAX
+    }
+  };
+  IWKV iwkv = 0;
+  IWDB db = 0;
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // All records that the interrupted checkpoint had fsynced to the WAL must be
+  // recovered. With a savepoint written before the rollforward they are replayed
+  // onto the partially written main file and the update is visible.
+  uint8_t v2[400];
+  for (int i = 0; i < 16; ++i) {
+    for (size_t j = 0; j < sizeof(v2); ++j) {
+      v2[j] = (uint8_t) (i * 7 + (int) j * 3 + 0xA5);
+    }
+    char kb[32];
+    snprintf(kb, sizeof(kb), "%08d", i);
+    IWKV_val k = { .data = kb, .size = strlen(kb) };
+    IWKV_val v = { 0 };
+    rc = iwkv_get(db, &k, &v);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(v.size, sizeof(v2));
+    CU_ASSERT_NSTRING_EQUAL(v.data, v2, sizeof(v2));
+    iwkv_val_dispose(&v);
+  }
+
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  unlink(path);
+  unlink(walpath);
+}
+
+static void iwkv_test11_6(void) {
+  for (int n = 1; n <= 4; ++n) {
+    iwkv_test11_6_impl(n);
+  }
+}
+
 int main(void) {
   CU_pSuite pSuite = NULL;
 
@@ -534,7 +692,8 @@ int main(void) {
      || (NULL == CU_add_test(pSuite, "iwkv_test11_2", iwkv_test11_2))
      || (NULL == CU_add_test(pSuite, "iwkv_test11_3", iwkv_test11_3))
      || (NULL == CU_add_test(pSuite, "iwkv_test11_4", iwkv_test11_4))
-     || (NULL == CU_add_test(pSuite, "iwkv_test11_5", iwkv_test11_5))) {
+     || (NULL == CU_add_test(pSuite, "iwkv_test11_5", iwkv_test11_5))
+     || (NULL == CU_add_test(pSuite, "iwkv_test11_6", iwkv_test11_6))) {
     CU_cleanup_registry();
     return CU_get_error();
   }
