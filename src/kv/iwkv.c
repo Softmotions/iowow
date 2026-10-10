@@ -3175,16 +3175,17 @@ static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_
   RCGO(rc, finish);
 
   waloff = IW_ITOHLL(waloff);
-  if (((waloff != pos) && (waloff > pos - sizeof(struct wbsep))) || (waloff & (aunit - 1))) {
+  if (  ((waloff != pos) && (waloff > pos - (off_t) IWAL_BUF_RESERVE))
+     || (waloff & (aunit - 1))) {
     goto finish;
   }
 
-  // Read the first WAL instruction: WBSEP
+  // Read the WAL file header. An empty WAL has no header and needs no recovery.
   if (waloff != pos) { // Not an empty WAL?
-    struct wbsep wbsep = { 0 };
-    rc = iwp_pread(fs.fh, waloff, &wbsep, sizeof(wbsep), &sp);
+    struct walhdr whdr = { 0 };
+    rc = iwp_pread(fs.fh, waloff, &whdr, sizeof(whdr), &sp);
     RCGO(rc, finish);
-    if (wbsep.id != WOP_SEP) {
+    if ((sp != sizeof(whdr)) || (whdr.magic != IWAL_HDR_MAGIC)) {
       goto finish;
     }
   }

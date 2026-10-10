@@ -1,4 +1,7 @@
 2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1-dev]
+  * iwkv: WAL crc32 checksums now persisted by default.
+  * iwkv: WAL uses crc32 only for failure recovering.
+  * iwu_crc32: iwu_crc32() now uses CRC-32C (Castagnoli) in order to use hardware supported crc. NOTE: No backward compatibility.
   * Refacroring: Struct type aliases are replaced by unaliased `struct` type clauses.
 	* iwkv: WAL rework. Changed WAL file format to be more compact	~1.5-2.5x.
 					NOTE: WAL file format changed, so upgrade to this version requires the regular database reopen.

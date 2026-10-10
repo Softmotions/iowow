@@ -63,8 +63,11 @@ struct iwal {
   atomic_bool    open;              /**< Is WAL in use */
   atomic_bool    force_cp;          /**< Next checkpoint scheduled */
   atomic_bool    synched;           /**< WAL is synched or WBFIXPOINT is the last write operation */
+
   bool force_sp;                    /**< Next savepoint scheduled */
-  bool check_cp_crc;                /**< Check CRC32 sum of data blocks during checkpoint. Default: false  */
+  bool crc;                         /**< Persist CRC32 checksums of WAL records */
+  bool skip_crc_on_recovery;        /**< Do not verify WAL checksums on recovery */
+  bool hdr_written;                 /**< WAL file header is already present */
   iwkv_openflags oflags;            /**< File open flags */
   atomic_int     bkp_stage;         /**< Online backup stage */
 
@@ -230,7 +233,7 @@ static void _destroy(struct iwal *wal) {
     free(wal->phash);
     free(wal->parena);
     if (wal->buf) {
-      wal->buf -= sizeof(struct wbsep);
+      wal->buf -= IWAL_BUF_RESERVE;
       free(wal->buf);
     }
     free(wal);
@@ -240,7 +243,7 @@ static void _destroy(struct iwal *wal) {
 static iwrc _flush_buf(struct iwal *wal, bool sync) {
   iwrc rc = 0;
   if (wal->bufpos) {
-    uint32_t crc = wal->check_cp_crc ? iwu_crc32(wal->buf, wal->bufpos, 0) : 0;
+    uint32_t crc = wal->crc ? iwu_crc32(wal->buf, wal->bufpos, 0) : 0;
     struct wbsep sep = {
       .id = WOP_SEP,
       .crc = crc,
@@ -249,6 +252,16 @@ static iwrc _flush_buf(struct iwal *wal, bool sync) {
     size_t wz = wal->bufpos + sizeof(struct wbsep);
     uint8_t *wp = wal->buf - sizeof(struct wbsep);
     memcpy(wp, &sep, sizeof(struct wbsep));
+    if (!wal->hdr_written) {
+      struct walhdr hdr = {
+        .magic = IWAL_HDR_MAGIC,
+        .flags = wal->crc ? IWAL_HDR_F_CRC : 0
+      };
+      wp -= sizeof(hdr);
+      memcpy(wp, &hdr, sizeof(hdr));
+      wz += sizeof(hdr);
+      wal->hdr_written = true;
+    }
     rc = iwp_write(wal->fh, wp, wz);
     RCRET(rc);
     wal->bufpos = 0;
@@ -263,6 +276,7 @@ IW_INLINE iwrc _truncate_wl(struct iwal *wal) {
   iwrc rc = iwp_ftruncate(wal->fh, 0);
   RCRET(rc);
   wal->rollforward_offset = 0;
+  wal->hdr_written = false;
   rc = iwp_lseek(wal->fh, 0, IWP_SEEK_SET, 0);
   RCRET(rc);
   rc = iwp_fsync(wal->fh);
@@ -453,13 +467,14 @@ static iwrc _flush_pending(struct iwal *wal) {
       if (!wb->len) {
         continue; // Region is unchanged since the start of the window.
       }
+      wb->crc = wal->crc ? iwu_crc32(patch.blob + sizeof(*wb), wb->len, 0) : 0;
       if (sizeof(struct wbpatch) + wb->len < sizeof(struct wbwrite) + pe->len) {
         rc = _append_wl(wal, patch.blob, (off_t) (p - patch.blob), 0, 0);
       } else {
         // The patch is not smaller than the raw region: log the raw bytes.
         struct wbwrite ww = {
           .id = WOP_WRITE,
-          .crc = wal->check_cp_crc ? iwu_crc32(cur, pe->len, 0) : 0,
+          .crc = wal->crc ? iwu_crc32(cur, pe->len, 0) : 0,
           .len = pe->len,
           .off = pe->off
         };
@@ -468,7 +483,7 @@ static iwrc _flush_pending(struct iwal *wal) {
     } else {
       struct wbwrite wb = {
         .id = WOP_WRITE,
-        .crc = wal->check_cp_crc ? iwu_crc32(cur, pe->len, 0) : 0,
+        .crc = wal->crc ? iwu_crc32(cur, pe->len, 0) : 0,
         .len = pe->len,
         .off = pe->off
       };
@@ -519,7 +534,7 @@ static iwrc _write_pending_wl(
     // and hash bookkeeping. This is an ordering barrier for pending writes.
     struct wbwrite wb = {
       .id = WOP_WRITE,
-      .crc = wal->check_cp_crc ? iwu_crc32(data, len, 0) : 0,
+      .crc = wal->crc ? iwu_crc32(data, len, 0) : 0,
       .len = len,
       .off = off
     };
@@ -865,22 +880,23 @@ static int _wal_read_vnum32(uint8_t **pp, const uint8_t *end, uint32_t *out) {
 
 /// Applies the WAL records in [wmm, wmm + fsz) to the current exfile mapping.
 ///
-/// `min_apply_off` allows an already committed prefix to be parsed and validated
-/// without being re-applied. A non-zero `stop_off` stops the application right
+/// `min_apply_off` allows an already committed prefix to be parsed without being
+/// re-applied. A non-zero `stop_off` stops the application right
 /// before the WOP_SAVEPOINT located at that offset (used by recovery). When
 /// `apply_resize` is false WOP_RESIZE records are validated but not applied,
 /// which is required when re-applying into a private mapping whose COW pages
-/// would otherwise be discarded by a remap.
+/// would otherwise be discarded by a remap. `check_crc` enables CRC32
+/// verification of the records; it is only used when recovering from a failure
+/// or from an online backup.
 ///
 /// Returns IWKV_ERROR_CORRUPTED_WAL_FILE on a malformed WAL.
 static iwrc _apply_wl_records(
   struct iwal *wal, struct iwfs_ext *extf, uint8_t *wmm, off_t fsz,
-  off_t stop_off, off_t min_apply_off, bool apply_resize, bool notify_fixpoint) {
+  off_t stop_off, off_t min_apply_off, bool apply_resize, bool notify_fixpoint, bool check_crc) {
   assert(wal->bufpos == 0);
   iwrc rc = 0;
   size_t sp;
   uint8_t *mm = 0;
-  const bool ccrc = wal->check_cp_crc;
   uint8_t *rp = wmm;
 
 #define _WAL_CORRUPTED(msg_) do {             \
@@ -909,7 +925,7 @@ static iwrc _apply_wl_records(
         if (wb.len > avail - (off_t) sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBSEP)");
         }
-        if (ccrc && wb.crc) {
+        if (check_crc && wb.crc) {
           uint32_t crc = iwu_crc32(rp, wb.len, 0);
           if (crc != wb.crc) {
             _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBSEP)");
@@ -968,7 +984,7 @@ static iwrc _apply_wl_records(
         if (wb.len > avail - (off_t) sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBWRITE)");
         }
-        if (ccrc && wb.crc) {
+        if (check_crc && wb.crc) {
           uint32_t crc = iwu_crc32(rp, wb.len, 0);
           if (crc != wb.crc) {
             _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBWRITE)");
@@ -998,6 +1014,12 @@ static iwrc _apply_wl_records(
         rp += sizeof(wb);
         if (wb.len > avail - (off_t) sizeof(wb)) {
           _WAL_CORRUPTED("Premature end of WAL (WBPATCH)");
+        }
+        if (check_crc && wb.crc) {
+          uint32_t crc = iwu_crc32(rp, wb.len, 0);
+          if (crc != wb.crc) {
+            _WAL_CORRUPTED("Invalid CRC32 checksum of WAL segment (WBPATCH)");
+          }
         }
         if (roff < min_apply_off) {
           rp += wb.len;
@@ -1111,9 +1133,25 @@ static uint8_t* _wal_mmap(struct iwal *wal, off_t fsz, off_t *pfsz) {
 /// In recovery modes the window may be advanced to the last reset point, in
 /// checkpoint mode to `wal->rollforward_offset`. When no savepoint is found
 /// `*fpos` is left at 0 and the caller must not apply anything in recovery mode.
+/// Returns @a crc_mode set from the WAL file header, i.e. whether the records
+/// in this WAL carry CRC32 checksums.
 static iwrc _wal_window(
   struct iwal *wal, uint8_t *wmm_base, off_t fsz, int recover_mode,
-  uint8_t **wmm, off_t *wfsz, off_t *fpos) {
+  uint8_t **wmm, off_t *wfsz, off_t *fpos, bool *crc_mode) {
+  *crc_mode = false;
+  if (fsz < (off_t) sizeof(struct walhdr)) {
+    return IWKV_ERROR_CORRUPTED_WAL_FILE;
+  }
+  struct walhdr hdr;
+  memcpy(&hdr, wmm_base, sizeof(hdr));
+  if (hdr.magic != IWAL_HDR_MAGIC) {
+    return IWKV_ERROR_CORRUPTED_WAL_FILE;
+  }
+  *crc_mode = (hdr.flags & IWAL_HDR_F_CRC) != 0;
+  wal->hdr_written = true;
+  const off_t hoff = (off_t) sizeof(struct walhdr);
+  wmm_base += hoff;
+  fsz -= hoff;
   *wmm = wmm_base;
   *wfsz = fsz;
   *fpos = 0;
@@ -1139,11 +1177,12 @@ static iwrc _wal_window(
       *fpos -= rpos;
     }
   } else if (wal->rollforward_offset > 0) {
-    if (wal->rollforward_offset >= fsz) {
+    const off_t roff = wal->rollforward_offset - hoff;
+    if ((roff < 0) || (roff >= fsz)) {
       return IWKV_ERROR_CORRUPTED_WAL_FILE;
     }
-    *wmm += wal->rollforward_offset;
-    *wfsz -= wal->rollforward_offset;
+    *wmm += roff;
+    *wfsz -= roff;
   }
   return 0;
 }
@@ -1163,11 +1202,16 @@ static iwrc _rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, int recove
   }
   uint8_t *wmm = 0;
   off_t wfsz = 0, fpos = 0;
-  rc = _wal_window(wal, wmm_base, fsz, recover_mode, &wmm, &wfsz, &fpos);
+  bool crc_mode = false;
+  rc = _wal_window(wal, wmm_base, fsz, recover_mode, &wmm, &wfsz, &fpos, &crc_mode);
   if (rc) {
     munmap(wmm_base, (size_t) pfsz);
     return rc;
   }
+  // CRC verification is only performed when the WAL is replayed after a
+  // failure or after an online backup restore. Regular checkpoints and the
+  // main file resize rollforward trust the already persisted data.
+  const bool check_crc = (recover_mode != 0) && crc_mode && !wal->skip_crc_on_recovery;
   // Temporary turn off extf locking
   wal->applying = true;
 
@@ -1182,7 +1226,7 @@ static iwrc _rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, int recove
   }
 
   if (!recover_mode || fpos) {
-    rc = _apply_wl_records(wal, extf, wmm, wfsz, fpos, 0, true, recover_mode != 0);
+    rc = _apply_wl_records(wal, extf, wmm, wfsz, fpos, 0, true, recover_mode != 0, check_crc);
   }
   if (!rc) {
     rc = extf->sync_mmap_unsafe(extf, 0, IWFS_SYNCDEFAULT);
@@ -1248,7 +1292,8 @@ static iwrc _resize_rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, off
   }
   uint8_t *wmm = 0;
   off_t wfsz = 0, fpos = 0;
-  rc = _wal_window(wal, wmm_base, fsz, 1, &wmm, &wfsz, &fpos);
+  bool crc_mode = false;
+  rc = _wal_window(wal, wmm_base, fsz, 1, &wmm, &wfsz, &fpos, &crc_mode);
   if (rc) {
     munmap(wmm_base, (size_t) pfsz);
     return rc;
@@ -1265,7 +1310,8 @@ static iwrc _resize_rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, off
     return rc;
   }
   if (fpos) {
-    rc = _apply_wl_records(wal, extf, wmm, wfsz, fpos, 0, true, false);
+    // Resize rollforward is not a recovery: no CRC verification.
+    rc = _apply_wl_records(wal, extf, wmm, wfsz, fpos, 0, true, false, false);
     if (!rc) {
       // Nothing is applied without a savepoint, so there is nothing to sync
       // (and an empty file has a zero-length mapping).
@@ -1282,7 +1328,7 @@ static iwrc _resize_rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, off
     rc = extf->truncate_unsafe(extf, target);
   }
   if (!rc) {
-    rc = _apply_wl_records(wal, extf, wmm, wfsz, 0, fpos, false, false);
+    rc = _apply_wl_records(wal, extf, wmm, wfsz, 0, fpos, false, false, false);
   }
 
   munmap(wmm_base, (size_t) pfsz);
@@ -1838,7 +1884,8 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
     wal->savepoint_timeout_sec = wal->checkpoint_timeout_sec / 2;
   }
 
-  wal->check_cp_crc = opts->wal.check_crc_on_checkpoint;
+  wal->crc = !opts->wal.no_crc;
+  wal->skip_crc_on_recovery = opts->wal.skip_crc_check_on_recovery;
 
   wal->coalesce_maxlen = IWAL_COALESCE_MAXLEN;
 
@@ -1847,8 +1894,8 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
     rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
     goto finish;
   }
-  wal->buf += sizeof(struct wbsep);
-  wal->bufsz = wal->wal_buffer_sz - sizeof(struct wbsep);
+  wal->buf += IWAL_BUF_RESERVE;
+  wal->bufsz = wal->wal_buffer_sz - IWAL_BUF_RESERVE;
 
   // Now open WAL file
 

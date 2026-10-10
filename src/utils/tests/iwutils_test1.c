@@ -10,6 +10,11 @@ static int init_suite(void) {
   return iw_init();
 }
 
+// Defined in src/utils/iwutils.c (IW_TESTS only)
+uint32_t iwu_crc32_sw(const uint8_t *buf, int len, uint32_t init);
+uint32_t iwu_crc32_hw(const uint8_t *buf, int len, uint32_t init);
+bool iwu_crc32_hw_available(void);
+
 static int clean_suite(void) {
   return 0;
 }
@@ -202,6 +207,58 @@ static void iwitoa_issue48(void) {
   CU_ASSERT_STRING_EQUAL("-9223372036854775808", buf);
 }
 
+// Independent bit-at-a-time CRC-32C reference implementation.
+static uint32_t crc32c_ref(const uint8_t *buf, int len, uint32_t init) {
+  uint32_t crc = init;
+  for (int i = 0; i < len; ++i) {
+    crc ^= buf[i];
+    for (int b = 0; b < 8; ++b) {
+      crc = (crc >> 1) ^ (0x82F63B78U & (uint32_t) -(int32_t) (crc & 1));
+    }
+  }
+  return crc;
+}
+
+// Verifies that the portable software implementation, the hardware accelerated
+// implementation and an independent reference all produce the same CRC-32C
+// value for every length, init and split point.
+static void test_iwu_crc32(void) {
+  // Standard CRC-32C check value for "123456789".
+  const uint8_t check[] = "123456789";
+  CU_ASSERT_EQUAL(iwu_crc32(check, 9, 0xFFFFFFFFU) ^ 0xFFFFFFFFU, 0xE3069283U);
+
+  uint8_t buf[512];
+  for (int i = 0; i < (int) sizeof(buf); ++i) {
+    buf[i] = (uint8_t) (i * 131 + 7);
+  }
+  static const uint32_t inits[] = { 0U, 0xFFFFFFFFU, 0x12345678U, 0xA5A5A5A5U };
+  const bool hw = iwu_crc32_hw_available();
+
+  for (size_t ii = 0; ii < sizeof(inits) / sizeof(inits[0]); ++ii) {
+    const uint32_t init = inits[ii];
+    for (int len = 0; len <= (int) sizeof(buf); ++len) {
+      const uint32_t ref = crc32c_ref(buf, len, init);
+      CU_ASSERT_EQUAL_FATAL(iwu_crc32(buf, len, init), ref);
+      CU_ASSERT_EQUAL_FATAL(iwu_crc32_sw(buf, len, init), ref);
+      if (hw) {
+        CU_ASSERT_EQUAL_FATAL(iwu_crc32_hw(buf, len, init), ref);
+        for (int split = 0; split <= len; split += 13) {
+          uint32_t c = iwu_crc32_hw(buf, split, init);
+          c = iwu_crc32_hw(buf + split, len - split, c);
+          CU_ASSERT_EQUAL_FATAL(c, ref);
+        }
+      }
+    }
+  }
+
+  // Incremental (chained) evaluation must match a single-shot computation.
+  for (int split = 0; split <= 64; ++split) {
+    uint32_t c = iwu_crc32(buf, split, 0);
+    c = iwu_crc32(buf + split, 64 - split, c);
+    CU_ASSERT_EQUAL_FATAL(c, iwu_crc32(buf, 64, 0));
+  }
+}
+
 int main(void) {
   CU_pSuite pSuite = NULL;
 
@@ -223,7 +280,8 @@ int main(void) {
      || (NULL == CU_add_test(pSuite, "test_iwpool_split_string", test_iwpool_split_string))
      || (NULL == CU_add_test(pSuite, "test_iwpool_printf", test_iwpool_printf))
      || (NULL == CU_add_test(pSuite, "test_iwrb1", test_iwrb1))
-     || (NULL == CU_add_test(pSuite, "iwitoa_issue48", iwitoa_issue48))) {
+     || (NULL == CU_add_test(pSuite, "iwitoa_issue48", iwitoa_issue48))
+     || (NULL == CU_add_test(pSuite, "test_iwu_crc32", test_iwu_crc32))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

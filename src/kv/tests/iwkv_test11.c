@@ -428,9 +428,11 @@ static void iwkv_test11_4(void) {
   // which makes the recovery parser visit the malformed record.
   FILE *f = fopen(walpath, "wb");
   CU_ASSERT_PTR_NOT_NULL_FATAL(f);
+  struct walhdr whdr = { .magic = IWAL_HDR_MAGIC, .flags = 0 };
   struct wbsep wbsep = { .id = WOP_SEP, .crc = 0, .len = 0 };
   struct wbset wbset = { .id = WOP_SET, .val = 0, .off = 0, .len = (off_t) -1 };
   struct wbsavepoint wbsp = { .id = WOP_SAVEPOINT, .ts = 1 };
+  CU_ASSERT_EQUAL(fwrite(&whdr, 1, sizeof(whdr), f), sizeof(whdr));
   CU_ASSERT_EQUAL(fwrite(&wbsep, 1, sizeof(wbsep), f), sizeof(wbsep));
   CU_ASSERT_EQUAL(fwrite(&wbset, 1, sizeof(wbset), f), sizeof(wbset));
   CU_ASSERT_EQUAL(fwrite(&wbsp, 1, sizeof(wbsp), f), sizeof(wbsp));
@@ -442,6 +444,189 @@ static void iwkv_test11_4(void) {
   CU_ASSERT_NOT_EQUAL(rc, 0);
   CU_ASSERT_EQUAL(rc, IWKV_ERROR_CORRUPTED_WAL_FILE);
 
+  unlink(path);
+  unlink(walpath);
+}
+
+// Corrupts the CRC field of the first WAL segment separator (WBSEP).
+static void corrupt_first_wbsep_crc(const char *walpath) {
+  FILE *f = fopen(walpath, "r+b");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(f);
+  struct walhdr whdr;
+  CU_ASSERT_EQUAL_FATAL(fread(&whdr, 1, sizeof(whdr), f), sizeof(whdr));
+  CU_ASSERT_EQUAL_FATAL(whdr.magic, IWAL_HDR_MAGIC);
+  CU_ASSERT_TRUE_FATAL((whdr.flags & IWAL_HDR_F_CRC) != 0);
+  struct wbsep wb;
+  CU_ASSERT_EQUAL_FATAL(fread(&wb, 1, sizeof(wb), f), sizeof(wb));
+  CU_ASSERT_EQUAL_FATAL(wb.id, WOP_SEP);
+  CU_ASSERT_TRUE_FATAL(wb.crc != 0);
+  long off = ftell(f) - (long) sizeof(wb) + (long) offsetof(struct wbsep, crc);
+  wb.crc ^= 0x01010101U;
+  CU_ASSERT_EQUAL_FATAL(fseek(f, off, SEEK_SET), 0);
+  CU_ASSERT_EQUAL_FATAL(fwrite(&wb.crc, 1, sizeof(wb.crc), f), sizeof(wb.crc));
+  fclose(f);
+}
+
+// CRC verification is only performed when recovering from a failure or an
+// online backup. A live checkpoint (and the main file resize rollforward) must
+// not verify persisted checksums, while recovery may be told to skip them.
+static void iwkv_test11_8(void) {
+  const char *path = "iwkv_test11_8.db";
+  const char *walpath = "iwkv_test11_8.db-wal";
+  struct iwkv_opts opts = {
+    .path = path,
+    .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
+    .wal = {
+      .enabled = true,
+      .wal_buffer_sz = 64 * 1024,
+      .checkpoint_buffer_sz = 1ULL << 40,
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
+    }
+  };
+  struct iwkv *iwkv = 0;
+  struct iwdb *db = 0;
+  struct stat st;
+  iwrc rc;
+
+  // (a) A live checkpoint must not verify WAL checksums.
+  unlink(path);
+  unlink(walpath);
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  for (int i = 0; i < 64; ++i) {
+    rc = put_custom(db, i, 64, 1);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_sync(iwkv, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  corrupt_first_wbsep_crc(walpath);
+  rc = iwal_test_checkpoint(iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  for (int i = 0; i < 64; ++i) {
+    key_of(i);
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { 0 };
+    rc = iwkv_get(db, &key, &val);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    CU_ASSERT_EQUAL_FATAL(val.size, 64);
+    iwkv_val_dispose(&val);
+  }
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL_FATAL(stat(walpath, &st), 0);
+  CU_ASSERT_EQUAL(st.st_size, 0); // Truncated -> no header, no recovery.
+
+  // (b) skip_crc_check_on_recovery allows recovery of a CRC-corrupted WAL.
+  opts.oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE;
+  opts.wal.skip_crc_check_on_recovery = true;
+  unlink(path);
+  unlink(walpath);
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  for (int i = 0; i < 64; ++i) {
+    rc = put_custom(db, i, 64, 2);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_sync(iwkv, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
+  corrupt_first_wbsep_crc(walpath);
+  opts.oflags = IWKV_NO_TRIM_ON_CLOSE;
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  for (int i = 0; i < 64; ++i) {
+    key_of(i);
+    struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+    struct iwkv_val val = { 0 };
+    rc = iwkv_get(db, &key, &val);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    iwkv_val_dispose(&val);
+  }
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // (c) With verification enabled the same corruption must abort recovery.
+  opts.oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE;
+  opts.wal.skip_crc_check_on_recovery = false;
+  unlink(path);
+  unlink(walpath);
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  for (int i = 0; i < 64; ++i) {
+    rc = put_custom(db, i, 64, 3);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_sync(iwkv, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
+  corrupt_first_wbsep_crc(walpath);
+  opts.oflags = IWKV_NO_TRIM_ON_CLOSE;
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_CORRUPTED_WAL_FILE);
+  if (!rc) {
+    iwkv_close(&iwkv);
+  }
+
+  unlink(path);
+  unlink(walpath);
+}
+
+// A non-empty WAL without the new header (written by an older build) must be
+// rejected as corrupted instead of being silently misparsed.
+static void iwkv_test11_9(void) {
+  const char *path = "iwkv_test11_9.db";
+  const char *walpath = "iwkv_test11_9.db-wal";
+  struct iwkv_opts opts = {
+    .path = path,
+    .oflags = IWKV_TRUNC,
+    .wal = {
+      .enabled = true,
+      .savepoint_timeout_sec = UINT32_MAX,
+      .checkpoint_timeout_sec = UINT32_MAX
+    }
+  };
+  unlink(path);
+  unlink(walpath);
+  struct iwkv *iwkv = 0;
+  struct iwdb *db = 0;
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = put_custom(db, 0, 32, 1);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  FILE *f = fopen(walpath, "wb");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(f);
+  struct wbsep wbsep = { .id = WOP_SEP, .crc = 0, .len = 0 };
+  struct wbsavepoint wbsp = { .id = WOP_SAVEPOINT, .ts = 1 };
+  CU_ASSERT_EQUAL(fwrite(&wbsep, 1, sizeof(wbsep), f), sizeof(wbsep));
+  CU_ASSERT_EQUAL(fwrite(&wbsp, 1, sizeof(wbsp), f), sizeof(wbsp));
+  fclose(f);
+
+  opts.oflags &= ~IWKV_TRUNC;
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_CORRUPTED_WAL_FILE);
+  if (!rc) {
+    iwkv_close(&iwkv);
+  }
   unlink(path);
   unlink(walpath);
 }
@@ -677,6 +862,140 @@ static void iwkv_test11_6(void) {
   }
 }
 
+// Regression test for CRC32 protection of compact WBPATCH records.
+//
+// When `crc` is enabled, every WBPATCH payload must carry a
+// CRC32 checksum and recovery must reject a record whose checksum does not
+// match. The segment (WBSEP) checksums are zeroed here so that only the
+// per-record WBPATCH checksum can detect the corrupted payload.
+static void iwkv_test11_7(void) {
+  const char *path = "iwkv_test11_7.db";
+  const char *walpath = "iwkv_test11_7.db-wal";
+  struct iwkv *iwkv;
+  struct iwdb *db;
+  struct iwkv_opts opts = {
+    .path = path,
+    .oflags = IWKV_TRUNC | IWKV_NO_TRIM_ON_CLOSE,
+    .wal = {
+      .enabled = true,
+      .no_crc = false,
+      .wal_buffer_sz = 64 * 1024,
+      .checkpoint_buffer_sz = 1ULL << 40,
+        .savepoint_timeout_sec = UINT32_MAX,
+        .checkpoint_timeout_sec = UINT32_MAX
+    }
+  };
+
+  unlink(path);
+  unlink(walpath);
+
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(iwkv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Repeated in-place skiplist block updates produce WBPATCH records on flush.
+  for (int i = 0; i < 512; ++i) {
+    rc = put_custom(db, i, 32 + (size_t) (i % 64), 1);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_sync(iwkv, 0); // Flush pending writes and write a savepoint.
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Simulate a crash: keep the WAL, do not checkpoint on close.
+  iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
+  rc = iwkv_close(&iwkv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
+
+  // Parse the WAL: disable segment checksums and locate a WBPATCH record.
+  FILE *f = fopen(walpath, "r+b");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(f);
+  CU_ASSERT_EQUAL_FATAL(fseek(f, 0, SEEK_END), 0);
+  long fsz = ftell(f);
+  CU_ASSERT_TRUE_FATAL(fsz > 0);
+  uint8_t *wal = malloc((size_t) fsz);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(wal);
+  CU_ASSERT_EQUAL_FATAL(fseek(f, 0, SEEK_SET), 0);
+  CU_ASSERT_EQUAL_FATAL(fread(wal, 1, (size_t) fsz, f), (size_t) fsz);
+
+  bool found = false;
+  off_t patch_pos = 0;
+  struct wbpatch patch = { 0 };
+  // Validate and skip the WAL file header.
+  CU_ASSERT_TRUE_FATAL((off_t) fsz >= (off_t) sizeof(struct walhdr));
+  {
+    struct walhdr whdr;
+    memcpy(&whdr, wal, sizeof(whdr));
+    CU_ASSERT_EQUAL_FATAL(whdr.magic, IWAL_HDR_MAGIC);
+    CU_ASSERT_TRUE_FATAL((whdr.flags & IWAL_HDR_F_CRC) != 0);
+  }
+  for (off_t off = (off_t) sizeof(struct walhdr); off < (off_t) fsz; ) {
+    uint8_t id = wal[off];
+    if (id == WOP_SEP) {
+      struct wbsep wb;
+      if (off + (off_t) sizeof(wb) > (off_t) fsz) {
+        break;
+      }
+      memcpy(&wb, wal + off, sizeof(wb));
+      wb.crc = 0; // Isolate the per-record checksum.
+      memcpy(wal + off, &wb, sizeof(wb));
+      off += sizeof(wb);
+    } else if (id == WOP_SET) {
+      off += sizeof(struct wbset);
+    } else if (id == WOP_COPY) {
+      off += sizeof(struct wbcopy);
+    } else if (id == WOP_WRITE) {
+      struct wbwrite wb;
+      if (off + (off_t) sizeof(wb) > (off_t) fsz) {
+        break;
+      }
+      memcpy(&wb, wal + off, sizeof(wb));
+      off += sizeof(wb) + wb.len;
+    } else if (id == WOP_PATCH) {
+      struct wbpatch wb;
+      if (off + (off_t) sizeof(wb) > (off_t) fsz) {
+        break;
+      }
+      memcpy(&wb, wal + off, sizeof(wb));
+      if (wb.len && wb.crc && (off + (off_t) sizeof(wb) + wb.len <= (off_t) fsz)) {
+        found = true;
+        patch = wb;
+        patch_pos = off;
+        break;
+      }
+      off += sizeof(wb) + wb.len;
+    } else if (id == WOP_RESIZE) {
+      off += sizeof(struct wbresize);
+    } else if (id == WOP_SAVEPOINT) {
+      off += sizeof(struct wbsavepoint);
+    } else if (id == WOP_RESET) {
+      off += sizeof(struct wbreset);
+    } else {
+      break;
+    }
+  }
+  CU_ASSERT_TRUE_FATAL(found); // WBPATCH must carry a CRC32 checksum.
+
+  // Corrupt the last payload byte of the patch record.
+  wal[patch_pos + (off_t) sizeof(struct wbpatch) + patch.len - 1] ^= 0xFF;
+  CU_ASSERT_EQUAL_FATAL(fseek(f, 0, SEEK_SET), 0);
+  CU_ASSERT_EQUAL_FATAL(fwrite(wal, 1, (size_t) fsz, f), (size_t) fsz);
+  fclose(f);
+  free(wal);
+
+  // Recovery must reject the record with the mismatching checksum.
+  opts.oflags &= ~IWKV_TRUNC;
+  rc = iwkv_open(&opts, &iwkv);
+  CU_ASSERT_EQUAL(rc, IWKV_ERROR_CORRUPTED_WAL_FILE);
+  if (!rc) {
+    iwkv_close(&iwkv);
+  }
+
+  unlink(path);
+  unlink(walpath);
+}
+
 int main(void) {
   CU_pSuite pSuite = NULL;
 
@@ -693,7 +1012,10 @@ int main(void) {
      || (NULL == CU_add_test(pSuite, "iwkv_test11_3", iwkv_test11_3))
      || (NULL == CU_add_test(pSuite, "iwkv_test11_4", iwkv_test11_4))
      || (NULL == CU_add_test(pSuite, "iwkv_test11_5", iwkv_test11_5))
-     || (NULL == CU_add_test(pSuite, "iwkv_test11_6", iwkv_test11_6))) {
+     || (NULL == CU_add_test(pSuite, "iwkv_test11_6", iwkv_test11_6))
+     || (NULL == CU_add_test(pSuite, "iwkv_test11_7", iwkv_test11_7))
+     || (NULL == CU_add_test(pSuite, "iwkv_test11_8", iwkv_test11_8))
+     || (NULL == CU_add_test(pSuite, "iwkv_test11_9", iwkv_test11_9))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

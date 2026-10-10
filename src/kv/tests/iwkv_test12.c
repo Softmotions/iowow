@@ -284,7 +284,7 @@ static void fuzz_opts_init(struct iwkv_opts *opts, const char *path, int mode) {
     opts->wal.enabled = true;
     opts->wal.wal_buffer_sz = (size_t) 64 * 1024;
     opts->wal.checkpoint_buffer_sz = (size_t) 8 * 1024 * 1024;
-    opts->wal.check_crc_on_checkpoint = (mode == FUZZ_MODE_WAL);
+    opts->wal.no_crc = (mode != FUZZ_MODE_WAL);
     if (mode == FUZZ_MODE_WAL_CRASH) {
       // Only explicit `iwkv_sync()` creates durable savepoints, so a
       // simulated crash always rolls back to the last synced state.

@@ -140,8 +140,10 @@ typedef struct iwdb*IWDB;
  * @brief Write ahead log (WAL) options.
  */
 struct iwkv_wal_opts {
-  bool     enabled;                 /**< WAL enabled */
-  bool     check_crc_on_checkpoint; /**< Check CRC32 sum of data blocks during checkpoint. Default: false */
+  bool     enabled;                    /**< WAL enabled */
+  bool     no_crc;                     /**< Disable CRC-32C checksums of WAL records. CRC is enabled by default */
+  bool     skip_crc_check_on_recovery; /**< Do not verify persisted WAL checksums when recovering from
+                                            a failure or from an online backup. Default: false */
   uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds. Default: 10 sec */
   uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 300 sec (5 min); */
   size_t   wal_buffer_sz;           /**< WAL file intermediate buffer size. Default: 4Mb */

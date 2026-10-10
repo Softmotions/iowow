@@ -92,7 +92,7 @@ static void iwkv_test4_3_impl(int fmt_version) {
     .fmt_version = fmt_version,
     .wal = {
       .enabled = true,
-      .check_crc_on_checkpoint = true,
+      .no_crc = false,
       .savepoint_timeout_sec = UINT32_MAX
     }
   };
@@ -191,7 +191,7 @@ static void iwkv_test2_impl(char *path, const char *walpath, uint32_t num, uint3
     .random_seed = g_seed,
     .wal = {
       .enabled = (walpath != NULL),
-      .check_crc_on_checkpoint = true,
+      .no_crc = false,
       .savepoint_timeout_sec = UINT32_MAX,
       .wal_buffer_sz = 64 * 1024,
       .checkpoint_buffer_sz = 32 * 1024 * 1024

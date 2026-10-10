@@ -55,6 +55,17 @@ typedef struct wbsep {
   uint32_t len;
 } WBSEP;
 
+/// WAL file header. It is written at the very beginning of a non-empty WAL
+/// file, immediately before the first data record. An empty (zero length) WAL
+/// file carries no header and means that no recovery is required.
+#define IWAL_HDR_MAGIC 0x4c415749U ///< "IWAL"
+#define IWAL_HDR_F_CRC 0x1U        ///< WAL records carry CRC32 checksums
+
+struct walhdr {
+  uint32_t magic; ///< IWAL_HDR_MAGIC
+  uint32_t flags; ///< IWAL_HDR_F_CRC when record checksums are present
+};
+
 typedef struct wbreset {
   uint8_t id;
   uint8_t pad[3];
@@ -97,6 +108,11 @@ typedef struct wbsavepoint {
   uint64_t ts;
 } WBSAVEPOINT;
 
+
+/// Bytes reserved at the front of the WAL intermediate buffer: the lazily
+/// written file header and the current segment separator.
+#define IWAL_BUF_RESERVE (sizeof(struct walhdr) + sizeof(struct wbsep))
+
 /// Compact patch of changed byte spans inside one contiguous region.
 ///
 /// The payload following the header is a sequence of spans, each encoded as
@@ -107,6 +123,7 @@ typedef struct wbsavepoint {
 typedef struct wbpatch {
   uint8_t  id;
   uint8_t  pad[3];
+  uint32_t crc;  /**< CRC32 checksum of the span payload, zero when disabled */
   uint32_t len;  /**< Total byte length of the span payload */
   off_t    off;  /**< Region base offset used by span offsets */
 } WBPATCH;
