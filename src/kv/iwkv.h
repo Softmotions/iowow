@@ -146,6 +146,14 @@ struct iwkv_wal_opts {
                                             a failure or from an online backup. Default: false */
   uint32_t savepoint_timeout_sec;   /**< Savepoint timeout seconds. Default: 10 sec */
   uint32_t checkpoint_timeout_sec;  /**< Checkpoint timeout seconds. Default: 300 sec (5 min); */
+  /**
+   * Schedule an immediate WAL savepoint (and WAL flush) when a logical write
+   * operation follows the previous one after more than this number of seconds
+   * of idle time. This keeps sparse (time-to-time) write workloads durable
+   * without waiting for `savepoint_timeout_sec`. Zero selects the default;
+   * set to `UINT32_MAX` to disable. Default: 1 sec.
+   */
+  uint32_t savepoint_idle_timeout_sec;
   size_t   wal_buffer_sz;           /**< WAL file intermediate buffer size. Default: 4Mb */
   uint64_t checkpoint_buffer_sz;    /**< Max size of changed bytes to force checkpoint. Default: 1Gb */
   iwrc     (*wal_lock_interceptor)(bool, void*);

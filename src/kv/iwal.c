@@ -93,6 +93,8 @@ struct iwal {
   void    *wal_lock_interceptor_opaque;  /**< Opaque data for `wal_lock_interceptor` */
   uint32_t savepoint_timeout_sec;        /**< Savepoint timeout seconds */
   uint32_t checkpoint_timeout_sec;       /**< Checkpoint timeout seconds */
+  uint32_t savepoint_idle_timeout_sec;   /**< Idle gap in seconds that triggers an immediate savepoint */
+  atomic_uint_fast64_t last_wop_ts;      /**< Worker clock time of the last logical write operation */
   atomic_size_t mbytes;                  /**< Cumulative logged write volume since the last checkpoint */
   off_t    rollforward_offset;           /**< Rollforward offset during online backup */
   uint64_t checkpoint_ts;                /**< Last checkpoint timestamp milliseconds */
@@ -120,6 +122,28 @@ typedef struct iwal IWAL;
 static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint);
 static iwrc _resize_rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, off_t target);
 static void _account_write(struct iwal *wal, off_t len);
+
+#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
+#define IWAL_CPT_CLOCK CLOCK_MONOTONIC
+#else
+#define IWAL_CPT_CLOCK CLOCK_REALTIME
+#endif
+
+IW_INLINE uint64_t _cpt_timespec_to_ms(const struct timespec *tp) {
+  return (uint64_t) tp->tv_sec * 1000 + (uint64_t) round(tp->tv_nsec / 1.0e6);
+}
+
+/// Returns current time in milliseconds expressed in the checkpoint worker clock.
+IW_INLINE iwrc _cpt_current_time_ms(uint64_t *ts) {
+  struct timespec tp;
+  iwrc rc = iwp_clock_get_time(IWAL_CPT_CLOCK, &tp);
+  if (rc) {
+    *ts = 0;
+    return rc;
+  }
+  *ts = _cpt_timespec_to_ms(&tp);
+  return 0;
+}
 
 IW_INLINE iwrc _lock(struct iwal *wal) {
   int rci = pthread_mutex_lock(wal->mtxp);
@@ -1395,7 +1419,7 @@ static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint) {
   rc = _rollforward_exl(wal, extf, 0);
   wal->mbytes = 0;
   wal->synched = true;
-  iwp_current_time_ms(&wal->checkpoint_ts, true);
+  RCC(rc, finish, _cpt_current_time_ms(&wal->checkpoint_ts));
   if (tsp) {
     *tsp = wal->checkpoint_ts;
   }
@@ -1441,26 +1465,57 @@ void iwal_test_set_bkp_main_copy(struct iwkv *iwkv, bool active) {
 
 //--------------------------------------- Public API
 
+/// Updates the last logical write operation timestamp and reports whether the
+/// previous operation happened more than `savepoint_idle_timeout_sec` ago.
+IW_INLINE bool _kvop_idle(struct iwal *wal) {
+  if (wal->savepoint_idle_timeout_sec == UINT32_MAX) {
+    return false;
+  }
+  uint64_t now;
+  if (_cpt_current_time_ms(&now)) {
+    return false;
+  }
+  uint64_t prev = atomic_exchange_explicit(&wal->last_wop_ts, now, memory_order_relaxed);
+  return prev && ((now - prev) >= 1000ULL * wal->savepoint_idle_timeout_sec);
+}
+
 WUR iwrc iwal_poke_checkpoint(struct iwkv *iwkv, bool force) {
   struct iwal *wal = (struct iwal*) iwkv->dlsnr;
-  if (!wal || !(force || _need_checkpoint(wal))) {
+  if (!wal) {
     return 0;
+  }
+  bool idle = false;
+  if (!force) {
+    // Sparse-time durability: a logical write operation that follows a longer
+    // idle period schedules an immediate savepoint.
+    idle = _kvop_idle(wal);
+    if (!idle && !_need_checkpoint(wal)) {
+      return 0;
+    }
   }
   iwrc rc = _lock(wal);
   RCRET(rc);
-  bool cforce = wal->force_cp;
-  if (cforce) { // Forced already
-    _unlock(wal);
-    return 0;
-  } else if (force) {
-    wal->force_cp = true;
-  } else if (!_need_checkpoint(wal)) {
-    _unlock(wal);
-    return 0;
+  bool poke = false;
+  if (force) {
+    if (!wal->force_cp) {
+      wal->force_cp = true;
+      poke = true;
+    }
+  } else {
+    if (idle && !wal->synched && !wal->force_sp) {
+      wal->force_sp = true;
+      poke = true;
+    }
+    if (!wal->force_cp && _need_checkpoint(wal)) {
+      wal->force_cp = true;
+      poke = true;
+    }
   }
-  int rci = pthread_cond_broadcast(wal->cpt_condp);
-  if (rci) {
-    rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+  if (poke && wal->cpt_condp) {
+    int rci = pthread_cond_broadcast(wal->cpt_condp);
+    if (rci) {
+      rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    }
   }
   _unlock(wal);
   return rc;
@@ -1471,14 +1526,17 @@ iwrc iwal_poke_savepoint(struct iwkv *iwkv) {
   if (!wal) {
     return 0;
   }
+  // Keep idle-write tracking consistent for explicitly synced operations.
+  _kvop_idle(wal);
   iwrc rc = _lock(wal);
   RCRET(rc);
-  bool fsp = wal->force_sp;
-  if (!fsp) {
+  if (!wal->force_sp) {
     wal->force_sp = true;
-    int rci = pthread_cond_broadcast(wal->cpt_condp);
-    if (rci) {
-      rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+    if (wal->cpt_condp) {
+      int rci = pthread_cond_broadcast(wal->cpt_condp);
+      if (rci) {
+        rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
+      }
     }
   }
   _unlock(wal);
@@ -1538,7 +1596,7 @@ static void* _cpt_worker_fn(void *op) {
   iwrc rc = 0;
   struct iwal *wal = op;
   struct iwkv *iwkv = wal->iwkv;
-  uint64_t savepoint_ts = 0;
+  uint64_t savepoint_ts = wal->checkpoint_ts;
 
   while (wal->open) {
     struct timespec tp;
@@ -1557,17 +1615,13 @@ static void* _cpt_worker_fn(void *op) {
       goto cprun;
     }
 
-#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
-    rc = iwp_clock_get_time(CLOCK_MONOTONIC, &tp);
-#else
-    rc = iwp_clock_get_time(CLOCK_REALTIME, &tp);
-#endif
+    rc = iwp_clock_get_time(IWAL_CPT_CLOCK, &tp);
     if (rc) {
       _unlock(wal);
       break;
     }
     tp.tv_sec += 1; // one sec tick
-    tick_ts = tp.tv_sec * 1000 + (uint64_t) round(tp.tv_nsec / 1.0e6);
+    tick_ts = _cpt_timespec_to_ms(&tp);
     do {
       rci = pthread_cond_timedwait(wal->cpt_condp, wal->mtxp, &tp);
     } while (rci == EINTR && !wal->open);
@@ -1596,7 +1650,10 @@ cprun:
         if (cp) {
           rc = _checkpoint_exl(wal, &savepoint_ts, false);
         } else {
-          rc = _savepoint_exl(wal, &savepoint_ts, true);
+          rc = _savepoint_exl(wal, 0, true);
+          if (!rc) {
+            rc = _cpt_current_time_ms(&savepoint_ts);
+          }
         }
       }
       _excl_unlock(wal);
@@ -1815,7 +1872,7 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
   wal->path = wpath;
   wal->oflags = opts->oflags;
   wal->iwkv = iwkv;
-  iwp_current_time_ms(&wal->checkpoint_ts, true);
+  _cpt_current_time_ms(&wal->checkpoint_ts);
 
   rc = _init_locks(wal);
   RCGO(rc, finish);
@@ -1868,6 +1925,10 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
   wal->savepoint_timeout_sec
     = opts->wal.savepoint_timeout_sec > 0
       ? opts->wal.savepoint_timeout_sec : 10; // 10 sec
+
+  wal->savepoint_idle_timeout_sec
+    = opts->wal.savepoint_idle_timeout_sec > 0
+      ? opts->wal.savepoint_idle_timeout_sec : 1; // 1 sec
 
   wal->checkpoint_timeout_sec
     = opts->wal.checkpoint_timeout_sec > 0 ?
