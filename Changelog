@@ -1,4 +1,4 @@
-2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1-dev]
+2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1]
   * iwkv: Added extra fuzzing. Fixed several crashes and hangs. Adjusted specific test cases.
   * iwkv: WAL crc32 checksums now persisted by default.
   * iwkv: WAL uses crc32 only for failure recovering.
