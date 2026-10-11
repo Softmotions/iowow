@@ -496,6 +496,8 @@ static void fuzz_corrupt(void *buf, size_t sz) {
   }
 }
 
+typedef void (*fuzz_probe_fn)(const char *path);
+
 // Child side of a corruption fuzzing attempt: the engine must either report
 // an error or recover to a state it can traverse; it must never crash.
 static void fuzz_corrupt_open_verify(const char *path) {
@@ -532,6 +534,44 @@ static void fuzz_corrupt_open_verify(const char *path) {
   }
 }
 
+// Write-path variant of `fuzz_corrupt_open_verify()`. Error paths of the
+// write code (`_lx_addkv()`, `_sblk_addkv()`) hold an exfile mmap read lock;
+// failing to release it leaks the lock and deadlocks `iwkv_close()` when it
+// takes the write lock for the tail trim.
+static void fuzz_corrupt_open_put_verify(const char *path) {
+  struct iwkv_opts opts;
+  memset(&opts, 0, sizeof(opts));
+  opts.path = path;
+  opts.wal.enabled = true;
+  opts.wal.wal_buffer_sz = (size_t) (64 * 1024);
+  opts.wal.checkpoint_buffer_sz = 1ULL << 40;
+  opts.wal.savepoint_timeout_sec = UINT32_MAX;
+  opts.wal.checkpoint_timeout_sec = UINT32_MAX;
+
+  struct iwkv *kv = 0;
+  iwrc rc = iwkv_open(&opts, &kv);
+  if (!rc) {
+    struct iwdb *db = 0;
+    rc = iwkv_db(kv, 1, 0, &db);
+    if (!rc && db) {
+      char kbuf[32];
+      uint8_t vbuf[64];
+      for (int i = 0; i < 128; ++i) {
+        memset(vbuf, i, sizeof(vbuf));
+        snprintf(kbuf, sizeof(kbuf), "n%05d", i);
+        struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
+        struct iwkv_val val = { .data = vbuf, .size = sizeof(vbuf) };
+        iwkv_put(db, &key, &val, 0);
+        snprintf(kbuf, sizeof(kbuf), "%05d", i);
+        key.data = kbuf;
+        key.size = strlen(kbuf);
+        iwkv_del(db, &key, 0);
+      }
+    }
+    iwkv_close(&kv); // deadlocks if a read lock leaked
+  }
+}
+
 static int fuzz_wait_timeout(pid_t pid, uint32_t timeout_ms, int *status) {
   uint32_t waited = 0;
   for ( ; ; ) {
@@ -556,7 +596,7 @@ static int fuzz_wait_timeout(pid_t pid, uint32_t timeout_ms, int *status) {
 // Run a single corrupted image through the engine in an isolated child so a
 // crash or a hang cannot take down the whole test suite.
 static int fuzz_corrupt_attempt(
-  const char *path, uint8_t *db, size_t dbsz,
+  fuzz_probe_fn probe, const char *path, uint8_t *db, size_t dbsz,
   uint8_t *wal, size_t walsz) {
   char walpath[512];
   snprintf(walpath, sizeof(walpath), "%s-wal", path);
@@ -601,13 +641,13 @@ static int fuzz_corrupt_attempt(
   // IWKV_FUZZ_NOFORK=1 runs the attempt in-process; useful to debug a single
   // round under a debugger or sanitizer.
   if (fuzz_env_u32("IWKV_FUZZ_NOFORK", 0)) {
-    fuzz_corrupt_open_verify(path);
+    probe(path);
     return FUZZ_CORRUPT_OK;
   }
 
   pid_t pid = fork();
   if (pid == 0) {
-    fuzz_corrupt_open_verify(path);
+    probe(path);
     _exit(0);
   }
   if (pid < 0) {
@@ -687,7 +727,7 @@ static void fuzz_corrupt_build(const char *path, const char *srcpath, bool keep_
 }
 
 static void fuzz_corrupt_run(
-  const char *srcpath, uint32_t seed, uint32_t env_seed,
+  fuzz_probe_fn probe, const char *srcpath, uint32_t seed, uint32_t env_seed,
   uint32_t rounds, bool keep_wal) {
   char walpath[512];
   const char *path = "iwkv_test12_corrupt.db";
@@ -705,7 +745,7 @@ static void fuzz_corrupt_run(
     // Reseed per round so a finding is reproducible by rerunning with the
     // same IWKV_FUZZ_SEED and IWKV_FUZZ_ROUNDS=r+1.
     iwu_rand_seed(seed + r * 2654435761u);
-    int res = fuzz_corrupt_attempt(path, dbbuf, dbsz, walbuf, walsz);
+    int res = fuzz_corrupt_attempt(probe, path, dbbuf, dbsz, walbuf, walsz);
     if (res != FUZZ_CORRUPT_OK) {
       const char *kind = (res == FUZZ_CORRUPT_CRASH) ? "crash"
                          : (res == FUZZ_CORRUPT_HANG) ? "hang" : "setup-error";
@@ -771,9 +811,10 @@ static void iwkv_test12_4_file_fuzz(void) {
   }
   fprintf(stderr, "\niwkv_test12_4_file_fuzz seed=%u rounds=%u\n", base, rounds);
   // WAL contains uncheckpointed records: corrupt both files.
-  fuzz_corrupt_run("iwkv_test12_corrupt_src.db", base, base, rounds, true);
+  fuzz_corrupt_run(fuzz_corrupt_open_verify, "iwkv_test12_corrupt_src.db", base, base, rounds, true);
   // WAL was applied on close: corrupt the main database file only.
-  fuzz_corrupt_run("iwkv_test12_corrupt_src2.db", base ^ 0x9e3779b9u, base, rounds, false);
+  fuzz_corrupt_run(fuzz_corrupt_open_verify, "iwkv_test12_corrupt_src2.db",
+                   base ^ 0x9e3779b9u, base, rounds, false);
 }
 
 // A malformed first-database address in the file header must be rejected
@@ -851,6 +892,727 @@ static void iwkv_test12_6_malformed_fsm_hdr(void) {
   unlink(walpath);
 }
 
+/// Returns true when the 256-byte slot at `p` looks like a persistent V2 SBLK
+/// that references a KVBLK. Used to corrupt only plausible skip-list blocks.
+static bool fuzz_is_sblk_slot(const uint8_t *p) {
+  const uint8_t flags = p[SOFF_FLAGS_U1];
+  const uint8_t lvl = p[SOFF_LVL_U1];
+  const uint8_t pnum = p[SOFF_PNUM_U1];
+  const uint8_t bpos = p[SOFF_BPOS_U1_V2];
+  uint32_t kvblkn;
+  memcpy(&kvblkn, p + SOFF_KBLK_U4, sizeof(kvblkn));
+  kvblkn = IW_ITOHL(kvblkn);
+  return !(flags & ~SBLK_PERSISTENT_FLAGS)
+         && (lvl < SLEVELS)
+         && (pnum <= KVBLK_IDXNUM)
+         && (bpos >= 1) && (bpos <= SBLK_PAGE_SBLK_NUM_V2)
+         && (kvblkn != 0);
+}
+
+/// Walks every record of the database with a cursor, disposing the keys and
+/// values. Errors are ignored; the point is to reach every SBLK so corrupted
+/// blocks are dereferenced (or rejected) rather than silently skipped.
+static void fuzz_walk_db(struct iwdb *db) {
+  struct iwkv_cursor *cur = 0;
+  iwrc rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
+  if (rc) {
+    return;
+  }
+  uint32_t guard = 0;
+  while (  (iwkv_cursor_to(cur, IWKV_CURSOR_NEXT) == 0)
+        && (guard++ < (1U << 20))) {
+    struct iwkv_val k = { 0 }, v = { 0 };
+    if (iwkv_cursor_get(cur, &k, &v)) {
+      break;
+    }
+    iwkv_kv_dispose(&k, &v);
+  }
+  iwkv_cursor_close(&cur);
+}
+
+// A non-database SBLK must always reference a KVBLK. A corrupted block with a
+// zero `kblk` used to leave `sblk->kvblk == NULL`, which
+// `iwkv_cursor_copy_key()` then dereferenced in `_kvblk_key_peek()` (SIGSEGV).
+static void iwkv_test12_7_sblk_kvblk_corruption(void) {
+  const char *path = "iwkv_test12_sblk.db";
+  const char *walpath = "iwkv_test12_sblk.db-wal";
+  unlink(path);
+  unlink(walpath);
+
+  struct iwkv_opts opts = { .path = path, .oflags = IWKV_TRUNC };
+  struct iwkv *kv = 0;
+  struct iwdb *db = 0;
+  iwrc rc = iwkv_open(&opts, &kv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(kv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  for (int i = 0; i < 128; ++i) {
+    char kbuf[16];
+    uint8_t vbuf[48];
+    int n = snprintf(kbuf, sizeof(kbuf), "k%05d", i);
+    memset(vbuf, i, sizeof(vbuf));
+    struct iwkv_val key = { .data = kbuf, .size = (size_t) n };
+    struct iwkv_val val = { .data = vbuf, .size = sizeof(vbuf) };
+    rc = iwkv_put(db, &key, &val, 0);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_close(&kv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  size_t dbsz = 0;
+  uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  CU_ASSERT_TRUE_FATAL(dbsz > SBLK_SZ);
+
+  opts.oflags &= ~IWKV_TRUNC;
+  uint32_t hits = 0;
+  for (size_t base = 0; base + SBLK_SZ <= dbsz; base += SBLK_SZ) {
+    if (!fuzz_is_sblk_slot(dbbuf + base)) {
+      continue;
+    }
+    ++hits;
+    uint8_t *mut = malloc(dbsz);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(mut);
+    memcpy(mut, dbbuf, dbsz);
+    memset(mut + base + SOFF_KBLK_U4, 0, 4);
+    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, mut, dbsz), 0);
+    free(mut);
+
+    kv = 0;
+    rc = iwkv_open(&opts, &kv);
+    if (!rc) {
+      db = 0;
+      rc = iwkv_db(kv, 1, 0, &db);
+      if (!rc) {
+        fuzz_walk_db(db);
+      }
+      iwkv_close(&kv);
+    }
+    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+  }
+  fprintf(stderr, "\n[iwkv_test12] SBLK kvblk sweep: %u slot(s), no crash\n", hits);
+  CU_ASSERT_TRUE_FATAL(hits > 0);
+  free(dbbuf);
+  unlink(path);
+  unlink(walpath);
+}
+
+// Corrupting the FSM block-size exponent makes `_fsm_trim_tail_lw()` pick a
+// free block at/beyond the bitmap offset. It used to hit `assert(0)` and then
+// deallocate the wrong (bitmap-overlapping) block. The FSM code must reject
+// the inconsistent state instead.
+static void iwkv_test12_8_fsm_trim_corruption(void) {
+  const char *path = "iwkv_test12_fsmtrim.db";
+  const char *walpath = "iwkv_test12_fsmtrim.db-wal";
+  unlink(path);
+  unlink(walpath);
+
+  struct iwkv_opts opts = { .path = path, .oflags = IWKV_TRUNC };
+  struct iwkv *kv = 0;
+  struct iwdb *db = 0;
+  iwrc rc = iwkv_open(&opts, &kv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(kv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  for (int i = 0; i < 64; ++i) {
+    char kbuf[16];
+    uint8_t vbuf[32];
+    int n = snprintf(kbuf, sizeof(kbuf), "k%05d", i);
+    memset(vbuf, i, sizeof(vbuf));
+    struct iwkv_val key = { .data = kbuf, .size = (size_t) n };
+    struct iwkv_val val = { .data = vbuf, .size = sizeof(vbuf) };
+    rc = iwkv_put(db, &key, &val, 0);
+    CU_ASSERT_EQUAL_FATAL(rc, 0);
+  }
+  rc = iwkv_close(&kv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  size_t dbsz = 0;
+  uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  CU_ASSERT_TRUE_FATAL(dbsz > 5);
+
+  opts.oflags &= ~IWKV_TRUNC;
+  for (uint8_t pow = 0; pow <= 6; ++pow) {
+    uint8_t *mut = malloc(dbsz);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(mut);
+    memcpy(mut, dbbuf, dbsz);
+    mut[4] = pow; // FSM control header: [magic:u4][bpow:u1]
+    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, mut, dbsz), 0);
+    free(mut);
+
+    kv = 0;
+    rc = iwkv_open(&opts, &kv);
+    if (!rc) {
+      // The close path runs `_fsm_trim_tail_lw()`. Any error is acceptable,
+      // a crash is not.
+      iwkv_close(&kv);
+    }
+    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+  }
+  fprintf(stderr, "\n[iwkv_test12] FSM block pow trim sweep: no crash\n");
+  free(dbbuf);
+  unlink(path);
+  unlink(walpath);
+}
+
+// A corrupted database chain where `next_db_blk` points back to an already
+// loaded database must be rejected instead of looping forever in
+// `_db_load_chain()`.
+static void iwkv_test12_9_db_chain_cycle(void) {
+  const char *path = "iwkv_test12_dbcycle.db";
+  const char *walpath = "iwkv_test12_dbcycle.db-wal";
+  unlink(path);
+  unlink(walpath);
+
+  struct iwkv_opts opts = { .path = path, .oflags = IWKV_TRUNC };
+  struct iwkv *kv = 0;
+  struct iwdb *db = 0;
+  iwrc rc = iwkv_open(&opts, &kv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(kv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  uint8_t vbuf[16] = { 0 };
+  struct iwkv_val key = { .data = "k", .size = 1 };
+  struct iwkv_val val = { .data = vbuf, .size = sizeof(vbuf) };
+  rc = iwkv_put(db, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_close(&kv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Read the first database address from the iwkv file header
+  // [magic:u4][first_db_addr:u8].
+  uint64_t dbaddr = 0;
+  FILE *f = fopen(path, "r+b");
+  CU_ASSERT_PTR_NOT_NULL_FATAL(f);
+  CU_ASSERT_EQUAL_FATAL(fseek(f, IWFSM_CUSTOM_HDR_DATA_OFFSET + 4, SEEK_SET), 0);
+  CU_ASSERT_EQUAL_FATAL(fread(&dbaddr, 1, sizeof(dbaddr), f), sizeof(dbaddr));
+  dbaddr = IW_ITOHLL(dbaddr);
+  CU_ASSERT_TRUE_FATAL(dbaddr > 0);
+
+  // Point the database `next_db_blk` to itself.
+  uint32_t selfblk = IW_HTOIL((uint32_t) ADDR2BLK(dbaddr));
+  CU_ASSERT_EQUAL_FATAL(fseek(f, (long) dbaddr + DOFF_NEXTDB_U4, SEEK_SET), 0);
+  CU_ASSERT_EQUAL_FATAL(fwrite(&selfblk, 1, sizeof(selfblk), f), sizeof(selfblk));
+  fclose(f);
+
+  opts.oflags &= ~IWKV_TRUNC;
+  rc = iwkv_open(&opts, &kv);
+  CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_CORRUPTED);
+
+  unlink(path);
+  unlink(walpath);
+}
+
+// Writes into a corrupted database must release the exfile mmap read lock on
+// every error path. A leaked read lock deadlocks `iwkv_close()` (the tail trim
+// takes the write lock). This complements the read-only corruption fuzzer.
+static void iwkv_test12_10_corrupt_put_fuzz(void) {
+  uint32_t base = fuzz_env_u32("IWKV_FUZZ_SEED", FUZZ_DEFAULT_SEED);
+  uint32_t rounds = fuzz_env_u32("IWKV_FUZZ_ROUNDS", FUZZ_DEFAULT_ROUNDS);
+  if (rounds == 0) {
+    fprintf(stderr, "\niwkv_test12_10_corrupt_put_fuzz skipped (set IWKV_FUZZ_ROUNDS to enable)\n");
+    return;
+  }
+  fprintf(stderr, "\niwkv_test12_10_corrupt_put_fuzz seed=%u rounds=%u\n", base, rounds);
+  fuzz_corrupt_run(fuzz_corrupt_open_put_verify, "iwkv_test12_corrupt_puts.db",
+                   base, base, rounds, true);
+  fuzz_corrupt_run(fuzz_corrupt_open_put_verify, "iwkv_test12_corrupt_puts2.db",
+                   base ^ 0x85ebca6bu, base, rounds, false);
+}
+
+// Creating a database requires draining all active workers (open cursors).
+// Doing that from a thread that holds a cursor must fail fast instead of
+// deadlocking on itself. This is reachable from corrupted metadata that
+// references a database which does not exist.
+static void iwkv_test12_11_exclusive_lock_with_cursor(void) {
+  const char *path = "iwkv_test12_nw.db";
+  const char *walpath = "iwkv_test12_nw.db-wal";
+  unlink(path);
+  unlink(walpath);
+
+  struct iwkv_opts opts = { .path = path, .oflags = IWKV_TRUNC };
+  struct iwkv *kv = 0;
+  struct iwdb *db = 0;
+  iwrc rc = iwkv_open(&opts, &kv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_db(kv, 1, 0, &db);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  struct iwkv_val key = { .data = "k", .size = 1 };
+  struct iwkv_val val = { .data = "v", .size = 1 };
+  rc = iwkv_put(db, &key, &val, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  struct iwkv_cursor *cur = 0;
+  rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  struct iwdb *db2 = 0;
+  rc = iwkv_db(kv, 2, 0, &db2);
+  CU_ASSERT_EQUAL_FATAL(rc, IW_ERROR_INVALID_STATE);
+  CU_ASSERT_PTR_NULL_FATAL(db2);
+
+  rc = iwkv_cursor_close(&cur);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // Once the cursor is closed the database can be created normally.
+  rc = iwkv_db(kv, 2, 0, &db2);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_close(&kv);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  unlink(path);
+  unlink(walpath);
+}
+
+//---------------------------- WAL file format / recovery fuzz
+
+// Runs a probe over the current image in an isolated child so that a crash or
+// a hang is contained and reported.
+static int fuzz_probe_fork(fuzz_probe_fn probe, const char *path) {
+  if (fuzz_env_u32("IWKV_FUZZ_NOFORK", 0)) {
+    probe(path);
+    return FUZZ_CORRUPT_OK;
+  }
+  pid_t pid = fork();
+  if (pid == 0) {
+    probe(path);
+    _exit(0);
+  }
+  if (pid < 0) {
+    return FUZZ_CORRUPT_FORKERR;
+  }
+  int status = 0;
+  int w = fuzz_wait_timeout(pid, FUZZ_CORRUPT_TIMEOUT_MS, &status);
+  if (w == 1) {
+    return FUZZ_CORRUPT_HANG;
+  }
+  if (w < 0) {
+    return FUZZ_CORRUPT_FORKERR;
+  }
+  if (WIFSIGNALED(status)) {
+    return FUZZ_CORRUPT_CRASH;
+  }
+  if (WIFEXITED(status) && (WEXITSTATUS(status) == 0)) {
+    return FUZZ_CORRUPT_OK;
+  }
+  return FUZZ_CORRUPT_CRASH;
+}
+
+static const char* fuzz_corrupt_kind(int res) {
+  return (res == FUZZ_CORRUPT_CRASH) ? "crash"
+         : (res == FUZZ_CORRUPT_HANG) ? "hang" : "setup-error";
+}
+
+static void fuzz_walpath(char *out, size_t outsz, const char *dbpath) {
+  snprintf(out, outsz, "%s-wal", dbpath);
+}
+
+#pragma pack(push, 1)
+struct fuzz_walhdr {
+  uint32_t magic;
+  uint32_t flags;
+};
+struct fuzz_wbsep {
+  uint8_t  id;
+  uint8_t  pad[3];
+  uint32_t crc;
+  uint32_t len;
+};
+struct fuzz_wbset {
+  uint8_t  id;
+  uint8_t  pad[3];
+  uint32_t val;
+  int64_t  off;
+  int64_t  len;
+};
+struct fuzz_wbcopy {
+  uint8_t id;
+  uint8_t pad[3];
+  int64_t off;
+  int64_t len;
+  int64_t noff;
+};
+struct fuzz_wbwrite {
+  uint8_t  id;
+  uint8_t  pad[3];
+  uint32_t crc;
+  uint32_t len;
+  int64_t  off;
+};
+struct fuzz_wbresize {
+  uint8_t id;
+  uint8_t pad[3];
+  int64_t osize;
+  int64_t nsize;
+};
+struct fuzz_wbsavepoint {
+  uint8_t  id;
+  uint8_t  pad[3];
+  uint64_t ts;
+};
+struct fuzz_wbreset {
+  uint8_t id;
+  uint8_t pad[3];
+};
+struct fuzz_wbpatch {
+  uint8_t  id;
+  uint8_t  pad[3];
+  uint32_t crc;
+  uint32_t len;
+  int64_t  off;
+};
+#pragma pack(pop)
+
+enum {
+  FUZZ_WOP_SET = 1,
+  FUZZ_WOP_COPY,
+  FUZZ_WOP_WRITE,
+  FUZZ_WOP_RESIZE,
+  FUZZ_WOP_SAVEPOINT,
+  FUZZ_WOP_RESET,
+  FUZZ_WOP_PATCH,
+  FUZZ_WOP_SEP = 127,
+};
+
+#define FUZZ_WAL_MAGIC 0x4c415749U
+
+struct fuzz_buf {
+  uint8_t *p;
+  size_t   len;
+  size_t   cap;
+  bool     oom;
+};
+
+static void fuzz_buf_reserve(struct fuzz_buf *b, size_t extra) {
+  if (b->oom || (b->len + extra <= b->cap)) {
+    return;
+  }
+  size_t ncap = b->cap ? b->cap : 256;
+  while (ncap < b->len + extra) {
+    ncap *= 2;
+  }
+  uint8_t *np = realloc(b->p, ncap);
+  if (!np) {
+    b->oom = true;
+    return;
+  }
+  b->p = np;
+  b->cap = ncap;
+}
+
+static void fuzz_buf_append(struct fuzz_buf *b, const void *data, size_t sz) {
+  fuzz_buf_reserve(b, sz);
+  if (b->oom) {
+    return;
+  }
+  memcpy(b->p + b->len, data, sz);
+  b->len += sz;
+}
+
+static void fuzz_buf_append_sep(struct fuzz_buf *b, uint32_t crc, uint32_t len) {
+  struct fuzz_wbsep sep = { .id = FUZZ_WOP_SEP, .crc = crc, .len = len };
+  fuzz_buf_append(b, &sep, sizeof(sep));
+}
+
+/// Builds a WAL image in the pre-rework iwkv layout (no magic header, only the
+/// record types that existed then). When `with_header` is true a current-format
+/// header with `flags` is prepended so the record parser is reached while the
+/// records themselves keep the legacy layout.
+static uint8_t* fuzz_build_legacy_wal(size_t *outlen, bool with_header, uint32_t hdrflags) {
+  struct fuzz_buf b = { 0 };
+  *outlen = 0;
+  if (with_header) {
+    struct fuzz_walhdr hdr = { .magic = FUZZ_WAL_MAGIC, .flags = hdrflags };
+    fuzz_buf_append(&b, &hdr, sizeof(hdr));
+  }
+
+  struct fuzz_wbsavepoint sp = { .id = FUZZ_WOP_SAVEPOINT, .ts = 1 };
+  struct fuzz_wbset set = { .id = FUZZ_WOP_SET, .val = 0, .off = 0, .len = 1 };
+  uint8_t payload[32];
+  memset(payload, 0x5a, sizeof(payload));
+  struct fuzz_wbwrite wr = {
+    .id = FUZZ_WOP_WRITE,
+    .crc = 0,
+    .len = sizeof(payload),
+    .off = 0
+  };
+  size_t seg1_len = sizeof(sp) + sizeof(set) + sizeof(wr) + sizeof(payload);
+  fuzz_buf_append_sep(&b, 0, (uint32_t) seg1_len);
+  fuzz_buf_append(&b, &sp, sizeof(sp));
+  fuzz_buf_append(&b, &set, sizeof(set));
+  fuzz_buf_append(&b, &wr, sizeof(wr));
+  fuzz_buf_append(&b, payload, sizeof(payload));
+
+  struct fuzz_wbcopy cp = { .id = FUZZ_WOP_COPY, .off = 0, .len = 1, .noff = 1 };
+  struct fuzz_wbresize rs = { .id = FUZZ_WOP_RESIZE, .osize = 4096, .nsize = 4096 };
+  struct fuzz_wbreset rst = { .id = FUZZ_WOP_RESET };
+  size_t seg2_len = sizeof(cp) + sizeof(rs) + sizeof(rst);
+  fuzz_buf_append_sep(&b, 0, (uint32_t) seg2_len);
+  fuzz_buf_append(&b, &cp, sizeof(cp));
+  fuzz_buf_append(&b, &rs, sizeof(rs));
+  fuzz_buf_append(&b, &rst, sizeof(rst));
+
+  if (b.oom) {
+    free(b.p);
+    return 0;
+  }
+  *outlen = b.len;
+  return b.p;
+}
+
+/// Generates a syntactically shaped but semantically hostile WAL image: a valid
+/// magic header (usually) followed by a first `WBSEP` and a sequence of records
+/// with extreme/random offsets, lengths and optionally truncated payloads.
+static uint8_t* fuzz_build_malformed_wal(size_t *outlen, uint32_t seed) {
+  struct fuzz_buf b = { 0 };
+  *outlen = 0;
+  iwu_rand_seed(seed);
+
+  if (iwu_rand_range(100) < 85) {
+    struct fuzz_walhdr hdr = {
+      .magic = FUZZ_WAL_MAGIC,
+      .flags = (iwu_rand_range(100) < 50) ? 1U : 0U
+    };
+    fuzz_buf_append(&b, &hdr, sizeof(hdr));
+  }
+  fuzz_buf_append_sep(&b, iwu_rand_u32(), iwu_rand_range(4096));
+
+  uint32_t nops = 1 + iwu_rand_range(24);
+  for (uint32_t i = 0; i < nops && !b.oom; ++i) {
+    switch (iwu_rand_range(8)) {
+      case 0: {
+        struct fuzz_wbset r = {
+          .id = FUZZ_WOP_SET, .val = iwu_rand_u32(),
+          .off = (int64_t) iwu_rand_u32(), .len = (int64_t) iwu_rand_u32()
+        };
+        fuzz_buf_append(&b, &r, sizeof(r));
+        break;
+      }
+      case 1: {
+        struct fuzz_wbcopy r = {
+          .id = FUZZ_WOP_COPY, .off = (int64_t) iwu_rand_u32(),
+          .len = (int64_t) iwu_rand_u32(), .noff = (int64_t) iwu_rand_u32()
+        };
+        fuzz_buf_append(&b, &r, sizeof(r));
+        break;
+      }
+      case 2: {
+        uint32_t len = iwu_rand_range(512);
+        struct fuzz_wbwrite r = {
+          .id = FUZZ_WOP_WRITE, .crc = iwu_rand_u32(),
+          .len = len, .off = (int64_t) iwu_rand_u32()
+        };
+        fuzz_buf_append(&b, &r, sizeof(r));
+        uint32_t wr = (iwu_rand_range(100) < 25) ? iwu_rand_range(len + 1) : len;
+        for (uint32_t j = 0; j < wr && !b.oom; ++j) {
+          uint8_t v = (uint8_t) iwu_rand_u32();
+          fuzz_buf_append(&b, &v, 1);
+        }
+        break;
+      }
+      case 3: {
+        struct fuzz_wbresize r = {
+          .id = FUZZ_WOP_RESIZE, .osize = (int64_t) iwu_rand_u32(),
+          .nsize = (int64_t) iwu_rand_u32()
+        };
+        fuzz_buf_append(&b, &r, sizeof(r));
+        break;
+      }
+      case 4: {
+        struct fuzz_wbsavepoint r = { .id = FUZZ_WOP_SAVEPOINT, .ts = iwu_rand_u32() };
+        fuzz_buf_append(&b, &r, sizeof(r));
+        break;
+      }
+      case 5: {
+        struct fuzz_wbreset r = { .id = FUZZ_WOP_RESET };
+        fuzz_buf_append(&b, &r, sizeof(r));
+        break;
+      }
+      case 6: {
+        uint32_t len = iwu_rand_range(256);
+        struct fuzz_wbpatch r = {
+          .id = FUZZ_WOP_PATCH, .crc = iwu_rand_u32(),
+          .len = len, .off = (int64_t) iwu_rand_u32()
+        };
+        fuzz_buf_append(&b, &r, sizeof(r));
+        uint32_t wr = (iwu_rand_range(100) < 25) ? iwu_rand_range(len + 1) : len;
+        for (uint32_t j = 0; j < wr && !b.oom; ++j) {
+          uint8_t v = (uint8_t) iwu_rand_u32();
+          fuzz_buf_append(&b, &v, 1);
+        }
+        break;
+      }
+      default: {
+        fuzz_buf_append_sep(&b, iwu_rand_u32(), iwu_rand_u32());
+        break;
+      }
+    }
+  }
+  if (b.oom) {
+    free(b.p);
+    return 0;
+  }
+  *outlen = b.len;
+  return b.p;
+}
+
+// Legacy (pre-rework) WAL images: no magic header, no `WOP_PATCH` records and
+// standard CRC-32. The current engine must reject or recover from them without
+// crashing.
+static void iwkv_test12_12_legacy_wal_format(void) {
+  const char *path = "iwkv_test12_legacy.db";
+  char walpath[512];
+  fuzz_walpath(walpath, sizeof(walpath), path);
+  fuzz_corrupt_build(path, "iwkv_test12_legacy_src.db", false);
+
+  size_t dbsz = 0;
+  uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+
+  static const struct {
+    const char *name;
+    bool        header;
+    uint32_t    flags;
+  } cases[] = {
+    { "legacy-no-header", false, 0 },
+    { "header+legacy-records", true, 0 },
+    { "header-crc+legacy-records", true, 1 },
+  };
+  uint32_t nfail = 0;
+  for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+    size_t len = 0;
+    uint8_t *img = fuzz_build_legacy_wal(&len, cases[i].header, cases[i].flags);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(img);
+    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(walpath, img, len), 0);
+    free(img);
+    int res = fuzz_probe_fork(fuzz_corrupt_open_verify, path);
+    if (res != FUZZ_CORRUPT_OK) {
+      fprintf(stderr, "\n[iwkv_test12] legacy WAL '%s' -> %s\n", cases[i].name, fuzz_corrupt_kind(res));
+      ++nfail;
+    }
+    unlink(walpath);
+  }
+  free(dbbuf);
+  if (nfail) {
+    CU_FAIL("legacy WAL images made the engine crash/hang");
+  }
+  unlink(path);
+  unlink(walpath);
+}
+
+// Malformed current-format WAL records with extreme offsets/lengths.
+static void iwkv_test12_13_malformed_wal_fuzz(void) {
+  uint32_t base = fuzz_env_u32("IWKV_FUZZ_SEED", FUZZ_DEFAULT_SEED);
+  uint32_t rounds = fuzz_env_u32("IWKV_FUZZ_ROUNDS", FUZZ_DEFAULT_ROUNDS);
+  if (rounds == 0) {
+    fprintf(stderr, "\niwkv_test12_13_malformed_wal_fuzz skipped (set IWKV_FUZZ_ROUNDS to enable)\n");
+    return;
+  }
+  const char *path = "iwkv_test12_malformed.db";
+  char walpath[512];
+  fuzz_walpath(walpath, sizeof(walpath), path);
+  fuzz_corrupt_build(path, "iwkv_test12_malformed_src.db", false);
+
+  size_t dbsz = 0;
+  uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+
+  uint32_t ncrash = 0, nhang = 0, nerr = 0;
+  for (uint32_t r = 0; r < rounds; ++r) {
+    size_t len = 0;
+    uint8_t *img = fuzz_build_malformed_wal(&len, base + r * 2654435761u);
+    if (!img || !len) {
+      free(img);
+      continue;
+    }
+    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+    if (fuzz_file_write(walpath, img, len)) {
+      free(img);
+      ++nerr;
+      continue;
+    }
+    free(img);
+    int res = fuzz_probe_fork(fuzz_corrupt_open_verify, path);
+    if (res != FUZZ_CORRUPT_OK) {
+      fprintf(stderr,
+              "\n[iwkv_test12] malformed WAL %s round=%u (repro: IWKV_FUZZ_SEED=%u IWKV_FUZZ_ROUNDS=%u)\n",
+              fuzz_corrupt_kind(res), r, base, r + 1);
+      if (res == FUZZ_CORRUPT_CRASH) {
+        ++ncrash;
+      } else if (res == FUZZ_CORRUPT_HANG) {
+        ++nhang;
+      } else {
+        ++nerr;
+      }
+    }
+    if (ncrash || nhang) {
+      break;
+    }
+    unlink(walpath);
+  }
+  fprintf(stderr, "[iwkv_test12] malformed WAL fuzz rounds=%u crashes=%u hangs=%u errors=%u\n",
+          rounds, ncrash, nhang, nerr);
+  free(dbbuf);
+  if (ncrash || nhang) {
+    CU_FAIL("malformed WAL fuzzing detected engine crashes/hangs");
+  }
+  unlink(path);
+  unlink(walpath);
+}
+
+// Truncation of a real WAL (with uncheckpointed records) at many lengths.
+static void iwkv_test12_14_wal_truncation(void) {
+  uint32_t max_rounds = fuzz_env_u32("IWKV_FUZZ_ROUNDS", FUZZ_DEFAULT_ROUNDS);
+  if (max_rounds == 0) {
+    fprintf(stderr, "\niwkv_test12_14_wal_truncation skipped (set IWKV_FUZZ_ROUNDS to enable)\n");
+    return;
+  }
+  const char *path = "iwkv_test12_waltrunc.db";
+  char walpath[512];
+  fuzz_walpath(walpath, sizeof(walpath), path);
+  fuzz_corrupt_build(path, "iwkv_test12_waltrunc_src.db", true);
+
+  size_t dbsz = 0, walsz = 0;
+  uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
+  uint8_t *walbuf = fuzz_file_read(walpath, &walsz);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  CU_ASSERT_PTR_NOT_NULL_FATAL(walbuf);
+  CU_ASSERT_TRUE_FATAL(walsz > 0);
+
+  uint32_t n = (walsz < max_rounds) ? (uint32_t) walsz : max_rounds;
+  uint32_t ncrash = 0, nhang = 0;
+  for (uint32_t i = 0; i < n; ++i) {
+    size_t cut = (walsz <= max_rounds) ? i : (size_t) ((uint64_t) i * walsz / n);
+    if (  fuzz_file_write(path, dbbuf, dbsz)
+       || fuzz_file_write(walpath, walbuf, cut)) {
+      continue;
+    }
+    int res = fuzz_probe_fork(fuzz_corrupt_open_verify, path);
+    if (res != FUZZ_CORRUPT_OK) {
+      fprintf(stderr, "\n[iwkv_test12] WAL truncation %s cut=%zu/%zu\n",
+              fuzz_corrupt_kind(res), cut, walsz);
+      if (res == FUZZ_CORRUPT_CRASH) {
+        ++ncrash;
+      } else if (res == FUZZ_CORRUPT_HANG) {
+        ++nhang;
+      }
+    }
+    if (ncrash || nhang) {
+      break;
+    }
+  }
+  fprintf(stderr, "[iwkv_test12] WAL truncation cuts=%u crashes=%u hangs=%u\n", n, ncrash, nhang);
+  free(dbbuf);
+  free(walbuf);
+  if (ncrash || nhang) {
+    CU_FAIL("WAL truncation fuzzing detected engine crashes/hangs");
+  }
+  unlink(path);
+  unlink(walpath);
+}
+
 int main(void) {
   CU_pSuite pSuite = NULL;
 
@@ -867,7 +1629,16 @@ int main(void) {
      || (NULL == CU_add_test(pSuite, "iwkv_test12_3_wal_crash", iwkv_test12_3_wal_crash))
      || (NULL == CU_add_test(pSuite, "iwkv_test12_4_file_fuzz", iwkv_test12_4_file_fuzz))
      || (NULL == CU_add_test(pSuite, "iwkv_test12_5_malformed_dbaddr", iwkv_test12_5_malformed_dbaddr))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_6_malformed_fsm_hdr", iwkv_test12_6_malformed_fsm_hdr))) {
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_6_malformed_fsm_hdr", iwkv_test12_6_malformed_fsm_hdr))
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_7_sblk_kvblk_corruption", iwkv_test12_7_sblk_kvblk_corruption))
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_8_fsm_trim_corruption", iwkv_test12_8_fsm_trim_corruption))
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_9_db_chain_cycle", iwkv_test12_9_db_chain_cycle))
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_10_corrupt_put_fuzz", iwkv_test12_10_corrupt_put_fuzz))
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_11_exclusive_lock_with_cursor",
+                             iwkv_test12_11_exclusive_lock_with_cursor))
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_12_legacy_wal_format", iwkv_test12_12_legacy_wal_format))
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_13_malformed_wal_fuzz", iwkv_test12_13_malformed_wal_fuzz))
+     || (NULL == CU_add_test(pSuite, "iwkv_test12_14_wal_truncation", iwkv_test12_14_wal_truncation))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

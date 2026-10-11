@@ -1174,9 +1174,14 @@ static iwrc _fsm_trim_tail_lw(struct fsm *fsm) {
   if (!(fsm->omode & IWFS_OWRITE)) {
     return 0;
   }
-  /* find free space for fsm with lesser offset than actual */
+  /* Find free space for fsm with an offset strictly lesser than the current
+     bitmap offset. `_fsm_blk_allocate_aligned_lw()` treats its max-offset
+     argument as inclusive, so derive it from `bmoff - 1`. Otherwise a block
+     starting exactly at `bmoff` is accepted and the `assert(0)` branch below is
+     reachable for a block-aligned bitmap. */
+  const uint64_t maxoff_blk = fsm->bmoff ? ((fsm->bmoff - 1) >> fsm->bpow) : 0;
   rc = _fsm_blk_allocate_aligned_lw(
-    fsm, (fsm->bmlen >> fsm->bpow), &offset, &length, (fsm->bmoff >> fsm->bpow),
+    fsm, (fsm->bmlen >> fsm->bpow), &offset, &length, maxoff_blk,
     IWFSM_ALLOC_NO_EXTEND | IWFSM_ALLOC_NO_OVERALLOCATE | IWFSM_ALLOC_NO_STATS);
 
   if (rc && (rc != IWFS_ERROR_NO_FREE_SPACE)) {
@@ -1191,9 +1196,12 @@ static iwrc _fsm_trim_tail_lw(struct fsm *fsm) {
     fsm->pool.add_mmap(&fsm->pool, offset, length, fsm->mmap_opts);
     RCC(rc, finish, _fsm_init_lw(fsm, offset, length));
   } else {
-    /* shoud never be reached */
-    assert(0);
-    RCC(rc, finish, _fsm_blk_deallocate_lw(fsm, offset, length));
+    /* Inconsistent free-space map: a free block at or after the bitmap area
+       cannot be used to relocate the bitmap, and deallocating it may overlap
+       the bitmap and corrupt the map further. Report the inconsistency. */
+    rc = IWFS_ERROR_FSM_SEGMENTATION;
+    iwlog_ecode_error3(rc);
+    goto finish;
   }
 
   RCC(rc, finish, _fsm_bmptr(fsm, &bmptr)); // -V519

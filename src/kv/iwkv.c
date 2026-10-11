@@ -199,6 +199,53 @@ IW_INLINE void _num2lebuf(uint8_t buf[static 8], void *numdata, size_t sz) {
 
 //-------------------------- IWKV/struct iwdb* WORKERS
 
+// Per-thread counter of active write workers (currently: open cursors) owned
+// by the current thread.
+static pthread_key_t _wk_tls_key;
+static pthread_once_t _wk_tls_once = PTHREAD_ONCE_INIT;
+
+static void _wk_tls_free(void *p) {
+  free(p);
+}
+
+static void _wk_tls_init(void) {
+  (void) pthread_key_create(&_wk_tls_key, _wk_tls_free);
+}
+
+static inline int32_t* _wk_tls_ptr(void) {
+  if (pthread_once(&_wk_tls_once, _wk_tls_init)) {
+    return 0;
+  }
+  int32_t *p = pthread_getspecific(_wk_tls_key);
+  if (!p) {
+    p = calloc(1, sizeof(*p));
+    if (p && pthread_setspecific(_wk_tls_key, p)) {
+      free(p);
+      p = 0;
+    }
+  }
+  return p;
+}
+
+static inline void _wk_tls_inc(void) {
+  int32_t *p = _wk_tls_ptr();
+  if (p) {
+    ++*p;
+  }
+}
+
+static inline void _wk_tls_dec(void) {
+  int32_t *p = _wk_tls_ptr();
+  if (p && (*p > 0)) {
+    --*p;
+  }
+}
+
+static inline bool _wk_tls_has_workers(void) {
+  int32_t *p = _wk_tls_ptr();
+  return p && (*p > 0);
+}
+
 static WUR iwrc _iwkv_worker_inc_nolk(struct iwkv *iwkv) {
   if (!iwkv || !iwkv->open) {
     return IW_ERROR_INVALID_STATE;
@@ -215,6 +262,7 @@ static WUR iwrc _iwkv_worker_inc_nolk(struct iwkv *iwkv) {
     pthread_cond_wait(&iwkv->wk_cond, &iwkv->wk_mtx);
   }
   ++iwkv->wk_count;
+  _wk_tls_inc();
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -238,6 +286,7 @@ static WUR iwrc _db_worker_inc_nolk(struct iwdb *db) {
   }
   ++iwkv->wk_count;
   ++db->wk_count;
+  _wk_tls_inc();
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -251,9 +300,11 @@ static iwrc _iwkv_worker_dec_nolk(struct iwkv *iwkv) {
   if (rci) {
     // Last chanсe to be consistent
     --iwkv->wk_count;
+    _wk_tls_dec();
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   --iwkv->wk_count;
+  _wk_tls_dec();
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -269,10 +320,12 @@ static iwrc _db_worker_dec_nolk(struct iwdb *db) {
     // Last chanсe to be consistent
     --iwkv->wk_count;
     --db->wk_count;
+    _wk_tls_dec();
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
   --iwkv->wk_count;
   --db->wk_count;
+  _wk_tls_dec();
   pthread_cond_broadcast(&iwkv->wk_cond);
   pthread_mutex_unlock(&iwkv->wk_mtx);
   return 0;
@@ -446,7 +499,24 @@ static WUR iwrc _db_load_chain(struct iwkv *iwkv, off_t addr, uint8_t *mm, size_
   if (!addr) {
     return 0;
   }
+  // A corrupted `next_db_blk` may point back to an already loaded database and
+  // turn the chain into a cycle. Bound the walk by the number of database
+  // blocks that can fit into the file and stop as soon as an address repeats.
+  const uint64_t max_chain = (uint64_t) (mmsz / DB_SZ) + 1;
+  uint64_t n = 0;
   do {
+    for (struct iwdb *p = iwkv->first_db; p; p = p->next) {
+      if (p->addr == addr) {
+        rc = IWKV_ERROR_CORRUPTED;
+        iwlog_ecode_error3(rc);
+        return rc;
+      }
+    }
+    if (++n > max_chain) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      return rc;
+    }
     rc = _db_at(iwkv, &ndb, addr, mm, mmsz);
     RCRET(rc);
 
@@ -1424,6 +1494,9 @@ IW_INLINE void _sblk_release(struct iwlctx *lx, struct sblk **sblkp) {
 IW_INLINE WUR iwrc _sblk_loadkvblk_mm(struct iwlctx *lx, struct sblk *sblk, uint8_t *mm) {
   if (!sblk->kvblk && sblk->kvblkn) {
     return _kvblk_at_mm(lx, BLK2ADDR(sblk->kvblkn), mm, 0, &sblk->kvblk);
+  } else if (!sblk->kvblk && !(sblk->flags & SBLK_DB)) {
+    iwlog_ecode_error3(IWKV_ERROR_CORRUPTED);
+    return IWKV_ERROR_CORRUPTED;
   } else {
     return 0;
   }
@@ -1539,13 +1612,22 @@ static WUR iwrc _sblk_create_v1(
   if (!bpos) {
     rc = fsm->allocate(fsm, SBLK_SZ + (1ULL << kvbpow), &baddr, &blen, IWKV_FSM_ALLOC_FLAGS);
     RCRET(rc);
-    assert(blen - SBLK_SZ == (1ULL << kvbpow));
+    if ((uint64_t) blen != SBLK_SZ + (1ULL << kvbpow)) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      return rc;
+    }
     _kvblk_create(lx, baddr + SBLK_SZ, kvbpow, &kvblk);
   } else {
     // Allocate kvblk as separate chunk
     off_t kblkaddr = 0;
     rc = fsm->allocate(fsm, (1ULL << kvbpow), &kblkaddr, &blen, IWKV_FSM_ALLOC_FLAGS);
-    assert(blen == (1ULL << kvbpow));
+    RCRET(rc);
+    if (blen != (1ULL << kvbpow)) {
+      rc = IWKV_ERROR_CORRUPTED;
+      iwlog_ecode_error3(rc);
+      return rc;
+    }
     _kvblk_create(lx, kblkaddr, kvbpow, &kvblk);
   }
   sblk = &lx->saa[lx->saan];
@@ -1753,7 +1835,10 @@ static WUR iwrc _sblk_at2_mm(
     memcpy(&sblk->kvblkn, rp, 4);
     sblk->kvblkn = IW_ITOHL(sblk->kvblkn);
     rp += 4;
-    if (sblk->kvblkn && !_mm_in_range(mmsz, BLK2ADDR(sblk->kvblkn), KVBLK_HDRSZ)) {
+    // A non-database SBLK always references a KVBLK; a zero block number is a
+    // corrupted block that must not be used.
+    if (  !sblk->kvblkn
+       || !_mm_in_range(mmsz, BLK2ADDR(sblk->kvblkn), KVBLK_HDRSZ)) {
       rc = IWKV_ERROR_CORRUPTED;
       iwlog_ecode_error3(rc);
       goto finish;
@@ -2124,7 +2209,10 @@ static WUR iwrc _sblk_addkv(struct sblk *sblk, struct iwlctx *lx) {
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
   rc = _sblk_insert_pi_mm(sblk, kvidx, lx, mm, &idx);
-  RCRET(rc);
+  if (rc) {
+    fsm->release_mmap(fsm);
+    return rc;
+  }
   fsm->release_mmap(fsm);
   if (idx == 0) { // the lowest key inserted
     size_t ksize = key->size;
@@ -2408,6 +2496,16 @@ finish:
 
 static iwrc _lx_release_mm(struct iwlctx *lx, uint8_t *mm) {
   iwrc rc = 0;
+  struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
+  bool mm_owned = false;
+  if (!mm) {
+    // Dirty blocks are synced through the mmap; acquire one if the caller did
+    // not provide it. Passing NULL would make `_sblk_sync_mm()` write to
+    // `NULL + addr`.
+    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
+    RCRET(rc);
+    mm_owned = true;
+  }
   if (lx->nlvl > -1) {
     struct sblk *lsb = 0, *usb = 0;
     if (lx->nb) {
@@ -2457,6 +2555,9 @@ static iwrc _lx_release_mm(struct iwlctx *lx, uint8_t *mm) {
   }
 
 finish:
+  if (mm_owned) {
+    IWRC(fsm->release_mmap(fsm), rc);
+  }
   lx->destroy_addr = 0;
   return rc;
 }
@@ -2611,7 +2712,10 @@ static WUR iwrc _lx_addkv(struct iwlctx *lx) {
     return rc;
   }
   rc = _sblk_find_pi_mm(sblk, lx, mm, &found, &idx);
-  RCRET(rc);
+  if (rc) {
+    fsm->release_mmap(fsm);
+    return rc;
+  }
   if (found && (lx->opflags & IWKV_NO_OVERWRITE)) {
     fsm->release_mmap(fsm);
     return IWKV_ERROR_KEY_EXISTS;
@@ -3521,6 +3625,13 @@ iwrc iwkv_db(struct iwkv *iwkv, uint32_t dbid, iwdb_flags_t dbflg, struct iwdb *
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
   }
+  // Creating a database remaps the storage, so it must wait for all workers
+  // (open cursors) to drain. Refuse early if the current thread holds one to
+  // avoid deadlocking on itself (e.g. corrupted metadata referencing a missing
+  // collection database).
+  if (IW_UNLIKELY(_wk_tls_has_workers())) {
+    return IW_ERROR_INVALID_STATE;
+  }
   rc = iwkv_exclusive_lock(iwkv);
   RCRET(rc);
 
@@ -3546,6 +3657,9 @@ iwrc iwkv_new_db(struct iwkv *iwkv, iwdb_flags_t dbflg, uint32_t *dbidp, struct 
   *dbidp = 0;
   if (iwkv->oflags & IWKV_RDONLY) {
     return IW_ERROR_READONLY;
+  }
+  if (IW_UNLIKELY(_wk_tls_has_workers())) {
+    return IW_ERROR_INVALID_STATE;
   }
   uint32_t dbid = 0;
   iwrc rc = iwkv_exclusive_lock(iwkv);
