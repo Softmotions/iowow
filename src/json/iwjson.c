@@ -1119,12 +1119,22 @@ static iwrc _jbl_ptr_pool(const char *path, struct jbl_ptr **jpp, struct iwpool 
           break;
         }
         if (path[i] == '~') {
+          /* RFC 6901: '~0' decodes to '~' and '~1' decodes to '/'.
+           * Consume the two-character escape ONLY when the byte after the
+           * '~' really is '0' or '1'. A lone '~' (in particular one that is
+           * the last character of the path, i.e. followed by the NUL
+           * terminator) is copied literally and the index is NOT advanced:
+           * advancing would step over the NUL terminator and make the next
+           * loop-header increment read past the end of the buffer. */
           if (path[i + 1] == '0') {
             *(jp->n[cnt] + k) = '~';
+            ++i;
           } else if (path[i + 1] == '1') {
             *(jp->n[cnt] + k) = '/';
+            ++i;
+          } else {
+            *(jp->n[cnt] + k) = '~';
           }
-          ++i;
         } else {
           *(jp->n[cnt] + k) = path[i];
         }

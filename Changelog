@@ -1,3 +1,6 @@
+2026-10-13 VulnPilot  <vulnpilot@example.com>  [unreleased]
+  * iwjson: `_jbl_ptr_pool()`: fixed a heap out-of-bounds read (CWE-125) when a JSON-pointer path token is a lone `~`, i.e. the `~` is the last character before the NUL terminator. The RFC 6901 `~0`/`~1` decoder advanced the index unconditionally, stepping over the NUL and reading one byte past the buffer. A lone `~` is now copied literally. Reachable from `jbl_ptr_alloc()`/`jbl_ptr_alloc_pool()` and from EJDB2 JQL `order by` clauses whose path ends in `~`.
+
 2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1]
   * iwkv: Improved durability of rare time-to-time kv operations in WAL mode. Added `savepoint_idle_timeout_sec` iwkv option.
   * iwkv: Fixed misuse of `savepoint_timeout_sec` and `checkpoint_timeout_sec` iwkv options.

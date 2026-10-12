@@ -148,6 +148,30 @@ static void jbl_test1_3(void) {
   CU_ASSERT_FALSE(strcmp(jp->n[3], "b/az"));
   free(jp);
 
+  /* A path whose token is exactly a lone '~' (the '~' is the last character
+   * before the NUL terminator) must be treated literally, not as the start of
+   * a '~0'/'~1' escape.  Regression test for an out-of-bounds read: the old
+   * code advanced the index unconditionally, stepping over the NUL and reading
+   * one byte past the heap buffer. */
+  rc = jbl_ptr_alloc("/~", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(jp->cnt, 1);
+  CU_ASSERT_FALSE(strcmp(jp->n[0], "~"));
+  free(jp);
+
+  rc = jbl_ptr_alloc("/foo~", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(jp->cnt, 1);
+  CU_ASSERT_FALSE(strcmp(jp->n[0], "foo~"));
+  free(jp);
+
+  rc = jbl_ptr_alloc("/foo/~", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(jp->cnt, 2);
+  CU_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
+  CU_ASSERT_FALSE(strcmp(jp->n[1], "~"));
+  free(jp);
+
   rc = jbl_ptr_alloc("/foo/", &jp);
   CU_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
   free(jp);
