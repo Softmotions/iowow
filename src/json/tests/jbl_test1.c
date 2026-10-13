@@ -148,6 +148,42 @@ static void jbl_test1_3(void) {
   CU_ASSERT_FALSE(strcmp(jp->n[3], "b/az"));
   free(jp);
 
+  // RFC 6901: a `~` must be escaped as `~0` or `~1`.
+  // A lone trailing `~` used to make the decoder step over the NUL terminator
+  // and read past the end of the path buffer (CWE-125).
+  rc = jbl_ptr_alloc("/~", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
+  CU_ASSERT_PTR_NULL(jp);
+  free(jp);
+
+  rc = jbl_ptr_alloc("/foo~", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
+  CU_ASSERT_PTR_NULL(jp);
+  free(jp);
+
+  rc = jbl_ptr_alloc("/foo/~", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
+  CU_ASSERT_PTR_NULL(jp);
+  free(jp);
+
+  rc = jbl_ptr_alloc("/a~b", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
+  CU_ASSERT_PTR_NULL(jp);
+  free(jp);
+
+  // Escapes at the very end of the path are valid and must decode correctly
+  rc = jbl_ptr_alloc("/~0", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(jp->cnt, 1);
+  CU_ASSERT_FALSE(strcmp(jp->n[0], "~"));
+  free(jp);
+
+  rc = jbl_ptr_alloc("/~1", &jp);
+  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  CU_ASSERT_EQUAL(jp->cnt, 1);
+  CU_ASSERT_FALSE(strcmp(jp->n[0], "/"));
+  free(jp);
+
   rc = jbl_ptr_alloc("/foo/", &jp);
   CU_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
   free(jp);

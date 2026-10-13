@@ -1085,6 +1085,11 @@ static iwrc _jbl_ptr_pool(const char *path, struct jbl_ptr **jpp, struct iwpool 
     for (i = 0; path[i]; ++i) {
       if (path[i] == '/') {
         ++cnt;
+      } else if (path[i] == '~') {
+        // RFC 6901: `~` inside a reference token must be escaped as `~0` or `~1`
+        if ((path[i + 1] != '0') && (path[i + 1] != '1')) {
+          return JBL_ERROR_JSON_POINTER;
+        }
       }
     }
   }

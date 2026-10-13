@@ -1,3 +1,6 @@
+2026-10-13 Anton Adamansky  <adamansky@gmail.com>  [v1.6.2-dev]
+  * iwjson:a Fix of issue reported by #61 PR. // RFC 6901: `~` inside a reference token must be escaped as `~0` or `~1`
+
 2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1]
   * iwkv: Improved durability of rare time-to-time kv operations in WAL mode. Added `savepoint_idle_timeout_sec` iwkv option.
   * iwkv: Fixed misuse of `savepoint_timeout_sec` and `checkpoint_timeout_sec` iwkv options.
