@@ -255,22 +255,6 @@ FILE *ref = fopen("mytest.ref", "r+");
 IW_TEST_ASSERT_EQUAL_FATAL(iw_test_cmp_files(ref, f), 0);
 ```
 
-## Portability
-
-The harness is plain `C11` and was written to be portable:
-
-* `<stdatomic.h>`, `_Thread_local`, `_Generic`, `__typeof__`, `setjmp()` and
-  `clock_gettime(CLOCK_MONOTONIC)` (with a `timespec_get()` fallback) - all
-  available in GCC and Clang.
-* `isatty()`, `dup(2)`, `dup2(2)` and `fileno()` are used, when available, for
-  the colored output and the test output redirection (`Linux`, `FreeBSD`,
-  `NetBSD`, `macOS`). Both features are silently disabled on other platforms.
-* The report is plain `ASCII` unless the locale and the terminal support
-  `UTF-8`.
-* No warnings are produced with `-Wall -Wextra -Werror` (`-Wsign-compare` and
-  `-Wfloat-equal` are locally suppressed where the compared operand types are
-  intentionally different).
-
 ## Using the harness in the IOWOW project
 
 The IOWOW test cases live in `src/<module>/tests/`, one executable per suite,

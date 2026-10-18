@@ -113,7 +113,6 @@ set {
     -O0
     -ggdb
     -fno-omit-frame-pointer
-    -Werror
     -Wno-unused-variable
     -DDEBUG -D_DEBUG -UNDEBUG
   } else {
