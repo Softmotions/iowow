@@ -1,5 +1,8 @@
-2026-10-13 Anton Adamansky  <adamansky@gmail.com>  [v1.6.2-dev]
-  * iwjson:a Fix of issue reported by #61 PR. // RFC 6901: `~` inside a reference token must be escaped as `~0` or `~1`
+2026-10-13 Anton Adamansky  <adamansky@gmail.com>  [v1.7.0-dev]
+  * Fixed UB reported by UBSAN: misaligned offsets in the kbtree based fs tests, WAL savepoint timestamps (iwp_current_time_ms), murmur3 block reads and iwhmap empty bucket lookup.
+  * iwjson: Rework of iwjson module, migrated to binn-c external library.
+  * iwjson: Split into `iwjbn` (JSON DOM) and `iwjbl` (Binn backed document) modules. Added Doxygen documentation for the json headers.
+  * iwjson: Fix of issue reported by #61 PR. // RFC 6901: `~` inside a reference token must be escaped as `~0` or `~1`
 
 2026-10-07 Anton Adamansky  <adamansky@gmail.com>  [v1.6.1]
   * iwkv: Improved durability of rare time-to-time kv operations in WAL mode. Added `savepoint_idle_timeout_sec` iwkv option.

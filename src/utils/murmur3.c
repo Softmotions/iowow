@@ -22,19 +22,31 @@ IW_INLINE uint64_t rotl64(uint64_t x, int8_t r) {
 #define ROTL32(x, y) rotl32(x, y)
 #define ROTL64(x, y) rotl64(x, y)
 
-IW_INLINE uint32_t getblock32(const uint32_t *p, size_t i) {
+/// Reads the `i`-th 32-bit block of `p` in little endian byte order.
+///
+/// The memory pointed by `p` is not required to be aligned, so the block is loaded
+/// with `memcpy()`. `i` is signed because the hash loops walk the blocks backwards.
+IW_INLINE uint32_t getblock32(const uint32_t *p, ptrdiff_t i) {
+  uint32_t v;
+  memcpy(&v, ((const uint8_t*) p) + i * (ptrdiff_t) sizeof(v), sizeof(v));
 #ifndef IW_BIGENDIAN
-  return p[i];
+  return v;
 #else
-  return IW_SWAB32(p[i]);
+  return IW_SWAB32(v);
 #endif
 }
 
-IW_INLINE uint64_t getblock64(const uint64_t *p, size_t i) {
+/// Reads the `i`-th 64-bit block of `p` in little endian byte order.
+///
+/// The memory pointed by `p` is not required to be aligned, so the block is loaded
+/// with `memcpy()`. `i` is signed because the hash loops walk the blocks backwards.
+IW_INLINE uint64_t getblock64(const uint64_t *p, ptrdiff_t i) {
+  uint64_t v;
+  memcpy(&v, ((const uint8_t*) p) + i * (ptrdiff_t) sizeof(v), sizeof(v));
 #ifndef IW_BIGENDIAN
-  return p[i];
+  return v;
 #else
-  return IW_SWAB64(p[i]);
+  return IW_SWAB64(v);
 #endif
 }
 
@@ -68,14 +80,14 @@ IW_INLINE uint64_t fmix64(uint64_t k) {
 void murmur3_x86_32(const void *key, size_t len, uint32_t seed, void *out) {
   const uint8_t *data = (const uint8_t*) key;
   const size_t nblocks = len / 4;
-  size_t i;
+  ptrdiff_t i;
 
   uint32_t h1 = seed;
   uint32_t c1 = 0xcc9e2d51;
   uint32_t c2 = 0x1b873593;
 
   const uint32_t *blocks = (const uint32_t*) (data + nblocks * 4);
-  for (i = -nblocks; i; i++) {
+  for (i = -(ptrdiff_t) nblocks; i; i++) {
     uint32_t k1 = getblock32(blocks, i);
 
     k1 *= c1;
@@ -113,7 +125,7 @@ void murmur3_x86_32(const void *key, size_t len, uint32_t seed, void *out) {
 void murmur3_x86_128(const void *key, const size_t len, uint32_t seed, void *out) {
   const uint8_t *data = (const uint8_t*) key;
   const size_t nblocks = len / 16;
-  size_t i;
+  ptrdiff_t i;
 
   uint32_t h1 = seed;
   uint32_t h2 = seed;
@@ -127,7 +139,7 @@ void murmur3_x86_128(const void *key, const size_t len, uint32_t seed, void *out
 
   const uint32_t *blocks = (const uint32_t*) (data + nblocks * 16);
 
-  for (i = -nblocks; i; i++) {
+  for (i = -(ptrdiff_t) nblocks; i; i++) {
     uint32_t k1 = getblock32(blocks, i * 4 + 0);
     uint32_t k2 = getblock32(blocks, i * 4 + 1);
     uint32_t k3 = getblock32(blocks, i * 4 + 2);
@@ -278,8 +290,8 @@ void murmur3_x64_128(const void *key, const size_t len, const uint32_t seed, voi
 
   const uint64_t *blocks = (const uint64_t*) (data);
   for (i = 0; i < nblocks; i++) {
-    uint64_t k1 = getblock64(blocks, i * 2 + 0);
-    uint64_t k2 = getblock64(blocks, i * 2 + 1);
+    uint64_t k1 = getblock64(blocks, (ptrdiff_t) (i * 2) + 0);
+    uint64_t k2 = getblock64(blocks, (ptrdiff_t) (i * 2) + 1);
 
     k1 *= c1;
     k1 = ROTL64(k1, 31);

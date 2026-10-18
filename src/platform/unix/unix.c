@@ -32,6 +32,7 @@
 
 #include <time.h>
 #include <math.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -78,17 +79,21 @@ IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
 
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   struct timespec spec;
+  uint64_t ts;
 #ifdef IW_HAVE_CLOCK_MONOTONIC
   iwrc rc = iwp_clock_get_time(monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME, &spec);
 #else
   iwrc rc = iwp_clock_get_time(CLOCK_REALTIME, &spec);
 #endif
   if (rc) {
-    *time = 0;
-    return rc;
+    ts = 0;
+  } else {
+    ts = _IW_TIMESPEC2MS(spec);
   }
-  *time = _IW_TIMESPEC2MS(spec);
-  return 0;
+  // `time` may point to a member of a packed structure (eg a WAL record), so it is
+  // copied as a plain byte range and is not required to be aligned.
+  memcpy((void*) time, &ts, sizeof(ts));
+  return rc;
 }
 
 static iwrc _iwp_fstat(const char *path, HANDLE fd, struct iwp_file_stat *fs) {

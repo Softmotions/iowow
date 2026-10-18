@@ -42,7 +42,23 @@ typedef struct {
   uint32_t is_internal:1, n:31;
 } kbnode_t;
 
-#define	__KB_KEY(type, x)	((type*)((char*)x + 4))
+/*
+ * Alignment of the key area inside a node and of the node allocation sizes.
+ *
+ * Nodes are allocated with calloc(), so they are suitably aligned for any
+ * fundamental type. Keys are placed at a non-zero offset because of the
+ * `kbnode_t` header, so that offset must preserve the natural alignment of the
+ * key type. Otherwise nodes holding keys with members requiring 8 byte
+ * alignment (eg `off_t`) yield misaligned member accesses.
+ * 16 is a multiple of the alignment of every fundamental type on the supported
+ * platforms.
+ */
+#define __KB_ALIGN     16
+#define __KB_ALIGN_UP(v_) (((v_) + (__KB_ALIGN - 1)) & ~(__KB_ALIGN - 1))
+
+#define __KB_KEY_OFFSET __KB_ALIGN
+
+#define	__KB_KEY(type, x)	((type*)((char*)x + __KB_KEY_OFFSET))
 #define __KB_PTR(btr, x)	((kbnode_t**)((char*)x + btr->off_ptr))
 
 #define __KB_TREE_T(name)                         \
@@ -58,14 +74,14 @@ typedef struct {
         {                                                                                       \
 		kbtree_##name##_t *b;											\
 		b = (kbtree_##name##_t*)calloc(1, sizeof(kbtree_##name##_t));	\
-          b->t = ((size - 4 - sizeof(void*)) / (sizeof(void*) + sizeof(key_t)) + 1) >> 1;       \
+          b->t = ((size - __KB_KEY_OFFSET - sizeof(void*)) / (sizeof(void*) + sizeof(key_t)) + 1) >> 1; \
           if (b->t < 2) {                                                                       \
             free(b); return 0;                                                                  \
           }                                                                                     \
           b->n = 2 * b->t - 1;                                                                  \
-          b->off_ptr = 4 + b->n * sizeof(key_t);                                                \
-          b->ilen = (4 + sizeof(void*) + b->n * (sizeof(void*) + sizeof(key_t)) + 3) >> 2 << 2; \
-          b->elen = (b->off_ptr + 3) >> 2 << 2;                                                 \
+          b->off_ptr = __KB_ALIGN_UP(__KB_KEY_OFFSET + b->n * sizeof(key_t));                   \
+          b->ilen = __KB_ALIGN_UP(b->off_ptr + (b->n + 1) * sizeof(void*));                     \
+          b->elen = __KB_ALIGN_UP(b->off_ptr);                                                  \
 		b->root = (kbnode_t*)calloc(1, b->ilen);						\
           ++b->n_nodes;                                                                         \
           return b;                                                                             \

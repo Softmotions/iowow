@@ -188,6 +188,10 @@ struct iwhmap* iwhmap_create_str(void (*kv_free_fn)(void*, void*)) {
 
 static struct entry* _entry_find(struct iwhmap *hm, const void *key, uint32_t hash) {
   bucket_t *bucket = hm->buckets + (hash & hm->buckets_mask);
+  // Buckets are allocated lazily, an unused bucket has no entries at all.
+  if (!bucket->used) {
+    return 0;
+  }
   struct entry *entry = bucket->entries;
   for (struct entry *end = entry + bucket->used; entry < end; ++entry) {
     if (hash == entry->hash && hm->cmp_fn(key, entry->key) == 0) {

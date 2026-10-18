@@ -1,5 +1,6 @@
 #include <io.h>
 #include <math.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -45,8 +46,12 @@ iwrc iwp_clock_get_time(int clock_id, struct timespec *spec) {
 
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   FILETIME ft;
+  uint64_t ts;
   GetSystemTimeAsFileTime(&ft);
-  *time = _iwp_filetime2millisecons(&ft);
+  ts = _iwp_filetime2millisecons(&ft);
+  // `time` may point to a member of a packed structure (eg a WAL record), so it is
+  // copied as a plain byte range and is not required to be aligned.
+  memcpy((void*) time, &ts, sizeof(ts));
   return 0;
 }
 
