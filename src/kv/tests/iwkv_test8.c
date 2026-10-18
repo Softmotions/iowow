@@ -1,7 +1,7 @@
 #include "iwkv.h"
 #include "iwlog.h"
 #include "iwutils.h"
-#include "iwkv_tests.h"
+#include "tests.h"
 #include "iwkv_internal.h"
 #include "iwth.h"
 
@@ -25,10 +25,6 @@ int init_suite(void) {
   return iwkv_init();
 }
 
-int clean_suite(void) {
-  return 0;
-}
-
 static void iwkv_test8_1(void) {
   struct iwkv *iwkv;
   struct iwdb *db;
@@ -44,9 +40,9 @@ static void iwkv_test8_1(void) {
   uint64_t ts;
 
   iwrc rc = iwkv_open(&opts, &iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   for (int i = 0; i < 1000; ++i) {
     snprintf(kbuf, KBUFSZ, "%d", i);
@@ -56,29 +52,29 @@ static void iwkv_test8_1(void) {
     val.data = vbuf;
     val.size = strlen(val.data);
     rc = iwkv_put(db, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
   rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Now reopen
   opts.oflags &= ~IWKV_TRUNC;
   rc = iwkv_open(&opts, &iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_online_backup(iwkv, &ts, "iwkv_test8_1_bkp.db");
   if (rc) {
     iwlog_ecode_error3(rc);
   }
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Open backup
   opts.path = "iwkv_test8_1_bkp.db";
   rc = iwkv_open(&opts, &iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   for (int i = 0; i < 1000; ++i) {
     int cret = 0;
     snprintf(kbuf, KBUFSZ, "%d", i);
@@ -87,13 +83,13 @@ static void iwkv_test8_1(void) {
     key.size = strlen(key.data);
     int vlen = strlen(vbuf);
     rc = iwkv_get(db, &key, &val);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
     IW_CMP(cret, vbuf, vlen, val.data, val.size);
-    CU_ASSERT_EQUAL_FATAL(cret, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(cret, 0);
     iwkv_val_dispose(&val);
   }
   rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 typedef struct T82 {
@@ -114,14 +110,14 @@ static void* t82(void *ctx_) {
     .path = "iwkv_test8_2_check.db",
     .oflags = IWKV_TRUNC,
   }, &ctx->iwkvcheck);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwdb *db, *dbc;
   rc = iwkv_db(ctx->iwkv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwkv_db(ctx->iwkvcheck, 1, 0, &dbc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   int i = 0;
   for ( ; i < 500000; ++i) {
@@ -131,15 +127,15 @@ static void* t82(void *ctx_) {
 
     uint64_t ts;
     rc = iwp_current_time_ms(&ts, false);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
     val.data = &ts;
     val.size = sizeof(ts);
 
     rc = iwkv_put(db, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
     rc = iwkv_put(dbc, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
 
   pthread_barrier_wait(&ctx->barrier);
@@ -148,7 +144,7 @@ static void* t82(void *ctx_) {
   for ( ; i < c; ++i) {
     if (i == c - 9800) { // Force checkpoint during online-backup
       rc = iwal_test_checkpoint(ctx->iwkv);
-      CU_ASSERT_EQUAL_FATAL(rc, 0);
+      IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
     }
 
     snprintf(kbuf, KBUFSZ, "%dkey", i);
@@ -157,19 +153,19 @@ static void* t82(void *ctx_) {
 
     uint64_t ts;
     rc = iwp_current_time_ms(&ts, false);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
     val.data = &ts;
     val.size = sizeof(ts);
 
     rc = iwkv_put(db, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
     rc = iwkv_put(dbc, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
 
   rc = iwkv_close(&ctx->iwkvcheck);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   return 0;
 }
 
@@ -184,23 +180,23 @@ static void iwkv_test8_2(void) {
 
   struct T82 ctx = { 0 };
   iwrc rc = iwkv_open(&opts, &ctx.iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   int rci = pthread_barrier_init(&ctx.barrier, 0, 2);
-  CU_ASSERT_EQUAL_FATAL(rci, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rci, 0);
   rci = pthread_create(&ctx.t, 0, t82, &ctx);
-  CU_ASSERT_EQUAL_FATAL(rci, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rci, 0);
 
   pthread_barrier_wait(&ctx.barrier);
 
   uint64_t bkts = 0, ts = 0;
   rc = iwkv_online_backup(ctx.iwkv, &bkts, "iwkv_test8_2_bkp.db");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
 
   pthread_join(ctx.t, 0);
   rc = iwkv_close(&ctx.iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   size_t sp;
   int cnt1 = 0, cnt2 = 0;
@@ -212,85 +208,64 @@ static void iwkv_test8_2(void) {
   opts.path = "iwkv_test8_2_bkp.db";
   opts.oflags &= ~IWKV_TRUNC;
   rc = iwkv_open(&opts, &iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   do {
     rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT);
     if (!rc) {
       iwkv_cursor_copy_val(cur, &ts, sizeof(ts), &sp);
-      CU_ASSERT_EQUAL_FATAL(sp, sizeof(ts));
+      IW_TEST_ASSERT_EQUAL_FATAL(sp, sizeof(ts));
       if (ts < bkts) {
         cnt1++;
       }
     }
   } while (!rc);
-  CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
   iwkv_cursor_close(&cur);
   rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Check DB
   opts.path = "iwkv_test8_2_check.db";
   rc = iwkv_open(&opts, &iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   do {
     rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT);
     if (!rc) {
       iwkv_cursor_copy_val(cur, &ts, sizeof(ts), &sp);
-      CU_ASSERT_EQUAL_FATAL(sp, sizeof(ts));
+      IW_TEST_ASSERT_EQUAL_FATAL(sp, sizeof(ts));
       if (ts < bkts) {
         cnt2++;
       }
     }
   } while (!rc);
-  CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
   iwkv_cursor_close(&cur);
   rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   fprintf(stderr, "\n%d", cnt1);
   fprintf(stderr, "\n%d\n", cnt2);
 
-  CU_ASSERT_TRUE(cnt1 > 500000);
-  CU_ASSERT_EQUAL(cnt1, cnt2);
+  IW_TEST_ASSERT_TRUE(cnt1 > 500000);
+  IW_TEST_ASSERT_EQUAL(cnt1, cnt2);
 
   pthread_barrier_destroy(&ctx.barrier);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(iwkv_test8_1),
+  IW_TEST_CASE(iwkv_test8_2),
+};
 
-  /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-
-  /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwkv_test8", init_suite, clean_suite);
-
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Add the tests to the suite */
-  if (  (NULL == CU_add_test(pSuite, "iwkv_test8_1", iwkv_test8_1))
-     || (NULL == CU_add_test(pSuite, "iwkv_test8_2", iwkv_test8_2))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Run all tests using the CUnit Basic interface */
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwkv_test8", cases, init_suite, 0));
 }
+

@@ -2,15 +2,11 @@
 #include "iwlog.h"
 #include "iwutils.h"
 #include "iwcfg.h"
-#include "iwkv_tests.h"
+#include "tests.h"
 
 int init_suite(void) {
   iwrc rc = iwkv_init();
   return rc;
-}
-
-int clean_suite(void) {
-  return 0;
 }
 
 static void iwkv_test9_1(void) {
@@ -34,7 +30,7 @@ static void iwkv_test9_1(void) {
     ival.size = 0;
     iwkv_opflags opflags = IWKV_NO_OVERWRITE;
     iwrc rc = iwkv_put(db, &ikey, &ival, opflags);
-    CU_ASSERT_EQUAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL(rc, 0);
   }
 
   {
@@ -46,38 +42,16 @@ static void iwkv_test9_1(void) {
     ival.size = 0;
     iwkv_opflags opflags = IWKV_NO_OVERWRITE;
     iwrc rc = iwkv_put(db, &ikey, &ival, opflags);
-    CU_ASSERT_EQUAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL(rc, 0);
   }
   iwkv_close(&kv);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(iwkv_test9_1),
+};
 
-  /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-
-  /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwkv_test9", init_suite, clean_suite);
-
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "iwkv_test9_1", iwkv_test9_1))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Run all tests using the CUnit Basic interface */
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwkv_test9", cases, init_suite, 0));
 }
+

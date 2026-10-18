@@ -47,6 +47,109 @@ IOWOW — `C11` utility library and persistent key/value storage engine
 ./build.sh --prefix=$HOME/.local
 ```
 
+# Tests
+
+Test cases are plain `C` executables built and run by Autark, no external test
+framework is required. The shared harness with all assertions and helpers lives
+in [src/tests.h](https://github.com/Softmotions/iowow/blob/master/src/tests.h),
+see [TESTS.md](https://github.com/Softmotions/iowow/blob/master/TESTS.md) for
+the full description of the harness, the assertions and the possibilities to
+run only the selected test cases.
+
+```sh
+# Build and run every test case
+IOWOW_RUN_TESTS=1 ./build.sh -c
+```
+
+The `stdout`/`stderr` of the test code is written into `<test executable>.log`
+(`autark-cache/*.log`), so the console report stays readable. Use `--no-log` to
+keep the test output on the console or `-o FILE`/`IW_TEST_OUTPUT=FILE` to
+choose another file.
+
+## Run only selected test cases
+
+A test case is selected by a case-insensitive name substring. `IW_TEST_FILTER`
+accepts a comma separated pattern list and applies it to all test executables
+of the run:
+
+```sh
+# Run only the cases whose name contains "reopen" or "walfuzz"
+IW_TEST_FILTER=reopen,walfuzz IOWOW_RUN_TESTS=1 ./build.sh -c
+```
+
+Test executables can also be run directly, which is the fastest way to
+reiterate on a single case:
+
+```sh
+cd autark-cache/src/kv/tests        # the test binaries per module
+./iwkv_test1                       # run all cases of the iwkv_test1 suite
+./iwkv_test1 reopen                 # run the matching cases only
+./iwkv_test1 -f reopen,test9 -v     # show the cases skipped by the filter
+./iwkv_test1 --no-log               # keep the test output on the console
+./iwkv_test1 --list                 # list the available cases
+./iwkv_test1 --help                 # show all options
+```
+
+Suites without matching cases stay silent and exit with `0`, so a filtered run
+of the whole project reports only what has really been executed.
+
+## Report
+
+```
+ iowow · iwkv_test1 · 7 case(s) · output: iwkv_test1.log
+ ────────────────────────────────────────────────────────────────────
+  ✓ iwkv_test1_v1    2132 assert(s)    0.097s
+  ✓ iwkv_test2_v2    1527 assert(s)    0.064s
+  ✓ iwkv_test3_v2    2970 assert(s)    0.049s
+ ────────────────────────────────────────────────────────────────────
+  3 passed, 6629 assertion(s), 0.21s                         PASSED
+```
+
+A failed assertion is reported with its location and the compared values, a
+fatal assertion aborts only the current case:
+
+```
+ iowow · iwkv_test9 · 2 case(s) · output: iwkv_test9.log
+ ────────────────────────────────────────────────────────────────────
+  ✗ iwkv_test9_1      2 assert(s)    0.000s
+      iwkv_test9.c:41: `rc` != `0`: 458757 (0x70005) vs 0
+      iwkv_test9.c:42: aborted by a fatal assertion
+ ────────────────────────────────────────────────────────────────────
+  0 passed, 1 failed, 2 assertion(s), 0.00s                   FAILED
+  failed: iwkv_test9_1
+  output: iwkv_test9.log
+```
+
+The report is plain `ASCII` when the output is not a terminal. Colors and
+unicode decorations can be controlled with `--color`/`--no-color` and the
+`IW_TEST_NO_COLOR`/`IW_TEST_ASCII` environment variables.
+
+## Writing a test case
+
+A case is a plain `void` function using the `IW_TEST_ASSERT*` macros, a test
+executable registers the cases and runs them with `iw_test_run()`:
+
+```c
+#include "tests.h"
+
+static void my_test_case(void) {
+  IW_TEST_ASSERT_EQUAL(2 + 2, 4);
+  IW_TEST_ASSERT_STR_EQUAL("foo", "foo");
+}
+
+int main(int argc, char *argv[]) {
+  static const struct iw_test_case cases[] = {
+    IW_TEST_CASE(my_test_case),
+  };
+  return iw_test_run(argc, argv, IW_TEST_SUITE("my_test", cases, 0, 0));
+}
+```
+
+The new executable has to be listed in the `src/<module>/tests/Autark` file.
+See [TESTS.md](https://github.com/Softmotions/iowow/blob/master/TESTS.md) for
+the description of all the assertions, the helpers and the sanitizer/fuzzer
+modes.
+
 # Examples
 
 [src/kv/examples](https://github.com/Softmotions/iowow/tree/master/src/kv/examples)

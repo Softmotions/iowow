@@ -4,7 +4,7 @@
 #include "utils/iwutils.h"
 
 #include "iwcfg.h"
-#include <CUnit/Basic.h>
+#include "tests.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -51,7 +51,7 @@ int init_suite(void) {
   ts >>= 32;
   iwu_rand_seed(ts);
 
-  printf("Generating stress data file: test_fsm_stress1.data, random seed: %" PRIu64, ts);
+  printf("Generating stress data file: test_fsm_stress.data, random seed: %" PRIu64 "\n", ts);
   fstress1 = fopen("test_fsm_stress.data", "w+");
   char *buf = malloc(RECSZ + 1);
   for (int i = 0, j; i < NRECS; ++i) {
@@ -77,14 +77,14 @@ int init_suite(void) {
   return rc;
 }
 
-int clean_suite(void) {
+void clean_suite(void) {
   if (fstress1) {
     fclose(fstress1);
     fstress1 = 0;
   }
   kb_destroy(rt, rt);
   UNLINK();
-  return 0;
+  return;
 }
 
 void test_stress(char *path, int bpow, bool mmap_all) {
@@ -102,7 +102,7 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     .mmap_all = mmap_all
   };
   iwrc rc = iwfs_fsmfile_open(&fsm, &opts);
-  CU_ASSERT_FALSE_FATAL(rc);
+  IW_TEST_ASSERT_FALSE_FATAL(rc);
 
   fprintf(stderr, "\nRunning allocations...\n");
 
@@ -115,13 +115,13 @@ void test_stress(char *path, int bpow, bool mmap_all) {
     if ((i > 0) && (!(rop % 3) || !(rop % 5))) {
       k.id = iwu_rand_range(i);
       struct SREC *pr = kb_getp(rt, rt, &k);
-      CU_ASSERT_PTR_NOT_NULL_FATAL(pr);
+      IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pr);
       if (!pr->freed) {
         if ((rop % 3)) { // deallocate previous
           //fprintf(stderr, "%05d D %ld:%ld\n", pr->id, pr->alc_addr, pr->alc_len);
           pr->freed = true;
           rc = fsm.deallocate(&fsm, pr->alc_addr, pr->alc_len);
-          CU_ASSERT_FALSE_FATAL(rc);
+          IW_TEST_ASSERT_FALSE_FATAL(rc);
         } else if (!pr->reallocated && !(rop % 5)) { // reallocate previous
           //fprintf(stderr, "%05d R %ld:%ld\n", pr->id, pr->alc_addr, pr->alc_len);
           pr->reallocated = true;
@@ -130,17 +130,17 @@ void test_stress(char *path, int bpow, bool mmap_all) {
             nlen = 1;
           }
           rc = fsm.reallocate(&fsm, nlen, &pr->alc_addr, &pr->alc_len, IWFSM_SOLID_ALLOCATED_SPACE);
-          CU_ASSERT_FALSE_FATAL(rc);
+          IW_TEST_ASSERT_FALSE_FATAL(rc);
           if (pr->alc_len > pr->rsz) {
             rc = fsm.read(&fsm, pr->alc_addr, buf, pr->rsz, &sp);
-            CU_ASSERT_FALSE_FATAL(rc);
-            CU_ASSERT_EQUAL_FATAL(pr->rsz, sp);
+            IW_TEST_ASSERT_FALSE_FATAL(rc);
+            IW_TEST_ASSERT_EQUAL_FATAL(pr->rsz, sp);
             off_t wsz = pr->alc_len - pr->rsz;
             while (wsz > 0) {
               int wc = MIN(wsz, pr->rsz);
               rc = fsm.write(&fsm, pr->alc_addr + pr->alc_len - wsz, buf, wc, &sp);
-              CU_ASSERT_FALSE_FATAL(rc);
-              CU_ASSERT_EQUAL_FATAL(wc, sp);
+              IW_TEST_ASSERT_FALSE_FATAL(rc);
+              IW_TEST_ASSERT_EQUAL_FATAL(wc, sp);
               wsz -= wc;
             }
           }
@@ -150,76 +150,76 @@ void test_stress(char *path, int bpow, bool mmap_all) {
 
     k.id = i;
     struct SREC *r = kb_getp(rt, rt, &k);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(r);
     fseek(fstress1, r->addr + 8 + 1, SEEK_SET);
     fread(buf, r->rsz, 1, fstress1);
     buf[r->rsz + 1] = '\0';
 
     rc = fsm.allocate(&fsm, r->rsz, &r->alc_addr, &r->alc_len, aflags);
     //fprintf(stderr, "%05d A %ld:%ld\n", i, r->alc_addr, r->alc_len);
-    CU_ASSERT_FALSE_FATAL(rc);
-    CU_ASSERT_TRUE_FATAL(r->alc_len >= r->rsz);
+    IW_TEST_ASSERT_FALSE_FATAL(rc);
+    IW_TEST_ASSERT_TRUE_FATAL(r->alc_len >= r->rsz);
     rc = fsm.write(&fsm, r->alc_addr, buf, r->rsz, &sp);
-    CU_ASSERT_FALSE_FATAL(rc);
-    CU_ASSERT_EQUAL_FATAL(sp, r->rsz);
+    IW_TEST_ASSERT_FALSE_FATAL(rc);
+    IW_TEST_ASSERT_EQUAL_FATAL(sp, r->rsz);
 
     if (r->alc_len > r->rsz) {
       off_t wsz = r->alc_len - r->rsz;
       while (wsz > 0) {
         int wc = MIN(wsz, r->rsz);
         rc = fsm.write(&fsm, r->alc_addr + r->alc_len - wsz, buf, wc, &sp);
-        CU_ASSERT_FALSE_FATAL(rc);
-        CU_ASSERT_EQUAL_FATAL(wc, sp);
+        IW_TEST_ASSERT_FALSE_FATAL(rc);
+        IW_TEST_ASSERT_EQUAL_FATAL(wc, sp);
         wsz -= wc;
       }
     }
   }
-  CU_ASSERT_FALSE_FATAL(fsm.close(&fsm));
+  IW_TEST_ASSERT_FALSE_FATAL(fsm.close(&fsm));
 
   fprintf(stderr, "Checking data\n");
   opts.exfile.file.omode = 0;
   rc = iwfs_fsmfile_open(&fsm, &opts);
-  CU_ASSERT_FALSE_FATAL(rc);
+  IW_TEST_ASSERT_FALSE_FATAL(rc);
 
   char *buf2 = malloc(2 * RECSZ + 1);
   for (int i = 0; i < NRECS; ++i) {
     size_t sp;
     struct SREC k = { .id = i };
     struct SREC *r = kb_getp(rt, rt, &k);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(r);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(r);
     if (r->freed) {
       continue;
     }
-    CU_ASSERT_TRUE(r->alc_len <= 2 * RECSZ + 1);
+    IW_TEST_ASSERT_TRUE(r->alc_len <= 2 * RECSZ + 1);
     fseek(fstress1, r->addr + 8 + 1, SEEK_SET);
     fread(buf, r->rsz, 1, fstress1);
     buf[r->rsz + 1] = '\0';
 
     off_t rn = MIN(r->rsz, r->alc_len);
     if (r->alc_len < r->rsz) {
-      CU_ASSERT_TRUE_FATAL(r->reallocated);
+      IW_TEST_ASSERT_TRUE_FATAL(r->reallocated);
     }
     memset(buf2, 0, rn); // 20736
     rc = fsm.read(&fsm, r->alc_addr, buf2, rn, &sp);
-    CU_ASSERT_FALSE_FATAL(rc);
-    CU_ASSERT_EQUAL_FATAL(rn, sp);
+    IW_TEST_ASSERT_FALSE_FATAL(rc);
+    IW_TEST_ASSERT_EQUAL_FATAL(rn, sp);
     int ri = memcmp(buf, buf2, rn);
-    CU_ASSERT_EQUAL_FATAL(ri, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(ri, 0);
 
     if (rn < r->alc_len) {
       while (rn < r->alc_len) {
         off_t rz = MIN(r->alc_len - rn, r->rsz);
         rc = fsm.read(&fsm, r->alc_addr + rn, buf2, rz, &sp);
-        CU_ASSERT_FALSE_FATAL(rc);
+        IW_TEST_ASSERT_FALSE_FATAL(rc);
         ri = memcmp(buf, buf2, rz);
-        CU_ASSERT_EQUAL_FATAL(ri, 0);
+        IW_TEST_ASSERT_EQUAL_FATAL(ri, 0);
         rn += rz;
       }
     }
   }
   free(buf2);
   free(buf);
-  CU_ASSERT_FALSE_FATAL(fsm.close(&fsm));
+  IW_TEST_ASSERT_FALSE_FATAL(fsm.close(&fsm));
 }
 
 static void test_stress1(void) {
@@ -230,33 +230,12 @@ static void test_stress2(void) {
   test_stress("test_fsm_stress2.fsm", 6, false);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(test_stress1),
+  IW_TEST_CASE(test_stress2),
+};
 
-  /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-
-  /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwfs_test3", init_suite, clean_suite);
-
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Add the tests to the suite */
-  if (  (NULL == CU_add_test(pSuite, "test_stress1", test_stress1))
-     || (NULL == CU_add_test(pSuite, "test_stress2", test_stress2))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Run all tests using the CUnit Basic interface */
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwfs_test3", cases, init_suite, clean_suite));
 }
+

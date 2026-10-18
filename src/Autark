@@ -32,14 +32,14 @@ set {
 set {
   LDFLAGS_TEST
   ${LIBIOWOW_A}
-  ..@@{ ${PKGCONF} --libs --static libbinnc cunit }
+  ..@@{ ${PKGCONF} --libs --static libbinnc }
   ..${LDFLAGS}
 }
 
 set {
   CFLAGS_TESTS
   -DIW_STATIC
-  ..@@{ ${PKGCONF} --cflags --static libbinnc cunit }
+  ..@@{ ${PKGCONF} --cflags --static libbinnc }
   ..${CFLAGS}
 }
 

@@ -3,7 +3,7 @@
 #include "iwjsreg.h"
 #include "iwlog.h"
 #include "iwutils.h"
-#include <CUnit/Basic.h>
+#include "tests.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,10 +17,6 @@ int init_suite(void) {
   return rc;
 }
 
-int clean_suite(void) {
-  return 0;
-}
-
 static void _iwjsreg_basic1(void) {
   const char *path = "iwjsreg_basic1.dat";
   unlink(path);
@@ -29,47 +25,47 @@ static void _iwjsreg_basic1(void) {
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) {
     .path = path,
   }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_str(reg, "key1", "val1");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_i64(reg, "key2", 8217128L);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_bool(reg, "key3", true);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_open(&(struct iwjsreg_spec) {
     .path = path,
   }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   int64_t val;
   rc = iwjsreg_get_i64(reg, "key2", &val);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(val, 8217128L);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(val, 8217128L);
 
   rc = iwjsreg_get_i64(reg, "key22", &val);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
+  IW_TEST_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
 
   char *buf;
   rc = iwjsreg_get_str(reg, "key1", &buf);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(buf, "val1");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "val1");
   free(buf);
 
   rc = iwjsreg_remove(reg, "key1");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_get_i64(reg, "key1", &val);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
+  IW_TEST_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
 }
 
 static void _iwjsreg_basic2(void) {
@@ -81,48 +77,48 @@ static void _iwjsreg_basic2(void) {
     .path = path,
     .flags = IWJSREG_FORMAT_BINARY,
   }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_str(reg, "key1", "val1");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_i64(reg, "key2", 8217128L);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_bool(reg, "key3", true);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_open(&(struct iwjsreg_spec) {
     .path = path,
     .flags = IWJSREG_FORMAT_BINARY,
   }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   int64_t val;
   rc = iwjsreg_get_i64(reg, "key2", &val);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(val, 8217128L);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(val, 8217128L);
 
   rc = iwjsreg_get_i64(reg, "key22", &val);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
+  IW_TEST_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
 
   char *buf;
   rc = iwjsreg_get_str(reg, "key1", &buf);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(buf, "val1");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "val1");
   free(buf);
 
   rc = iwjsreg_remove(reg, "key1");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_get_i64(reg, "key1", &val);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
+  IW_TEST_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
 }
 
 static void _iwjsreg_merge(void) {
@@ -140,35 +136,35 @@ static void _iwjsreg_merge(void) {
 
   struct jbl_node *n, *n2;
   rc = jbn_from_json("{\"vaz\":1, \"gaz\":\"val\"}", &n, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_merge(reg, "/foo/bar", n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_merge(reg, "/foo/bar", n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_merge(reg, "/foo/bar/zaz", n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_from_json("{\"gaz\":null}", &n2, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_merge(reg, "/foo/bar/zaz", n2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_copy(reg, "", pool, &n2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   fprintf(stderr, "\n");
   jbn_as_json(n2, jbl_xstr_json_printer, xstr, 0);
 
-  CU_ASSERT_STRING_EQUAL(iwxstr_ptr(xstr), "{\"foo\":{\"bar\":{\"vaz\":1,\"gaz\":\"val\",\"zaz\":{\"vaz\":1}}}}");
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(xstr), "{\"foo\":{\"bar\":{\"vaz\":1,\"gaz\":\"val\",\"zaz\":{\"vaz\":1}}}}");
 
   rc = iwjsreg_sync(reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
   iwpool_destroy(pool);
   iwxstr_destroy(xstr);
 }
@@ -205,82 +201,82 @@ static void _iwjsreg_exact_keys(void) {
 
   struct iwjsreg *reg;
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_str(reg, "key", "v");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_str(reg, "key2", "v2");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_i64(reg, "n", 10);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_i64(reg, "n2", 20);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_bool(reg, "b", true);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_bool(reg, "b2", false);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   char *sv = 0;
   int64_t iv = 0;
   bool bv = false;
 
   rc = iwjsreg_get_str(reg, "key", &sv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(sv, "v");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "v");
   free(sv); sv = 0;
 
   rc = iwjsreg_get_str(reg, "key2", &sv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(sv, "v2");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "v2");
   free(sv); sv = 0;
 
   rc = iwjsreg_get_i64(reg, "n", &iv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(iv, 10);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iv, 10);
   rc = iwjsreg_get_i64(reg, "n2", &iv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(iv, 20);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iv, 20);
 
   rc = iwjsreg_get_bool(reg, "b", &bv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_TRUE(bv);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_TRUE(bv);
   rc = iwjsreg_get_bool(reg, "b2", &bv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_FALSE(bv);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_FALSE(bv);
 
   // inc_i64 must not touch a shorter key that is a prefix of the requested one
   rc = iwjsreg_inc_i64(reg, "n2", 5, &iv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(iv, 25);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iv, 25);
   rc = iwjsreg_get_i64(reg, "n", &iv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(iv, 10);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iv, 10);
 
   // remove must not remove a key that is a prefix of the requested one
   rc = iwjsreg_remove(reg, "key");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_get_str(reg, "key", &sv);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
+  IW_TEST_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
   rc = iwjsreg_get_str(reg, "key2", &sv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(sv, "v2");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "v2");
   free(sv); sv = 0;
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Persisted state must match the in-memory one
   rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_get_str(reg, "key2", &sv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(sv, "v2");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "v2");
   free(sv);
   rc = iwjsreg_get_i64(reg, "n2", &iv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(iv, 25);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iv, 25);
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 // IWJSREG_AUTOSYNC must persist removals immediately, not only on close().
@@ -290,29 +286,29 @@ static void _iwjsreg_remove_autosync(void) {
 
   struct iwjsreg *reg;
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path, .flags = IWJSREG_AUTOSYNC }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_i64(reg, "a", 1);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_i64(reg, "b", 2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_remove(reg, "a");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwpool *pool = 0;
   struct jbl_node *root = _load_json_file(path, &pool, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   struct jbl_node *n = 0;
   rc = jbn_at(root, "/a", &n);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_PATH_NOTFOUND);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_PATH_NOTFOUND);
   rc = jbn_at(root, "/b", &n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(n->type, JBV_I64);
-  CU_ASSERT_EQUAL(n->vi64, 2);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(n->type, JBV_I64);
+  IW_TEST_ASSERT_EQUAL(n->vi64, 2);
   iwpool_destroy(pool);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 // Replacing a container (object/array) node with a scalar must release the
@@ -323,47 +319,47 @@ static void _iwjsreg_overwrite_container(void) {
 
   struct iwjsreg *reg;
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwpool *pool = iwpool_create_empty();
   struct jbl_node *n = 0;
   rc = jbn_from_json("{\"a\":1}", &n, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_merge(reg, "/obj", n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_from_json("[1,2,3]", &n, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_merge(reg, "/arr", n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_i64(reg, "obj", 42);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_str(reg, "arr", "x");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct jbl_node *out = 0;
   struct iwxstr *xstr = iwxstr_create_empty();
   rc = iwjsreg_copy(reg, "", pool, &out);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbn_as_json(out, jbl_xstr_json_printer, xstr, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(iwxstr_ptr(xstr), "{\"obj\":42,\"arr\":\"x\"}");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(xstr), "{\"obj\":42,\"arr\":\"x\"}");
   iwxstr_destroy(xstr);
 
   // Removing a container node must free the whole subtree
   rc = jbn_from_json("{\"b\":2}", &n, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_merge(reg, "/obj2", n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_remove(reg, "obj2");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   struct jbl_node *nfound = 0;
   rc = iwjsreg_copy(reg, "/obj2", pool, &nfound);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_PATH_NOTFOUND);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_PATH_NOTFOUND);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwpool_destroy(pool);
 }
 
@@ -399,7 +395,7 @@ static void _iwjsreg_spec_locks(void) {
   atomic_store(&_spec_unlock_calls, 0);
 
   pthread_rwlock_t rwl;
-  CU_ASSERT_EQUAL_FATAL(pthread_rwlock_init(&rwl, 0), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(pthread_rwlock_init(&rwl, 0), 0);
 
   struct iwjsreg *reg;
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) {
@@ -410,35 +406,35 @@ static void _iwjsreg_spec_locks(void) {
     .fn_data = &rwl,
     .flags = IWJSREG_AUTOSYNC,
   }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_i64(reg, "counter", 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   for (int i = 0; i < 100; ++i) {
     rc = iwjsreg_inc_i64(reg, "counter", 1, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
 
   int64_t v = 0;
   rc = iwjsreg_get_i64(reg, "counter", &v);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(v, 100);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(v, 100);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   pthread_rwlock_destroy(&rwl);
 
-  CU_ASSERT_TRUE(atomic_load(&_spec_wlock_calls) > 0);
-  CU_ASSERT_TRUE(atomic_load(&_spec_rlock_calls) > 0);
-  CU_ASSERT_TRUE(atomic_load(&_spec_unlock_calls) > 0);
+  IW_TEST_ASSERT_TRUE(atomic_load(&_spec_wlock_calls) > 0);
+  IW_TEST_ASSERT_TRUE(atomic_load(&_spec_rlock_calls) > 0);
+  IW_TEST_ASSERT_TRUE(atomic_load(&_spec_unlock_calls) > 0);
 
   rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_get_i64(reg, "counter", &v);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(v, 100);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(v, 100);
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 // Concurrent updates with AUTOSYNC: exclusive locking must prevent lost
@@ -501,15 +497,15 @@ static void _iwjsreg_atomic_concurrent(void) {
   atomic_init(&ctx.reads, 0);
 
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path, .flags = IWJSREG_AUTOSYNC }, &ctx.reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_i64(ctx.reg, "counter", 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   pthread_t reader;
   pthread_t writers[JSREG_NWRITERS];
-  CU_ASSERT_EQUAL_FATAL(pthread_create(&reader, 0, _conc_reader, &ctx), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(pthread_create(&reader, 0, _conc_reader, &ctx), 0);
   for (int i = 0; i < JSREG_NWRITERS; ++i) {
-    CU_ASSERT_EQUAL_FATAL(pthread_create(&writers[i], 0, _conc_writer, &ctx), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(pthread_create(&writers[i], 0, _conc_writer, &ctx), 0);
   }
   for (int i = 0; i < JSREG_NWRITERS; ++i) {
     pthread_join(writers[i], 0);
@@ -517,34 +513,34 @@ static void _iwjsreg_atomic_concurrent(void) {
   atomic_store(&ctx.stop, true);
   pthread_join(reader, 0);
 
-  CU_ASSERT_FALSE(atomic_load(&ctx.failed));
-  CU_ASSERT_TRUE(atomic_load(&ctx.reads) > 0);
+  IW_TEST_ASSERT_FALSE(atomic_load(&ctx.failed));
+  IW_TEST_ASSERT_TRUE(atomic_load(&ctx.reads) > 0);
 
   const int64_t expected = JSREG_NWRITERS * JSREG_NINCS;
   int64_t v = 0;
   rc = iwjsreg_get_i64(ctx.reg, "counter", &v);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(v, expected);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(v, expected);
 
   rc = iwjsreg_close(&ctx.reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &ctx.reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_get_i64(ctx.reg, "counter", &v);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(v, expected);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(v, expected);
   rc = iwjsreg_close(&ctx.reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwpool *pool = 0;
   struct jbl_node *root = _load_json_file(path, &pool, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   struct jbl_node *n = 0;
   rc = jbn_at(root, "/counter", &n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(n->type, JBV_I64);
-  CU_ASSERT_EQUAL(n->vi64, expected);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(n->type, JBV_I64);
+  IW_TEST_ASSERT_EQUAL(n->vi64, expected);
   iwpool_destroy(pool);
 }
 
@@ -558,23 +554,23 @@ static void _iwjsreg_nested_path(void) {
 
   struct iwjsreg *reg;
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_str(reg, "k", "v");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_sync(reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   char *sv = 0;
   rc = iwjsreg_get_str(reg, "k", &sv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(sv, "v");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "v");
   free(sv);
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   unlink(path);
   rmdir(dir);
@@ -587,43 +583,43 @@ static void _iwjsreg_empty_string(void) {
 
   struct iwjsreg *reg;
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_str(reg, "empty", "");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_str(reg, "mix", "a");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   char *sv = 0;
   rc = iwjsreg_get_str(reg, "empty", &sv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(sv, "");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "");
   free(sv); sv = 0;
 
   rc = iwjsreg_at_str(reg, "/empty", &sv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(sv, "");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "");
   free(sv);
 
   struct iwpool *pool = iwpool_create_empty();
   struct jbl_node *out = 0;
   rc = iwjsreg_copy(reg, "", pool, &out);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   struct iwxstr *xstr = iwxstr_create_empty();
   rc = jbn_as_json(out, jbl_xstr_json_printer, xstr, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(iwxstr_ptr(xstr), "{\"empty\":\"\",\"mix\":\"a\"}");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(xstr), "{\"empty\":\"\",\"mix\":\"a\"}");
   iwxstr_destroy(xstr);
   iwpool_destroy(pool);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 // Replacing the whole tree must not use nodes after they are freed while
@@ -634,70 +630,57 @@ static void _iwjsreg_replace_root(void) {
 
   struct iwjsreg *reg;
   iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwjsreg_set_i64(reg, "a", 1);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_set_i64(reg, "b", 2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_merge_str(reg, "/c/d", "x", -1);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwpool *pool = iwpool_create_empty();
   struct jbl_node *n = 0;
   rc = jbn_from_json("{\"z\":9}", &n, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_replace(reg, "", n);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   int64_t v = 0;
   rc = iwjsreg_get_i64(reg, "z", &v);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(v, 9);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(v, 9);
   rc = iwjsreg_get_i64(reg, "a", &v);
-  CU_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
+  IW_TEST_ASSERT_EQUAL(rc, IW_ERROR_NOT_EXISTS);
 
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwpool_destroy(pool);
 
   rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwjsreg_get_i64(reg, "z", &v);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(v, 9);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(v, 9);
   rc = iwjsreg_close(&reg);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-  pSuite = CU_add_suite("iwjsreg", init_suite, clean_suite);
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-  int ret = 0;
-  if (  NULL == CU_add_test(pSuite, "iwjsreg_basic1", _iwjsreg_basic1)
-     || NULL == CU_add_test(pSuite, "iwjsreg_basic2", _iwjsreg_basic2)
-     || NULL == CU_add_test(pSuite, "iwjsreg_merge", _iwjsreg_merge)
-     || NULL == CU_add_test(pSuite, "iwjsreg_exact_keys", _iwjsreg_exact_keys)
-     || NULL == CU_add_test(pSuite, "iwjsreg_remove_autosync", _iwjsreg_remove_autosync)
-     || NULL == CU_add_test(pSuite, "iwjsreg_overwrite_container", _iwjsreg_overwrite_container)
-     || NULL == CU_add_test(pSuite, "iwjsreg_spec_locks", _iwjsreg_spec_locks)
-     || NULL == CU_add_test(pSuite, "iwjsreg_nested_path", _iwjsreg_nested_path)
-     || NULL == CU_add_test(pSuite, "iwjsreg_empty_string", _iwjsreg_empty_string)
-     || NULL == CU_add_test(pSuite, "iwjsreg_replace_root", _iwjsreg_replace_root)
-     || NULL == CU_add_test(pSuite, "iwjsreg_atomic_concurrent", _iwjsreg_atomic_concurrent)) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE_AS("iwjsreg_basic1", _iwjsreg_basic1),
+  IW_TEST_CASE_AS("iwjsreg_basic2", _iwjsreg_basic2),
+  IW_TEST_CASE_AS("iwjsreg_merge", _iwjsreg_merge),
+  IW_TEST_CASE_AS("iwjsreg_exact_keys", _iwjsreg_exact_keys),
+  IW_TEST_CASE_AS("iwjsreg_remove_autosync", _iwjsreg_remove_autosync),
+  IW_TEST_CASE_AS("iwjsreg_overwrite_container", _iwjsreg_overwrite_container),
+  IW_TEST_CASE_AS("iwjsreg_spec_locks", _iwjsreg_spec_locks),
+  IW_TEST_CASE_AS("iwjsreg_nested_path", _iwjsreg_nested_path),
+  IW_TEST_CASE_AS("iwjsreg_empty_string", _iwjsreg_empty_string),
+  IW_TEST_CASE_AS("iwjsreg_replace_root", _iwjsreg_replace_root),
+  IW_TEST_CASE_AS("iwjsreg_atomic_concurrent", _iwjsreg_atomic_concurrent),
+};
+
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwjsreg", cases, init_suite, 0));
 }
+

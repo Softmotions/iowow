@@ -1,14 +1,10 @@
 #include "iowow.h"
 #include "iwcfg.h"
 #include "iwhmap.h"
-#include <CUnit/Basic.h>
+#include "tests.h"
 
 static int init_suite(void) {
   return iw_init();
-}
-
-static int clean_suite(void) {
-  return 0;
 }
 
 static void hex32(uint32_t *hash, char *buf) {
@@ -30,7 +26,7 @@ static void test_murmur_hash(void) {
           char buf[33];                                                        \
           murmur3_ ## arch ## _ ## nbytes(input, strlen(input), (seed), hash); \
           hex ## nbytes(hash, buf);                                            \
-          CU_ASSERT_STRING_EQUAL(buf, expected)                                \
+          IW_TEST_ASSERT_STR_EQUAL(buf, expected);                               \
 }
 
   TESTHASH(x86, 32, 1234, "Hello, world!", "faf6cdb3");
@@ -53,24 +49,24 @@ static void test_basic_crud_str(void) {
   char kbuf[64];
   char vbuf[64];
   struct iwhmap *hm = iwhmap_create_str(iwhmap_kv_free);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(hm);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(hm);
   for (int i = 0; i < 10000; ++i) {
     snprintf(kbuf, sizeof(kbuf), "key%d", i);
     snprintf(vbuf, sizeof(vbuf), "value%d", i);
     iwrc rc = iwhmap_put(hm, strdup(kbuf), strdup(vbuf));
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
   for (int i = 0; i < 10000; ++i) {
     snprintf(kbuf, sizeof(kbuf), "key%d", i);
     snprintf(vbuf, sizeof(vbuf), "value%d", i);
     const char *vp = iwhmap_get(hm, kbuf);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(vp);
-    CU_ASSERT_STRING_EQUAL(vbuf, vp);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(vp);
+    IW_TEST_ASSERT_STR_EQUAL(vbuf, vp);
     if (i % 2 == 0) {
       iwhmap_remove(hm, kbuf);
     }
   }
-  CU_ASSERT_EQUAL(iwhmap_count(hm), 5000);
+  IW_TEST_ASSERT_EQUAL(iwhmap_count(hm), 5000);
   for (int i = 0; i < 10000; ++i) {
     if ((i % 2) == 0) {
       continue;
@@ -78,13 +74,13 @@ static void test_basic_crud_str(void) {
     snprintf(kbuf, sizeof(kbuf), "key%d", i);
     snprintf(vbuf, sizeof(vbuf), "value%d", i);
     const char *vp = iwhmap_get(hm, kbuf);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(vp);
-    CU_ASSERT_STRING_EQUAL(vbuf, vp);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(vp);
+    IW_TEST_ASSERT_STR_EQUAL(vbuf, vp);
     if (i % 3 == 0) {
       iwhmap_remove(hm, kbuf);
     }
   }
-  CU_ASSERT_EQUAL(iwhmap_count(hm), 3333);
+  IW_TEST_ASSERT_EQUAL(iwhmap_count(hm), 3333);
 
   // TODO: finish tests
   iwhmap_destroy(hm);
@@ -92,36 +88,36 @@ static void test_basic_crud_str(void) {
 
 static void test_lru1(void) {
   struct iwhmap *hm = iwhmap_create_u32(0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(hm);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(hm);
 
   // Init LRU mode max 2 records in map
   iwhmap_lru_init(hm, iwhmap_lru_eviction_max_count, (void*) (uintptr_t) 2UL);
 
   iwrc rc = iwhmap_put_u32(hm, 1, (void*) 1L);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   long val = (intptr_t) iwhmap_get_u64(hm, 1);
-  CU_ASSERT_EQUAL(val, 1L);
+  IW_TEST_ASSERT_EQUAL(val, 1L);
 
   rc -= iwhmap_put_u32(hm, 2, (void*) 2L);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   val = (intptr_t) iwhmap_get_u64(hm, 1);
-  CU_ASSERT_EQUAL(val, 1L);
+  IW_TEST_ASSERT_EQUAL(val, 1L);
   val = (intptr_t) iwhmap_get_u64(hm, 2);
-  CU_ASSERT_EQUAL(val, 2L);
+  IW_TEST_ASSERT_EQUAL(val, 2L);
 
   rc = iwhmap_put_u32(hm, 3, (void*) 3L);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   val = (intptr_t) iwhmap_get_u64(hm, 1);
-  CU_ASSERT_EQUAL(val, 0L);
+  IW_TEST_ASSERT_EQUAL(val, 0L);
   val = (intptr_t) iwhmap_get_u64(hm, 3);
-  CU_ASSERT_EQUAL(val, 3L);
+  IW_TEST_ASSERT_EQUAL(val, 3L);
   val = (intptr_t) iwhmap_get_u64(hm, 2);
-  CU_ASSERT_EQUAL(val, 2L);
+  IW_TEST_ASSERT_EQUAL(val, 2L);
 
   rc = iwhmap_put_u32(hm, 4, (void*) 4L);
   val = (intptr_t) iwhmap_get_u64(hm, 3);
-  CU_ASSERT_EQUAL(val, 0);
-  CU_ASSERT_EQUAL(iwhmap_count(hm), 2);
+  IW_TEST_ASSERT_EQUAL(val, 0);
+  IW_TEST_ASSERT_EQUAL(iwhmap_count(hm), 2);
 
   iwhmap_destroy(hm);
 }
@@ -129,47 +125,26 @@ static void test_lru1(void) {
 static void test_lru2(void) {
   iwrc rc = 0;
   struct iwhmap *hm = iwhmap_create_u32(0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(hm);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(hm);
   iwhmap_lru_init(hm, iwhmap_lru_eviction_max_count, (void*) (uintptr_t) 1024UL);
   for (int i = 0; i < 2048; ++i) {
     rc = iwhmap_put_u32(hm, i + 1, (void*) (intptr_t) i);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
   uint32_t val = iwhmap_count(hm);
-  CU_ASSERT_EQUAL(val, 1024);
+  IW_TEST_ASSERT_EQUAL(val, 1024);
 
   iwhmap_destroy(hm);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(test_murmur_hash),
+  IW_TEST_CASE(test_basic_crud_str),
+  IW_TEST_CASE(test_lru1),
+  IW_TEST_CASE(test_lru2),
+};
 
-  /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-
-  /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwhmap_test1", init_suite, clean_suite);
-
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Add the tests to the suite */
-  if (  (NULL == CU_add_test(pSuite, "test_murmur_hash", test_murmur_hash))
-     || (NULL == CU_add_test(pSuite, "test_basic_crud_str", test_basic_crud_str))
-     || (NULL == CU_add_test(pSuite, "test_lru1", test_lru1))
-     || (NULL == CU_add_test(pSuite, "test_lru2", test_lru2))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Run all tests using the CUnit Basic interface */
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwhmap_test1", cases, init_suite, 0));
 }
+

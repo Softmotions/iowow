@@ -3,7 +3,7 @@
 #include "iwutils.h"
 #include "iwcfg.h"
 
-#include <CUnit/Basic.h>
+#include "tests.h"
 #include <pthread.h>
 #include <stdatomic.h>
 #include <unistd.h>
@@ -35,10 +35,6 @@ int init_suite(void) {
   return rc;
 }
 
-int clean_suite(void) {
-  return 0;
-}
-
 static int logstage(FILE *f, const char *name, struct iwdb *db) {
   int rci = fprintf(f, "\n#### Stage: %s\n", name);
   iwkvd_db(f, db, /*IWKVD_PRINT_NO_LEVEVELS*/ 0, 0);
@@ -51,7 +47,7 @@ static void* iwkv_test1_worker(void *op) {
   struct CTX *ctx = t->ctx;
   int mynum;
   int rci = pthread_mutex_lock(&ctx->mtx);
-  CU_ASSERT_EQUAL_FATAL(rci, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rci, 0);
   ++ctx->readynum;
   mynum = ctx->readynum;
   if (mynum == ctx->thrnum) {
@@ -70,14 +66,14 @@ static void* iwkv_test1_worker(void *op) {
     val.size = sizeof(uint64_t);
     val.data = &v;
     iwrc rc = iwkv_put(ctx->db, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
   return 0;
 }
 
 static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   FILE *f = fopen("iwkv_test3_1.log", "w+");
-  CU_ASSERT_PTR_NOT_NULL(f);
+  IW_TEST_ASSERT_PTR_NOT_NULL(f);
   const int nrecs = thrnum * recth;
   struct TASK *tasks = calloc(thrnum, sizeof(*tasks));
   struct VN *arr = calloc(nrecs, sizeof(*arr));
@@ -117,21 +113,21 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   struct iwkv *iwkv;
   struct iwkv_val key, val;
   iwrc rc = iwkv_open(&opts, &iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwkv_db(iwkv, 1, IWDB_VNUM64_KEYS, &ctx.db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   for (int i = 0; i < thrnum; ++i) {
     tasks[i].ctx = &ctx;
     tasks[i].start = i * recth;
     tasks[i].cnt = recth;
     int rci = pthread_create(&tasks[i].thr, 0, iwkv_test1_worker, &tasks[i]);
-    CU_ASSERT_EQUAL_FATAL(rci, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rci, 0);
   }
   for (int i = 0; i < thrnum; ++i) {
     int rci = pthread_join(tasks[i].thr, 0);
-    CU_ASSERT_EQUAL_FATAL(rci, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rci, 0);
   }
   fprintf(stderr, "\nChecking DB....");
   for (int i = 0; i < nrecs; ++i) {
@@ -144,9 +140,9 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
       iwlog_ecode_error3(rc);
       //break;
     } else {
-      CU_ASSERT_EQUAL_FATAL(val.size, sizeof(uint64_t));
+      IW_TEST_ASSERT_EQUAL_FATAL(val.size, sizeof(uint64_t));
       memcpy(&v, val.data, sizeof(uint64_t));
-      CU_ASSERT_EQUAL_FATAL(v, i);
+      IW_TEST_ASSERT_EQUAL_FATAL(v, i);
     }
     iwkv_val_dispose(&val);
   }
@@ -155,7 +151,7 @@ static void iwkv_test3_impl(int thrnum, int recth, bool wal) {
   free(arr);
   free(tasks);
   rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   fclose(f);
 }
 
@@ -167,33 +163,12 @@ static void iwkv_test3_2(void) {
   iwkv_test3_impl(4, 30000, true);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(iwkv_test3_1),
+  IW_TEST_CASE(iwkv_test3_2),
+};
 
-  /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-
-  /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwkv_test3", init_suite, clean_suite);
-
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Add the tests to the suite */
-  if (  (NULL == CU_add_test(pSuite, "iwkv_test3_1", iwkv_test3_1))
-     || (NULL == CU_add_test(pSuite, "iwkv_test3_2", iwkv_test3_2))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Run all tests using the CUnit Basic interface */
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwkv_test3", cases, init_suite, 0));
 }
+

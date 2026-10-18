@@ -5,15 +5,11 @@
 #include "iwjson.h"
 
 #include <stdlib.h>
-#include <CUnit/Basic.h>
+#include "tests.h"
 
 int init_suite(void) {
   int rc = iw_init();
   return rc;
-}
-
-int clean_suite(void) {
-  return 0;
 }
 
 void _jbl_test1_1(int num, iwrc expected, jbl_print_flags_t pf) {
@@ -25,31 +21,31 @@ void _jbl_test1_1(int num, iwrc expected, jbl_print_flags_t pf) {
   char *data;
   char *edata = 0;
   struct iwxstr *res = iwxstr_create_empty();
-  CU_ASSERT_PTR_NOT_NULL_FATAL(res);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(res);
 
   snprintf(path, sizeof(path), "data%c%03d.json", IW_PATH_CHR, num);
   snprintf(path_expected, sizeof(path_expected), "data%c%03d.expected.json", IW_PATH_CHR, num);
   data = iwu_file_read_as_buf(path);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(data);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(data);
 
   pool = iwpool_create(1024);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pool);
 
   rc = jbn_from_json(data, &node, pool);
   if (rc) {
     iwlog_ecode_error3(rc);
   }
-  CU_ASSERT_EQUAL_FATAL(rc, expected);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(node);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, expected);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(node);
   if (expected) {
     goto finish;
   }
 
   rc = jbn_as_json(node, jbl_xstr_json_printer, res, pf);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   edata = iwu_file_read_as_buf(path_expected);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(edata);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(edata);
 
   FILE *f1 = fopen("f1.txt", "w");
   FILE *f2 = fopen("f2.txt", "w");
@@ -61,7 +57,7 @@ void _jbl_test1_1(int num, iwrc expected, jbl_print_flags_t pf) {
   fprintf(stderr, "ED %d\n%s\n", num, edata);
   fprintf(stderr, "ED %d\n%s\n", num, iwxstr_ptr(res));
 
-  CU_ASSERT_EQUAL_FATAL(strcmp(edata, iwxstr_ptr(res)), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(strcmp(edata, iwxstr_ptr(res)), 0);
 
 finish:
   if (edata) {
@@ -87,23 +83,23 @@ void jbl_test1_2(void) {
                      "{}, {\"z\":false, \"t\":true}]}";
   struct jbl *jbl;
   iwrc rc = jbl_from_json(&jbl, data);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwxstr *xstr = iwxstr_create_empty();
-  CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   rc = jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   int res = strcmp(iwxstr_ptr(xstr),
                    "{\"foo\":\"b\\\"ar\",\"num1\":1223,\"n\\\"um2\":10.1226222,"
                    "\"list\":[3,2.1,1,\"one\",\"two\",{},{\"z\":false,\"t\":true}]}");
-  CU_ASSERT_EQUAL(res, 0);
+  IW_TEST_ASSERT_EQUAL(res, 0);
   jbl_destroy(&jbl);
 
   //
   rc = jbl_from_json(&jbl, "{ ");
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PARSE_JSON);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PARSE_JSON);
 
   iwxstr_destroy(xstr);
 }
@@ -111,92 +107,92 @@ void jbl_test1_2(void) {
 static void jbl_test1_3(void) {
   struct jbl_ptr *jp;
   iwrc rc = jbl_ptr_alloc("/", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(jp->cnt, 1);
-  CU_ASSERT_TRUE(*jp->n[0] == '\0')
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(jp->cnt, 1);
+  IW_TEST_ASSERT_TRUE(*jp->n[0] == '\0');
   free(jp);
 
   rc = jbl_ptr_alloc("/foo", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(jp->cnt, 1);
-  CU_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(jp->cnt, 1);
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
   free(jp);
 
   rc = jbl_ptr_alloc("/foo/bar", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(jp->cnt, 2);
-  CU_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
-  CU_ASSERT_FALSE(strcmp(jp->n[1], "bar"));
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(jp->cnt, 2);
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[1], "bar"));
   free(jp);
 
   rc = jbl_ptr_alloc("/foo/bar/0/baz", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(jp->cnt, 4);
-  CU_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
-  CU_ASSERT_FALSE(strcmp(jp->n[1], "bar"));
-  CU_ASSERT_FALSE(strcmp(jp->n[2], "0"));
-  CU_ASSERT_FALSE(strcmp(jp->n[3], "baz"));
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(jp->cnt, 4);
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[1], "bar"));
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[2], "0"));
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[3], "baz"));
   free(jp);
 
   rc = jbl_ptr_alloc("/foo/b~0ar/0/b~1az", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(jp->cnt, 4);
-  CU_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
-  CU_ASSERT_FALSE(strcmp(jp->n[1], "b~ar"));
-  CU_ASSERT_FALSE(strcmp(jp->n[2], "0"));
-  CU_ASSERT_FALSE(strcmp(jp->n[3], "b/az"));
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(jp->cnt, 4);
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[0], "foo"));
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[1], "b~ar"));
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[2], "0"));
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[3], "b/az"));
   free(jp);
 
   // RFC 6901: a `~` must be escaped as `~0` or `~1`.
   // A lone trailing `~` used to make the decoder step over the NUL terminator
   // and read past the end of the path buffer (CWE-125).
   rc = jbl_ptr_alloc("/~", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
-  CU_ASSERT_PTR_NULL(jp);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
+  IW_TEST_ASSERT_PTR_NULL(jp);
   free(jp);
 
   rc = jbl_ptr_alloc("/foo~", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
-  CU_ASSERT_PTR_NULL(jp);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
+  IW_TEST_ASSERT_PTR_NULL(jp);
   free(jp);
 
   rc = jbl_ptr_alloc("/foo/~", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
-  CU_ASSERT_PTR_NULL(jp);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
+  IW_TEST_ASSERT_PTR_NULL(jp);
   free(jp);
 
   rc = jbl_ptr_alloc("/a~b", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
-  CU_ASSERT_PTR_NULL(jp);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_JSON_POINTER);
+  IW_TEST_ASSERT_PTR_NULL(jp);
   free(jp);
 
   // Escapes at the very end of the path are valid and must decode correctly
   rc = jbl_ptr_alloc("/~0", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(jp->cnt, 1);
-  CU_ASSERT_FALSE(strcmp(jp->n[0], "~"));
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(jp->cnt, 1);
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[0], "~"));
   free(jp);
 
   rc = jbl_ptr_alloc("/~1", &jp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(jp->cnt, 1);
-  CU_ASSERT_FALSE(strcmp(jp->n[0], "/"));
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(jp->cnt, 1);
+  IW_TEST_ASSERT_FALSE(strcmp(jp->n[0], "/"));
   free(jp);
 
   rc = jbl_ptr_alloc("/foo/", &jp);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
   free(jp);
 
   rc = jbl_ptr_alloc("//", &jp);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
   free(jp);
 
   rc = jbl_ptr_alloc("", &jp);
-  CU_ASSERT_EQUAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
   free(jp);
 
   rc = jbl_ptr_alloc("~", &jp);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_JSON_POINTER);
   free(jp);
 }
 
@@ -220,70 +216,70 @@ static void jbl_test1_4(void) {
   const char *sval;
   int ival;
   iwrc rc = jbl_from_json(&jbl, data);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbl_at(jbl, "/foo", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
 
   sval = jbl_get_str(at);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(sval);
-  CU_ASSERT_STRING_EQUAL(sval, "bar");
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(sval);
+  IW_TEST_ASSERT_STR_EQUAL(sval, "bar");
   jbl_destroy(&at);
 
   rc = jbl_at(jbl, "/foo2/foo3", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
-  CU_ASSERT_TRUE(binn_is_object(&at->bn));
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_TRUE(binn_is_object(&at->bn));
   rc = jbl_at(at, "/foo4", &at2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at2);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at2);
   sval = jbl_get_str(at2);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(sval);
-  CU_ASSERT_STRING_EQUAL(sval, "bar4");
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(sval);
+  IW_TEST_ASSERT_STR_EQUAL(sval, "bar4");
   jbl_destroy(&at2);
   jbl_destroy(&at);
 
   at = (void*) 1;
   rc = jbl_at(jbl, "/foo2/foo10", &at);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_PATH_NOTFOUND);
-  CU_ASSERT_PTR_NULL(at);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_PATH_NOTFOUND);
+  IW_TEST_ASSERT_PTR_NULL(at);
   rc = 0;
 
   rc = jbl_at(jbl, "/foo2/*/foo4", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
   sval = jbl_get_str(at);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(sval);
-  CU_ASSERT_STRING_EQUAL(sval, "bar4");
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(sval);
+  IW_TEST_ASSERT_STR_EQUAL(sval, "bar4");
   jbl_destroy(&at);
 
   rc = jbl_at(jbl, "/list1/1", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
   sval = jbl_get_str(at);
-  CU_ASSERT_STRING_EQUAL(sval, "two");
+  IW_TEST_ASSERT_STR_EQUAL(sval, "two");
   jbl_destroy(&at);
 
   rc = jbl_at(jbl, "/list1/2/three", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
   ival = jbl_get_i32(at);
-  CU_ASSERT_EQUAL(ival, 3);
+  IW_TEST_ASSERT_EQUAL(ival, 3);
   jbl_destroy(&at);
 
   rc = jbl_at(jbl, "/list1/*/three", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
   ival = jbl_get_i32(at);
-  CU_ASSERT_EQUAL(ival, 3);
+  IW_TEST_ASSERT_EQUAL(ival, 3);
   jbl_destroy(&at);
 
   rc = jbl_at(jbl, "/list1/*/*", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
   ival = jbl_get_i32(at);
-  CU_ASSERT_EQUAL(ival, 3);
+  IW_TEST_ASSERT_EQUAL(ival, 3);
   jbl_destroy(&at);
 
   jbl_destroy(&jbl);
@@ -292,7 +288,7 @@ static void jbl_test1_4(void) {
 
 static void jbl_test1_5(void) {
   struct iwxstr *xstr = iwxstr_create_empty();
-  CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   //  { "foo": "bar",
   //    "foo2": {
@@ -315,24 +311,24 @@ static void jbl_test1_5(void) {
   // Remove ROOT
   struct jbl_patch p1[] = { { .op = JBP_REMOVE, .path = "/" } };
   iwrc rc = jbl_from_json(&jbl, data);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbl_patch(jbl, p1, sizeof(p1) / sizeof(p1[0]));
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   jbl_destroy(&jbl);
 
 
   // Remove "/foo"
   struct jbl_patch p2[] = { { .op = JBP_REMOVE, .path = "/foo" } };
   rc = jbl_from_json(&jbl, data);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbl_patch(jbl, p2, sizeof(p2) / sizeof(p2[0]));
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   res = strcmp(iwxstr_ptr(
                  xstr),
                "{\"foo2\":{\"foo3\":{\"foo4\":\"bar4\"},\"foo5\":\"bar5\"},\"num1\":1,\"list1\":[\"one\",\"two\",{\"three\":3}]}");
-  CU_ASSERT_EQUAL(res, 0);
+  IW_TEST_ASSERT_EQUAL(res, 0);
   jbl_destroy(&jbl);
   iwxstr_clear(xstr);
 
@@ -343,14 +339,14 @@ static void jbl_test1_5(void) {
     { .op = JBP_REMOVE, .path = "/list1/1" }
   };
   rc = jbl_from_json(&jbl, data);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbl_patch(jbl, p3, sizeof(p3) / sizeof(p3[0]));
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   res = strcmp(iwxstr_ptr(xstr),
                "{\"foo\":\"bar\",\"foo2\":{\"foo3\":{},\"foo5\":\"bar5\"},\"num1\":1,\"list1\":[\"one\",{\"three\":3}]}");
-  CU_ASSERT_EQUAL(res, 0);
+  IW_TEST_ASSERT_EQUAL(res, 0);
   jbl_destroy(&jbl);
   iwxstr_clear(xstr);
   iwxstr_destroy(xstr);
@@ -358,12 +354,12 @@ static void jbl_test1_5(void) {
 }
 
 static void apply_patch(const char *data, const char *patch, const char *result, struct iwxstr *xstr, iwrc *rcp) {
-  CU_ASSERT_TRUE_FATAL(data && patch && xstr && rcp);
+  IW_TEST_ASSERT_TRUE_FATAL(data && patch && xstr && rcp);
   struct jbl *jbl = 0;
   char *data2 = iwu_replace_char(strdup(data), '\'', '"');
   char *patch2 = iwu_replace_char(strdup(patch), '\'', '"');
   char *result2 = result ? iwu_replace_char(strdup(result), '\'', '"') : 0;
-  CU_ASSERT_TRUE_FATAL(data2 && patch2);
+  IW_TEST_ASSERT_TRUE_FATAL(data2 && patch2);
 
   iwrc rc = jbl_from_json(&jbl, data2);
   RCGO(rc, finish);
@@ -375,7 +371,7 @@ static void apply_patch(const char *data, const char *patch, const char *result,
   RCGO(rc, finish);
 
   if (result2) {
-    CU_ASSERT_STRING_EQUAL(result2, iwxstr_ptr(xstr));
+    IW_TEST_ASSERT_STR_EQUAL(result2, iwxstr_ptr(xstr));
   }
 
 finish:
@@ -395,12 +391,12 @@ finish:
 }
 
 static void apply_merge_patch(const char *data, const char *patch, const char *result, struct iwxstr *xstr, iwrc *rcp) {
-  CU_ASSERT_TRUE_FATAL(data && patch && xstr && rcp);
+  IW_TEST_ASSERT_TRUE_FATAL(data && patch && xstr && rcp);
   struct jbl *jbl = 0;
   char *data2 = iwu_replace_char(strdup(data), '\'', '"');
   char *patch2 = iwu_replace_char(strdup(patch), '\'', '"');
   char *result2 = result ? iwu_replace_char(strdup(result), '\'', '"') : 0;
-  CU_ASSERT_TRUE_FATAL(data2 && patch2);
+  IW_TEST_ASSERT_TRUE_FATAL(data2 && patch2);
 
   iwrc rc = jbl_from_json(&jbl, data2);
   RCGO(rc, finish);
@@ -412,7 +408,7 @@ static void apply_merge_patch(const char *data, const char *patch, const char *r
   RCGO(rc, finish);
 
   if (result2) {
-    CU_ASSERT_STRING_EQUAL(result2, iwxstr_ptr(xstr));
+    IW_TEST_ASSERT_STR_EQUAL(result2, iwxstr_ptr(xstr));
   }
 
 finish:
@@ -435,76 +431,76 @@ finish:
 static void jbl_test1_6(void) {
   iwrc rc;
   struct iwxstr *xstr = iwxstr_create_empty();
-  CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   apply_patch("{'foo':'bar','foo2':{'foo3':{'foo4':'bar4'},'foo5':'bar5'},'num1':1,'list1':['one','two',{'three':3}]}",
               "[{'op':'remove', 'path':'/foo'}]",
               "{'foo2':{'foo3':{'foo4':'bar4'},'foo5':'bar5'},'num1':1,'list1':['one','two',{'three':3}]}",
               xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // 4.1. add with missing object
   apply_patch("{ 'q': { 'bar': 2 } }",
               "[ {'op': 'add', 'path': '/a/b', 'value': 1} ]",
               0, xstr, &rc);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_PATCH_TARGET_INVALID);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_PATCH_TARGET_INVALID);
   iwxstr_clear(xstr);
 
   // A.1.  Adding an Object Member
   apply_patch("{'foo': 'bar'}",
               "[ { 'op': 'add', 'path': '/baz', 'value': 'qux' } ]",
               "{'foo':'bar','baz':'qux'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.2.  Adding an Array Element
   apply_patch("{'foo': [ 'bar', 'baz' ]}",
               "[{ 'op': 'add', 'path': '/foo/1', 'value': 'qux' }]",
               "{'foo':['bar','qux','baz']}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.3.  Removing an Object Member
   apply_patch("{'baz': 'qux','foo': 'bar'}",
               "[{ 'op': 'remove', 'path': '/baz' }]",
               "{'foo':'bar'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.4.  Removing an Array Element
   apply_patch("{'foo': [ 'bar', 'qux', 'baz' ]}",
               "[{ 'op': 'remove', 'path': '/foo/1' }]",
               "{'foo':['bar','baz']}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.5.  Replacing a Value
   apply_patch("{'baz': 'qux','foo': 'bar'}",
               "[{ 'op': 'replace', 'path': '/baz', 'value': 'boo' }]",
               "{'foo':'bar','baz':'boo'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.5.1 #232
   apply_patch("{'a':{'c':'N','s':'F'}}",
               "[{'op':'replace', 'path':'/a/s', 'value':'A'}]",
               "{'a':{'c':'N','s':'A'}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.6.  Moving a Value
   apply_patch("{'foo': {'bar': 'baz','waldo': 'fred'},'qux': {'corge': 'grault'}}",
               "[{ 'op': 'move', 'from': '/foo/waldo', 'path': '/qux/thud' }]",
               "{'foo':{'bar':'baz'},'qux':{'corge':'grault','thud':'fred'}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.7.  Moving an Array Element
   apply_patch("{'foo': [ 'all', 'grass', 'cows', 'eat' ]}",
               "[{ 'op': 'move', 'from': '/foo/1', 'path': '/foo/3' }]",
               "{'foo':['all','cows','eat','grass']}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.8.  Testing a Value: Success
@@ -514,7 +510,7 @@ static void jbl_test1_6(void) {
               "{ 'op': 'test', 'path': '/foo/1', 'value': 2 }"
               "]",
               "{'baz':'qux','foo':['a',2,'c']}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.8.  Testing a Value Object
@@ -524,7 +520,7 @@ static void jbl_test1_6(void) {
     0,
     xstr,
     &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_patch(
@@ -533,7 +529,7 @@ static void jbl_test1_6(void) {
     0,
     xstr,
     &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PATCH_TEST_FAILED);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PATCH_TEST_FAILED);
   iwxstr_clear(xstr);
 
   apply_patch(
@@ -542,7 +538,7 @@ static void jbl_test1_6(void) {
     0,
     xstr,
     &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_patch(
@@ -551,7 +547,7 @@ static void jbl_test1_6(void) {
     0,
     xstr,
     &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_patch(
@@ -560,102 +556,102 @@ static void jbl_test1_6(void) {
     0,
     xstr,
     &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PATCH_TEST_FAILED);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PATCH_TEST_FAILED);
   iwxstr_clear(xstr);
 
   // A.9.  Testing a Value: Error
   apply_patch("{ 'baz': 'qux'}",
               "[{ 'op': 'test', 'path': '/baz', 'value': 'bar' }]",
               0, xstr, &rc);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_PATCH_TEST_FAILED);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_PATCH_TEST_FAILED);
   iwxstr_clear(xstr);
 
   // A.10.  Adding a nested Member Object
   apply_patch("{'foo': 'bar'}",
               "[{ 'op': 'add', 'path': '/child', 'value': { 'grandchild': { } } }]",
               "{'foo':'bar','child':{'grandchild':{}}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.11.  Ignoring Unrecognized Elements
   apply_patch("{'foo': 'bar'}",
               "[{ 'op': 'add', 'path': '/baz', 'value': 'qux', 'xyz': 123 }]",
               "{'foo':'bar','baz':'qux'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.12.  Adding to a Non-existent Target
   apply_patch("{'foo': 'bar'}",
               "[{ 'op': 'add', 'path': '/baz/bat', 'value': 'qux' }]",
               0, xstr, &rc);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_PATCH_TARGET_INVALID);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_PATCH_TARGET_INVALID);
   iwxstr_clear(xstr);
 
   // A.14. ~ Escape Ordering
   apply_patch("{'/': 9,'~1': 10}",
               "[{'op': 'test', 'path': '/~01', 'value': 10}]",
               "{'/':9,'~1':10}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // A.15. Comparing Strings and Numbers
   apply_patch("{'/': 9,'~1': 10}",
               "[{'op': 'test', 'path': '/~01', 'value': '10'}]",
               "{'/':9,'~1':10}", xstr, &rc);
-  CU_ASSERT_EQUAL(rc, JBL_ERROR_PATCH_TEST_FAILED);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_PATCH_TEST_FAILED);
   iwxstr_clear(xstr);
 
   // A.16. Adding an Array Value
   apply_patch("{'foo': ['bar']}",
               "[{'op': 'add', 'path': '/foo/-', 'value': ['abc', 'def'] }]",
               "{'foo':['bar',['abc','def']]}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // Apply non standard `increment` patch
   apply_patch("{'foo': 1}",
               "[{'op': 'increment', 'path': '/foo', 'value': 2}]",
               "{'foo':3}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   // Apply non standard `swap` patch
   apply_patch("{'foo': ['bar'], 'baz': {'gaz': 11}}",
               "[{'op': 'swap', 'from': '/foo/0', 'path': '/baz/gaz'}]",
               "{'foo':[11],'baz':{'gaz':'bar'}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_patch("{'foo': ['bar'], 'baz': {'gaz': 11}}",
               "[{'op': 'swap', 'from': '/foo/0', 'path': '/baz/zaz'}]",
               "{'foo':[],'baz':{'gaz':11,'zaz':'bar'}}", xstr, &rc);
 
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_patch("{'foo': 1}",
               "[{'op': 'increment', 'path': '/foo', 'value': true}]",
               "{'foo':3}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PATCH_INVALID_VALUE);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PATCH_INVALID_VALUE);
   iwxstr_clear(xstr);
 
   // Apply non standard add_create patch
   apply_patch("{'foo': {'bar': 1}}",
               "[{'op': 'add_create', 'path': '/foo/zaz/gaz', 'value': 22}]",
               "{'foo':{'bar':1,'zaz':{'gaz':22}}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_patch("{'foo': {'bar': 1}}",
               "[{'op': 'add_create', 'path': '/foo/bar/gaz', 'value': 22}]",
               "{}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PATCH_TARGET_INVALID);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, JBL_ERROR_PATCH_TARGET_INVALID);
   iwxstr_clear(xstr);
 
   apply_patch("{'foo': {'bar': 1}}",
               "[{'op': 'add_create', 'path': '/zaz/gaz', 'value': [1,2,3]}]",
               "{'foo':{'bar':1},'zaz':{'gaz':[1,2,3]}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   iwxstr_destroy(xstr);
@@ -664,92 +660,92 @@ static void jbl_test1_6(void) {
 static void jbl_test1_7(void) {
   iwrc rc;
   struct iwxstr *xstr = iwxstr_create_empty();
-  CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   // #233
   apply_merge_patch("{'n':'nv'}",
                     "{'a':{'c':'v','d':'k'}}",
                     "{'n':'nv','a':{'c':'v','d':'k'}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'a':'b'}",
                     "{'a':'c'}",
                     "{'a':'c'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
 
   apply_merge_patch("{'a':'b'}",
                     "{'b':'c'}",
                     "{'a':'b','b':'c'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'a':'b'}",
                     "{'a':null}",
                     "{}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'a':'b','b':'c'}",
                     "{'a':null}",
                     "{'b':'c'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'a':['b']}",
                     "{'a':'c'}",
                     "{'a':'c'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'a':'c'}",
                     "{'a':['b']}",
                     "{'a':['b']}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'a':{'b':'c'}}",
                     "{'a':{'b':'d','c':null}}",
                     "{'a':{'b':'d'}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'a':[{'b':'c'}]}",
                     "{'a':[1]}",
                     "{'a':[1]}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("['a','b']",
                     "['c','d']",
                     "['c','d']", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'a':'b'}",
                     "['c']",
                     "['c']", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{'e':null}",
                     "{'a':1}",
                     "{'e':null,'a':1}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("[1,2]",
                     "{'a':'b','c':null}",
                     "{'a':'b'}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
   apply_merge_patch("{}",
                     "{'a':{'bb':{'ccc':null}}}",
                     "{'a':{'bb':{}}}", xstr, &rc);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwxstr_clear(xstr);
 
 
@@ -759,39 +755,39 @@ static void jbl_test1_7(void) {
 static void jbl_test1_8(void) {
   struct jbl *jbl, *nested, *at;
   iwrc rc = jbl_create_empty_object(&jbl);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbl_create_empty_object(&nested);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbl_set_int64(nested, "nnum", 2233);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbl_set_int64(jbl, "mynum", 13223);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbl_set_string(jbl, "foo", "bar");
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbl_set_nested(jbl, "nested", nested);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbl_at(jbl, "/mynum", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
-  CU_ASSERT_EQUAL(jbl_get_i64(at), 13223);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_EQUAL(jbl_get_i64(at), 13223);
   jbl_destroy(&at);
 
   rc = jbl_at(jbl, "/foo", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
-  CU_ASSERT_STRING_EQUAL(jbl_get_str(at), "bar");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_STR_EQUAL(jbl_get_str(at), "bar");
   jbl_destroy(&at);
 
   rc = jbl_at(jbl, "/nested/nnum", &at);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(at);
-  CU_ASSERT_EQUAL(jbl_get_i64(at), 2233);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(at);
+  IW_TEST_ASSERT_EQUAL(jbl_get_i64(at), 2233);
   jbl_destroy(&at);
 
   jbl_destroy(&jbl);
@@ -801,8 +797,8 @@ static void jbl_test1_8(void) {
 static void jbl_test1_9(void) {
   struct iwpool *pool = iwpool_create(512);
   struct iwpool *cpool = iwpool_create(512);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(pool);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(cpool);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pool);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(cpool);
   const char *data = "{\"foo\": \"b\\\"ar\", \"num1\":1223,"
                      "\"n\\\"um2\":10.1226222, "
                      "\"list\":[3,2.1,1,\"one\" \"two\", "
@@ -810,20 +806,20 @@ static void jbl_test1_9(void) {
 
   struct jbl_node *n, *cn;
   iwrc rc = jbn_from_json(data, &n, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_clone(n, &cn, cpool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwxstr *xstr = iwxstr_create_empty();
-  CU_ASSERT_PTR_NOT_NULL_FATAL(xstr);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(xstr);
 
   iwpool_destroy(pool);
 
   rc = jbn_as_json(cn, jbl_xstr_json_printer, xstr, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
-  CU_ASSERT_STRING_EQUAL(iwxstr_ptr(
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(
                            xstr),
                          "{\"foo\":\"b\\\"ar\",\"num1\":1223,\"n\\\"um2\":10.1226222,\"list\":[3,2.1,1,\"one\",\"two\",{},{\"z\":false,\"arr\":[9,8],\"t\":true}]}"
                          );
@@ -844,26 +840,26 @@ static void jbl_test1_10(void) {
   const char *tgt_data = "{\"test\":{\"nested1\":22}}";
   struct jbl_node *n1, *n2;
   iwrc rc = jbn_from_json(src_data, &n1, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_from_json(tgt_data, &n2, tpool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_copy_path(n1, "/list/6/arr", n2, "/test/nested1", false, false, tpool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_copy_path(n1, "/list/6/t", n2, "/test/t2", false, false, tpool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_copy_path(n1, "/foo", n2, "/bar", false, false, tpool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   iwpool_destroy(pool);
 
   rc = jbn_as_json(n2, jbl_xstr_json_printer, xstr, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
-  CU_ASSERT_STRING_EQUAL(iwxstr_ptr(xstr),
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(xstr),
                          "{\"test\":{\"nested1\":[9,8],\"t2\":true},\"bar\":\"b\\\"ar\"}");
 
   iwpool_destroy(tpool);
@@ -882,19 +878,19 @@ static void jbl_test1_11(void) {
 
   struct jbl_node *n1, *n2;
   iwrc rc = jbn_from_json(src_data, &n1, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_from_json(tgt_data, &n2, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   const char *paths[] = { "/foo", "/list/1", 0 };
   rc = jbn_copy_paths(n1, n2, paths, false, false, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = jbn_as_json(n2, jbl_xstr_json_printer, xstr, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
-  CU_ASSERT_STRING_EQUAL(iwxstr_ptr(xstr),
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(xstr),
                          "{\"test\":{\"nested1\":22},\"list\":[0,2.1],\"foo\":\"b\\\"ar\"}");
 
   iwpool_destroy(pool);
@@ -905,7 +901,7 @@ void jbl_test1_12(void) {
   struct iwpool *pool = iwpool_create_empty();
   struct jbl_node *n;
   iwrc rc = jbn_from_json("{\"foo\":1.1}", &n, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   iwpool_destroy(pool);
 }
 
@@ -913,64 +909,52 @@ void jbl_test1_13(void) {
   struct iwpool *pool = iwpool_create_empty();
   struct jbl_node *n, *n2;
   iwrc rc = jbn_from_js("{foo:'bar', z:null, x: .1, y:-.1, 'baz':1, \"gaz\":['one','two']}", &n, pool);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = jbn_at(n, "/foo", &n2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(n2->key, "foo");
-  CU_ASSERT_STRING_EQUAL(n2->vptr, "bar");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(n2->key, "foo");
+  IW_TEST_ASSERT_STR_EQUAL(n2->vptr, "bar");
 
   rc = jbn_at(n, "/baz", &n2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_STRING_EQUAL(n2->key, "baz");
-  CU_ASSERT_EQUAL(n2->type, JBV_I64);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_STR_EQUAL(n2->key, "baz");
+  IW_TEST_ASSERT_EQUAL(n2->type, JBV_I64);
 
   rc = jbn_at(n, "/gaz/1", &n2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(n2->type, JBV_STR);
-  CU_ASSERT_STRING_EQUAL(n2->vptr, "two");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(n2->type, JBV_STR);
+  IW_TEST_ASSERT_STR_EQUAL(n2->vptr, "two");
 
   rc = jbn_at(n, "/x", &n2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(n2->type, JBV_F64);
-  CU_ASSERT_DOUBLE_EQUAL(n2->vf64, .1, 0.001);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(n2->type, JBV_F64);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(n2->vf64, .1, 0.001);
 
   rc = jbn_at(n, "/y", &n2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_EQUAL(n2->type, JBV_F64);
-  CU_ASSERT_DOUBLE_EQUAL(n2->vf64, -.1, 0.001);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(n2->type, JBV_F64);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(n2->vf64, -.1, 0.001);
 
   iwpool_destroy(pool);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-  pSuite = CU_add_suite("jbl_test1", init_suite, clean_suite);
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-  if (  (NULL == CU_add_test(pSuite, "jbl_test1_1", jbl_test1_1))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_2", jbl_test1_2))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_3", jbl_test1_3))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_4", jbl_test1_4))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_5", jbl_test1_5))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_6", jbl_test1_6))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_7", jbl_test1_7))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_8", jbl_test1_8))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_9", jbl_test1_9))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_10", jbl_test1_10))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_11", jbl_test1_11))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_12", jbl_test1_12))
-     || (NULL == CU_add_test(pSuite, "jbl_test1_13", jbl_test1_13))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(jbl_test1_1),
+  IW_TEST_CASE(jbl_test1_2),
+  IW_TEST_CASE(jbl_test1_3),
+  IW_TEST_CASE(jbl_test1_4),
+  IW_TEST_CASE(jbl_test1_5),
+  IW_TEST_CASE(jbl_test1_6),
+  IW_TEST_CASE(jbl_test1_7),
+  IW_TEST_CASE(jbl_test1_8),
+  IW_TEST_CASE(jbl_test1_9),
+  IW_TEST_CASE(jbl_test1_10),
+  IW_TEST_CASE(jbl_test1_11),
+  IW_TEST_CASE(jbl_test1_12),
+  IW_TEST_CASE(jbl_test1_13),
+};
+
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("jbl_test1", cases, init_suite, 0));
 }
+

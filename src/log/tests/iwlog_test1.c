@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <CUnit/Basic.h>
+#include "tests.h"
 
 #include "iwlog.h"
 #include "iwutils.h"
@@ -40,17 +40,13 @@ int init_suite(void) {
   return rc;
 }
 
-int clean_suite(void) {
-  return 0;
-}
-
 void iwlog_test1(void) {
   uint32_t ec = (0xfffffffdU & 0x3fffffffU);
   uint64_t rc = 0xfafafafaULL;
   rc = iwrc_set_errno(rc, ec);
   uint32_t ec2 = iwrc_strip_errno(&rc);
-  CU_ASSERT_EQUAL(ec, ec2);
-  CU_ASSERT_EQUAL(rc, 0xfafafafaULL);
+  IW_TEST_ASSERT_EQUAL(ec, ec2);
+  IW_TEST_ASSERT_EQUAL(rc, 0xfafafafaULL);
 }
 
 void iwlog_test2(void) {
@@ -59,9 +55,9 @@ void iwlog_test2(void) {
   size_t sz;
   char fname[] = "iwlog_test1_XXXXXX";
   int fd = mkstemp(fname);
-  CU_ASSERT_TRUE(fd != 1);
+  IW_TEST_ASSERT_TRUE(fd != 1);
   FILE *out = fdopen(fd, "w");
-  CU_ASSERT_PTR_NOT_NULL(out);
+  IW_TEST_ASSERT_PTR_NOT_NULL(out);
 
   fprintf(stderr, "Redirecting log to: %s" IW_LINE_SEP, fname);
 
@@ -75,61 +71,40 @@ void iwlog_test2(void) {
   errno = ENOENT;
   iwrc ecode = iwrc_set_errno(IW_ERROR_ERRNO, errno);
   rv = iwlog(IWLOG_DEBUG, ecode, NULL, 0, "ERRNO Message");
-  CU_ASSERT_EQUAL(rv, 0);
+  IW_TEST_ASSERT_EQUAL(rv, 0);
   errno = 0;
   fclose(out);
 
   out = fopen(fname, "r");
-  CU_ASSERT_PTR_NOT_NULL_FATAL(out);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(out);
 
   char buf[1024];
   memset(buf, 0, 1024);
   sz = fread(buf, 1, 1024, out);
-  CU_ASSERT_TRUE(sz);
+  IW_TEST_ASSERT_TRUE(sz);
   fprintf(stderr, "%s\n\n" IW_LINE_SEP, buf);
 
-  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "7fa79c75beac413d83f35ffb6bf571b9"));
-  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "7e94f7214af64513b30ab4df3f62714aC"));
-  CU_ASSERT_PTR_NOT_NULL(strstr(buf,
+  IW_TEST_ASSERT_PTR_NOT_NULL(strstr(buf, "7fa79c75beac413d83f35ffb6bf571b9"));
+  IW_TEST_ASSERT_PTR_NOT_NULL(strstr(buf, "7e94f7214af64513b30ab4df3f62714aC"));
+  IW_TEST_ASSERT_PTR_NOT_NULL(strstr(buf,
                                 "DEBUG 70001|2|0|Error with expected errno "
                                 "status set. (IW_ERROR_ERRNO)|"));
-  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERRNO Message"));
-  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "ERROR iwlog_test1.c:"));
+  IW_TEST_ASSERT_PTR_NOT_NULL(strstr(buf, "ERRNO Message"));
+  IW_TEST_ASSERT_PTR_NOT_NULL(strstr(buf, "ERROR iwlog_test1.c:"));
 
-  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "70005|0|0|Resource is readonly. (IW_ERROR_READONLY)|"));
-  CU_ASSERT_PTR_NOT_NULL(strstr(buf, "c94645c3b107433497ef295b1c00dcff12"));
+  IW_TEST_ASSERT_PTR_NOT_NULL(strstr(buf, "70005|0|0|Resource is readonly. (IW_ERROR_READONLY)|"));
+  IW_TEST_ASSERT_PTR_NOT_NULL(strstr(buf, "c94645c3b107433497ef295b1c00dcff12"));
 
   fclose(out);
   unlink(fname);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(iwlog_test1),
+  IW_TEST_CASE(iwlog_test2),
+};
 
-  /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-
-  /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwlog_test1", init_suite, clean_suite);
-
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Add the tests to the suite */
-  if (  (NULL == CU_add_test(pSuite, "iwlog_test1", iwlog_test1))
-     || (NULL == CU_add_test(pSuite, "iwlog_test2", iwlog_test2))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Run all tests using the CUnit Basic interface */
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwlog_test1", cases, init_suite, 0));
 }
+

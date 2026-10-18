@@ -2,7 +2,7 @@
 #include "iwlog.h"
 #include "iwutils.h"
 #include "iwcfg.h"
-#include "iwkv_tests.h"
+#include "tests.h"
 #include "iwkv_internal.h"
 
 #define KBUFSZ 1024
@@ -19,10 +19,6 @@ int init_suite(void) {
   return rc;
 }
 
-int clean_suite(void) {
-  return 0;
-}
-
 static void iwkv_test7_1_impl(int direction) {
   iwrc rc;
   struct iwkv *iwkv;
@@ -35,9 +31,9 @@ static void iwkv_test7_1_impl(int direction) {
     .random_seed = g_seed
   };
   rc = iwkv_open(&opts, &iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(iwkv, 1, IWDB_COMPOUND_KEYS, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   const int nrecords = 50000;
 
@@ -51,7 +47,7 @@ static void iwkv_test7_1_impl(int direction) {
     val.data = vbuf;
     val.size = strlen(val.data);
     rc = iwkv_put(db, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
 
   for (int i = 0; i < nrecords; ++i) {
@@ -61,11 +57,11 @@ static void iwkv_test7_1_impl(int direction) {
     key.size = strlen(key.data);
     key.compound = direction > 0 ? i + 1 : nrecords - i;
     rc = iwkv_get(db, &key, &val);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
     iwkv_val_dispose(&val);
   }
   rc = iwkv_close(&iwkv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 static void iwkv_test7_1(void) {
@@ -74,39 +70,17 @@ static void iwkv_test7_1(void) {
   struct iwp_file_stat fwd_s = { 0 };
   struct iwp_file_stat back_s = { 0 };
   iwrc rc = iwp_fstat("iwkv_test7_2_fwd.db", &fwd_s);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwp_fstat("iwkv_test7_2_back.db", &back_s);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
-  CU_ASSERT_TRUE((double) fwd_s.size / back_s.size < 1.1);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_TRUE((double) fwd_s.size / back_s.size < 1.1);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(iwkv_test7_1),
+};
 
-  /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-
-  /* Add a suite to the registry */
-  pSuite = CU_add_suite("iwkv_test7", init_suite, clean_suite);
-
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Add the tests to the suite */
-  if (
-    (NULL == CU_add_test(pSuite, "iwkv_test7_1", iwkv_test7_1))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  /* Run all tests using the CUnit Basic interface */
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwkv_test7", cases, init_suite, 0));
 }
+

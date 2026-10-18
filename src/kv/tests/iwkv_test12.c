@@ -28,7 +28,7 @@
 
 #include "iwkv.h"
 #include "iwutils.h"
-#include "iwkv_tests.h"
+#include "tests.h"
 #include "iwkv_internal.h"
 
 #include <signal.h>
@@ -87,10 +87,6 @@ int init_suite(void) {
   return iwkv_init();
 }
 
-int clean_suite(void) {
-  return 0;
-}
-
 static uint32_t fuzz_env_u32(const char *name, uint32_t def) {
   const char *s = getenv(name);
   if (s && *s) {
@@ -121,7 +117,7 @@ static void fuzz_rec_set(struct fuzz_rec *r, const uint8_t *data, size_t size) {
   r->present = true;
   if (size) {
     r->data = malloc(size);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(r->data);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(r->data);
     memcpy(r->data, data, size);
   }
 }
@@ -202,14 +198,14 @@ static void fuzz_verify_key(struct iwdb *db, int i, const struct fuzz_rec *m) {
   struct iwkv_val val = { 0 };
   iwrc rc = fuzz_db_get(db, i, &val);
   if (m[i].present) {
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
-    CU_ASSERT_EQUAL_FATAL(val.size, m[i].size);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(val.size, m[i].size);
     if (m[i].size) {
-      CU_ASSERT_EQUAL_FATAL(memcmp(val.data, m[i].data, m[i].size), 0);
+      IW_TEST_ASSERT_EQUAL_FATAL(memcmp(val.data, m[i].data, m[i].size), 0);
     }
     iwkv_val_dispose(&val);
   } else {
-    CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
   }
 }
 
@@ -247,28 +243,28 @@ static void fuzz_verify_cursor(struct iwdb *db, const struct fuzz_rec *m) {
 
   struct iwkv_cursor *cur = 0;
   iwrc rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   for (int j = 0; j < n; ++j) {
     int i = order[j];
     rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
     struct iwkv_val k = { 0 }, v = { 0 };
     rc = iwkv_cursor_get(cur, &k, &v);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
-    CU_ASSERT_EQUAL_FATAL(k.size, fuzz_klen[i]);
-    CU_ASSERT_EQUAL(memcmp(k.data, fuzz_key[i], fuzz_klen[i]), 0);
-    CU_ASSERT_EQUAL_FATAL(v.size, m[i].size);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(k.size, fuzz_klen[i]);
+    IW_TEST_ASSERT_EQUAL(memcmp(k.data, fuzz_key[i], fuzz_klen[i]), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(v.size, m[i].size);
     if (m[i].size) {
-      CU_ASSERT_EQUAL(memcmp(v.data, m[i].data, m[i].size), 0);
+      IW_TEST_ASSERT_EQUAL(memcmp(v.data, m[i].data, m[i].size), 0);
     }
     iwkv_kv_dispose(&k, &v);
   }
 
   rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT);
-  CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
   rc = iwkv_cursor_close(&cur);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 //--------------------------  Open / reopen helpers
@@ -299,9 +295,9 @@ static void fuzz_opts_init(struct iwkv_opts *opts, const char *path, int mode) {
 
 static void fuzz_open(struct iwkv_opts *opts, struct iwkv **kvp, struct iwdb **dbp) {
   iwrc rc = iwkv_open(opts, kvp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(*kvp, 1, 0, dbp);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 static void fuzz_close(struct iwkv **kvp, bool crash) {
@@ -309,10 +305,10 @@ static void fuzz_close(struct iwkv **kvp, bool crash) {
     iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
     iwrc rc = iwkv_close(kvp);
     iwkvd_trigger_xor(IWKVD_WAL_NO_CHECKPOINT_ON_CLOSE);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   } else {
     iwrc rc = iwkv_close(kvp);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
 }
 
@@ -326,21 +322,21 @@ static void fuzz_cursor_mutate(struct iwdb *db) {
   struct iwkv_val key = { .data = fuzz_key[i], .size = fuzz_klen[i] };
   struct iwkv_cursor *cur = 0;
   iwrc rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_EQ, &key);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   if (iwu_rand_range(100) < 60) {
     size_t vsz = fuzz_rand_val_size();
     fuzz_rand_fill(vsz);
     struct iwkv_val val = { .data = fuzz_val, .size = vsz };
     rc = iwkv_cursor_set(cur, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
     fuzz_rec_set(&fuzz_live[i], fuzz_val, vsz);
   } else {
     rc = iwkv_cursor_del(cur, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
     fuzz_rec_free(&fuzz_live[i]);
   }
   rc = iwkv_cursor_close(&cur);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
 static void fuzz_run(const char *path, int mode, uint32_t seed, uint32_t iters) {
@@ -379,9 +375,9 @@ static void fuzz_run(const char *path, int mode, uint32_t seed, uint32_t iters) 
       }
       rc = fuzz_db_put(db, i, fuzz_val, vsz, of);
       if (noovr && fuzz_live[i].present) {
-        CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_KEY_EXISTS);
+        IW_TEST_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_KEY_EXISTS);
       } else {
-        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
         fuzz_rec_set(&fuzz_live[i], fuzz_val, vsz);
       }
     } else if (op < 75) { // del
@@ -389,17 +385,17 @@ static void fuzz_run(const char *path, int mode, uint32_t seed, uint32_t iters) 
       iwkv_opflags of = (!wal && (iwu_rand_range(100) < 10)) ? IWKV_SYNC : 0;
       rc = fuzz_db_del(db, i, of);
       if (fuzz_live[i].present) {
-        CU_ASSERT_EQUAL_FATAL(rc, 0);
+        IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
         fuzz_rec_free(&fuzz_live[i]);
       } else {
-        CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
+        IW_TEST_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_NOTFOUND);
       }
     } else if (op < 90) { // get
       int i = (int) iwu_rand_range(FUZZ_NKEYS);
       fuzz_verify_key(db, i, fuzz_live);
     } else if (op < 95) { // sync
       rc = iwkv_sync(kv, 0);
-      CU_ASSERT_EQUAL_FATAL(rc, 0);
+      IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
       fuzz_model_copy(fuzz_durable, fuzz_live);
     } else if (op < 98) { // cursor mutation
       fuzz_cursor_mutate(db);
@@ -414,7 +410,7 @@ static void fuzz_run(const char *path, int mode, uint32_t seed, uint32_t iters) 
 
     if (crash && ((it % 97) == 0)) {
       rc = iwkv_sync(kv, 0);
-      CU_ASSERT_EQUAL_FATAL(rc, 0);
+      IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
       fuzz_model_copy(fuzz_durable, fuzz_live);
 
       fuzz_close(&kv, true);
@@ -703,10 +699,10 @@ static void fuzz_corrupt_build(const char *path, const char *srcpath, bool keep_
     struct iwkv_val key = { .data = kbuf, .size = strlen(kbuf) };
     struct iwkv_val val = { .data = vbuf, .size = vsz };
     iwrc rc = iwkv_put(db, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
   iwrc rc = iwkv_sync(kv, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   fuzz_close(&kv, keep_wal);
 
   unlink(path);
@@ -715,10 +711,10 @@ static void fuzz_corrupt_build(const char *path, const char *srcpath, bool keep_
   size_t dbsz, walsz;
   uint8_t *dbbuf = fuzz_file_read(srcpath, &dbsz);
   uint8_t *walbuf = fuzz_file_read(srcwal, &walsz);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
-  CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
   if (walbuf) {
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(walpath, walbuf, walsz), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(walpath, walbuf, walsz), 0);
   }
   free(dbbuf);
   free(walbuf);
@@ -738,7 +734,7 @@ static void fuzz_corrupt_run(
   size_t dbsz = 0, walsz = 0;
   uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
   uint8_t *walbuf = fuzz_file_read(walpath, &walsz);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
 
   uint32_t ncrash = 0, nhang = 0, nerr = 0;
   for (uint32_t r = 0; r < rounds; ++r) {
@@ -762,15 +758,15 @@ static void fuzz_corrupt_run(
       }
     }
     // Restore the pristine image for the next round.
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
     if (walbuf) {
-      CU_ASSERT_EQUAL_FATAL(fuzz_file_write(walpath, walbuf, walsz), 0);
+      IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(walpath, walbuf, walsz), 0);
     }
   }
   fprintf(stderr, "[iwkv_test12] corruption fuzz keep_wal=%d rounds=%u crashes=%u hangs=%u errors=%u\n",
           (int) keep_wal, rounds, ncrash, nhang, nerr);
   if (ncrash || nhang) {
-    CU_FAIL("corruption fuzzing detected engine crashes/hangs");
+    IW_TEST_FAIL("corruption fuzzing detected engine crashes/hangs");
   }
 
   free(dbbuf);
@@ -806,8 +802,7 @@ static void iwkv_test12_4_file_fuzz(void) {
   uint32_t base = fuzz_env_u32("IWKV_FUZZ_SEED", FUZZ_DEFAULT_SEED);
   uint32_t rounds = fuzz_env_u32("IWKV_FUZZ_ROUNDS", FUZZ_DEFAULT_ROUNDS);
   if (rounds == 0) {
-    fprintf(stderr, "\niwkv_test12_4_file_fuzz skipped (set IWKV_FUZZ_ROUNDS to enable)\n");
-    return;
+    IW_TEST_SKIP("set IWKV_FUZZ_ROUNDS to enable the fuzzer");
   }
   fprintf(stderr, "\niwkv_test12_4_file_fuzz seed=%u rounds=%u\n", base, rounds);
   // WAL contains uncheckpointed records: corrupt both files.
@@ -829,24 +824,24 @@ static void iwkv_test12_5_malformed_dbaddr(void) {
   struct iwkv *kv = 0;
   struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(kv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_close(&kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Database header layout: [magic:u4][first_db_addr:u8][fmt_version:u4]
   // and it is stored after the FSM control header.
   FILE *f = fopen(path, "r+b");
-  CU_ASSERT_PTR_NOT_NULL_FATAL(f);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(f);
   uint64_t badaddr = 0x0000002000000000ULL;
-  CU_ASSERT_EQUAL_FATAL(fseek(f, IWFSM_CUSTOM_HDR_DATA_OFFSET + 4, SEEK_SET), 0);
-  CU_ASSERT_EQUAL_FATAL(fwrite(&badaddr, 1, sizeof(badaddr), f), sizeof(badaddr));
+  IW_TEST_ASSERT_EQUAL_FATAL(fseek(f, IWFSM_CUSTOM_HDR_DATA_OFFSET + 4, SEEK_SET), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(fwrite(&badaddr, 1, sizeof(badaddr), f), sizeof(badaddr));
   fclose(f);
 
   opts.oflags &= ~IWKV_TRUNC;
   rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_CORRUPTED);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_CORRUPTED);
 
   unlink(path);
   unlink(walpath);
@@ -869,24 +864,24 @@ static void iwkv_test12_6_malformed_fsm_hdr(void) {
   struct iwkv *kv = 0;
   struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(kv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_close(&kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   // The FSM control header starts with [magic:u4][block pow:u1]. An invalid
   // block pow makes the open fail right after `iwal_create()`.
   FILE *f = fopen(path, "r+b");
-  CU_ASSERT_PTR_NOT_NULL_FATAL(f);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(f);
   uint8_t badpow = 166;
-  CU_ASSERT_EQUAL_FATAL(fseek(f, 4, SEEK_SET), 0);
-  CU_ASSERT_EQUAL_FATAL(fwrite(&badpow, 1, 1, f), 1);
+  IW_TEST_ASSERT_EQUAL_FATAL(fseek(f, 4, SEEK_SET), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(fwrite(&badpow, 1, 1, f), 1);
   fclose(f);
 
   opts.oflags &= ~IWKV_TRUNC;
   rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_NOT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_NOT_EQUAL_FATAL(rc, 0);
 
   unlink(path);
   unlink(walpath);
@@ -943,9 +938,9 @@ static void iwkv_test12_7_sblk_kvblk_corruption(void) {
   struct iwkv *kv = 0;
   struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(kv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   for (int i = 0; i < 128; ++i) {
     char kbuf[16];
     uint8_t vbuf[48];
@@ -954,15 +949,15 @@ static void iwkv_test12_7_sblk_kvblk_corruption(void) {
     struct iwkv_val key = { .data = kbuf, .size = (size_t) n };
     struct iwkv_val val = { .data = vbuf, .size = sizeof(vbuf) };
     rc = iwkv_put(db, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
   rc = iwkv_close(&kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   size_t dbsz = 0;
   uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
-  CU_ASSERT_TRUE_FATAL(dbsz > SBLK_SZ);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  IW_TEST_ASSERT_TRUE_FATAL(dbsz > SBLK_SZ);
 
   opts.oflags &= ~IWKV_TRUNC;
   uint32_t hits = 0;
@@ -972,10 +967,10 @@ static void iwkv_test12_7_sblk_kvblk_corruption(void) {
     }
     ++hits;
     uint8_t *mut = malloc(dbsz);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(mut);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(mut);
     memcpy(mut, dbbuf, dbsz);
     memset(mut + base + SOFF_KBLK_U4, 0, 4);
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, mut, dbsz), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(path, mut, dbsz), 0);
     free(mut);
 
     kv = 0;
@@ -988,10 +983,10 @@ static void iwkv_test12_7_sblk_kvblk_corruption(void) {
       }
       iwkv_close(&kv);
     }
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
   }
   fprintf(stderr, "\n[iwkv_test12] SBLK kvblk sweep: %u slot(s), no crash\n", hits);
-  CU_ASSERT_TRUE_FATAL(hits > 0);
+  IW_TEST_ASSERT_TRUE_FATAL(hits > 0);
   free(dbbuf);
   unlink(path);
   unlink(walpath);
@@ -1011,9 +1006,9 @@ static void iwkv_test12_8_fsm_trim_corruption(void) {
   struct iwkv *kv = 0;
   struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(kv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   for (int i = 0; i < 64; ++i) {
     char kbuf[16];
     uint8_t vbuf[32];
@@ -1022,23 +1017,23 @@ static void iwkv_test12_8_fsm_trim_corruption(void) {
     struct iwkv_val key = { .data = kbuf, .size = (size_t) n };
     struct iwkv_val val = { .data = vbuf, .size = sizeof(vbuf) };
     rc = iwkv_put(db, &key, &val, 0);
-    CU_ASSERT_EQUAL_FATAL(rc, 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   }
   rc = iwkv_close(&kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   size_t dbsz = 0;
   uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
-  CU_ASSERT_TRUE_FATAL(dbsz > 5);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  IW_TEST_ASSERT_TRUE_FATAL(dbsz > 5);
 
   opts.oflags &= ~IWKV_TRUNC;
   for (uint8_t pow = 0; pow <= 6; ++pow) {
     uint8_t *mut = malloc(dbsz);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(mut);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(mut);
     memcpy(mut, dbbuf, dbsz);
     mut[4] = pow; // FSM control header: [magic:u4][bpow:u1]
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, mut, dbsz), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(path, mut, dbsz), 0);
     free(mut);
 
     kv = 0;
@@ -1048,7 +1043,7 @@ static void iwkv_test12_8_fsm_trim_corruption(void) {
       // a crash is not.
       iwkv_close(&kv);
     }
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
   }
   fprintf(stderr, "\n[iwkv_test12] FSM block pow trim sweep: no crash\n");
   free(dbbuf);
@@ -1069,36 +1064,36 @@ static void iwkv_test12_9_db_chain_cycle(void) {
   struct iwkv *kv = 0;
   struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(kv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   uint8_t vbuf[16] = { 0 };
   struct iwkv_val key = { .data = "k", .size = 1 };
   struct iwkv_val val = { .data = vbuf, .size = sizeof(vbuf) };
   rc = iwkv_put(db, &key, &val, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_close(&kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Read the first database address from the iwkv file header
   // [magic:u4][first_db_addr:u8].
   uint64_t dbaddr = 0;
   FILE *f = fopen(path, "r+b");
-  CU_ASSERT_PTR_NOT_NULL_FATAL(f);
-  CU_ASSERT_EQUAL_FATAL(fseek(f, IWFSM_CUSTOM_HDR_DATA_OFFSET + 4, SEEK_SET), 0);
-  CU_ASSERT_EQUAL_FATAL(fread(&dbaddr, 1, sizeof(dbaddr), f), sizeof(dbaddr));
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(f);
+  IW_TEST_ASSERT_EQUAL_FATAL(fseek(f, IWFSM_CUSTOM_HDR_DATA_OFFSET + 4, SEEK_SET), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(fread(&dbaddr, 1, sizeof(dbaddr), f), sizeof(dbaddr));
   dbaddr = IW_ITOHLL(dbaddr);
-  CU_ASSERT_TRUE_FATAL(dbaddr > 0);
+  IW_TEST_ASSERT_TRUE_FATAL(dbaddr > 0);
 
   // Point the database `next_db_blk` to itself.
   uint32_t selfblk = IW_HTOIL((uint32_t) ADDR2BLK(dbaddr));
-  CU_ASSERT_EQUAL_FATAL(fseek(f, (long) dbaddr + DOFF_NEXTDB_U4, SEEK_SET), 0);
-  CU_ASSERT_EQUAL_FATAL(fwrite(&selfblk, 1, sizeof(selfblk), f), sizeof(selfblk));
+  IW_TEST_ASSERT_EQUAL_FATAL(fseek(f, (long) dbaddr + DOFF_NEXTDB_U4, SEEK_SET), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(fwrite(&selfblk, 1, sizeof(selfblk), f), sizeof(selfblk));
   fclose(f);
 
   opts.oflags &= ~IWKV_TRUNC;
   rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_CORRUPTED);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, IWKV_ERROR_CORRUPTED);
 
   unlink(path);
   unlink(walpath);
@@ -1111,8 +1106,7 @@ static void iwkv_test12_10_corrupt_put_fuzz(void) {
   uint32_t base = fuzz_env_u32("IWKV_FUZZ_SEED", FUZZ_DEFAULT_SEED);
   uint32_t rounds = fuzz_env_u32("IWKV_FUZZ_ROUNDS", FUZZ_DEFAULT_ROUNDS);
   if (rounds == 0) {
-    fprintf(stderr, "\niwkv_test12_10_corrupt_put_fuzz skipped (set IWKV_FUZZ_ROUNDS to enable)\n");
-    return;
+    IW_TEST_SKIP("set IWKV_FUZZ_ROUNDS to enable the fuzzer");
   }
   fprintf(stderr, "\niwkv_test12_10_corrupt_put_fuzz seed=%u rounds=%u\n", base, rounds);
   fuzz_corrupt_run(fuzz_corrupt_open_put_verify, "iwkv_test12_corrupt_puts.db",
@@ -1135,32 +1129,32 @@ static void iwkv_test12_11_exclusive_lock_with_cursor(void) {
   struct iwkv *kv = 0;
   struct iwdb *db = 0;
   iwrc rc = iwkv_open(&opts, &kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   rc = iwkv_db(kv, 1, 0, &db);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   struct iwkv_val key = { .data = "k", .size = 1 };
   struct iwkv_val val = { .data = "v", .size = 1 };
   rc = iwkv_put(db, &key, &val, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwkv_cursor *cur = 0;
   rc = iwkv_cursor_open(db, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   struct iwdb *db2 = 0;
   rc = iwkv_db(kv, 2, 0, &db2);
-  CU_ASSERT_EQUAL_FATAL(rc, IW_ERROR_INVALID_STATE);
-  CU_ASSERT_PTR_NULL_FATAL(db2);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, IW_ERROR_INVALID_STATE);
+  IW_TEST_ASSERT_PTR_NULL_FATAL(db2);
 
   rc = iwkv_cursor_close(&cur);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   // Once the cursor is closed the database can be created normally.
   rc = iwkv_db(kv, 2, 0, &db2);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 
   rc = iwkv_close(&kv);
-  CU_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   unlink(path);
   unlink(walpath);
 }
@@ -1468,7 +1462,7 @@ static void iwkv_test12_12_legacy_wal_format(void) {
 
   size_t dbsz = 0;
   uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
 
   static const struct {
     const char *name;
@@ -1483,9 +1477,9 @@ static void iwkv_test12_12_legacy_wal_format(void) {
   for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
     size_t len = 0;
     uint8_t *img = fuzz_build_legacy_wal(&len, cases[i].header, cases[i].flags);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(img);
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(walpath, img, len), 0);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(img);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(walpath, img, len), 0);
     free(img);
     int res = fuzz_probe_fork(fuzz_corrupt_open_verify, path);
     if (res != FUZZ_CORRUPT_OK) {
@@ -1496,7 +1490,7 @@ static void iwkv_test12_12_legacy_wal_format(void) {
   }
   free(dbbuf);
   if (nfail) {
-    CU_FAIL("legacy WAL images made the engine crash/hang");
+    IW_TEST_FAIL("legacy WAL images made the engine crash/hang");
   }
   unlink(path);
   unlink(walpath);
@@ -1507,8 +1501,7 @@ static void iwkv_test12_13_malformed_wal_fuzz(void) {
   uint32_t base = fuzz_env_u32("IWKV_FUZZ_SEED", FUZZ_DEFAULT_SEED);
   uint32_t rounds = fuzz_env_u32("IWKV_FUZZ_ROUNDS", FUZZ_DEFAULT_ROUNDS);
   if (rounds == 0) {
-    fprintf(stderr, "\niwkv_test12_13_malformed_wal_fuzz skipped (set IWKV_FUZZ_ROUNDS to enable)\n");
-    return;
+    IW_TEST_SKIP("set IWKV_FUZZ_ROUNDS to enable the fuzzer");
   }
   const char *path = "iwkv_test12_malformed.db";
   char walpath[512];
@@ -1517,7 +1510,7 @@ static void iwkv_test12_13_malformed_wal_fuzz(void) {
 
   size_t dbsz = 0;
   uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
 
   uint32_t ncrash = 0, nhang = 0, nerr = 0;
   for (uint32_t r = 0; r < rounds; ++r) {
@@ -1527,7 +1520,7 @@ static void iwkv_test12_13_malformed_wal_fuzz(void) {
       free(img);
       continue;
     }
-    CU_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(fuzz_file_write(path, dbbuf, dbsz), 0);
     if (fuzz_file_write(walpath, img, len)) {
       free(img);
       ++nerr;
@@ -1556,7 +1549,7 @@ static void iwkv_test12_13_malformed_wal_fuzz(void) {
           rounds, ncrash, nhang, nerr);
   free(dbbuf);
   if (ncrash || nhang) {
-    CU_FAIL("malformed WAL fuzzing detected engine crashes/hangs");
+    IW_TEST_FAIL("malformed WAL fuzzing detected engine crashes/hangs");
   }
   unlink(path);
   unlink(walpath);
@@ -1566,8 +1559,7 @@ static void iwkv_test12_13_malformed_wal_fuzz(void) {
 static void iwkv_test12_14_wal_truncation(void) {
   uint32_t max_rounds = fuzz_env_u32("IWKV_FUZZ_ROUNDS", FUZZ_DEFAULT_ROUNDS);
   if (max_rounds == 0) {
-    fprintf(stderr, "\niwkv_test12_14_wal_truncation skipped (set IWKV_FUZZ_ROUNDS to enable)\n");
-    return;
+    IW_TEST_SKIP("set IWKV_FUZZ_ROUNDS to enable the fuzzer");
   }
   const char *path = "iwkv_test12_waltrunc.db";
   char walpath[512];
@@ -1577,9 +1569,9 @@ static void iwkv_test12_14_wal_truncation(void) {
   size_t dbsz = 0, walsz = 0;
   uint8_t *dbbuf = fuzz_file_read(path, &dbsz);
   uint8_t *walbuf = fuzz_file_read(walpath, &walsz);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
-  CU_ASSERT_PTR_NOT_NULL_FATAL(walbuf);
-  CU_ASSERT_TRUE_FATAL(walsz > 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(dbbuf);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(walbuf);
+  IW_TEST_ASSERT_TRUE_FATAL(walsz > 0);
 
   uint32_t n = (walsz < max_rounds) ? (uint32_t) walsz : max_rounds;
   uint32_t ncrash = 0, nhang = 0;
@@ -1607,44 +1599,30 @@ static void iwkv_test12_14_wal_truncation(void) {
   free(dbbuf);
   free(walbuf);
   if (ncrash || nhang) {
-    CU_FAIL("WAL truncation fuzzing detected engine crashes/hangs");
+    IW_TEST_FAIL("WAL truncation fuzzing detected engine crashes/hangs");
   }
   unlink(path);
   unlink(walpath);
 }
 
-int main(void) {
-  CU_pSuite pSuite = NULL;
+static const struct iw_test_case cases[] = {
+  IW_TEST_CASE(iwkv_test12_1_sync),
+  IW_TEST_CASE(iwkv_test12_2_wal),
+  IW_TEST_CASE(iwkv_test12_3_wal_crash),
+  IW_TEST_CASE(iwkv_test12_4_file_fuzz),
+  IW_TEST_CASE(iwkv_test12_5_malformed_dbaddr),
+  IW_TEST_CASE(iwkv_test12_6_malformed_fsm_hdr),
+  IW_TEST_CASE(iwkv_test12_7_sblk_kvblk_corruption),
+  IW_TEST_CASE(iwkv_test12_8_fsm_trim_corruption),
+  IW_TEST_CASE(iwkv_test12_9_db_chain_cycle),
+  IW_TEST_CASE(iwkv_test12_10_corrupt_put_fuzz),
+  IW_TEST_CASE(iwkv_test12_11_exclusive_lock_with_cursor),
+  IW_TEST_CASE(iwkv_test12_12_legacy_wal_format),
+  IW_TEST_CASE(iwkv_test12_13_malformed_wal_fuzz),
+  IW_TEST_CASE(iwkv_test12_14_wal_truncation),
+};
 
-  if (CUE_SUCCESS != CU_initialize_registry()) {
-    return CU_get_error();
-  }
-  pSuite = CU_add_suite("iwkv_test12", init_suite, clean_suite);
-  if (NULL == pSuite) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-  if (  (NULL == CU_add_test(pSuite, "iwkv_test12_1_sync", iwkv_test12_1_sync))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_2_wal", iwkv_test12_2_wal))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_3_wal_crash", iwkv_test12_3_wal_crash))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_4_file_fuzz", iwkv_test12_4_file_fuzz))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_5_malformed_dbaddr", iwkv_test12_5_malformed_dbaddr))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_6_malformed_fsm_hdr", iwkv_test12_6_malformed_fsm_hdr))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_7_sblk_kvblk_corruption", iwkv_test12_7_sblk_kvblk_corruption))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_8_fsm_trim_corruption", iwkv_test12_8_fsm_trim_corruption))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_9_db_chain_cycle", iwkv_test12_9_db_chain_cycle))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_10_corrupt_put_fuzz", iwkv_test12_10_corrupt_put_fuzz))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_11_exclusive_lock_with_cursor",
-                             iwkv_test12_11_exclusive_lock_with_cursor))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_12_legacy_wal_format", iwkv_test12_12_legacy_wal_format))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_13_malformed_wal_fuzz", iwkv_test12_13_malformed_wal_fuzz))
-     || (NULL == CU_add_test(pSuite, "iwkv_test12_14_wal_truncation", iwkv_test12_14_wal_truncation))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-  CU_basic_run_tests();
-  int ret = CU_get_error() || CU_get_number_of_failures();
-  CU_cleanup_registry();
-  return ret;
+int main(int argc, char *argv[]) {
+  return iw_test_run(argc, argv, IW_TEST_SUITE("iwkv_test12", cases, init_suite, 0));
 }
+
