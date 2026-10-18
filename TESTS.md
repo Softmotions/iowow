@@ -1,12 +1,12 @@
-# `tests.h` — a minimal C11 test harness
+# `iwtests.h` — a minimal C11 test harness
 
-`tests.h` is a single header test harness for `C11` projects. It provides
+`iwtests.h` is a single header test harness for `C11` projects. It provides
 assertions, a test case runner, case selection from the command line and a
 readable console report. There is no dependency on any test framework, only the
 `C11` standard library is used, and the header can be dropped into any project:
 
 ```sh
-cp tests.h myproject/tests/tests.h
+cp iwtests.h myproject/tests/iwtests.h
 ```
 
 A test executable is a plain program: one executable = one test suite, each
@@ -17,7 +17,7 @@ directly by any build system or CI pipeline.
 ## Quick start
 
 ```c
-#include "tests.h"
+#include "iwtests.h"
 
 static void test_addition(void) {
   IW_TEST_ASSERT_EQUAL(2 + 2, 4);

@@ -1,7 +1,7 @@
 #include "iwkv.h"
 #include "iwlog.h"
 #include "iwutils.h"
-#include "tests.h"
+#include "iwtests.h"
 
 #define KBUFSZ 128
 #define VBUFSZ 128

@@ -3,7 +3,7 @@
 #include "iwjsreg.h"
 #include "iwlog.h"
 #include "iwutils.h"
-#include "tests.h"
+#include "iwtests.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>

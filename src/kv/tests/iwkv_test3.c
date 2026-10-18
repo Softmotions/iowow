@@ -3,7 +3,7 @@
 #include "iwutils.h"
 #include "iwcfg.h"
 
-#include "tests.h"
+#include "iwtests.h"
 #include <pthread.h>
 #include <stdatomic.h>
 #include <unistd.h>

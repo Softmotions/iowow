@@ -28,7 +28,7 @@
 
 #include "iwkv.h"
 #include "iwutils.h"
-#include "tests.h"
+#include "iwtests.h"
 #include "iwkv_internal.h"
 
 #include <signal.h>

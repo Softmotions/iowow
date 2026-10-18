@@ -1,5 +1,5 @@
 #include "iowow.h"
-#include "tests.h"
+#include "iwtests.h"
 #include "iwarr.h"
 
 int init_suite(void) {

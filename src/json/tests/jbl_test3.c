@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "tests.h"
+#include "iwtests.h"
 
 int init_suite(void) {
   int rc = iw_init();

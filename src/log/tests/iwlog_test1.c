@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "tests.h"
+#include "iwtests.h"
 
 #include "iwlog.h"
 #include "iwutils.h"

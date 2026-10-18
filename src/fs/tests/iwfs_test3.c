@@ -4,7 +4,7 @@
 #include "utils/iwutils.h"
 
 #include "iwcfg.h"
-#include "tests.h"
+#include "iwtests.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>

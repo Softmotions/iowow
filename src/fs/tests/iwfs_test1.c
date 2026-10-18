@@ -32,7 +32,7 @@
 #include "utils/iwutils.h"
 
 #include "iwcfg.h"
-#include "tests.h"
+#include "iwtests.h"
 #include <unistd.h>
 
 #define UNLINK()                           \

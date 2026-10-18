@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <float.h>
-#include "tests.h"
+#include "iwtests.h"
 
 int init_suite(void) {
   int rc = iw_init();

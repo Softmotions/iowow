@@ -1,6 +1,6 @@
 #include "iwkv.h"
 #include "iwlog.h"
-#include "tests.h"
+#include "iwtests.h"
 #include "iwkv_internal.h"
 
 #include <stddef.h>

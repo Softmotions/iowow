@@ -1,5 +1,5 @@
 2026-10-13 Anton Adamansky  <adamansky@gmail.com>  [v1.7.0-dev]
-  * Tests: CUnit is replaced by the dependency free `src/tests.h` (see `TESTS.md`).
+  * Tests: CUnit is replaced by the dependency free `src/iwtests.h` (see `TESTS.md`).
   * Fixed UB reported by UBSAN: misaligned offsets in the kbtree based fs tests, WAL savepoint timestamps (iwp_current_time_ms), murmur3 block reads and iwhmap empty bucket lookup.
   * iwjson: Rework of iwjson module, migrated to binn-c external library.
   * iwjson: Split into `iwjbn` (JSON DOM) and `iwjbl` (Binn backed document) modules. Added Doxygen documentation for the json headers.

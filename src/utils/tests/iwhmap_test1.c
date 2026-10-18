@@ -1,7 +1,7 @@
 #include "iowow.h"
 #include "iwcfg.h"
 #include "iwhmap.h"
-#include "tests.h"
+#include "iwtests.h"
 
 static int init_suite(void) {
   return iw_init();

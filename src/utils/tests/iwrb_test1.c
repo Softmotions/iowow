@@ -1,6 +1,6 @@
 #include "iowow.h"
 #include "iwrb.h"
-#include "tests.h"
+#include "iwtests.h"
 
 int init_suite(void) {
   return iw_init();

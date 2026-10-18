@@ -2,7 +2,7 @@
 #include "iwlog.h"
 #include "iwutils.h"
 #include "iwcfg.h"
-#include "tests.h"
+#include "iwtests.h"
 #include "iwkv_internal.h"
 
 #define KBUFSZ 128

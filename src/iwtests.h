@@ -1,6 +1,6 @@
 #pragma once
-#ifndef IW_TESTS_H
-#define IW_TESTS_H
+#ifndef IW_IWTESTS_H
+#define IW_IWTESTS_H
 
 /**************************************************************************************************
  * IOWOW library
@@ -37,7 +37,7 @@
  *  ::iw_test_run() call in `main`:
  *
  *  @code{.c}
- *  #include "tests.h"
+ *  #include "iwtests.h"
  *
  *  static void test_foo(void) {
  *    IW_TEST_ASSERT_EQUAL(1 + 1, 2);
@@ -127,7 +127,7 @@
 #define IW_TEST_MAX_PATTERNS 32
 
 /** Name of the harness shown in the report header, define it before including
- *  `tests.h` to use your own project name. */
+ *  `iwtests.h` to use your own project name. */
 #ifndef IW_TEST_HARNESS
 #define IW_TEST_HARNESS "iowow"
 #endif
@@ -685,7 +685,7 @@ static int iw_test_run(int argc, char *argv[], const struct iw_test_suite *suite
   }
   if (!output && !no_log) {
     const char *env = getenv("IW_TEST_NO_LOG");
-    if (env && *env && strcmp(env, "0")) {
+    if (env && *env && strcmp(env, "0") != 0) {
       no_log = true;
     }
   }
@@ -1266,4 +1266,4 @@ static int iw_test_cmp_files(FILE *f1, FILE *f2) {
   return c1 - c2;
 }
 
-#endif /* IW_TESTS_H */
+#endif /* IW_IWTESTS_H */

@@ -3,7 +3,7 @@
 #include "iwutils.h"
 
 #include <stdlib.h>
-#include "tests.h"
+#include "iwtests.h"
 
 int init_suite(void) {
   int rc = iw_init();

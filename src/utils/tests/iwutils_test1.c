@@ -1,6 +1,6 @@
 #include "iowow.h"
 #include "iwcfg.h"
-#include "tests.h"
+#include "iwtests.h"
 #include "iwutils.h"
 #include "iwpool.h"
 #include "iwrb.h"

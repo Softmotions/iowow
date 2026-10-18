@@ -2,7 +2,7 @@
 #include "iwlog.h"
 #include "iwutils.h"
 #include "iwcfg.h"
-#include "tests.h"
+#include "iwtests.h"
 
 #define RND_DATA_SZ (10 * 1048576)
 char RND_DATA[RND_DATA_SZ];

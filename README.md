@@ -51,7 +51,7 @@ IOWOW — `C11` utility library and persistent key/value storage engine
 
 Test cases are plain `C` executables built and run by Autark, no external test
 framework is required. The shared harness with all assertions and helpers lives
-in [src/tests.h](https://github.com/Softmotions/iowow/blob/master/src/tests.h),
+in [src/iwtests.h](https://github.com/Softmotions/iowow/blob/master/src/iwtests.h),
 see [TESTS.md](https://github.com/Softmotions/iowow/blob/master/TESTS.md) for
 the full description of the harness, the assertions and the possibilities to
 run only the selected test cases.
@@ -130,7 +130,7 @@ A case is a plain `void` function using the `IW_TEST_ASSERT*` macros, a test
 executable registers the cases and runs them with `iw_test_run()`:
 
 ```c
-#include "tests.h"
+#include "iwtests.h"
 
 static void my_test_case(void) {
   IW_TEST_ASSERT_EQUAL(2 + 2, 4);

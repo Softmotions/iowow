@@ -2,7 +2,7 @@
 #include "iwlog.h"
 #include "iwutils.h"
 #include "iwcfg.h"
-#include "tests.h"
+#include "iwtests.h"
 
 int init_suite(void) {
   iwrc rc = iwkv_init();
