@@ -1,5 +1,3 @@
-// -V::512
-
 #include "iwkv_internal.h"
 #include "iwconv.h"
 #include <stdalign.h>
@@ -254,7 +252,7 @@ static WUR iwrc _iwkv_worker_inc_nolk(struct iwkv *iwkv) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  if (!iwkv->open) { // -V547
+  if (!iwkv->open) {
     pthread_mutex_unlock(&iwkv->wk_mtx);
     return IW_ERROR_INVALID_STATE;
   }
@@ -277,7 +275,7 @@ static WUR iwrc _db_worker_inc_nolk(struct iwdb *db) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-  if (!iwkv->open || !db->open) { // -V560
+  if (!iwkv->open || !db->open) {
     pthread_mutex_unlock(&iwkv->wk_mtx);
     return IW_ERROR_INVALID_STATE;
   }
@@ -725,13 +723,10 @@ static WUR iwrc _db_create_lw(struct iwkv *iwkv, dbid_t dbid, iwdb_flags_t dbflg
   RCC(rc, finish, iwhmap_put_u32(iwkv->dbs, db->id, db));
   iwkv->last_db = db;
 
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
-  rc = _db_save(db, true, mm);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
+  RCC(rc, finish, _db_save(db, true, mm));
   if (db->prev) {
-    rc = _db_save(db->prev, false, mm);
-    RCGO(rc, finish);
+    RCC(rc, finish, _db_save(db->prev, false, mm));
   }
   db->open = true;
   *odb = db;
@@ -1122,7 +1117,7 @@ static WUR iwrc _kvblk_sync_mm(struct kvblk *kb, uint8_t *mm) {
 #define _kvblk_sort_kv_lt(v1, v2, o) \
         (((v1).off > 0 ? (v1).off : -1UL) < ((v2).off > 0 ? (v2).off : -1UL))
 
-// -V:KSORT_INIT:522, 756, 769
+
 KSORT_INIT(kvblk, struct kvp, _kvblk_sort_kv_lt)
 
 static WUR iwrc _kvblk_compact_mm(struct kvblk *kb, uint8_t *mm) {
@@ -1217,16 +1212,14 @@ static WUR iwrc _kvblk_rmkv(struct kvblk *kb, uint8_t idx, kvblk_rmkv_opts_t opt
       while (npow > KVBLK_INISZPOW && (1ULL << (npow - 1)) >= dsz) {
         --npow;
       }
-      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      RCGO(rc, finish);
+      RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
 
-      rc = _kvblk_compact_mm(kb, mm);
-      RCGO(rc, finish);
+      RCC(rc, finish, _kvblk_compact_mm(kb, mm));
 
       off_t maxoff = _kvblk_maxkvoff(kb);
       if (dlsnr) {
-        rc = dlsnr->onwrite(dlsnr, kb->addr + (1ULL << npow) - maxoff, mm + kb->addr + nlen - maxoff, maxoff, 0);
-        RCGO(rc, finish);
+        RCC(rc, finish, dlsnr->onwrite(dlsnr, kb->addr + (1ULL << npow) - maxoff,
+                                       mm + kb->addr + nlen - maxoff, maxoff, 0));
       }
       memmove(mm + kb->addr + (1ULL << npow) - maxoff,
               mm + kb->addr + nlen - maxoff,
@@ -1234,16 +1227,14 @@ static WUR iwrc _kvblk_rmkv(struct kvblk *kb, uint8_t idx, kvblk_rmkv_opts_t opt
 
       fsm->release_mmap(fsm);
       mm = 0;
-      rc = fsm->reallocate(fsm, (1ULL << npow), &kb->addr, &nlen, IWKV_FSM_ALLOC_FLAGS);
-      RCGO(rc, finish);
+      RCC(rc, finish, fsm->reallocate(fsm, (1ULL << npow), &kb->addr, &nlen, IWKV_FSM_ALLOC_FLAGS));
       kb->szpow = npow;
       assert(nlen == (1ULL << kb->szpow));
       opts |= RMKV_SYNC;
     }
   }
   if (RMKV_SYNC & opts) {
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCGO(rc, finish);
+    RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
     IWRC(_kvblk_sync_mm(kb, mm), rc);
   }
 
@@ -1301,10 +1292,8 @@ start:
     if (!compacted) {
       compacted = true;
       if (_kvblk_compacted_offset(kb) != kb->maxoff) {
-        rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-        RCGO(rc, finish);
-        rc = _kvblk_compact_mm(kb, mm);
-        RCGO(rc, finish);
+        RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
+        RCC(rc, finish, _kvblk_compact_mm(kb, mm));
         fsm->release_mmap(fsm);
         goto start;
       }
@@ -1318,25 +1307,21 @@ start:
     uint8_t npow = kb->szpow;
     while ((1ULL << ++npow) < nsz) ;
 
-    rc = fsm->allocate(fsm, (1ULL << npow), &naddr, &nlen, IWKV_FSM_ALLOC_FLAGS);
-    RCGO(rc, finish);
+    RCC(rc, finish, fsm->allocate(fsm, (1ULL << npow), &naddr, &nlen, IWKV_FSM_ALLOC_FLAGS));
     assert(nlen == (1ULL << npow));
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCGO(rc, finish);
+    RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
     if (dlsnr) {
-      rc = dlsnr->onwrite(dlsnr, naddr, mm + kb->addr, KVBLK_HDRSZ, 0);
-      RCGO(rc, finish);
+      RCC(rc, finish, dlsnr->onwrite(dlsnr, naddr, mm + kb->addr, KVBLK_HDRSZ, 0));
       memcpy(mm + naddr, mm + kb->addr, KVBLK_HDRSZ);
-      rc = dlsnr->onwrite(dlsnr, naddr + nlen - kb->maxoff, mm + kb->addr + olen - kb->maxoff, kb->maxoff, 0);
-      RCGO(rc, finish);
+      RCC(rc, finish, dlsnr->onwrite(dlsnr, naddr + nlen - kb->maxoff,
+                                     mm + kb->addr + olen - kb->maxoff, kb->maxoff, 0));
       memcpy(mm + naddr + nlen - kb->maxoff, mm + kb->addr + olen - kb->maxoff, (size_t) kb->maxoff);
     } else {
       memcpy(mm + naddr, mm + kb->addr, KVBLK_HDRSZ);
       memcpy(mm + naddr + nlen - kb->maxoff, mm + kb->addr + olen - kb->maxoff, (size_t) kb->maxoff);
     }
     fsm->release_mmap(fsm);
-    rc = fsm->deallocate(fsm, kb->addr, olen);
-    RCGO(rc, finish);
+    RCC(rc, finish, fsm->deallocate(fsm, kb->addr, olen));
 
     kb->addr = naddr;
     kb->szpow = npow;
@@ -1357,8 +1342,7 @@ start:
   if (i >= KVBLK_IDXNUM) {
     kb->zidx = -1;
   }
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
   assert((1ULL << kb->szpow) >= KVBLK_HDRSZ + kb->idxsz + kb->maxoff);
   assert(kvp->off < (1ULL << kb->szpow) && kvp->len <= kvp->off);
   wp = mm + kb->addr + (1ULL << kb->szpow) - kvp->off;
@@ -1425,8 +1409,7 @@ static WUR iwrc _kvblk_updatev(
   if (rsize <= kvp->len) {
     memcpy(wp, uval->data, uval->size);
     if (dlsnr) {
-      rc = dlsnr->onwrite(dlsnr, wp - mm, uval->data, uval->size, 0);
-      RCGO(rc, finish);
+      RCC(rc, finish, dlsnr->onwrite(dlsnr, wp - mm, uval->data, uval->size, 0));
     }
     wp += uval->size;
     if ((wp - sp) != kvp->len) {
@@ -1442,8 +1425,7 @@ static WUR iwrc _kvblk_updatev(
     kb->flags |= KVBLK_DURTY;
     if (!ukey) { // we need a key
       ukey = &skey;
-      rc = _kvblk_key_get(kb, mm, pidx, ukey);
-      RCGO(rc, finish);
+      RCC(rc, finish, _kvblk_key_get(kb, mm, pidx, ukey));
     }
     for (i = 0; i < KVBLK_IDXNUM; ++i) {
       if (tidx[i].off == koff) {
@@ -1452,8 +1434,7 @@ static WUR iwrc _kvblk_updatev(
           if (!((nlen > kvp->len) && (freesz - IW_VNUMSIZE32(nlen) + IW_VNUMSIZE32(kvp->len) < 0))) { // enough space?
             memcpy(wp, uval->data, uval->size);
             if (dlsnr) {
-              rc = dlsnr->onwrite(dlsnr, wp - mm, uval->data, uval->size, 0);
-              RCGO(rc, finish);
+              RCC(rc, finish, dlsnr->onwrite(dlsnr, wp - mm, uval->data, uval->size, 0));
             }
             wp += uval->size;
             kvp->len = nlen;
@@ -1463,8 +1444,7 @@ static WUR iwrc _kvblk_updatev(
         }
         mm = 0;
         fsm->release_mmap(fsm);
-        rc = _kvblk_rmkv(kb, pidx, RMKV_NO_RESIZE);
-        RCGO(rc, finish);
+        RCC(rc, finish, _kvblk_rmkv(kb, pidx, RMKV_NO_RESIZE));
         rc = _kvblk_addkv(kb, ukey, uval, idxp, false);
         break;
       }
@@ -2462,8 +2442,7 @@ static WUR iwrc _lx_find_bounds(struct iwlctx *lx) {
   rc = fsm->acquire_mmap(fsm, 0, &mm, &mmsz);
   RCRET(rc);
   if (!dblk->addr) {
-    rc = _sblk_at2_mm(lx, lx->db->addr, 0, dblk, mm, mmsz);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_at2_mm(lx, lx->db->addr, 0, dblk, mm, mmsz));
   }
   if (!lx->lower) {
     lx->lower = &lx->dblk;
@@ -2509,8 +2488,7 @@ static iwrc _lx_release_mm(struct iwlctx *lx, uint8_t *mm) {
   if (lx->nlvl > -1) {
     struct sblk *lsb = 0, *usb = 0;
     if (lx->nb) {
-      rc = _sblk_sync_mm(lx, lx->nb, mm);
-      RCGO(rc, finish);
+      RCC(rc, finish, _sblk_sync_mm(lx, lx->nb, mm));
     }
     if (lx->pupper[0] == lx->upper) {
       lx->upper = 0;
@@ -2522,32 +2500,27 @@ static iwrc _lx_release_mm(struct iwlctx *lx, uint8_t *mm) {
       if (lx->pupper[i]) {
         if (lx->pupper[i] != usb) {
           usb = lx->pupper[i];
-          rc = _sblk_sync_and_release_mm(lx, &lx->pupper[i], mm);
-          RCGO(rc, finish);
+          RCC(rc, finish, _sblk_sync_and_release_mm(lx, &lx->pupper[i], mm));
         }
         lx->pupper[i] = 0;
       }
       if (lx->plower[i]) {
         if (lx->plower[i] != lsb) {
           lsb = lx->plower[i];
-          rc = _sblk_sync_and_release_mm(lx, &lx->plower[i], mm);
-          RCGO(rc, finish);
+          RCC(rc, finish, _sblk_sync_and_release_mm(lx, &lx->plower[i], mm));
         }
         lx->plower[i] = 0;
       }
     }
   }
   if (lx->upper) {
-    rc = _sblk_sync_and_release_mm(lx, &lx->upper, mm);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_sync_and_release_mm(lx, &lx->upper, mm));
   }
   if (lx->lower) {
-    rc = _sblk_sync_and_release_mm(lx, &lx->lower, mm);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_sync_and_release_mm(lx, &lx->lower, mm));
   }
   if (lx->dblk.flags & SBLK_DURTY) {
-    rc = _sblk_sync_mm(lx, &lx->dblk, mm);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_sync_mm(lx, &lx->dblk, mm));
   }
   if (lx->nb) {
     _sblk_release(lx, &lx->nb);
@@ -2583,8 +2556,7 @@ static iwrc _lx_split_addkv(struct iwlctx *lx, int idx, struct sblk *sblk) {
   if (uside) { // Upper side
     rc = _sblk_create(lx, (uint8_t) lx->nlvl, 0, sblk, lx->upper, &nb);
     RCRET(rc);
-    rc = _sblk_addkv(nb, lx);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_addkv(nb, lx));
   } else { // New key is somewhere in a middle of sblk->kvblk
     assert(sblk->kvblk);
     // We are in the middle
@@ -2849,10 +2821,8 @@ IW_INLINE WUR iwrc _lx_get_lr(struct iwlctx *lx) {
   lx->val->size = 0;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-  rc = _sblk_loadkvblk_mm(lx, lx->lower, mm);
-  RCGO(rc, finish);
-  rc = _sblk_find_pi_mm(lx->lower, lx, mm, &found, &idx);
-  RCGO(rc, finish);
+  RCC(rc, finish, _sblk_loadkvblk_mm(lx, lx->lower, mm));
+  RCC(rc, finish, _sblk_find_pi_mm(lx->lower, lx, mm, &found, &idx));
   if (found) {
     rc = _kvblk_value_get(lx->lower->kvblk, mm, lx->lower->pi[idx], lx->val);
   } else {
@@ -2882,8 +2852,7 @@ static WUR iwrc _lx_del_sblk_lw(struct iwlctx *lx, struct sblk *sblk, uint8_t id
   assert(lx->upper->pnum == 1 && lx->upper->addr == lx->upper_addr);
 
   lx->upper->kvblk = kvblk;
-  rc = _sblk_rmkv(lx->upper, idx);
-  RCGO(rc, finish);
+  RCC(rc, finish, _sblk_rmkv(lx->upper, idx));
 
   for (int i = 0; i <= lx->nlvl; ++i) {
     lx->plower[i]->n[i] = lx->upper->n[i];
@@ -2906,8 +2875,7 @@ static WUR iwrc _lx_del_sblk_lw(struct iwlctx *lx, struct sblk *sblk, uint8_t id
               *rbp = &rb;
 
   assert(!lx->nb);
-  rc = _sblk_at(lx, BLK2ADDR(rb.n[0]), 0, &nb);
-  RCGO(rc, finish);
+  RCC(rc, finish, _sblk_at(lx, BLK2ADDR(rb.n[0]), 0, &nb));
   lx->nb = nb;
   lx->nb->p0 = rb.p0;
   lx->nb->flags |= SBLK_DURTY;
@@ -2970,12 +2938,9 @@ static WUR iwrc _lx_del_lw(struct iwlctx *lx) {
   RCRET(rc);
 
   sblk = lx->lower;
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
-  rc = _sblk_loadkvblk_mm(lx, sblk, mm);
-  RCGO(rc, finish);
-  rc = _sblk_find_pi_mm(sblk, lx, mm, &found, &idx);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
+  RCC(rc, finish, _sblk_loadkvblk_mm(lx, sblk, mm));
+  RCC(rc, finish, _sblk_find_pi_mm(sblk, lx, mm, &found, &idx));
   if (!found) {
     rc = IWKV_ERROR_NOTFOUND;
     goto finish;
@@ -3011,10 +2976,8 @@ IW_INLINE WUR iwrc _cursor_get_ge_idx(struct iwlctx *lx, IWKV_cursor_op op, uint
   struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
   rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
   RCRET(rc);
-  rc = _sblk_loadkvblk_mm(lx, lx->lower, mm);
-  RCGO(rc, finish);
-  rc = _sblk_find_pi_mm(lx->lower, lx, mm, &found, &idx);
-  RCGO(rc, finish);
+  RCC(rc, finish, _sblk_loadkvblk_mm(lx, lx->lower, mm));
+  RCC(rc, finish, _sblk_find_pi_mm(lx->lower, lx, mm, &found, &idx));
   if (found) {
     *oidx = idx;
   } else {
@@ -3073,8 +3036,7 @@ start:
           goto finish;
         }
         _sblk_release(lx, &cur->cn);
-        rc = _sblk_at(lx, BLK2ADDR(n), 0, &cur->cn);
-        RCGO(rc, finish);
+        RCC(rc, finish, _sblk_at(lx, BLK2ADDR(n), 0, &cur->cn));
         cur->cnpos = 0;
         if (IW_UNLIKELY(!cur->cn->pnum)) {
           goto start;
@@ -3098,8 +3060,7 @@ start:
         }
         _sblk_release(lx, &cur->cn);
         RCGO(rc, finish);
-        rc = _sblk_at(lx, BLK2ADDR(n), 0, &cur->cn);
-        RCGO(rc, finish);
+        RCC(rc, finish, _sblk_at(lx, BLK2ADDR(n), 0, &cur->cn));
         if (IW_LIKELY(cur->cn->pnum)) {
           cur->cnpos = cur->cn->pnum - 1;
         } else {
@@ -3238,45 +3199,37 @@ static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_
   }
   RCRET(rc);
 
-  rc = f.state(&f, &fs);
-  RCGO(rc, finish);
+  RCC(rc, finish, f.state(&f, &fs));
 
-  rc = iwp_lseek(fs.fh, 0, IWP_SEEK_END, &fsz);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_lseek(fs.fh, 0, IWP_SEEK_END, &fsz));
   if (fsz < iwp_alloc_unit()) {
     goto finish;
   }
 
-  rc = iwp_pread(fs.fh, 0, &lv, sizeof(lv), &sp);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_pread(fs.fh, 0, &lv, sizeof(lv), &sp));
   lv = IW_ITOHL(lv);
   if ((sp != sizeof(lv)) || (lv != IWFSM_MAGICK)) {
     goto finish;
   }
 
-  rc = iwp_pread(fs.fh, IWFSM_CUSTOM_HDR_DATA_OFFSET, &lv, sizeof(lv), &sp);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_pread(fs.fh, IWFSM_CUSTOM_HDR_DATA_OFFSET, &lv, sizeof(lv), &sp));
   lv = IW_ITOHL(lv);
   if ((sp != sizeof(lv)) || (lv != IWKV_MAGIC)) {
     goto finish;
   }
 
-  rc = iwp_lseek(fs.fh, (off_t) -1 * sizeof(lv), IWP_SEEK_END, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_lseek(fs.fh, (off_t) -1 * sizeof(lv), IWP_SEEK_END, 0));
 
-  rc = iwp_read(fs.fh, &lv, sizeof(lv), &sp);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_read(fs.fh, &lv, sizeof(lv), &sp));
   lv = IW_ITOHL(lv);
   if ((sp != sizeof(lv)) || (lv != IWKV_BACKUP_MAGIC)) {
     goto finish;
   }
 
   // Get WAL data offset
-  rc = iwp_lseek(fs.fh, (off_t) -1 * (sizeof(waloff) + sizeof(lv)), IWP_SEEK_END, &pos);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_lseek(fs.fh, (off_t) -1 * (sizeof(waloff) + sizeof(lv)), IWP_SEEK_END, &pos));
 
-  rc = iwp_read(fs.fh, &waloff, sizeof(waloff), &sp);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_read(fs.fh, &waloff, sizeof(waloff), &sp));
 
   waloff = IW_ITOHLL(waloff);
   if (  ((waloff != pos) && (waloff > pos - (off_t) IWAL_BUF_RESERVE))
@@ -3287,8 +3240,7 @@ static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_
   // Read the WAL file header. An empty WAL has no header and needs no recovery.
   if (waloff != pos) { // Not an empty WAL?
     struct walhdr whdr = { 0 };
-    rc = iwp_pread(fs.fh, waloff, &whdr, sizeof(whdr), &sp);
-    RCGO(rc, finish);
+    RCC(rc, finish, iwp_pread(fs.fh, waloff, &whdr, sizeof(whdr), &sp));
     if ((sp != sizeof(whdr)) || (whdr.magic != IWAL_HDR_MAGIC)) {
       goto finish;
     }
@@ -3310,40 +3262,32 @@ static iwrc _iwkv_check_online_backup(const char *path, iwp_lockmode extra_lock_
   *out_has_online_bkp = true;
 
   // WAL file
-  rc = iwfs_file_open(&w, &(struct iwfs_file_opts) {
+  RCC(rc, finish, iwfs_file_open(&w, &(struct iwfs_file_opts) {
     .path = wpath,
     .omode = IWFS_OREAD | IWFS_OWRITE | IWFS_OTRUNC
-  });
-  RCGO(rc, finish);
+  }));
 
-  rc = w.state(&w, &fw);
-  RCGO(rc, finish);
+  RCC(rc, finish, w.state(&w, &fw));
 
   // WAL content copy
-  rc = iwp_lseek(fs.fh, waloff, IWP_SEEK_SET, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_lseek(fs.fh, waloff, IWP_SEEK_SET, 0));
   fsz = fsz - waloff - sizeof(lv) /* magic */ - sizeof(waloff) /* wal offset */;
   if (fsz > 0) {
     sp = 0;
     do {
-      rc = iwp_read(fs.fh, buf, sizeof(buf), &sp);
-      RCGO(rc, finish);
+      RCC(rc, finish, iwp_read(fs.fh, buf, sizeof(buf), &sp));
       if (sp > fsz) {
         sp = fsz;
       }
       fsz -= sp;
-      rc = iwp_write(fw.fh, buf, sp);
-      RCGO(rc, finish);
+      RCC(rc, finish, iwp_write(fw.fh, buf, sp));
     } while (fsz > 0 && sp > 0);
   }
-  rc = iwp_fsync(fw.fh);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_fsync(fw.fh));
 
-  rc = iwp_ftruncate(fs.fh, waloff);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_ftruncate(fs.fh, waloff));
 
-  rc = iwp_fsync(fs.fh);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_fsync(fs.fh));
 
 finish:
   if (f.impl) {
@@ -3484,7 +3428,7 @@ iwrc iwkv_open(const struct iwkv_opts *opts, struct iwkv **iwkvp) {
     off_t dbaddr; // first database address
     uint8_t hdr[KVHDRSZ];
     RCC(rc, finish, fsm->readhdr(fsm, 0, hdr, KVHDRSZ));
-    rp = hdr; // -V507
+    rp = hdr;
     IW_READLV(rp, lv, lv);
     IW_READLLV(rp, llv, dbaddr);
     if ((lv != IWKV_MAGIC) || (dbaddr < 0)) {
@@ -3796,14 +3740,10 @@ iwrc iwkv_get_copy(struct iwdb *db, const struct iwkv_val *key, void *vbuf, size
   struct iwlctx lx;
   _iwlctx_init(&lx, db, &ekey, 0);
   API_DB_RLOCK(db, rci);
-  rc = _lx_find_bounds(&lx);
-  RCGO(rc, finish);
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
-  rc = _sblk_loadkvblk_mm(&lx, lx.lower, mm);
-  RCGO(rc, finish);
-  rc = _sblk_find_pi_mm(lx.lower, &lx, mm, &found, &idx);
-  RCGO(rc, finish);
+  RCC(rc, finish, _lx_find_bounds(&lx));
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
+  RCC(rc, finish, _sblk_loadkvblk_mm(&lx, lx.lower, mm));
+  RCC(rc, finish, _sblk_find_pi_mm(lx.lower, &lx, mm, &found, &idx));
   if (found) {
     _kvblk_value_peek(lx.lower->kvblk, lx.lower->pi[idx], mm, &oval, &ovalsz);
     *vsz = ovalsz;
@@ -3842,22 +3782,18 @@ iwrc iwkv_db_set_meta(struct iwdb *db, void *buf, size_t sz) {
     off_t oaddr = 0;
     off_t olen = 0;
     if (db->meta_blk) {
-      rc = fsm->deallocate(fsm, BLK2ADDR(db->meta_blk), BLK2ADDR(db->meta_blkn));
-      RCGO(rc, finish);
+      RCC(rc, finish, fsm->deallocate(fsm, BLK2ADDR(db->meta_blk), BLK2ADDR(db->meta_blkn)));
     }
-    rc = fsm->allocate(fsm, asz, &oaddr, &olen, IWKV_FSM_ALLOC_FLAGS);
-    RCGO(rc, finish);
+    RCC(rc, finish, fsm->allocate(fsm, asz, &oaddr, &olen, IWKV_FSM_ALLOC_FLAGS));
     db->meta_blk = ADDR2BLK(oaddr);
     db->meta_blkn = ADDR2BLK(olen);
     resized = true;
   }
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
   wp = mm + BLK2ADDR(db->meta_blk);
   memcpy(wp, buf, sz);
   if (db->iwkv->dlsnr) {
-    rc = db->iwkv->dlsnr->onwrite(db->iwkv->dlsnr, wp - mm, wp, sz, 0);
-    RCGO(rc, finish);
+    RCC(rc, finish, db->iwkv->dlsnr->onwrite(db->iwkv->dlsnr, wp - mm, wp, sz, 0));
   }
   if (resized) {
     uint32_t lv;
@@ -3866,8 +3802,7 @@ iwrc iwkv_db_set_meta(struct iwdb *db, void *buf, size_t sz) {
     IW_WRITELV(wp, lv, db->meta_blk);
     IW_WRITELV(wp, lv, db->meta_blkn);
     if (db->iwkv->dlsnr) {
-      rc = db->iwkv->dlsnr->onwrite(db->iwkv->dlsnr, sp - mm, sp, wp - sp, 0);
-      RCGO(rc, finish);
+      RCC(rc, finish, db->iwkv->dlsnr->onwrite(db->iwkv->dlsnr, sp - mm, sp, wp - sp, 0));
     }
   }
   fsm->release_mmap(fsm);
@@ -3901,8 +3836,7 @@ iwrc iwkv_db_get_meta(struct iwdb *db, void *buf, size_t sz, size_t *rsz) {
   if (sz > rmax) {
     sz = rmax;
   }
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
   memcpy(buf, mm + BLK2ADDR(db->meta_blk), sz);
   *rsz = sz;
 
@@ -3993,8 +3927,7 @@ iwrc iwkv_cursor_open(
   lx->db = db;
   lx->nlvl = -1;
   if (key) {
-    rc = _to_effective_key(db, key, &lx->ekey, lx->nbuf);
-    RCGO(rc, finish);
+    RCC(rc, finish, _to_effective_key(db, key, &lx->ekey, lx->nbuf));
     lx->key = &lx->ekey;
   }
   rc = _cursor_to_lr(cur, op);
@@ -4096,11 +4029,9 @@ iwrc iwkv_cursor_get(
   API_DB_RLOCK(lx->db, rci);
   uint8_t *mm = 0;
   struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
   if (!cur->cn->kvblk) {
-    rc = _sblk_loadkvblk_mm(lx, cur->cn, mm);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_loadkvblk_mm(lx, cur->cn, mm));
   }
   uint8_t idx = cur->cn->pi[cur->cnpos];
   if (okey && oval) {
@@ -4139,11 +4070,9 @@ iwrc iwkv_cursor_copy_val(struct iwkv_cursor *cur, void *vbuf, size_t vbufsz, si
   uint8_t *mm = 0, *oval;
   uint32_t ovalsz;
   struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
   if (!cur->cn->kvblk) {
-    rc = _sblk_loadkvblk_mm(lx, cur->cn, mm);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_loadkvblk_mm(lx, cur->cn, mm));
   }
   uint8_t idx = cur->cn->pi[cur->cnpos];
   _kvblk_value_peek(cur->cn->kvblk, idx, mm, &oval, &ovalsz);
@@ -4179,23 +4108,19 @@ iwrc iwkv_cursor_is_matched_key(struct iwkv_cursor *cur, const struct iwkv_val *
   uint32_t okeysz;
   iwdb_flags_t dbflg = lx->db->dbflg;
   struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
   if (!cur->cn->kvblk) {
-    rc = _sblk_loadkvblk_mm(lx, cur->cn, mm);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_loadkvblk_mm(lx, cur->cn, mm));
   }
 
   uint8_t idx = cur->cn->pi[cur->cnpos];
-  rc = _kvblk_key_peek(cur->cn->kvblk, idx, mm, &okey, &okeysz);
-  RCGO(rc, finish);
+  RCC(rc, finish, _kvblk_key_peek(cur->cn->kvblk, idx, mm, &okey, &okeysz));
 
   if (dbflg & (IWDB_COMPOUND_KEYS | IWDB_VNUM64_KEYS)) {
     char nbuf[2 * IW_VNUMBUFSZ];
     struct iwkv_val rkey = { .data = nbuf, .size = okeysz };
     memcpy(rkey.data, okey, MIN(rkey.size, sizeof(nbuf)));
-    rc = _unpack_effective_key(lx->db, &rkey, true);
-    RCGO(rc, finish);
+    RCC(rc, finish, _unpack_effective_key(lx->db, &rkey, true));
     if (ocompound) {
       *ocompound = rkey.compound;
     }
@@ -4237,23 +4162,19 @@ iwrc iwkv_cursor_copy_key(struct iwkv_cursor *cur, void *kbuf, size_t kbufsz, si
   uint32_t okeysz;
   iwdb_flags_t dbflg = lx->db->dbflg;
   struct iwfs_fsm *fsm = &lx->db->iwkv->fsm;
-  rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-  RCGO(rc, finish);
+  RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
   if (!cur->cn->kvblk) {
-    rc = _sblk_loadkvblk_mm(lx, cur->cn, mm);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_loadkvblk_mm(lx, cur->cn, mm));
   }
 
   uint8_t idx = cur->cn->pi[cur->cnpos];
-  rc = _kvblk_key_peek(cur->cn->kvblk, idx, mm, &okey, &okeysz);
-  RCGO(rc, finish);
+  RCC(rc, finish, _kvblk_key_peek(cur->cn->kvblk, idx, mm, &okey, &okeysz));
 
   if (dbflg & (IWDB_COMPOUND_KEYS | IWDB_VNUM64_KEYS)) {
     char nbuf[2 * IW_VNUMBUFSZ];
     struct iwkv_val rkey = { .data = nbuf, .size = okeysz };
     memcpy(rkey.data, okey, MIN(rkey.size, sizeof(nbuf)));
-    rc = _unpack_effective_key(lx->db, &rkey, true);
-    RCGO(rc, finish);
+    RCC(rc, finish, _unpack_effective_key(lx->db, &rkey, true));
     if (compound) {
       *compound = rkey.compound;
     }
@@ -4301,8 +4222,7 @@ IW_EXPORT iwrc iwkv_cursor_seth(
     uint8_t *mm;
     struct iwkv_val key, oldval;
     struct iwfs_fsm *fsm = &db->iwkv->fsm;
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCGO(rc, finish);
+    RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
     rc = _kvblk_kv_get(sblk->kvblk, mm, sblk->pi[cur->cnpos], &key, &oldval);
     fsm->release_mmap(fsm);
     if (!rc) {
@@ -4320,8 +4240,7 @@ IW_EXPORT iwrc iwkv_cursor_seth(
   }
   RCGO(rc, finish);
 
-  rc = _sblk_sync(lx, sblk);
-  RCGO(rc, finish);
+  RCC(rc, finish, _sblk_sync(lx, sblk));
 
   // Update active cursors inside this block
   pthread_spin_lock(&db->cursors_slk);
@@ -4381,8 +4300,7 @@ iwrc iwkv_cursor_del(struct iwkv_cursor *cur, iwkv_opflags opflags) {
   if (sblk->pnum == 1) { // sblk will be removed
     struct iwkv_val key = { 0 };
     // Key a key
-    rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-    RCGO(rc, finish2);
+    RCC(rc, finish2, fsm->acquire_mmap(fsm, 0, &mm, 0));
     if (!sblk->kvblk) {
       rc = _sblk_loadkvblk_mm(lx, sblk, mm);
       fsm->release_mmap(fsm);
@@ -4407,14 +4325,12 @@ finish2:
     }
   } else { // Simple case
     if (!sblk->kvblk) {
-      rc = fsm->acquire_mmap(fsm, 0, &mm, 0);
-      RCGO(rc, finish);
+      RCC(rc, finish, fsm->acquire_mmap(fsm, 0, &mm, 0));
       rc = _sblk_loadkvblk_mm(lx, sblk, mm);
       fsm->release_mmap(fsm);
       RCGO(rc, finish);
     }
-    rc = _sblk_rmkv(sblk, cur->cnpos);
-    RCGO(rc, finish);
+    RCC(rc, finish, _sblk_rmkv(sblk, cur->cnpos));
     rc = _sblk_sync(lx, sblk);
   }
 

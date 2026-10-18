@@ -51,6 +51,16 @@ IW_EXTERN_C_START;
 //                    Variable length number encoding                    //
 ///////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Encodes the `n` value into the variable length byte sequence at `buf`.
+ *
+ * The most significant bit of a byte signals that more bytes follow, the 7 bit groups of the
+ * continuation bytes are stored inverted and the last byte holds its group as is.
+ *
+ * @param buf Output buffer of at least `IW_VNUMBUFSZ` bytes.
+ * @param n   Value to encode.
+ * @return Number of the written bytes: one for `n < 0x80`, up to five for 32 bit values.
+ */
 IW_INLINE int iw_setvnumbuf32(void *buf, uint32_t n) {
   uint8_t *p = (uint8_t*) buf;
   if (IW_LIKELY(n < 0x80U)) {
@@ -77,6 +87,9 @@ IW_INLINE int iw_setvnumbuf32(void *buf, uint32_t n) {
   return 5;
 }
 
+/**
+ * @brief Same as iw_setvnumbuf32() but encodes 64 bit values into up to ten bytes.
+ */
 IW_INLINE int iw_setvnumbuf64(void *buf, uint64_t n) {
   uint8_t *p = (uint8_t*) buf;
   if (IW_LIKELY(n < UINT64_C(0x80))) {
@@ -128,6 +141,13 @@ IW_INLINE int iw_setvnumbuf64(void *buf, uint64_t n) {
   return 10;
 }
 
+/**
+ * @brief Decodes the number encoded by iw_setvnumbuf32().
+ *
+ * @param buf     Encoded number.
+ * @param [out] step Optional holder of the number of the consumed bytes.
+ * @return Decoded value.
+ */
 IW_INLINE uint32_t iw_readvnumbuf32(const void *buf, int *step) {
   const uint8_t *p = (const uint8_t*) buf;
   uint8_t b = p[0];
@@ -169,6 +189,13 @@ IW_INLINE uint32_t iw_readvnumbuf32(const void *buf, int *step) {
   return n | ((uint32_t) b << 28);
 }
 
+/**
+ * @brief Decodes the number encoded by iw_setvnumbuf64().
+ *
+ * @param buf     Encoded number.
+ * @param [out] step Optional holder of the number of the consumed bytes.
+ * @return Decoded value.
+ */
 IW_INLINE uint64_t iw_readvnumbuf64(const void *buf, int *step) {
   const uint8_t *p = (const uint8_t*) buf;
   uint8_t b = p[0];
@@ -332,6 +359,11 @@ IW_INLINE uint64_t iw_readvnumbuf64(const void *buf, int *step) {
           }                                                                              \
         } while (0)
 
+/**
+ * @brief Initializes the Mersenne Twister random number generator with the default seed.
+ *
+ * Called by `iw_init()`, safe to call multiple times.
+ */
 IW_EXPORT iwrc iwu_init(void);
 
 /**
@@ -361,8 +393,17 @@ IW_EXPORT uint32_t iwu_rand_range(uint32_t range);
  */
 IW_EXPORT uint32_t iwu_rand_inorm(int range);
 
+/**
+ * @brief Returns the base 2 logarithm of `val` rounded down.
+ *
+ * @param val Value to compute the logarithm of, must be non zero.
+ * @return Index of the most significant set bit of `val`.
+ */
 IW_EXPORT int iwlog2_32(uint32_t val);
 
+/**
+ * @brief Same as iwlog2_32() but for 64 bit values.
+ */
 IW_EXPORT int iwlog2_64(uint64_t val);
 
 /**
@@ -403,10 +444,34 @@ IW_EXPORT iwrc iwu_replace(
   iwu_replace_mapper mapper,
   void              *mapper_op);
 
+/**
+ * @brief Compares the contents of two streams byte by byte.
+ *
+ * Both streams are rewound before the comparison.
+ *
+ * @param f1      First stream. Zero is treated as less than any other stream.
+ * @param f2      Second stream. Zero is treated as greater than any other stream.
+ * @param verbose If `true` the position of the first difference is reported to `stderr`.
+ * @return Zero if the streams are equal, a negative or a positive value if `f1` is
+ *         less or greater than `f2`.
+ */
 IW_EXPORT int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose);
 
+/**
+ * @brief Reads the whole file into a newly allocated `\0` terminated buffer.
+ *
+ * @param path File path.
+ * @return Allocated buffer, which should be released by `free()`, or zero on error.
+ */
 IW_EXPORT char* iwu_file_read_as_buf(const char *path);
 
+/**
+ * @brief Same as iwu_file_read_as_buf() but also returns the number of the read bytes.
+ *
+ * @param path File path.
+ * @param [out] out_len Holder of the file size in bytes. Not zero.
+ * @return Allocated buffer, which should be released by `free()`, or zero on error.
+ */
 IW_EXPORT char* iwu_file_read_as_buf_len(const char *path, size_t *out_len);
 
 /**
@@ -442,12 +507,23 @@ static inline uint32_t iwu_x31_u32_hash(const char *s) {
   return h;
 }
 
+/**
+ * @brief Bounded `strlen()`: at most `maxlen` characters of `s` are counted.
+ */
 static inline size_t iwu_strnlen(const char *s, size_t maxlen) {
   size_t i;
   for (i = 0; i < maxlen && s[i]; ++i) ;
   return i;
 }
 
+/**
+ * @brief Copies the `\0` terminated `src` into `dst` truncating it to `dst_sz - 1` characters.
+ *
+ * @param dst    Destination buffer.
+ * @param src    Source string.
+ * @param dst_sz Size of the `dst` buffer.
+ * @return The `dst` buffer.
+ */
 static inline char* iwu_strncpy(char *dst, const char *src, size_t dst_sz) {
   if (dst_sz > 1) {
     size_t len = iwu_strnlen(src, dst_sz - 1);
@@ -459,6 +535,17 @@ static inline char* iwu_strncpy(char *dst, const char *src, size_t dst_sz) {
   return dst;
 }
 
+/**
+ * @brief Copies at most `src_len` bytes of `src` into `dst` as a `\0` terminated string.
+ *
+ * The result is truncated to `dst_sz - 1` characters.
+ *
+ * @param dst     Destination buffer.
+ * @param src     Source string.
+ * @param src_len Number of the bytes to copy from `src`.
+ * @param dst_sz  Size of the `dst` buffer.
+ * @return The `dst` buffer.
+ */
 static inline char* iwu_strnncpy(char *dst, const char *src, size_t src_len, size_t dst_sz) {
   if (dst_sz > 1 && src_len) {
     size_t len = MIN(src_len, dst_sz - 1);

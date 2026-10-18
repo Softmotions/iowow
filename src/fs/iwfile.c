@@ -210,7 +210,7 @@ iwrc iwfs_file_open(struct iwfs_file *f, const struct iwfs_file_opts *_opts) {
   }
 
   if (!opts->lock_mode) {
-    opts->lock_mode = IWFS_DEFAULT_LOCKMODE; // -V1048
+    opts->lock_mode = IWFS_DEFAULT_LOCKMODE;
   }
   if (!opts->omode) {
     opts->omode = IWFS_DEFAULT_OMODE;
@@ -294,8 +294,7 @@ iwrc iwfs_file_open(struct iwfs_file *f, const struct iwfs_file_opts *_opts) {
   }
 #endif
   if (opts->lock_mode != IWP_NOLOCK) {
-    rc = iwp_flock(impl->fh, opts->lock_mode);
-    RCGO(rc, finish);
+    RCC(rc, finish, iwp_flock(impl->fh, opts->lock_mode));
   }
 finish:
   if (rc) {

@@ -1731,11 +1731,9 @@ iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file
   // a required file growth is deferred by `_onresize()` until this copy is
   // complete, so the copied main file image stays stable.
   do {
-    rc = iwp_pread(fstate.exfile.file.fh, off, buf, sizeof(buf), &sp);
-    RCGO(rc, finish);
+    RCC(rc, finish, iwp_pread(fstate.exfile.file.fh, off, buf, sizeof(buf), &sp));
     if (sp > 0) {
-      rc = iwp_write(fh, buf, sp);
-      RCGO(rc, finish);
+      RCC(rc, finish, iwp_write(fh, buf, sp));
       off += sp;
     }
   } while (sp > 0);
@@ -1752,8 +1750,7 @@ iwrc iwal_online_backup(struct iwkv *iwkv, uint64_t *ts, const char *target_file
   do {
     RCC(rc, finish, iwp_pread(wal->fh, off, buf, sizeof(buf), &sp));
     if (sp > 0) {
-      rc = iwp_write(fh, buf, sp);
-      RCGO(rc, finish);
+      RCC(rc, finish, iwp_write(fh, buf, sp));
       off += sp;
     }
   } while (sp > 0);
@@ -1874,8 +1871,7 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
   wal->iwkv = iwkv;
   _cpt_current_time_ms(&wal->checkpoint_ts);
 
-  rc = _init_locks(wal);
-  RCGO(rc, finish);
+  RCC(rc, finish, _init_locks(wal));
 
   struct iwdlsnr *dlsnr = &wal->lsnr;
   dlsnr->onopen = _onopen;
@@ -1976,8 +1972,7 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
 #endif
 
   wal->fh = fh;
-  rc = iwp_flock(wal->fh, IWP_WLOCK);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwp_flock(wal->fh, IWP_WLOCK));
 
   // Now force all fsm data to be privately mmaped.
   // We will apply wal log to main database file
@@ -1986,11 +1981,9 @@ iwrc iwal_create(struct iwkv *iwkv, const struct iwkv_opts *opts, struct iwfs_fs
   fsmopts->exfile.file.dlsnr = iwkv->dlsnr;
 
   if (wal->oflags & IWKV_TRUNC) {
-    rc = _truncate_wl(wal);
-    RCGO(rc, finish);
+    RCC(rc, finish, _truncate_wl(wal));
   } else {
-    rc = _recover_wl(iwkv, wal, fsmopts, recover_backup);
-    RCGO(rc, finish);
+    RCC(rc, finish, _recover_wl(iwkv, wal, fsmopts, recover_backup));
   }
 
   wal->open = true;

@@ -32,6 +32,8 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <assert.h>
+#include <float.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -63,25 +65,85 @@ void jbl_plain_value_set_node(const struct jbl_plain_value *v, struct jbl_node *
 
 //--- Formatting
 
+/**
+ * Returns `true` if the number text `buf` is converted back to the `val`.
+ *
+ * The JSON numbers are stored as doubles, so the double conversion is used for them:
+ * converting the text to `long double` and then to `double` may introduce a double rounding error.
+ */
+static bool _jbl_ftoa_roundtrip(const char *buf, long double val, bool is_double) {
+  char *ep = 0;
+  if (is_double) {
+    double rv = iw_strtod_c(buf, &ep);
+    return ep && (*ep == '\0') && (rv == (double) val);
+  }
+  long double rv = iw_strtold_c(buf, &ep);
+  return ep && (*ep == '\0') && (rv == val);
+}
+
 void iwjson_ftoa(long double val, char buf[static IWNUMBUF_SIZE], size_t *out_len) {
-  int len = snprintf(buf, IWNUMBUF_SIZE, "%.8Lf", val);
-  // FIXME: Dirt hack. I won't touch global locale.
-  char *cp = strchr(buf, ',');
-  if (cp) {
-    *cp = '.';
+  if (isnan(val) || isinf(val)) {
+    // JSON has no representation for non finite numbers
+    memcpy(buf, "null", 5);
+    *out_len = 4;
+    return;
+  }
+  // Find the shortest representation which is converted back to the same value.
+  const bool is_double = (long double) (double) val == val;
+  int len = -1;
+  for (int prec = 15; prec <= LDBL_DIG + 3; ++prec) {
+    len = iw_snprintf_c(buf, IWNUMBUF_SIZE, "%.*Lg", prec, val);
+    if (len < 0) {
+      break;
+    }
+    if (_jbl_ftoa_roundtrip(buf, val, is_double)) {
+      break;
+    }
   }
   if (len <= 0) {
     buf[0] = '\0';
     *out_len = 0;
     return;
   }
-  while (len > 0 && buf[len - 1] == '0') { // trim zeroes from right
-    buf[len - 1] = '\0';
-    len--;
+  // Prefer the plain decimal notation for the values of a moderate magnitude
+  char *epos = strchr(buf, 'e');
+  if (epos) {
+    long e = strtol(epos + 1, 0, 10);
+    if ((e >= -8) && (e <= 15)) {
+      int sig = 0; // Number of the significant digits of the mantissa
+      for (char *c = buf; c < epos; ++c) {
+        if ((*c >= '0') && (*c <= '9')) {
+          ++sig;
+        }
+      }
+      int decimals = sig - 1 - (int) e;
+      if (decimals < 0) {
+        decimals = 0;
+      }
+      char fbuf[IWNUMBUF_SIZE];
+      int flen = iw_snprintf_c(fbuf, sizeof(fbuf), "%.*Lf", decimals, val);
+      if ((flen > 0) && (flen < (int) sizeof(fbuf))) {
+        char *dot = strchr(fbuf, '.');
+        if (dot) { // Trim the trailing zeroes of the fractional part
+          char *end = fbuf + flen;
+          while ((end > dot + 1) && (end[-1] == '0')) {
+            --end;
+          }
+          if (end == dot + 1) {
+            --end;
+          }
+          *end = '\0';
+          flen = (int) (end - fbuf);
+        }
+        if (_jbl_ftoa_roundtrip(fbuf, val, is_double)) {
+          memcpy(buf, fbuf, (size_t) flen + 1);
+          len = flen;
+        }
+      }
+    }
   }
-  if ((len > 0) && (buf[len - 1] == '.')) {
-    buf[len - 1] = '\0';
-    len--;
+  if (len > IWNUMBUF_SIZE - 1) {
+    len = IWNUMBUF_SIZE - 1;
   }
   *out_len = (size_t) len;
 }
@@ -585,7 +647,7 @@ void _jbn_add_item(struct jbl_node *parent, struct jbl_node *node) {
   if (parent->child) {
     struct jbl_node *prev = parent->child->prev;
     parent->child->prev = node;
-    if (prev) { // -V1051
+    if (prev) {
       prev->next = node;
       node->prev = prev;
     } else {
@@ -945,7 +1007,7 @@ iwrc jbn_copy_path(
   struct jbl_node *n1, *n2;
   jbp_patch_t op = JBP_REPLACE;
 
-  if (strcmp("/", src_path) != 0) { // -V526
+  if (strcmp("/", src_path) != 0) {
     rc = jbn_at(src, src_path, &n1);
     if (rc == JBL_ERROR_PATH_NOTFOUND) {
       return 0;
@@ -1107,9 +1169,9 @@ static int _jbl_cmp_node_keys(const void *o1, const void *o2) {
   if (!n1 && !n2) {
     return 0;
   }
-  if (!n2 || (n1->klidx > n2->klidx)) { // -V522
+  if (!n2 || (n1->klidx > n2->klidx)) {
     return 1;
-  } else if (!n1 || (n1->klidx < n2->klidx)) { // -V522
+  } else if (!n1 || (n1->klidx < n2->klidx)) {
     return -1;
   }
   return strncmp(n1->key, n2->key, n1->klidx);
@@ -1428,16 +1490,13 @@ iwrc _jbl_patch_node(struct jbl_node *root, const struct jbl_patch *p, size_t cn
   for (size_t i = 0; i < cnt; ++i) {
     struct jbl_patch_ext *ext = &parr[i];
     ext->p = &p[i];
-    rc = _jbl_ptr_pool(p[i].path, &ext->path, pool);
-    RCGO(rc, finish);
+    RCC(rc, finish, _jbl_ptr_pool(p[i].path, &ext->path, pool));
     if (p[i].from) {
-      rc = _jbl_ptr_pool(p[i].from, &ext->from, pool);
-      RCGO(rc, finish);
+      RCC(rc, finish, _jbl_ptr_pool(p[i].from, &ext->from, pool));
     }
   }
   for (size_t i = 0; i < cnt; ++i) {
-    rc = _jbl_target_apply_patch(root, &parr[i], pool);
-    RCGO(rc, finish);
+    RCC(rc, finish, _jbl_target_apply_patch(root, &parr[i], pool));
   }
 
 finish:
@@ -1655,7 +1714,7 @@ iwrc jbn_merge_patch_from_json(struct jbl_node *root, const char *patchjson, str
   res = _jbl_merge_patch_node(root, patch, pool, &rc);
   RCGO(rc, finish);
   if (res != root) {
-    memcpy(root, res, sizeof(*root)); // -V575
+    memcpy(root, res, sizeof(*root));
     for (struct jbl_node *c = root->child; c; c = c->next) {
       c->parent = root;
     }
@@ -1673,8 +1732,7 @@ iwrc jbn_merge_patch_create(const char *path, struct jbl_node *val, struct iwpoo
   }
 
   struct jbl_ptr *ptr = 0;
-  rc = pool ? jbl_ptr_alloc_pool(path, &ptr, pool) : jbl_ptr_alloc(path, &ptr);
-  RCGO(rc, finish);
+  RCC(rc, finish, pool ? jbl_ptr_alloc_pool(path, &ptr, pool) : jbl_ptr_alloc(path, &ptr));
 
   struct jbl_node *root, *p;
   RCB(finish, root = pool ? iwpool_calloc(sizeof(*root), pool) : calloc(1, sizeof(*root)));

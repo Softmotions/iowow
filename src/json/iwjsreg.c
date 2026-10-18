@@ -236,6 +236,13 @@ static iwrc _sync_dir(const char *path) {
   return rc;
 }
 
+/** Rejects modifications of a read-only registry. */
+#define _IWJSREG_CHECK_WRITABLE(reg_) do {                     \
+          if ((reg_)->flags & IWJSREG_READONLY) {              \
+            return IW_ERROR_READONLY;                          \
+          }                                                    \
+} while (0)
+
 struct _serialize_ctx {
   FILE *file;
   iwrc *rcp;
@@ -338,6 +345,7 @@ iwrc iwjsreg_remove(struct iwjsreg *reg, const char *key) {
   if (!reg || !reg->root || !key) {
     return IW_ERROR_INVALID_ARGS;
   }
+  _IWJSREG_CHECK_WRITABLE(reg);
   RCRET(reg->wlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strcmp(n->key, key) == 0) {
@@ -359,6 +367,7 @@ iwrc iwjsreg_set_str(struct iwjsreg *reg, const char *key, const char *value) {
   if (!reg || !reg->root || !key || !value) {
     return IW_ERROR_INVALID_ARGS;
   }
+  _IWJSREG_CHECK_WRITABLE(reg);
   struct jbl_node *nn = 0;
   char *nkey = 0, *nvalue = 0;
   bool nn_alloc = false;
@@ -409,6 +418,10 @@ finish:
 
 iwrc iwjsreg_merge(struct iwjsreg *reg, const char *path, struct jbl_node *json) {
   iwrc rc = 0;
+  if (!reg || !json) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  _IWJSREG_CHECK_WRITABLE(reg);
   RCRET(reg->wlock_fn(reg->fn_data));
   rc = jbn_merge_patch_path(reg->root, path, json, 0);
   if (!rc) {
@@ -422,7 +435,10 @@ iwrc iwjsreg_merge(struct iwjsreg *reg, const char *path, struct jbl_node *json)
 }
 
 iwrc iwjsreg_merge_str(struct iwjsreg *reg, const char *path, const char *value, int len) {
-  struct jbl_node n = { .type = JBV_STR, .vptr = value, .vsize = len > -1 ? len : strlen(value) };
+  if (!value) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  struct jbl_node n = { .type = JBV_STR, .vptr = value, .vsize = len > -1 ? len : (int) strlen(value) };
   return iwjsreg_merge(reg, path, &n);
 }
 
@@ -449,6 +465,10 @@ iwrc iwjsreg_merge_remove(struct iwjsreg *reg, const char *path) {
 iwrc iwjsreg_replace(struct iwjsreg *reg, const char *path, struct jbl_node *json) {
   iwrc rc = 0;
   struct jbl_node *n;
+  if (!reg || !json) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  _IWJSREG_CHECK_WRITABLE(reg);
   RCRET(reg->wlock_fn(reg->fn_data));
 
   // Remove subtree
@@ -602,10 +622,12 @@ static iwrc _node_as_str(const struct jbl_node *n, char **out) {
       iwitoa(n->vi64, buf, IWNUMBUF_SIZE);
       src = buf;
       break;
-    case JBV_F64:
-      iwftoa(n->vf64, buf);
+    case JBV_F64: {
+      size_t len = 0;
+      iwjson_ftoa(n->vf64, buf, &len);
       src = buf;
       break;
+    }
     default:
       return IW_ERROR_TYPE_NOT_COMPATIBLE;
   }
@@ -631,6 +653,9 @@ finish:
 iwrc iwjsreg_copy(struct iwjsreg *reg, const char *path, struct iwpool *pool, struct jbl_node **out) {
   iwrc rc = 0;
   struct jbl_node *root;
+  if (!reg || !out) {
+    return IW_ERROR_INVALID_ARGS;
+  }
   RCRET(reg->rlock_fn(reg->fn_data));
   if (path) {
     RCC(rc, finish, jbn_at(reg->root, path, &root));
@@ -649,6 +674,7 @@ iwrc iwjsreg_set_i64(struct iwjsreg *reg, const char *key, int64_t value) {
   if (!reg || !reg->root || !key) {
     return IW_ERROR_INVALID_ARGS;
   }
+  _IWJSREG_CHECK_WRITABLE(reg);
   struct jbl_node *nn = 0;
   char *nkey = 0;
   bool nn_alloc = false;
@@ -699,6 +725,7 @@ iwrc iwjsreg_inc_i64(struct iwjsreg *reg, const char *key, int64_t inc, int64_t 
   if (!reg || !reg->root || !key) {
     return IW_ERROR_INVALID_ARGS;
   }
+  _IWJSREG_CHECK_WRITABLE(reg);
   struct jbl_node *nn = 0;
   char *nkey = 0;
   bool nn_alloc = false;
@@ -752,6 +779,7 @@ iwrc iwjsreg_set_bool(struct iwjsreg *reg, const char *key, bool value) {
   if (!reg || !reg->root || !key) {
     return IW_ERROR_INVALID_ARGS;
   }
+  _IWJSREG_CHECK_WRITABLE(reg);
   struct jbl_node *nn = 0;
   char *nkey = 0;
   bool nn_alloc = false;

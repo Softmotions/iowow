@@ -97,6 +97,9 @@ static inline jbl_type_t _jbl_binn_type(int btype) {
   }
 }
 
+// Forward declaration: defined in the DOM tree conversion section below
+static iwrc _jbl_from_node_impl(struct binn *res, struct jbl_node *node);
+
 //--- Construction
 
 iwrc jbl_create_empty_object(struct jbl **jblp) {
@@ -359,31 +362,25 @@ size_t jbl_structure_size(void) {
 iwrc jbl_from_json(struct jbl **jblp, const char *jsonstr) {
   *jblp = 0;
   iwrc rc = 0;
+  struct jbl *jbl = 0;
+  struct jbl_node *node = 0;
+  struct binn bv = BINN_INITIALIZER;
+
   struct iwpool *pool = iwpool_create(2 * strlen(jsonstr));
   if (!pool) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  struct jbl *jbl;
-  struct jbl_node *node;
-  rc = jbn_from_json(jsonstr, &node, pool);
-  RCGO(rc, finish);
-  if (node->type == JBV_OBJECT) {
-    rc = jbl_create_empty_object(&jbl);
-    RCGO(rc, finish);
-  } else if (node->type == JBV_ARRAY) {
-    rc = jbl_create_empty_array(&jbl);
-    RCGO(rc, finish);
-  } else {
-    // TODO: Review
-    rc = JBL_ERROR_CREATION;
-    goto finish;
-  }
-  rc = jbl_fill_from_node(jbl, node);
-  if (!rc) {
-    *jblp = jbl;
-  }
+  RCC(rc, finish, jbn_from_json(jsonstr, &node, pool));
+
+  // Any JSON value (including scalars) can be a document
+  RCC(rc, finish, _jbl_from_node_impl(&bv, node));
+  RCB(finish, jbl = calloc(1, sizeof(*jbl)));
+  memcpy(&jbl->bn, &bv, sizeof(jbl->bn));
+  memset(&bv, 0, sizeof(bv)); // The binn buffer ownership is transferred to the document
+  *jblp = jbl;
 
 finish:
+  binn_destroy(&bv);
   iwpool_destroy(pool);
   return rc;
 }
@@ -414,8 +411,7 @@ static iwrc _jbl_as_json(struct binn *bn, jbl_json_printer pt, void *op, int lvl
         if (pretty) {
           PT(0, 0, ' ', lvl + 1);
         }
-        rc = _jbl_as_json(&iter.binn, pt, op, lvl + 1, pf);
-        RCGO(rc, finish);
+        RCC(rc, finish, _jbl_as_json(&iter.binn, pt, op, lvl + 1, pf));
         if (i < bn->count - 1) {
           PT(0, 0, ',', 1);
         }
@@ -447,8 +443,7 @@ static iwrc _jbl_as_json(struct binn *bn, jbl_json_printer pt, void *op, int lvl
           RCC(rc, finish, _jbl_write_json_string(iter.key, -1, pt, op, pf));
         } else {
           PT(0, 0, '"', 1);
-          rc = _jbl_write_int(iter.idx, pt, op);
-          RCGO(rc, finish);
+          RCC(rc, finish, _jbl_write_int(iter.idx, pt, op));
           PT(0, 0, '"', 1);
         }
         if (pretty) {
@@ -952,8 +947,11 @@ static iwrc _jbl_node_from_binn_impl(
       }
       break;
     default: {
-      rc = _jbl_create_node(ctx, bn, parent, key, klidx, 0, clone_strings);
+      rc = _jbl_create_node(ctx, bn, parent, key, klidx, &parent, clone_strings);
       RCRET(rc);
+      if (!ctx->root) {
+        ctx->root = parent;
+      }
       break;
     }
   }
@@ -1115,14 +1113,17 @@ iwrc jbl_patch_from_json(struct jbl *jbl, const char *patchjson) {
   }
   iwrc rc = jbn_from_json(patchjson, &patch, pool);
   RCGO(rc, finish);
-  if (patch->type == JBV_ARRAY) {
-    rc = _jbl_create_patch(patch, &p, &cnt, pool);
-    RCGO(rc, finish);
+  if (patch->type == JBV_ARRAY) { // JSON Patch (rfc6902)
+    RCC(rc, finish, _jbl_create_patch(patch, &p, &cnt, pool));
     rc = _jbl_patch(jbl, p, cnt, pool);
-  } else if (patch->type == JBV_OBJECT) {
-    // FIXME: Merge patch not implemented
-    //_jbl_merge_patch_node()
-    rc = IW_ERROR_NOT_IMPLEMENTED;
+  } else if (patch->type == JBV_OBJECT) { // JSON Merge Patch (rfc7386)
+    struct binn bv = BINN_INITIALIZER;
+    struct jbl_node *root;
+    RCC(rc, finish, _jbl_node_from_binn(&jbl->bn, &root, false, pool));
+    RCC(rc, finish, jbn_patch_auto(root, patch, pool));
+    RCC(rc, finish, _jbl_from_node_impl(&bv, root));
+    binn_destroy(&jbl->bn);
+    memcpy(&jbl->bn, &bv, sizeof(jbl->bn));
   } else {
     rc = JBL_ERROR_PATCH_INVALID;
   }
@@ -1180,11 +1181,8 @@ iwrc jbl_merge_patch(struct jbl *jbl, const char *patchjson) {
   }
   iwrc rc = _jbl_node_from_binn(&jbl->bn, &target, false, pool);
   RCGO(rc, finish);
-  rc = jbn_merge_patch_from_json(target, patchjson, pool);
-  RCGO(rc, finish);
-
-  rc = _jbl_binn_from_node(&bv, target);
-  RCGO(rc, finish);
+  RCC(rc, finish, jbn_merge_patch_from_json(target, patchjson, pool));
+  RCC(rc, finish, _jbl_binn_from_node(&bv, target));
 
   binn_destroy(&jbl->bn);
   memcpy(&jbl->bn, &bv, sizeof(jbl->bn));

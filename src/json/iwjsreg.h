@@ -67,7 +67,10 @@ IW_EXTERN_C_START;
 #define IWJSREG_FORMAT_BINARY 0x01U
 /** Synchronize the registry file automatically after every modification. */
 #define IWJSREG_AUTOSYNC      0x02U
-/** Open the registry in the read-only mode: no modifications and no file writes are allowed. */
+/**
+ * Open the registry in the read-only mode: no modifications and no file writes are allowed.
+ * Modification functions return `IW_ERROR_READONLY` for such a registry.
+ */
 #define IWJSREG_READONLY      0x04U
 
 /** @brief JSON registry instance. */

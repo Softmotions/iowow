@@ -152,8 +152,36 @@ static void jbl_test3_1(void) {
   // Invalid JSON documents
   IW_TEST_ASSERT_EQUAL(jbl_from_json(&jbl, "{\"a\":}"), JBL_ERROR_PARSE_JSON);
   IW_TEST_ASSERT_PTR_NULL(jbl);
-  IW_TEST_ASSERT_EQUAL(jbl_from_json(&jbl, "12"), JBL_ERROR_CREATION);
   IW_TEST_ASSERT_EQUAL(jbl_from_json(&jbl, ""), JBL_ERROR_PARSE_JSON);
+
+  // Scalars are valid documents as well
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_from_json(&jbl, "12"), 0);
+  IW_TEST_ASSERT_EQUAL(jbl_type(jbl), JBV_I64);
+  IW_TEST_ASSERT_EQUAL(jbl_get_i64(jbl), 12);
+  assert_as_json(jbl, 0, "12");
+  jbl_destroy(&jbl);
+
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_from_json(&jbl, "2.5"), 0);
+  IW_TEST_ASSERT_EQUAL(jbl_type(jbl), JBV_F64);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(jbl_get_f64(jbl), 2.5, 0.0001);
+  assert_as_json(jbl, 0, "2.5");
+  jbl_destroy(&jbl);
+
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_from_json(&jbl, "\"str\""), 0);
+  IW_TEST_ASSERT_EQUAL(jbl_type(jbl), JBV_STR);
+  IW_TEST_ASSERT_STR_EQUAL(jbl_get_str(jbl), "str");
+  assert_as_json(jbl, 0, "\"str\"");
+  jbl_destroy(&jbl);
+
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_from_json(&jbl, "true"), 0);
+  IW_TEST_ASSERT_EQUAL(jbl_type(jbl), JBV_BOOL);
+  assert_as_json(jbl, 0, "true");
+  jbl_destroy(&jbl);
+
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_from_json(&jbl, "null"), 0);
+  IW_TEST_ASSERT_EQUAL(jbl_type(jbl), JBV_NULL);
+  assert_as_json(jbl, 0, "null");
+  jbl_destroy(&jbl);
   rc = jbl_from_json_printf(&jbl, "{\"%s\":%d}", "a", 1);
   IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
   assert_as_json(jbl, 0, "{\"a\":1}");
@@ -359,6 +387,20 @@ static void jbl_test3_4(void) {
   IW_TEST_ASSERT_EQUAL(jbl_fill_from_node(back, 0), IW_ERROR_INVALID_ARGS);
   jbl_destroy(&back);
 
+  // Scalar documents are converted to a single node tree
+  struct jbl *scal = 0;
+  struct jbl_node *snode = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_from_json(&scal, "42"), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_to_node(scal, &snode, true, pool), 0);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(snode);
+  IW_TEST_ASSERT_EQUAL(snode->type, JBV_I64);
+  IW_TEST_ASSERT_EQUAL(snode->vi64, 42);
+  jbl_destroy(&scal);
+  char *sout = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_as_json_alloc(snode, 0, &sout), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sout, "42");
+  free(sout);
+
   // No string cloning: the tree references the document memory
   struct jbl *jbl2 = from_json("{\"s\":\"str\"}");
   struct jbl_node *raw = 0;
@@ -459,6 +501,29 @@ static void jbl_test3_6(void) {
   IW_TEST_ASSERT_EQUAL_FATAL(jbl_patch_from_json(jbl, "[{\"op\":\"add\",\"path\":\"/n\",\"value\":7}]"), 0);
   assert_as_json(jbl, 0, "{\"arr\":[1,2,3,{\"x\":true}],\"a\":{\"x\":true},\"n\":7}");
 
+  // An object document is applied as a JSON Merge Patch
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_patch_from_json(jbl, "{\"m\":{\"k\":\"v\"}}"), 0);
+  assert_as_json(jbl, 0,
+                 "{\"arr\":[1,2,3,{\"x\":true}],\"a\":{\"x\":true},\"n\":7,\"m\":{\"k\":\"v\"}}");
+
+  // A null merge patch value removes the member
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_patch_from_json(jbl, "{\"n\":null,\"m\":null}"), 0);
+  assert_as_json(jbl, 0, "{\"arr\":[1,2,3,{\"x\":true}],\"a\":{\"x\":true}}");
+
+  // An empty merge patch document is a no-op
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_patch_from_json(jbl, "{}"), 0);
+  assert_as_json(jbl, 0, "{\"arr\":[1,2,3,{\"x\":true}],\"a\":{\"x\":true}}");
+
+  // A merge patch of a scalar document replaces its value with an object
+  struct jbl *scal = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_from_json(&scal, "1"), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_patch_from_json(scal, "{\"a\":2}"), 0);
+  assert_as_json(scal, 0, "{\"a\":2}");
+  jbl_destroy(&scal);
+
+  // Scalar patch documents are invalid
+  IW_TEST_ASSERT_EQUAL(jbl_patch_from_json(jbl, "1"), JBL_ERROR_PATCH_INVALID);
+  IW_TEST_ASSERT_EQUAL(jbl_patch_from_json(jbl, "\"str\""), JBL_ERROR_PATCH_INVALID);
   IW_TEST_ASSERT_EQUAL(jbl_patch_from_json(jbl, "[1]"), JBL_ERROR_PATCH_INVALID);
   IW_TEST_ASSERT_EQUAL(jbl_patch_from_json(jbl, "[{\"op\":\"zzz\",\"path\":\"/n\",\"value\":1}]"),
                        JBL_ERROR_PATCH_INVALID_OP);

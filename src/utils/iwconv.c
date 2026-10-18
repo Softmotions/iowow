@@ -6,8 +6,15 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
+#include <locale.h>
+#endif
 
 // mapping of ASCII characters to hex values
 static const uint8_t ascii2hex[] = {
@@ -149,7 +156,7 @@ char* iwftoa(long double n, char s[static IWNUMBUF_SIZE]) {
     strcpy(s, "nan");
   } else if (isinf(n)) {
     strcpy(s, "inf");
-  } else if (n == 0.0) { // -V550
+  } else if (n == 0.0) {
     strcpy(s, "0");
   } else {
     int digit, m, m1;
@@ -442,112 +449,250 @@ static const char* skipwhite(const char *q) {
   return p;
 }
 
-double iwstrtod(const char *str, char **end) {
-  double d = 0.0;
-  int sign;
-  const char *p, *a;
+//--- Locale independent numeric conversions
 
-  a = p = str;
-  p = skipwhite(p);
+#ifdef _WIN32
+typedef _locale_t iw_c_locale_t;
+#else
+typedef locale_t iw_c_locale_t;
+#endif
 
-  /* decimal part */
-  sign = 1;
+#define _IWC_LOCALE_UNINIT 0
+#define _IWC_LOCALE_BUSY   1
+#define _IWC_LOCALE_READY  2
+
+static iw_c_locale_t _iwc_locale_handle;
+static int _iwc_locale_status = _IWC_LOCALE_UNINIT;
+
+static iw_c_locale_t _iwc_locale_create(void) {
+#ifdef _WIN32
+  return _create_locale(LC_NUMERIC, "C");
+#else
+  return newlocale(LC_NUMERIC_MASK, "C", (locale_t) 0);
+#endif
+}
+
+/**
+ * Returns the cached C numeric locale, or zero if it cannot be created.
+ * In the latter case the current (process) locale is used as a fallback.
+ */
+static iw_c_locale_t _iwc_locale(void) {
+  if (!__sync_bool_compare_and_swap(&_iwc_locale_status, _IWC_LOCALE_READY, _IWC_LOCALE_READY)) {
+    if (__sync_bool_compare_and_swap(&_iwc_locale_status, _IWC_LOCALE_UNINIT, _IWC_LOCALE_BUSY)) {
+      _iwc_locale_handle = _iwc_locale_create();
+      __sync_bool_compare_and_swap(&_iwc_locale_status, _IWC_LOCALE_BUSY, _IWC_LOCALE_READY);
+    } else {
+      // Another thread is creating the locale, the initialization is instantaneous
+      while (!__sync_bool_compare_and_swap(&_iwc_locale_status, _IWC_LOCALE_READY, _IWC_LOCALE_READY)) { }
+    }
+  }
+  return _iwc_locale_handle;
+}
+
+// Powers of ten which are exactly representable as double
+static const double _iwc_pow10[] = {
+  1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,
+  1e8,  1e9,  1e10, 1e11, 1e12, 1e13, 1e14, 1e15,
+  1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
+};
+
+#define _IWC_POW10_MAX  ((int) (sizeof(_iwc_pow10) / sizeof(_iwc_pow10[0])) - 1)
+#define _IWC_MANT_MAX   ((uint64_t) 1 << 53) // Largest integer exactly representable as double
+#define _IWC_EXP_LIMIT  1000                 // Exponent overflow guard
+
+/**
+ * Fast path for the decimal numbers: `[-]digits[.digits][(e|E)[+|-]digits]`.
+ *
+ * The value is computed by a single IEEE multiplication or division, which is correctly rounded
+ * (Clinger's fast path), therefore the fast path is used only when the integer mantissa fits into
+ * 53 bits and the decimal exponent is within `[-22, 22]`. Anything else is left to `strtod()`.
+ *
+ * The structure of the number is scanned first, so the numbers which cannot be handled by the fast
+ * path (for example, with more than 16 significant digits) are rejected without the mantissa
+ * accumulation.
+ *
+ * @return `true` if the number is parsed, `*end` is set only on success.
+ */
+static bool _iwc_strtod_fast(const char *str, double *out, char **end) {
+  const char *p = str;
+  int sign = 1;
+  int exp10;
+
   if (*p == '-') {
     sign = -1;
     ++p;
-  } else if (*p == '+') {
+  }
+  if ((*p < '0') || (*p > '9')) {
+    return false; // ' ', '+', '.', 'i'/'n' (inf/nan) and so on are left to strtod()
+  }
+  if ((p[0] == '0') && ((p[1] == 'x') || (p[1] == 'X'))) {
+    return false; // Hexadecimal float, strtod() is the only one who knows how to parse it
+  }
+
+  // Scan the structure of the number
+  const char *int_start = p;
+  while ((*p >= '0') && (*p <= '9')) {
     ++p;
   }
-  if (iwchars_is_digit(*p)) {
-    d = (double) (*p++ - '0');
-    while (*p && iwchars_is_digit(*p)) {
-      d = d * 10.0 + (double) (*p - '0');
+  const char *int_end = p;
+  const char *frac_start = p, *frac_end = p;
+  if (*p == '.') {
+    ++p;
+    frac_start = p;
+    while ((*p >= '0') && (*p <= '9')) {
       ++p;
     }
-    a = p;
-  } else if (*p != '.') {
-    goto done;
-  }
-  d *= sign;
-
-  /* fraction part */
-  if (*p == '.') {
-    double f = 0.0;
-    double base = 0.1;
-    ++p;
-
-    if (iwchars_is_digit(*p)) {
-      while (*p && iwchars_is_digit(*p)) {
-        f += base * (*p - '0');
-        base /= 10.0;
-        ++p;
-      }
+    frac_end = p;
+    // Trailing zeroes of the fractional part do not change the value
+    while ((frac_end > frac_start) && (frac_end[-1] == '0')) {
+      --frac_end;
     }
-    d += f * sign;
-    a = p;
+    if ((frac_end - frac_start) > _IWC_EXP_LIMIT) {
+      return false;
+    }
   }
 
-  /* exponential part */
-  if ((*p == 'E') || (*p == 'e')) {
-    int e = 0;
+  // Find the first significant digit. 17 significant digits are always greater than 2^53,
+  // such numbers are left to strtod().
+  const char *sig_start = int_start;
+  while ((sig_start < int_end) && (*sig_start == '0')) {
+    ++sig_start;
+  }
+  int sig;
+  if (sig_start < int_end) {
+    sig = (int) ((int_end - sig_start) + (frac_end - frac_start));
+  } else {
+    sig_start = frac_start;
+    while ((sig_start < frac_end) && (*sig_start == '0')) {
+      ++sig_start;
+    }
+    sig = (int) (frac_end - sig_start);
+  }
+  if (sig > 16) {
+    return false;
+  }
+  exp10 = -(int) (frac_end - frac_start);
+  if ((*p == 'e') || (*p == 'E')) {
+    int esign = 1, e = 0;
     ++p;
-
-    sign = 1;
     if (*p == '-') {
-      sign = -1;
+      esign = -1;
       ++p;
     } else if (*p == '+') {
       ++p;
     }
-
-    if (iwchars_is_digit(*p)) {
-      while (*p == '0') {
-        ++p;
-      }
-      if (*p == '\0') {
-        --p;
-      }
-      e = (*p++ - '0');
-      while (*p && iwchars_is_digit(*p)) {
-        e = e * 10 + (*p - '0');
-        ++p;
-      }
-      e *= sign;
-    } else if (!iwchars_is_digit(*(a - 1))) {
-      a = str;
-      goto done;
-    } else if (*p == 0) {
-      goto done;
+    if ((*p < '0') || (*p > '9')) {
+      return false; // Incomplete exponent, strtod() will stop before `e`
     }
-
-    if (d == 2.2250738585072011 && e == -308) {
-      d = 0.0;
-      a = p;
-      errno = ERANGE;
-      goto done;
+    for (; (*p >= '0') && (*p <= '9'); ++p) {
+      if (e > _IWC_EXP_LIMIT) {
+        return false;
+      }
+      e = e * 10 + (*p - '0');
     }
-    if (d == 2.2250738585072012 && e <= -308) {
-      d *= 1.0e-308;
-      a = p;
-      goto done;
-    }
-    d *= pow(10.0, (double) e);
-    a = p;
-  } else if (p > str && !iwchars_is_digit(*(p - 1))) {
-    a = str;
-    goto done;
+    exp10 += esign * e;
+  }
+  if ((exp10 < -_IWC_POW10_MAX) || (exp10 > _IWC_POW10_MAX)) {
+    return false;
   }
 
-done:
+  // Accumulate the significant digits
+  uint64_t mant = 0;
+  if (sig_start < int_end) {
+    for (const char *c = sig_start; c < int_end; ++c) {
+      mant = mant * 10 + (uint64_t) (*c - '0');
+    }
+    for (const char *c = frac_start; c < frac_end; ++c) {
+      mant = mant * 10 + (uint64_t) (*c - '0');
+    }
+  } else {
+    for (const char *c = sig_start; c < frac_end; ++c) {
+      mant = mant * 10 + (uint64_t) (*c - '0');
+    }
+  }
+  if (mant > _IWC_MANT_MAX) {
+    return false;
+  }
+  double d = (double) mant;
+  if (exp10 < 0) {
+    d /= _iwc_pow10[-exp10];
+  } else if (exp10 > 0) {
+    d *= _iwc_pow10[exp10];
+  }
+  *out = (sign < 0) ? -d : d;
   if (end) {
-    *end = (char*) a;
+    *end = (char*) p;
   }
-  return d;
+  return true;
+}
+
+double iw_strtod_c(const char *str, char **end) {
+  double d;
+  if (_iwc_strtod_fast(str, &d, end)) {
+    return d;
+  }
+#ifdef _WIN32
+  iw_c_locale_t cl = _iwc_locale();
+  return cl ? _strtod_l(str, end, cl) : strtod(str, end);
+#else
+  iw_c_locale_t cl = _iwc_locale(), prev = (locale_t) 0;
+  if (cl) {
+    prev = uselocale(cl);
+  }
+  double ret = strtod(str, end);
+  if (prev) {
+    uselocale(prev);
+  }
+  return ret;
+#endif
+}
+
+long double iw_strtold_c(const char *str, char **end) {
+#ifdef _WIN32
+  iw_c_locale_t cl = _iwc_locale();
+  return cl ? (long double) _strtod_l(str, end, cl) : (long double) strtod(str, end);
+#else
+  iw_c_locale_t cl = _iwc_locale(), prev = (locale_t) 0;
+  if (cl) {
+    prev = uselocale(cl);
+  }
+  long double ret = strtold(str, end);
+  if (prev) {
+    uselocale(prev);
+  }
+  return ret;
+#endif
+}
+
+int iw_snprintf_c(char *buf, size_t size, const char *format, ...) {
+  va_list ap;
+  int ret;
+  va_start(ap, format);
+#ifdef _WIN32
+  iw_c_locale_t cl = _iwc_locale();
+  if (cl) {
+    ret = _vsnprintf_l(buf, size, format, cl, ap);
+  } else {
+    ret = vsnprintf(buf, size, format, ap);
+  }
+#else
+  iw_c_locale_t cl = _iwc_locale(), prev = (locale_t) 0;
+  if (cl) {
+    prev = uselocale(cl);
+  }
+  ret = vsnprintf(buf, size, format, ap);
+  if (prev) {
+    uselocale(prev);
+  }
+#endif
+  va_end(ap);
+  return ret;
 }
 
 long double iw_strtold(const char *v, iwrc *rcp) {
   char *ep = 0;
-  long double ret = strtold(v, &ep);
+  errno = 0;
+  long double ret = iw_strtold_c(v, &ep);
   if (*ep != '\0' || errno == ERANGE) {
     *rcp = IW_ERROR_INVALID_ARGS;
     return 0;
@@ -557,7 +702,8 @@ long double iw_strtold(const char *v, iwrc *rcp) {
 
 double iw_strtod(const char *v, iwrc *rcp) {
   char *ep = 0;
-  double ret = strtod(v, &ep);
+  errno = 0;
+  double ret = iw_strtod_c(v, &ep);
   if (*ep != '\0' || errno == ERANGE) {
     *rcp = IW_ERROR_INVALID_ARGS;
     return 0;
@@ -566,6 +712,7 @@ double iw_strtod(const char *v, iwrc *rcp) {
 }
 
 long int iw_strtol(const char *v, int base, iwrc *rcp) {
+  errno = 0;
   char *ep = 0;
   long int ret = strtol(v, &ep, base);
   if (*ep != '\0' || errno == ERANGE) {
@@ -576,6 +723,7 @@ long int iw_strtol(const char *v, int base, iwrc *rcp) {
 }
 
 long long iw_strtoll(const char *v, int base, iwrc *rcp) {
+  errno = 0;
   char *ep = 0;
   long long ret = strtoll(v, &ep, base);
   if (*ep != '\0' || errno == ERANGE) {
@@ -586,6 +734,7 @@ long long iw_strtoll(const char *v, int base, iwrc *rcp) {
 }
 
 unsigned long int iw_strtoul(const char *v, int base, iwrc *rcp) {
+  errno = 0;
   char *ep = 0;
   unsigned long int ret = strtoul(v, &ep, base);
   if (*ep != '\0' || errno == ERANGE) {
@@ -596,6 +745,7 @@ unsigned long int iw_strtoul(const char *v, int base, iwrc *rcp) {
 }
 
 unsigned long long iw_strtoull(const char *v, int base, iwrc *rcp) {
+  errno = 0;
   char *ep = 0;
   unsigned long long ret = strtoull(v, &ep, base);
   if (*ep != '\0' || errno == ERANGE) {

@@ -10,7 +10,7 @@ void iwkvd_kvblk(FILE *f, struct kvblk *kb, int maxvlen) {
   uint32_t klen, vlen;
   struct iwfs_fsm *fsm = &kb->db->iwkv->fsm;
   blkn_t blkn = ADDR2BLK(kb->addr);
-  fprintf(f, "\n === KVBLK[%u] maxoff=%" PRIx64 ", zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n", // -V576
+  fprintf(f, "\n === KVBLK[%u] maxoff=%" PRIx64 ", zidx=%d, idxsz=%d, szpow=%u, flg=%x, db=%d\n",
           blkn, (int64_t) kb->maxoff, kb->zidx, kb->idxsz, kb->szpow, kb->flags, kb->db->id);
 
   iwrc rc = fsm->probe_mmap(fsm, 0, &mm, 0);
@@ -68,7 +68,7 @@ iwrc iwkvd_sblk(FILE *f, struct iwlctx *lx, struct sblk *sb, int flags) {
           sb->p0,
           sb->kvblk->db->id);
 
-  fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow, lkl, lkbuf); // -V576
+  fprintf(f, "\n === SBLK[%u] szpow=%d, lkl=%d, lk=%s\n", blkn, sb->kvblk->szpow, lkl, lkbuf);
 
   for (int i = 0, j = 0; i < sb->pnum; ++i, ++j) {
     if (j == 3) {

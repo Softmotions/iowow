@@ -7,6 +7,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
@@ -333,7 +334,7 @@ static const char* _jbl_parse_value(
           if (ctx->rc) {
             return 0;
           }
-          node->vbool = true; // -V522
+          node->vbool = true;
           return p + 4;
         }
         ctx->rc = JBL_ERROR_PARSE_JSON;
@@ -475,26 +476,42 @@ static const char* _jbl_parse_value(
           ctx->rc = JBL_ERROR_PARSE_JSON;
           return 0;
         }
+        if (!ctx->js) {
+          // JSON numbers are decimal integers or fractions, never octal/hex or zero padded
+          const char *digits = (*p == '-') ? p + 1 : p;
+          if ((digits[0] == '0') && (digits[1] >= '0') && (digits[1] <= '9')) {
+            ctx->rc = JBL_ERROR_PARSE_JSON;
+            return 0;
+          }
+        }
         node = _jbl_json_create_node(JBV_I64, key, klidx, parent, ctx);
         if (ctx->rc) {
           return 0;
         }
+        const bool jsfloat = ctx->js
+                             && ((*p == '.')
+                                 || ((*p == '-') && (*(p + 1) == '.'))); // A js float without an integer part
         char *pe;
-        node->vi64 = strtoll(p, &pe, 0);
-        if ((pe == p) || (errno == ERANGE)) {
-          if (*p != '.' && !((*p == '-' || *p == '+') && *(p + 1) == '.')) {
+        errno = 0;
+        node->vi64 = strtoll(p, &pe, ctx->js ? 0 : 10);
+        if (pe == p) {
+          if (!jsfloat) {
             ctx->rc = JBL_ERROR_PARSE_JSON;
             return 0;
           }
+        } else if ((errno != ERANGE) && (*pe != '.') && (*pe != 'e') && (*pe != 'E')) {
+          return pe; // Integer value
         }
-        if ((*pe == '.') || (*pe == 'e') || (*pe == 'E') || (*pe == '-') || (*pe == '+')) {
-          node->type = JBV_F64;
-          node->vf64 = iwstrtod(p, &pe);
-          if ((pe == p) || (errno == ERANGE)) {
-            ctx->rc = JBL_ERROR_PARSE_JSON;
-            return 0;
-          }
+        // Fraction, exponent or an integer which does not fit into int64_t.
+        // A subnormal result (ERANGE on underflow) is a valid value, only overflowing to
+        // an infinity is not representable.
+        errno = 0;
+        node->vf64 = iw_strtod_c(p, &pe);
+        if ((pe == p) || isinf(node->vf64)) {
+          ctx->rc = JBL_ERROR_PARSE_JSON;
+          return 0;
         }
+        node->type = JBV_F64;
         return pe;
       }
       default:

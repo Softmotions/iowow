@@ -364,11 +364,9 @@ static void apply_patch(const char *data, const char *patch, const char *result,
   iwrc rc = jbl_from_json(&jbl, data2);
   RCGO(rc, finish);
 
-  rc = jbl_patch_from_json(jbl, patch2);
-  RCGO(rc, finish);
+  RCC(rc, finish, jbl_patch_from_json(jbl, patch2));
 
-  rc = jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false);
-  RCGO(rc, finish);
+  RCC(rc, finish, jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false));
 
   if (result2) {
     IW_TEST_ASSERT_STR_EQUAL(result2, iwxstr_ptr(xstr));
@@ -401,11 +399,9 @@ static void apply_merge_patch(const char *data, const char *patch, const char *r
   iwrc rc = jbl_from_json(&jbl, data2);
   RCGO(rc, finish);
 
-  rc = jbl_merge_patch(jbl, patch2);
-  RCGO(rc, finish);
+  RCC(rc, finish, jbl_merge_patch(jbl, patch2));
 
-  rc = jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false);
-  RCGO(rc, finish);
+  RCC(rc, finish, jbl_as_json(jbl, jbl_xstr_json_printer, xstr, false));
 
   if (result2) {
     IW_TEST_ASSERT_STR_EQUAL(result2, iwxstr_ptr(xstr));

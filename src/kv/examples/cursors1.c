@@ -45,8 +45,7 @@ static iwrc run(void) {
   iwrc rc = iwkv_open(&opts, &iwkv);
   RCRET(rc);
 
-  rc = iwkv_db(iwkv, 1, 0, &db);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwkv_db(iwkv, 1, 0, &db));
 
   for (int i = 0; i < sizeof(_points) / sizeof(_points[0]); ++i) {
     struct data_s *n = &_points[i];

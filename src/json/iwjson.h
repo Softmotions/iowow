@@ -198,7 +198,9 @@ typedef iwrc (*jbl_json_printer)(const char *data, int size, char ch, int count,
 /**
  * @brief Formats a floating point value as JSON number.
  *
- * Trailing zeroes of the fractional part are trimmed, the decimal separator is always `.`.
+ * The shortest representation which is converted back to the same value is produced,
+ * the decimal separator is always `.` and non finite values (`NaN`, `+Inf`, `-Inf`) are
+ * formatted as `null` because JSON has no representation for them.
  *
  * @param val       Value to format.
  * @param buf       Output buffer of `IWNUMBUF_SIZE` bytes.

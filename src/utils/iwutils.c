@@ -352,7 +352,7 @@ int iwu_cmp_files(FILE *f1, FILE *f2, bool verbose) {
     c1 = getc(f1);
     c2 = getc(f2);
   }
-  if ((c1 - c2) && verbose) { // -V793
+  if ((c1 - c2) && verbose) {
     fprintf(stderr, "\nDiff at: %d:%d\n", line, pos);
   }
   return (c1 - c2);
@@ -483,15 +483,13 @@ iwrc iwu_replace(
       const char *p = strstr(ptr, key);
       if (!p) {
         if (ptr != start) {
-          rc = iwxstr_cat(bbuf, ptr, datalen - (ptr - start));
-          RCGO(rc, finish);
+          RCC(rc, finish, iwxstr_cat(bbuf, ptr, datalen - (ptr - start)));
         }
         break;
       }
       iwxstr_cat(bbuf, ptr, p - ptr);
       const char *repl = mapper(key, mapper_op);
-      rc = iwxstr_cat2(bbuf, repl ? repl : key);
-      RCGO(rc, finish);
+      RCC(rc, finish, iwxstr_cat2(bbuf, repl ? repl : key));
       ptr = p + klen;
       if (ptr - start >= datalen) {
         break;
@@ -499,8 +497,7 @@ iwrc iwu_replace(
     }
     if (ptr != start) {
       iwxstr_clear(inter);
-      rc = iwxstr_cat(inter, iwxstr_ptr(bbuf), iwxstr_size(bbuf));
-      RCGO(rc, finish);
+      RCC(rc, finish, iwxstr_cat(inter, iwxstr_ptr(bbuf), iwxstr_size(bbuf)));
       ptr = iwxstr_ptr(inter);
       start = ptr;
       datalen = iwxstr_size(inter);

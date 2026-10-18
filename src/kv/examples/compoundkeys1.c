@@ -55,8 +55,7 @@ static iwrc run(void) {
   iwrc rc = iwkv_open(&opts, &iwkv);
   RCRET(rc);
 
-  rc = iwkv_db(iwkv, 1, IWDB_COMPOUND_KEYS, &db);
-  RCGO(rc, finish);
+  RCC(rc, finish, iwkv_db(iwkv, 1, IWDB_COMPOUND_KEYS, &db));
 
   // Persist all rooms with members
   for (int i = 0; i < sizeof(rooms) / sizeof(rooms[0]); ++i) {

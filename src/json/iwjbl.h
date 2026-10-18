@@ -92,6 +92,8 @@ IW_EXPORT iwrc jbl_create_empty_array(struct jbl **jblp);
 /**
  * @brief Creates a new `struct jbl` document by parsing the JSON text `jsonstr`.
  *
+ * Any JSON value can be a document root, including scalars (`null`, booleans, numbers, strings).
+ *
  * @note `jblp` should be disposed of by `jbl_destroy()`.
  *
  * @param [out] jblp  Holder of the created document. Not zero.
@@ -501,10 +503,13 @@ IW_EXPORT iwrc jbl_from_node(struct jbl **jblp, struct jbl_node *node);
 IW_EXPORT iwrc jbl_patch(struct jbl *jbl, const struct jbl_patch *patch, size_t cnt);
 
 /**
- * @brief Applies the JSON Patch document `patchjson` (rfc6902) to the document.
+ * @brief Applies the JSON Patch document `patchjson` to the document.
+ *
+ * If `patchjson` is a JSON array it is interpreted as a JSON Patch (rfc6902) document, if it is a
+ * JSON object it is applied as a JSON Merge Patch (rfc7386) document.
  *
  * @param jbl       Target document. Not zero.
- * @param patchjson JSON Patch document text. Not zero.
+ * @param patchjson JSON Patch (array) or JSON Merge Patch (object) document text. Not zero.
  */
 IW_EXPORT iwrc jbl_patch_from_json(struct jbl *jbl, const char *patchjson);
 

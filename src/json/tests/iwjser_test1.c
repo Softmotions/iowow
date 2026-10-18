@@ -3,12 +3,21 @@
 #include "iwxstr.h"
 #include "iwutils.h"
 #include "iwpool.h"
+#include "iwconv.h"
 
 #include "iwjson.h"
 
+#include <ctype.h>
+#include <math.h>
+#ifdef __APPLE__
+#include <xlocale.h>
+#else
+#include <locale.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <float.h>
 #include "tests.h"
 
 int init_suite(void) {
@@ -238,6 +247,56 @@ static void iwjser_test1_numbers(void) {
     }
   }
 
+  // JSON numbers are decimal only: no hex, no leading zeroes
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("0x1A", &n, pool), JBL_ERROR_PARSE_JSON);
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("0123", &n, pool), JBL_ERROR_PARSE_JSON);
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("-0123", &n, pool), JBL_ERROR_PARSE_JSON);
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("{\"a\":00}", &n, pool), JBL_ERROR_PARSE_JSON);
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("{\"a\":0x1A}", &n, pool), JBL_ERROR_PARSE_JSON);
+  IW_TEST_ASSERT_EQUAL(jbn_from_json(".5", &n, pool), JBL_ERROR_PARSE_JSON);
+
+  // The js-like parser keeps hexadecimal and legacy octal literals
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_js("{a:0x1A,b:0123,c:.5,d:-.5}", &n, pool), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_at(n, "/a", &v), 0);
+  IW_TEST_ASSERT_EQUAL(v->vi64, 26);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_at(n, "/b", &v), 0);
+  IW_TEST_ASSERT_EQUAL(v->vi64, 83);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_at(n, "/c", &v), 0);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(v->vf64, 0.5, 0.00001);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_at(n, "/d", &v), 0);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(v->vf64, -0.5, 0.00001);
+
+  // An integer which does not fit into int64_t becomes a floating point value
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_json("9223372036854775808", &n, pool), 0);
+  IW_TEST_ASSERT_EQUAL(n->type, JBV_F64);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(n->vf64, 9223372036854775808.0, 1.0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_json("-9223372036854775809", &n, pool), 0);
+  IW_TEST_ASSERT_EQUAL(n->type, JBV_F64);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(n->vf64, -9223372036854775809.0, 2048.0);
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("1e400", &n, pool), JBL_ERROR_PARSE_JSON);
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("{\"a\":1e999}", &n, pool), JBL_ERROR_PARSE_JSON);
+
+  // Subnormal values are parsed and printed without loss
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_json("4.9406564584124654e-324", &n, pool), 0);
+  IW_TEST_ASSERT_EQUAL(n->type, JBV_F64);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(n->vf64, 5e-324, 0.0);
+  char *sub = print(n, 0);
+  IW_TEST_ASSERT_STR_EQUAL(sub, "4.94065645841247e-324");
+  free(sub);
+
+  // Underflow is converted to zero
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_json("1e-400", &n, pool), 0);
+  IW_TEST_ASSERT_EQUAL(n->type, JBV_F64);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(n->vf64, 0.0, 0.0);
+
+  // Small values keep their precision
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_json("1e-9", &n, pool), 0);
+  IW_TEST_ASSERT_EQUAL(n->type, JBV_F64);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(n->vf64, 1e-9, 1e-21);
+  char *small = print(n, 0);
+  IW_TEST_ASSERT_STR_EQUAL(small, "1e-09");
+  free(small);
+
   // Numbers nested into a container
   n = parse(pool, "{\"a\":[1,-2.5,true,false,null]}");
   char *out = print(n, 0);
@@ -300,6 +359,59 @@ static void iwjser_test1_ftoa(void) {
 
   iwjson_ftoa(123456.75, buf, &len);
   IW_TEST_ASSERT_STR_EQUAL(buf, "123456.75");
+
+  // Moderate magnitudes use the plain decimal notation
+  iwjson_ftoa(0.000006, buf, &len);
+  IW_TEST_ASSERT_EQUAL(len, strlen(buf));
+  IW_TEST_ASSERT_STR_EQUAL(buf, "0.000006");
+  iwjson_ftoa(0.000001, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "0.000001");
+  iwjson_ftoa(1e-8, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "0.00000001");
+  iwjson_ftoa(1.5e-8, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "0.000000015");
+  iwjson_ftoa(1e15, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "1000000000000000");
+  iwjson_ftoa(1e16, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "1e+16");
+
+  // Values which need more than 8 fractional digits are not truncated
+  iwjson_ftoa(1e-9, buf, &len);
+  IW_TEST_ASSERT_EQUAL(len, strlen(buf));
+  IW_TEST_ASSERT_STR_EQUAL(buf, "1e-09");
+
+  iwjson_ftoa(0.1 + 0.2, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "0.30000000000000004");
+
+  iwjson_ftoa(DBL_MAX, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "1.7976931348623157e+308");
+
+  // 16 significant digits are not always enough to restore a double
+  iwjson_ftoa(3.2175151490036762e+209, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "3.2175151490036762e+209");
+  iwjson_ftoa(7.1989792719134434e+87, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "7.1989792719134434e+87");
+
+  // Subnormal values
+  iwjson_ftoa(5e-324, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "4.94065645841247e-324");
+
+  // Every produced value is converted back to the same number
+  const long double vals[] = { 0.1L, 1e-9L, 3.14159265358979323846L, 1e300L, -1e-300L, 12345.6789L };
+  for (size_t i = 0; i < sizeof(vals) / sizeof(vals[0]); ++i) {
+    iwjson_ftoa(vals[i], buf, &len);
+    IW_TEST_ASSERT_EQUAL(len, strlen(buf));
+    IW_TEST_ASSERT_TRUE_FATAL(strtold(buf, 0) == vals[i]);
+  }
+
+  // JSON has no non finite numbers
+  iwjson_ftoa(NAN, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "null");
+  IW_TEST_ASSERT_EQUAL(len, 4);
+  iwjson_ftoa(INFINITY, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "null");
+  iwjson_ftoa(-INFINITY, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "null");
 }
 
 //--- Printing
@@ -368,6 +480,15 @@ static void iwjser_test1_printers(void) {
   fflush(f);
   IW_TEST_ASSERT_EQUAL(ftell(f), 100000);
   fclose(f);
+
+  // Non finite numbers are printed as JSON null
+  struct jbl_node *fin = parse(pool, "{}");
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_add_item_f64(fin, "nan", NAN, 0, pool), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_add_item_f64(fin, "inf", INFINITY, 0, pool), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_add_item_f64(fin, "ninf", -INFINITY, 0, pool), 0);
+  free(out);
+  out = print(fin, 0);
+  IW_TEST_ASSERT_STR_EQUAL(out, "{\"nan\":null,\"inf\":null,\"ninf\":null}");
 
   // Printer errors are propagated
   IW_TEST_ASSERT_EQUAL(jbn_as_json(n, _failing_printer, 0, 0), IW_ERROR_FAIL);
@@ -446,6 +567,339 @@ static void iwjser_test1_pretty(void) {
   iwpool_destroy(pool);
 }
 
+
+//--- JSON number syntax audit
+
+/**
+ * Checks that `s` matches the RFC 8259 number grammar:
+ *   number = [ "-" ] int [ frac ] [ exp ]
+ *   int    = "0" / (digit1-9 *DIGIT)
+ *   frac   = "." 1*DIGIT
+ *   exp    = ("e" / "E") [ "-" / "+" ] 1*DIGIT
+ */
+static bool _is_json_number(const char *s) {
+  if (!s || !*s) {
+    return false;
+  }
+  if (*s == '-') {
+    ++s;
+  }
+  if (*s == '0') {
+    ++s;
+    if ((*s >= '0') && (*s <= '9')) {
+      return false; // Leading zero
+    }
+  } else if ((*s >= '1') && (*s <= '9')) {
+    while ((*s >= '0') && (*s <= '9')) {
+      ++s;
+    }
+  } else {
+    return false;
+  }
+  if (*s == '.') {
+    ++s;
+    if (!((*s >= '0') && (*s <= '9'))) {
+      return false;
+    }
+    while ((*s >= '0') && (*s <= '9')) {
+      ++s;
+    }
+  }
+  if ((*s == 'e') || (*s == 'E')) {
+    ++s;
+    if ((*s == '+') || (*s == '-')) {
+      ++s;
+    }
+    if (!((*s >= '0') && (*s <= '9'))) {
+      return false;
+    }
+    while ((*s >= '0') && (*s <= '9')) {
+      ++s;
+    }
+  }
+  return *s == '\0';
+}
+
+/**
+ * Validates every number literal of the JSON text `json`.
+ *
+ * @return Number of the checked number literals, or -1 if an invalid number literal is found.
+ */
+static int _check_json_numbers(const char *json) {
+  int numbers = 0;
+  const char *p = json;
+  while (*p) {
+    if (*p == '"') { // Skip a string literal
+      ++p;
+      while (*p && (*p != '"')) {
+        if ((*p == '\\') && *(p + 1)) {
+          p += 2;
+          continue;
+        }
+        ++p;
+      }
+      if (*p != '"') {
+        return -1;
+      }
+      ++p;
+      continue;
+    }
+    if ((*p == '-') || ((*p >= '0') && (*p <= '9'))) {
+      const char *start = p;
+      while (*p && (*p != ',') && (*p != ']') && (*p != '}') && !isspace((unsigned char) *p)) {
+        ++p;
+      }
+      char tok[64];
+      size_t len = (size_t) (p - start);
+      if (len >= sizeof(tok)) {
+        return -1;
+      }
+      memcpy(tok, start, len);
+      tok[len] = '\0';
+      if (!_is_json_number(tok)) {
+        return -1;
+      }
+      ++numbers;
+      continue;
+    }
+    ++p;
+  }
+  return numbers;
+}
+
+static void iwjser_test1_number_syntax(void) {
+  char buf[IWNUMBUF_SIZE];
+  size_t len;
+
+  // (1) iwjson_ftoa(): every produced text is a valid JSON number which restores the value
+  IW_TEST_ASSERT_TRUE_FATAL(_is_json_number("0"));
+  IW_TEST_ASSERT_TRUE_FATAL(_is_json_number("-0"));
+  IW_TEST_ASSERT_TRUE_FATAL(_is_json_number("1e+16"));
+  IW_TEST_ASSERT_FALSE(_is_json_number("01"));
+  IW_TEST_ASSERT_FALSE(_is_json_number("+1"));
+  IW_TEST_ASSERT_FALSE(_is_json_number(".5"));
+  IW_TEST_ASSERT_FALSE(_is_json_number("1."));
+  IW_TEST_ASSERT_FALSE(_is_json_number("1e"));
+  IW_TEST_ASSERT_FALSE(_is_json_number("nan"));
+  IW_TEST_ASSERT_FALSE(_is_json_number("inf"));
+  IW_TEST_ASSERT_FALSE(_is_json_number("1,5"));
+
+  uint64_t state = 0x243F6A8885A308D3ULL; // Deterministic xorshift, stable test runs
+  int checked = 0, nonfinite = 0;
+  for (int i = 0; i < 100000; ++i) {
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+    double d;
+    memcpy(&d, &state, sizeof(d));
+    iwjson_ftoa(d, buf, &len);
+    IW_TEST_ASSERT_EQUAL(len, strlen(buf));
+    if (isnan(d) || isinf(d)) {
+      IW_TEST_ASSERT_STR_EQUAL(buf, "null");
+      ++nonfinite;
+      continue;
+    }
+    IW_TEST_ASSERT_TRUE_FATAL(_is_json_number(buf));
+    char *ep = 0;
+    double rv = strtod(buf, &ep);
+    IW_TEST_ASSERT_TRUE_FATAL(ep && (ep != buf) && (*ep == '\0'));
+    IW_TEST_ASSERT_TRUE_FATAL(rv == d); // The text restores the exact value
+    ++checked;
+  }
+  IW_TEST_ASSERT_TRUE(checked > 90000);
+  IW_TEST_ASSERT_TRUE(nonfinite > 0);
+
+  // (2) The DOM printer: all int64 edge values and the double corner cases
+  struct iwpool *pool = iwpool_create_empty();
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pool);
+  struct jbl_node *doc = parse(pool, "{}");
+  static const int64_t ivals[] = {
+    0, 1, -1, 42, -42, INT64_MAX, INT64_MIN, INT64_MAX - 1, INT64_MIN + 1,
+    1000000000000000000LL, -1000000000000000000LL
+  };
+  char key[32];
+  for (size_t i = 0; i < sizeof(ivals) / sizeof(ivals[0]); ++i) {
+    snprintf(key, sizeof(key), "i%zu", i);
+    IW_TEST_ASSERT_EQUAL_FATAL(jbn_add_item_i64(doc, key, ivals[i], 0, pool), 0);
+  }
+  // Note: integral doubles are printed without a fraction (JSON has no int/float distinction)
+  static const double dvals[] = {
+    0.5, -0.5, 1.0 / 3.0, 0.1 + 0.2, 1e-9, 1e-300, 1e300, -1e300,
+    DBL_MAX, -DBL_MAX, DBL_MIN, 5e-324, 1e16, 1e15, -0.0
+  };
+  for (size_t i = 0; i < sizeof(dvals) / sizeof(dvals[0]); ++i) {
+    snprintf(key, sizeof(key), "d%zu", i);
+    IW_TEST_ASSERT_EQUAL_FATAL(jbn_add_item_f64(doc, key, dvals[i], 0, pool), 0);
+  }
+  // Strings containing digits must not confuse the number scanner
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_add_item_str(doc, "s", "12abc -3.5e+2", -1, 0, pool), 0);
+
+  char *out = print(doc, 0);
+  IW_TEST_ASSERT_EQUAL(_check_json_numbers(out),
+                       (int) (sizeof(ivals) / sizeof(ivals[0]) + sizeof(dvals) / sizeof(dvals[0])));
+  free(out);
+  out = print(doc, JBL_PRINT_PRETTY_INDENT2);
+  IW_TEST_ASSERT_EQUAL(_check_json_numbers(out),
+                       (int) (sizeof(ivals) / sizeof(ivals[0]) + sizeof(dvals) / sizeof(dvals[0])));
+  free(out);
+
+  // The printed numbers are parsed back to the same values,
+  // except the integral doubles which become integers and NaN/Inf which are not used here
+  out = print(doc, 0);
+  struct jbl_node *back = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_json(out, &back, pool), 0);
+  struct jbl_node *v1, *v2;
+  for (size_t i = 0; i < sizeof(ivals) / sizeof(ivals[0]); ++i) {
+    snprintf(key, sizeof(key), "/i%zu", i);
+    IW_TEST_ASSERT_EQUAL_FATAL(jbn_at(doc, key, &v1), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(jbn_at(back, key, &v2), 0);
+    IW_TEST_ASSERT_EQUAL(v2->type, JBV_I64);
+    IW_TEST_ASSERT_EQUAL(v2->vi64, v1->vi64);
+  }
+  // Doubles keep the fractional part and the exponent notation
+  static const char *dfkeys[] = { "/d0", "/d1", "/d2", "/d3", "/d4", "/d5", "/d6", "/d7", "/d8", "/d9", "/d10", "/d11", "/d12" };
+  for (size_t i = 0; i < sizeof(dfkeys) / sizeof(dfkeys[0]); ++i) {
+    IW_TEST_ASSERT_EQUAL_FATAL(jbn_at(doc, dfkeys[i], &v1), 0);
+    IW_TEST_ASSERT_EQUAL_FATAL(jbn_at(back, dfkeys[i], &v2), 0);
+    IW_TEST_ASSERT_EQUAL(v2->type, JBV_F64);
+    IW_TEST_ASSERT_DOUBLE_EQUAL(v2->vf64, v1->vf64, 0.0);
+  }
+  free(out);
+
+  // (3) The binary document printer over all binn numeric types.
+  // Note: the unsigned binn types are printed through the signed int64_t JSON number model.
+  struct jbl *jbl = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_create_empty_object(&jbl), 0);
+  struct binn bv = BINN_INITIALIZER;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_set_int64(jbl, "i64min", INT64_MIN), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_set_int64(jbl, "i64max", INT64_MAX), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_set_int64(jbl, "i8", -128), 0);
+  IW_TEST_ASSERT_TRUE_FATAL(binn_create_u64c(&bv, 42));
+  IW_TEST_ASSERT_TRUE_FATAL(binn_add_keyed(&jbl->bn, "u8", *binnv(&bv)));
+  binn_destroy(&bv);
+  IW_TEST_ASSERT_TRUE_FATAL(binn_create_u64c(&bv, 70000));
+  IW_TEST_ASSERT_TRUE_FATAL(binn_add_keyed(&jbl->bn, "u32", *binnv(&bv)));
+  binn_destroy(&bv);
+  IW_TEST_ASSERT_TRUE_FATAL(binn_create_u64c(&bv, UINT64_MAX));
+  IW_TEST_ASSERT_TRUE_FATAL(binn_add_keyed(&jbl->bn, "u64max", *binnv(&bv)));
+  binn_destroy(&bv);
+  IW_TEST_ASSERT_TRUE_FATAL(binn_create_f32c(&bv, 1.5f));
+  IW_TEST_ASSERT_TRUE_FATAL(binn_add_keyed(&jbl->bn, "f32", *binnv(&bv)));
+  binn_destroy(&bv);
+  IW_TEST_ASSERT_TRUE_FATAL(binn_create_f64c(&bv, -1e300));
+  IW_TEST_ASSERT_TRUE_FATAL(binn_add_keyed(&jbl->bn, "f64", *binnv(&bv)));
+  binn_destroy(&bv);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_set_string(jbl, "s", "1e5"), 0);
+
+  out = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_as_json_alloc(jbl, 0, &out), 0);
+  IW_TEST_ASSERT_EQUAL(_check_json_numbers(out), 8);
+  free(out);
+  out = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_as_json_alloc(jbl, JBL_PRINT_PRETTY, &out), 0);
+  IW_TEST_ASSERT_EQUAL(_check_json_numbers(out), 8);
+  free(out);
+  jbl_destroy(&jbl);
+
+  iwpool_destroy(pool);
+}
+
+
+//--- Locale independence
+
+/** Returns the name of an installed locale with a comma decimal separator, or zero. */
+static const char* _comma_locale(void) {
+  static const char *names[] = {
+    "de_DE.UTF-8", "de_DE.utf8", "fr_FR.UTF-8", "fr_FR.utf8",
+    "ru_RU.UTF-8", "ru_RU.utf8", "es_ES.UTF-8", "es_ES.utf8",
+    "it_IT.UTF-8", "it_IT.utf8", "pt_BR.UTF-8", "pt_BR.utf8"
+  };
+  for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
+#ifdef _WIN32
+    _locale_t cl = _create_locale(LC_NUMERIC, names[i]);
+    if (cl) {
+      _free_locale(cl);
+      return names[i];
+    }
+#else
+    locale_t cl = newlocale(LC_NUMERIC_MASK, names[i], (locale_t) 0);
+    if (cl) {
+      freelocale(cl);
+      return names[i];
+    }
+#endif
+  }
+  return 0;
+}
+
+// JSON numbers always use `.` as the decimal separator regardless of LC_NUMERIC
+static void iwjser_test1_locale(void) {
+  const char *name = _comma_locale();
+  if (!name) {
+    IW_TEST_SKIP("no installed locale with a comma decimal separator");
+    return;
+  }
+  char saved[64], saved_dp[16];
+  const char *saved_locale = setlocale(LC_NUMERIC, 0);
+  snprintf(saved, sizeof(saved), "%s", saved_locale ? saved_locale : "C");
+  snprintf(saved_dp, sizeof(saved_dp), "%s", localeconv()->decimal_point);
+  if (!setlocale(LC_NUMERIC, name) || strcmp(localeconv()->decimal_point, ",") != 0) {
+    setlocale(LC_NUMERIC, saved);
+    IW_TEST_SKIP("cannot switch to a locale with a comma decimal separator");
+    return;
+  }
+
+  // Only non fatal assertions below: the process locale must be restored on any outcome
+  char buf[IWNUMBUF_SIZE];
+  size_t len;
+  iwjson_ftoa(1.5, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "1.5");
+  iwjson_ftoa(0.000006, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "0.000006");
+  iwjson_ftoa(1e-9, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "1e-09");
+  iwjson_ftoa(-1234.25, buf, &len);
+  IW_TEST_ASSERT_STR_EQUAL(buf, "-1234.25");
+
+  iwrc rc = 0;
+  IW_TEST_ASSERT_DOUBLE_EQUAL(iw_strtod("2.5", &rc), 2.5, 0.0);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
+  rc = 0;
+  IW_TEST_ASSERT_DOUBLE_EQUAL((double) iw_strtold("2.5", &rc), 2.5, 0.0);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
+
+  // Parsing is locale independent
+  struct iwpool *pool = iwpool_create_empty();
+  struct jbl_node *n = 0;
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("{\"a\":1.5,\"b\":[0.25,1e-9]}", &n, pool), 0);
+  if (n) {
+    char *out = 0;
+    IW_TEST_ASSERT_EQUAL(jbn_as_json_alloc(n, 0, &out), 0);
+    IW_TEST_ASSERT_STR_EQUAL(out, "{\"a\":1.5,\"b\":[0.25,1e-09]}");
+    free(out);
+  }
+  // A comma decimal separator is not a valid JSON number in any locale
+  IW_TEST_ASSERT_EQUAL(jbn_from_json("{\"a\":1,5}", &n, pool), JBL_ERROR_PARSE_JSON);
+
+  struct jbl *jbl = 0;
+  IW_TEST_ASSERT_EQUAL(jbl_from_json(&jbl, "{\"d\":2.5,\"e\":-0.125}"), 0);
+  if (jbl) {
+    double fv = 0;
+    IW_TEST_ASSERT_EQUAL(jbl_object_get_f64(jbl, "d", &fv), 0);
+    IW_TEST_ASSERT_DOUBLE_EQUAL(fv, 2.5, 0.0);
+    char *out = 0;
+    IW_TEST_ASSERT_EQUAL(jbl_as_json_alloc(jbl, 0, &out), 0);
+    IW_TEST_ASSERT_STR_EQUAL(out, "{\"d\":2.5,\"e\":-0.125}");
+    free(out);
+    jbl_destroy(&jbl);
+  }
+  iwpool_destroy(pool);
+
+  // The process locale is restored
+  setlocale(LC_NUMERIC, saved);
+  IW_TEST_ASSERT_STR_EQUAL(localeconv()->decimal_point, saved_dp);
+}
+
 static const struct iw_test_case cases[] = {
   IW_TEST_CASE(iwjser_test1_escapes),
   IW_TEST_CASE(iwjser_test1_parse_errors),
@@ -455,6 +909,8 @@ static const struct iw_test_case cases[] = {
   IW_TEST_CASE(iwjser_test1_printers),
   IW_TEST_CASE(iwjser_test1_print_escapes),
   IW_TEST_CASE(iwjser_test1_pretty),
+  IW_TEST_CASE(iwjser_test1_number_syntax),
+  IW_TEST_CASE(iwjser_test1_locale),
 };
 
 int main(int argc, char *argv[]) {

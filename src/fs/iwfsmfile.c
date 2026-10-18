@@ -1204,7 +1204,7 @@ static iwrc _fsm_trim_tail_lw(struct fsm *fsm) {
     goto finish;
   }
 
-  RCC(rc, finish, _fsm_bmptr(fsm, &bmptr)); // -V519
+  RCC(rc, finish, _fsm_bmptr(fsm, &bmptr));
 
   lastblk = (fsm->bmoff + fsm->bmlen) >> fsm->bpow;
   offset = _fsm_find_prev_set_bit(bmptr, (fsm->bmlen << 3), lastblk, &hasleft);
@@ -1289,7 +1289,7 @@ static iwrc _fsm_read_meta_lr(struct fsm *fsm) {
   }
 
   /* Magic */
-  memcpy(&lv, hdr + rp, sizeof(lv)); // -V512
+  memcpy(&lv, hdr + rp, sizeof(lv));
   lv = IW_ITOHL(lv);
   if (lv != IWFSM_MAGICK) {
     rc = IWFS_ERROR_INVALID_FILEMETA;

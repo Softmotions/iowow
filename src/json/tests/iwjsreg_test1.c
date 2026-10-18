@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <math.h>
 
 int init_suite(void) {
   int rc = iw_init();
@@ -791,6 +792,16 @@ static void _iwjsreg_at_inc(void) {
   IW_TEST_ASSERT_PTR_NULL(sv);
   IW_TEST_ASSERT_EQUAL(iwjsreg_get_str(reg, "nokey", &sv), IW_ERROR_NOT_EXISTS);
 
+  // Floating point values are formatted as JSON numbers
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_f64(reg, "/m/small", 0.000006), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/m/small", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "0.000006");
+  free(sv); sv = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_f64(reg, "/m/finf", INFINITY), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/m/finf", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "null");
+  free(sv); sv = 0;
+
   // Non standard true/false strings
   IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/m/bt", "true", -1), 0);
   IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_bool(reg, "/m/bt", &bv), 0);
@@ -954,6 +965,31 @@ static void _iwjsreg_readonly(void) {
   int64_t iv = 0;
   IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_get_i64(reg, "a", &iv), 0);
   IW_TEST_ASSERT_EQUAL(iv, 1);
+
+  // Modifications of a read-only registry are rejected
+  IW_TEST_ASSERT_EQUAL(iwjsreg_set_str(reg, "a", "x"), IW_ERROR_READONLY);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_set_str(reg, "new", "x"), IW_ERROR_READONLY);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_set_i64(reg, "a", 2), IW_ERROR_READONLY);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_set_bool(reg, "b", true), IW_ERROR_READONLY);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_inc_i64(reg, "a", 1, 0), IW_ERROR_READONLY);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_remove(reg, "a"), IW_ERROR_READONLY);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_merge_i64(reg, "/x/y", 1), IW_ERROR_READONLY);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_merge_str(reg, "/x", "v", -1), IW_ERROR_READONLY);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_merge_remove(reg, "/a"), IW_ERROR_READONLY);
+
+  struct iwpool *pool = iwpool_create_empty();
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pool);
+  struct jbl_node *n = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_json("{\"z\":1}", &n, pool), 0);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_replace(reg, "/a", n), IW_ERROR_READONLY);
+  iwpool_destroy(pool);
+
+  // The registry content is not changed
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_get_i64(reg, "a", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 1);
+  char *sv = 0;
+  IW_TEST_ASSERT_EQUAL(iwjsreg_get_str(reg, "new", &sv), IW_ERROR_NOT_EXISTS);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_get_i64(reg, "x", &iv), IW_ERROR_NOT_EXISTS);
 
   // Synchronization of an unmodified read-only registry is a no-op
   IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_sync(reg), 0);
