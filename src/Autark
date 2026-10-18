@@ -59,6 +59,7 @@ set {
   PUB_HDRS
   basedefs.h
   iowow.h
+  tests.h
 }
 
 configure {
