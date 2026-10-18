@@ -7,7 +7,8 @@ Name: @META_NAME@
 Description: @META_DESCRIPTION@
 URL: @META_WEBSITE@
 Version: @META_VERSION@
+Requires: libbinnc
 Libs: -L${libdir} -l${artifact}
-Libs.private: @LDFLAGS@
+Libs.private: @LDFLAGS_PKGCONF@
 Cflags: -I@INSTALL_PREFIX@/@INSTALL_INCLUDE_DIR@ -I${includedir}
 Cflags.private: -DIW_STATIC

@@ -3,7 +3,6 @@
 #include "iwutils.h"
 
 #include "iwjson.h"
-#include "iwjson_internal.h"
 
 #include <stdlib.h>
 #include <CUnit/Basic.h>
@@ -235,7 +234,7 @@ static void jbl_test1_4(void) {
   rc = jbl_at(jbl, "/foo2/foo3", &at);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_PTR_NOT_NULL_FATAL(at);
-  CU_ASSERT_TRUE(at->bn.type == BINN_OBJECT);
+  CU_ASSERT_TRUE(binn_is_object(&at->bn));
   rc = jbl_at(at, "/foo4", &at2);
   CU_ASSERT_EQUAL_FATAL(rc, 0);
   CU_ASSERT_PTR_NOT_NULL_FATAL(at2);

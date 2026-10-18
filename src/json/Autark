@@ -3,9 +3,10 @@ set {
     SOURCES
   }
   ..${SOURCES}
-  in-sources {
-    ..@{autark -C .. glob 'json/*.c'}
-  }
+  json/iwjbl.c
+  json/iwjbn.c
+  json/iwjser.c
+  json/iwjsreg.c
 }
 
 set {
@@ -13,10 +14,10 @@ set {
     PUB_HDRS
   }
   ..${PUB_HDRS}
-  json/iwbinn.h
   json/iwjson.h
+  json/iwjbl.h
+  json/iwjbn.h
   json/iwjsreg.h
-  json/iwjson_internal.h
 }
 
 set {

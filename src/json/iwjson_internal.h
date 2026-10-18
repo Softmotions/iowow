@@ -1,6 +1,6 @@
 #pragma once
-#ifndef JBL_INTERNAL_H
-#define JBL_INTERNAL_H
+#ifndef IWJSON_INTERNAL_H
+#define IWJSON_INTERNAL_H
 
 /**************************************************************************************************
  * IOWOW library
@@ -28,61 +28,67 @@
  * SOFTWARE.
  *************************************************************************************************/
 
+/**
+ * @file iwjson_internal.h
+ * @brief Internal private declarations of the JSON modules.
+ *
+ * This header is shared between the JSON DOM module (`iwjbn.c`), the JSON text serializer
+ * (`iwjser.c`) and the binary Binn backed document module (`iwjbl.c`). It must not be used
+ * outside of `src/json` and it is not installed.
+ */
+
 #include "iwjson.h"
-#include "iwbinn.h"
-#include "iwpool.h"
 
-#define JBL_MAX_NESTING_LEVEL 999
+#include <stdarg.h>
+#include <stdio.h>
 
-struct jbl {
-  binn bn;
-  struct jbl_node *node;
-};
+/** Maximal JSON document nesting level. */
+#define JBL_MAX_NESTING_LEVEL BINN_MAX_NESTING_LEVELS
 
 /**
- * @brief struct jbl* visitor context
+ * @brief Estimates the size of a buffer able to hold the `vsnprintf()` result of `format`.
+ *
+ * @return Required buffer size including the terminating `\0`, or a negative value on a format error.
  */
-typedef struct jbl_vctx {
-  binn *bn;         /**< Root node from which started visitor */
-  void *op;         /**< Arbitrary opaque data */
-  void *result;
-  struct iwpool *pool; /**< Pool placeholder, initialization is responsibility of `JBL_VCTX` creator */
-  int  pos;            /**< Aux position, not actually used by visitor core */
-  bool terminate;
-  bool found;       /**< Used in _jbl_at() */
-} JBL_VCTX;
+IW_INLINE int _jbl_printf_estimate_size(const char *format, va_list ap) {
+  char buf[1];
+  int ret = vsnprintf(buf, sizeof(buf), format, ap);
+  if (ret < 0) {
+    return ret;
+  } else {
+    return ret + 1;
+  }
+}
 
-typedef jbn_visitor_cmd_t jbl_visitor_cmd_t;
+// --- JSON text serialization primitives (iwjser.c)
+// Shared by the DOM and the Binn document printers.
 
-typedef struct jbl_patch_ext {
-  const struct jbl_patch *p;
-  struct jbl_ptr *path;
-  struct jbl_ptr *from;
-} JBL_PATCHEXT;
-
-typedef struct jbl_ldr_ctx {
-  struct iwpool   *pool;
-  struct jbl_node *root;
-} JBLDRCTX;
-
-iwrc jbl_from_buf_keep_onstack(struct jbl *jbl, void *buf, size_t bufsz);
-iwrc jbl_from_buf_keep_onstack2(struct jbl *jbl, void *buf);
-
+/** Prints the `num` value as JSON number. */
 iwrc _jbl_write_double(double num, jbl_json_printer pt, void *op);
+
+/** Prints the `num` value as JSON integer. */
 iwrc _jbl_write_int(int64_t num, jbl_json_printer pt, void *op);
+
+/**
+ * @brief Prints `str` as a quoted and escaped JSON string.
+ *
+ * @param str String to print. Not zero.
+ * @param len String length in bytes, or a negative value to use `strlen(str)`.
+ */
 iwrc _jbl_write_json_string(const char *str, int len, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
-iwrc _jbl_node_from_binn(const binn *bn, struct jbl_node **node, bool clone_strings, struct iwpool *pool);
-iwrc _jbl_binn_from_node(binn *res, struct jbl_node *node);
-iwrc _jbl_from_node(struct jbl *jbl, struct jbl_node *node);
-bool _jbl_at(struct jbl *jbl, struct jbl_ptr *jp, struct jbl *res);
-int _jbl_compare_nodes(struct jbl_node *n1, struct jbl_node *n2, iwrc *rcp);
 
-typedef jbl_visitor_cmd_t (*jbl_visitor)(int lvl, binn *bv, const char *key, int idx, struct jbl_vctx *vctx, iwrc *rc);
-iwrc _jbl_visit(binn_iter *iter, int lvl, struct jbl_vctx *vctx, jbl_visitor visitor);
+// --- JSON DOM helpers shared between the DOM and the Binn modules
 
-bool _jbl_is_eq_atomic_values(struct jbl *v1, struct jbl *v2);
-int _jbl_cmp_atomic_values(struct jbl *v1, struct jbl *v2);
+/** Appends the `node` to the children of the `parent` container node. */
+void _jbn_add_item(struct jbl_node *parent, struct jbl_node *node);
 
-BOOL binn_read_next_pair2(int expected_type, binn_iter *iter, int *klidx, char **pkey, binn *value);
+/** Parses an rfc6901 JSON pointer allocating its memory in `pool` if given, or with `malloc()`. */
+iwrc _jbl_ptr_pool(const char *path, struct jbl_ptr **jpp, struct iwpool *pool);
+
+/** Applies the JSON Patch operations `p` to the DOM tree `root`. */
+iwrc _jbl_patch_node(struct jbl_node *root, const struct jbl_patch *p, size_t cnt, struct iwpool *pool);
+
+/** Converts a JSON Patch document DOM tree `node` into an array of patch operations. */
+iwrc _jbl_create_patch(struct jbl_node *node, struct jbl_patch **pptr, int *cntp, struct iwpool *pool);
 
 #endif

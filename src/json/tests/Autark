@@ -2,8 +2,6 @@ cc {
   set { _
     jbl_test1.c
     jbl_test2.c
-    jbl_test_binn1.c
-    jbl_test_binn2.c
     iwjsreg_test1.c
   }
   ${CFLAGS_TESTS}

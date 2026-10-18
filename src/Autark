@@ -5,7 +5,7 @@ check {
 }
 
 set {
-  LDFLAGS
+  LDFLAGS_PKGCONF
   -lm
   if { defined { PTHREAD_LFLAG }
     ${PTHREAD_LFLAG}
@@ -19,24 +19,29 @@ set {
       -l ${LIB_ATOMIC}
     }
   }
-  ..${SANITIZER_FLAGS}
+}
+
+set {
+  LDFLAGS
   ..${LDFLAGS}
+  ..@@{ ${PKGCONF} --libs --static libbinnc }
+  ..${LDFLAGS_PKGCONF}
+  ..${SANITIZER_FLAGS}
 }
 
 set {
   LDFLAGS_TEST
   ${LIBIOWOW_A}
-  ..@@{ ${PKGCONF} --libs --static cunit }
+  ..@@{ ${PKGCONF} --libs --static libbinnc cunit }
   ..${LDFLAGS}
 }
 
 set {
   CFLAGS_TESTS
   -DIW_STATIC
-  ..@@{ ${PKGCONF} --cflags --static cunit }
+  ..@@{ ${PKGCONF} --cflags --static libbinnc cunit }
   ..${CFLAGS}
 }
-
 
 option { IOWOW_PUBLIC_HEADERS_DESTINATION  Installation path relative to INSTALL_PREFIX for iowow public header files. }
 if { !defined { IOWOW_PUBLIC_HEADERS_DESTINATION }

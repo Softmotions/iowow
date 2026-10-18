@@ -1,0 +1,25 @@
+option { BINNC_URL                binn-c external project sources URL }
+
+if { !defined { BINNC_URL }
+  set {
+    BINNC_URL
+    https://github.com/Softmotions/binn-c/archive/refs/heads/master.zip
+  }
+}
+
+check {
+  fetch_resource.sh { ${BINNC_URL} C{extern_binnc} BINNC_SRC_DIR }
+}
+
+run {
+  # The binn-c dependency follows the build type of the project.
+  # Note: the sanitizer flags are not propagated to the dependency.
+  shell { ^{BUILD_TYPE= ${BUILD_TYPE}} autark --prefix C{} ${BINNC_SRC_DIR} }
+  consumes {
+    ${BINNC_SRC_DIR}
+  }
+  produces {
+    C{^{${INSTALL_INCLUDE_DIR} /binnc.h}}
+    C{^{${INSTALL_PKGCONFIG_DIR} /libbinnc.pc}}
+  }
+}

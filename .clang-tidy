@@ -21,3 +21,5 @@ Checks:    >
   -misc-no-recursion,
   -performance-no-int-to-ptr,
   -bugprone-assignment-in-if-condition,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -bugprone-switch-missing-default-case,

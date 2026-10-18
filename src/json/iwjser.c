@@ -1,12 +1,15 @@
 #include "iwlog.h"
-#include "iwjson.h"
-#include "iwjson_internal.h"
+#include "iwjbn.h"
+#include "iwjbl.h"
 #include "iwconv.h"
+#include "iwjson_internal.h"
 #include "utf8proc.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #define IS_WHITESPACE(c_) ((unsigned char) (c_) <= (unsigned char) ' ')
 
@@ -19,32 +22,6 @@ typedef struct JCTX {
   bool js; /**< If true parser will treat keys as js symbols */
   iwrc rc;
 } JCTX;
-
-static void _jbn_add_item(struct jbl_node *parent, struct jbl_node *node) {
-  assert(parent && node);
-  node->next = 0;
-  node->parent = parent;
-  if (parent->child) {
-    struct jbl_node *prev = parent->child->prev;
-    parent->child->prev = node;
-    if (prev) { // -V1051
-      prev->next = node;
-      node->prev = prev;
-    } else {
-      parent->child->next = node;
-      node->prev = parent->child;
-    }
-  } else {
-    parent->child = node;
-  }
-  if (parent->type == JBV_ARRAY) {
-    if (node->prev) {
-      node->klidx = node->prev->klidx + 1;
-    } else {
-      node->klidx = 0;
-    }
-  }
-}
 
 static struct jbl_node* _jbl_json_create_node(
   jbl_type_t       type,
@@ -94,53 +71,61 @@ IW_INLINE int _jbl_hex(char c) {
   return -1;
 }
 
+/// Decodes the JSON string literal starting at `p` (right after the opening quote).
+///
+/// @param ctx  Parser context
+/// @param q    String quote character: `"` for JSON, `'` or `"` for js-like literals
+/// @param p    Points to the first character of the string body
+/// @param d    Output buffer, or zero to only measure the decoded string length
+/// @param dlen Size of the output buffer
+/// @param end  Optional holder of the position right after the closing quote
+/// @return Length in bytes of the decoded string
 static int _jbl_unescape_json_string(
   struct JCTX *ctx, const char q, const char *p, char *d, int dlen,
   const char **end) {
   char c;
-  char *ds = d;
-  char *de = d + dlen;
+  int len = 0;
 
   while ((c = *p++)) {
     if (c == q) { // string closing quotes
       if (end) {
         *end = p;
       }
-      return (int) (d - ds);
+      return len;
     } else if (c == '\\') {
       switch (*p) {
         case '\\':
         case '/':
         case '"':
-          if (d < de) {
-            *d = *p;
+          if (d && (len < dlen)) {
+            d[len] = *p;
           }
-          ++p, ++d;
+          ++p, ++len;
           break;
         case 'b':
-          if (d < de) {
-            *d = '\b';
+          if (d && (len < dlen)) {
+            d[len] = '\b';
           }
-          ++p, ++d;
+          ++p, ++len;
           break;
         case 'f':
-          if (d < de) {
-            *d = '\f';
+          if (d && (len < dlen)) {
+            d[len] = '\f';
           }
-          ++p, ++d;
+          ++p, ++len;
           break;
         case 'n':
         case 'r':
-          if (d < de) {
-            *d = '\n';
+          if (d && (len < dlen)) {
+            d[len] = '\n';
           }
-          ++p, ++d;
+          ++p, ++len;
           break;
         case 't':
-          if (d < de) {
-            *d = '\t';
+          if (d && (len < dlen)) {
+            d[len] = '\t';
           }
-          ++p, ++d;
+          ++p, ++len;
           break;
         case 'u': {
           uint32_t cp, cp2;
@@ -174,25 +159,25 @@ static int _jbl_unescape_json_string(
           utf8proc_ssize_t ulen = utf8proc_encode_char(cp, uchars);
           assert(ulen <= sizeof(uchars));
           for (int i = 0; i < ulen; ++i) {
-            if (d < de) {
-              *d = uchars[i];
+            if (d && (len < dlen)) {
+              d[len] = uchars[i];
             }
-            ++d;
+            ++len;
           }
           p += 5;
           break;
         }
         default:
-          if (d < de) {
-            *d = c;
+          if (d && (len < dlen)) {
+            d[len] = c;
           }
-          ++d;
+          ++len;
       }
     } else {
-      if (d < de) {
-        *d = c;
+      if (d && (len < dlen)) {
+        d[len] = c;
       }
-      ++d;
+      ++len;
     }
   }
   ctx->rc = JBL_ERROR_PARSE_UNQUOTED_STRING;
@@ -492,6 +477,145 @@ static const char* _jbl_parse_value(
     }
   }
   return p;
+}
+
+iwrc _jbl_write_double(double num, jbl_json_printer pt, void *op) {
+  size_t sz;
+  char buf[IWNUMBUF_SIZE];
+  iwjson_ftoa(num, buf, &sz);
+  return pt(buf, -1, 0, 0, op);
+}
+
+iwrc _jbl_write_int(int64_t num, jbl_json_printer pt, void *op) {
+  char buf[IWNUMBUF_SIZE];
+  int sz = iwitoa(num, buf, sizeof(buf));
+  return pt(buf, sz, 0, 0, op);
+}
+
+iwrc _jbl_write_json_string(const char *str, int len, jbl_json_printer pt, void *op, jbl_print_flags_t pf) {
+  iwrc rc = pt(0, 0, '"', 1, op);
+  RCRET(rc);
+  static const char *specials = "btnvfr";
+
+#define PT(data_, size_, ch_, count_) do {                        \
+          rc = pt((const char*) (data_), size_, ch_, count_, op); \
+          RCRET(rc);                                              \
+} while (0)
+
+  if (len < 0) {
+    len = (int) strlen(str);
+  }
+  for (int i = 0; i < len; ++i) {
+    uint8_t ch = (uint8_t) str[i];
+    if ((ch == '"') || (ch == '\\')) {
+      PT(0, 0, '\\', 1);
+      PT(0, 0, ch, 1);
+    } else if ((ch >= '\b') && (ch <= '\r')) {
+      PT(0, 0, '\\', 1);
+      PT(0, 0, specials[ch - '\b'], 1);
+    } else if (isprint(ch)) {
+      PT(0, 0, ch, 1);
+    } else if (pf & JBL_PRINT_CODEPOINTS) {
+      char sbuf[7]; // escaped unicode seq
+      utf8proc_int32_t cp;
+      utf8proc_ssize_t sz = utf8proc_iterate((const utf8proc_uint8_t*) str + i, len - i, &cp);
+      if (sz < 0) {
+        return JBL_ERROR_PARSE_INVALID_UTF8;
+      }
+      if (cp >= 0x0010000UL) {
+        uint32_t hs = 0xD800, ls = 0xDC00; // surrogates
+        cp -= 0x0010000UL;
+        hs |= ((cp >> 10) & 0x3FF);
+        ls |= (cp & 0x3FF);
+        snprintf(sbuf, 7, "\\u%04X", hs);
+        PT(sbuf, 6, 0, 0);
+        snprintf(sbuf, 7, "\\u%04X", ls);
+        PT(sbuf, 6, 0, 0);
+      } else {
+        snprintf(sbuf, 7, "\\u%04X", cp);
+        PT(sbuf, 6, 0, 0);
+      }
+      i += (int) sz - 1;
+    } else {
+      PT(0, 0, ch, 1);
+    }
+  }
+  rc = pt(0, 0, '"', 1, op);
+  return rc;
+#undef PT
+}
+
+iwrc jbl_fstream_json_printer(const char *data, int size, char ch, int count, void *op) {
+  FILE *file = op;
+  if (!file) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  if (!data) {
+    if (count) {
+      char cbuf[count]; // TODO: review overflow
+      memset(cbuf, ch, sizeof(cbuf));
+      size_t wc = fwrite(cbuf, 1, count, file);
+      if (wc != sizeof(cbuf)) {
+        return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+      }
+    }
+  } else {
+    if (size < 0) {
+      size = (int) strlen(data);
+    }
+    if (!count) {
+      count = 1;
+    }
+    for (int i = 0; i < count; ++i) {
+      if (fprintf(file, "%.*s", size, data) < 0) {
+        return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
+      }
+    }
+  }
+  return 0;
+}
+
+iwrc jbl_xstr_json_printer(const char *data, int size, char ch, int count, void *op) {
+  struct iwxstr *xstr = op;
+  if (!xstr) {
+    return IW_ERROR_INVALID_ARGS;
+  }
+  if (!data) {
+    if (count) {
+      for (int i = 0; i < count; ++i) {
+        iwrc rc = iwxstr_cat(xstr, &ch, 1);
+        RCRET(rc);
+      }
+    }
+  } else {
+    if (size < 0) {
+      size = (int) strlen(data);
+    }
+    if (!count) {
+      count = 1;
+    }
+    for (int i = 0; i < count; ++i) {
+      iwrc rc = iwxstr_cat(xstr, data, size);
+      RCRET(rc);
+    }
+  }
+  return 0;
+}
+
+iwrc jbl_count_json_printer(const char *data, int size, char ch, int count, void *op) {
+  int *cnt = op;
+  if (!data) {
+    *cnt = *cnt + count;
+  } else {
+    if (size < 0) {
+      size = (int) strlen(data);
+    }
+    if (!count) {
+      count = 1;
+    }
+    *cnt = *cnt + count * size;
+  }
+  return 0;
 }
 
 static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *op, int lvl, jbl_print_flags_t pf) {

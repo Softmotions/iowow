@@ -116,7 +116,7 @@ static iwrc _load(struct iwjsreg *reg) {
     return IW_ERROR_NOT_EXISTS;
   }
   if (reg->flags & IWJSREG_FORMAT_BINARY) {
-    RCC(rc, finish, jbl_from_buf_keep(&jbl, fbuf, flen, true));
+    RCC(rc, finish, jbl_create_from_buf(&jbl, fbuf, flen, true));
     RCC(rc, finish, jbl_to_node(jbl, &reg->root, true, 0));
   } else {
     RCC(rc, finish, jbn_from_json(fbuf, &reg->root, 0));
@@ -236,6 +236,24 @@ static iwrc _sync_dir(const char *path) {
   return rc;
 }
 
+struct _serialize_ctx {
+  FILE *file;
+  iwrc *rcp;
+};
+
+static bool _file_serialize_consumer(const uint8_t *buf, size_t bufsz, void *op) {
+  struct _serialize_ctx *ctx = op;
+  if (!buf && !bufsz) {
+    *ctx->rcp = 0;
+    return true;
+  }
+  if (fwrite(buf, bufsz, 1, ctx->file) != 1) {
+    *ctx->rcp = IW_ERROR_IO;
+    return false;
+  }
+  return true;
+}
+
 iwrc iwjsreg_sync(struct iwjsreg *reg) {
   if (!reg) {
     return IW_ERROR_INVALID_ARGS;
@@ -267,11 +285,8 @@ iwrc iwjsreg_sync(struct iwjsreg *reg) {
     void *buf;
     size_t bufsz;
     RCC(rc, finish, jbl_from_node(&jbl, reg->root));
-    RCC(rc, finish, jbl_as_buf(jbl, &buf, &bufsz));
-    if (fwrite(buf, bufsz, 1, file) != 1) {
-      rc = IW_ERROR_IO;
-      goto finish;
-    }
+    jbl_serialize(jbl, _file_serialize_consumer, &(struct _serialize_ctx) { .file = file, .rcp = &rc });
+    RCGO(rc, finish);
   } else {
     RCC(rc, finish, jbn_as_json(reg->root, jbl_fstream_json_printer, file, JBL_PRINT_PRETTY_INDENT2));
   }

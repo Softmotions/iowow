@@ -10,6 +10,7 @@ meta {
   version_major { ${CHANGELOG_VERSION_MAJOR} }
   version_minor { ${CHANGELOG_VERSION_MINOR} }
   version_patch { ${CHANGELOG_VERSION_PATCH} }
+  version_flavor { ${CHANGELOG_VERSION_FLAVOR} }
 
   description { The skiplist based persistent key/value storage engine. }
   website { https://github.com/Softmotions/iowow }
@@ -29,6 +30,13 @@ set {
   META_REVISION
   @{ git rev-parse --short HEAD }
 }
+
+env {
+  PKG_CONFIG_PATH
+  C{${INSTALL_PKGCONFIG_DIR}}
+}
+
+include { binnc.autark }
 
 if { ${IWKV_RUN_PERF}
   # Performance test mode is exclusive: regular test cases are neither built
@@ -96,7 +104,11 @@ set {
   -Wno-unused-function
   -Wno-unused-parameter
   -fPIC
+
+  ..@@{ ${PKGCONF} --cflags libbinnc }
+
   ..${SANITIZER_FLAGS}
+
   if { prefix { ${BUILD_TYPE} Debug }
     -O0
     -ggdb
@@ -163,6 +175,7 @@ install-sources {
   LICENSE
   README.md
   build.sh
-  src/
   uncrustify.cfg
+  binnc.autark
+  src/
 }
