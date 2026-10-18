@@ -201,7 +201,11 @@ is not redirected and stays on the console.
 | `IW_TEST_FILTER`     | Same as `--filter`, ignored when patterns are given in the CLI.  |
 | `IW_TEST_OUTPUT`     | Same as `--output`.                                              |
 | `IW_TEST_NO_LOG`     | Same as `--no-log`, the test output is not redirected.           |
+| `IW_TEST_COLOR`      | Force colors, `IW_TEST_COLOR=0` disables them.                   |
 | `IW_TEST_NO_COLOR`   | Disable colors.                                                  |
+| `NO_COLOR`           | Disable colors ([no-color.org](https://no-color.org)).           |
+| `FORCE_COLOR`        | Force colors, `FORCE_COLOR=0` disables them.                     |
+| `CLICOLOR_FORCE`     | Force colors, `CLICOLOR_FORCE=0` disables them.                  |
 | `IW_TEST_ASCII`      | Disable the unicode decorations.                                 |
 | `IW_TEST_HARNESS`    | Compile time: the name shown in the report header.               |
 
@@ -234,8 +238,16 @@ least one case failed, `2` - invalid command line.
   hexadecimal form (error codes are much easier to read that way).
 * At most `IW_TEST_MAX_FAILURES` (10) failure details are retained per case,
   the remaining ones are only counted.
-* Colors and unicode decorations are used only when the output is a terminal,
-  so the redirected logs stay plain ASCII.
+* Colors are used only when the report is written to a terminal (or when they
+  are forced), the unicode decorations are used when the locale is `UTF-8`.
+  The output relayed by a build system is not a terminal, therefore the iowow
+  test `Autark` files start the executables through `.autark/test_run.sh`,
+  which passes `--color` when the build is started from a terminal.
+  `NO_COLOR=1` (or `IW_TEST_NO_COLOR=1`) keeps the build logs plain:
+
+  ```sh
+  NO_COLOR=1 IOWOW_RUN_TESTS=1 BUILD_TYPE=Debug ./build.sh
+  ```
 * A suite that fails to initialize is reported as a failed suite.
 * The process exit code is `1` if at least one case failed.
 

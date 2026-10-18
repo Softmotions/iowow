@@ -85,6 +85,13 @@
  *  redirection is implemented with `dup(2)`/`dup2(2)` and is available on the
  *  `POSIX` systems only.
  *
+ *  Colored output is used only when the report is written to a terminal (or is
+ *  forced). `--color`/`IW_TEST_COLOR`/`FORCE_COLOR`/`CLICOLOR_FORCE` force the
+ *  colors, `--no-color`/`IW_TEST_NO_COLOR`/`NO_COLOR` disable them. The output
+ *  relayed by a build system is not a terminal, so such a build has to pass
+ *  `--color` (or set `IW_TEST_COLOR`) to keep the colors, see the color notes
+ *  in `TESTS.md`.
+ *
  *  <strong>Fatal assertions and skipped cases</strong>
  *
  *  Fatal assertions (`*_FATAL`) report the failure and abort the current test
@@ -467,6 +474,43 @@ static void iw_test_redir_pop(struct iw_test_redir *r) {
 #endif
 }
 
+/// Returns `true` if the environment variable `name` is set to a non empty value.
+static bool iw_test_env_set(const char *name) {
+  const char *v = getenv(name);
+  return v && *v;
+}
+
+/**
+ * Decides whether the colored output should be used.
+ *
+ * @param cmdline `1` for `--color`, `-1` for `--no-color`, `0` to auto detect.
+ */
+static bool iw_test_color(int cmdline) {
+  if (cmdline > 0) {
+    return true;
+  } else if (cmdline < 0) {
+    return false;
+  }
+  if (iw_test_env_set("IW_TEST_NO_COLOR") || iw_test_env_set("NO_COLOR")) {
+    return false;
+  }
+  const char *force = getenv("IW_TEST_COLOR");
+  if (!force || !*force) {
+    force = getenv("FORCE_COLOR");
+  }
+  if (!force || !*force) {
+    force = getenv("CLICOLOR_FORCE");
+  }
+  if (force && *force) {
+    return strcmp(force, "0") != 0;
+  }
+#if defined(IW_TEST_HAVE_ISATTY)
+  return isatty(STDOUT_FILENO) != 0;
+#else
+  return false;
+#endif
+}
+
 static const char* iw_test_c(const struct iw_test_ui *ui, const char *seq) {
   return ui->color ? seq : "";
 }
@@ -554,7 +598,11 @@ static void iw_test_usage(FILE *out, const char *prog, const struct iw_test_suit
           "                          given on the command line.\n"
           "  IW_TEST_OUTPUT          Same as --output.\n"
           "  IW_TEST_NO_LOG          Same as --no-log.\n"
+          "  IW_TEST_COLOR           Force colored output, the value `0` disables it.\n"
           "  IW_TEST_NO_COLOR        Disable colored output.\n"
+          "  NO_COLOR                Disable colored output.\n"
+          "  FORCE_COLOR             Force colored output, the value `0` disables it.\n"
+          "  CLICOLOR_FORCE          Force colored output, the value `0` disables it.\n"
           "  IW_TEST_ASCII           Disable unicode decorations.\n"
           "\n"
           "Examples:\n"
@@ -729,18 +777,7 @@ static int iw_test_run(int argc, char *argv[], const struct iw_test_suite *suite
   }
   const char *filtered = filter[0] ? filter : 0;
 
-  struct iw_test_ui ui = { .utf8 = iw_test_utf8() };
-  if (color > 0) {
-    ui.color = true;
-  } else if (color < 0) {
-    ui.color = false;
-  } else if (getenv("IW_TEST_NO_COLOR")) {
-    ui.color = false;
-  } else {
-#if defined(IW_TEST_HAVE_ISATTY)
-    ui.color = isatty(STDOUT_FILENO) != 0;
-#endif
-  }
+  struct iw_test_ui ui = { .utf8 = iw_test_utf8(), .color = iw_test_color(color) };
 
   /* Select the cases to run and compute the report layout. */
   unsigned int nsel = 0;
