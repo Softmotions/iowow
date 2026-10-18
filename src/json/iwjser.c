@@ -19,7 +19,8 @@ typedef struct JCTX {
   struct jbl_node *root;
   const char      *buf;
   const char      *sp;
-  bool js; /**< If true parser will treat keys as js symbols */
+  const char      *pending_key; /**< Key allocated for the value node not created yet */
+  bool js;                      /**< If true parser will treat keys as js symbols */
   iwrc rc;
 } JCTX;
 
@@ -42,6 +43,7 @@ static struct jbl_node* _jbl_json_create_node(
   node->type = type;
   node->key = key;
   node->klidx = klidx;
+  ctx->pending_key = 0; // The key ownership is passed to the node
   if (parent) {
     _jbn_add_item(parent, node);
   }
@@ -115,9 +117,14 @@ static int _jbl_unescape_json_string(
           ++p, ++len;
           break;
         case 'n':
-        case 'r':
           if (d && (len < dlen)) {
             d[len] = '\n';
+          }
+          ++p, ++len;
+          break;
+        case 'r':
+          if (d && (len < dlen)) {
+            d[len] = '\r';
           }
           ++p, ++len;
           break;
@@ -202,7 +209,12 @@ static const char* _jbl_parse_js_key(const char **key, const char *p, struct JCT
         ctx->rc = JBL_ERROR_PARSE_JSON;
         return 0;
       }
-      char *kptr = iwpool_alloc(p - sp + 1, ctx->pool);
+      char *kptr;
+      if (IW_LIKELY(ctx->pool)) {
+        kptr = iwpool_alloc(p - sp + 1, ctx->pool);
+      } else {
+        kptr = malloc(p - sp + 1);
+      }
       if (!kptr) {
         ctx->rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
         return 0;
@@ -406,9 +418,23 @@ static const char* _jbl_parse_value(
             return 0;
           }
           if (*p == '}') {
-            return p + 1;              // -V522
+            if (nkey) { // A key without a value
+              if (!ctx->pool) {
+                free((void*) nkey);
+              }
+              ctx->rc = JBL_ERROR_PARSE_JSON;
+              return 0;
+            }
+            return p + 1;
           }
+          ctx->pending_key = nkey;
           p = _jbl_parse_value(ctx, lvl + 1, node, nkey, nkey ? (int) strlen(nkey) : 0, p);
+          if (ctx->pending_key) { // The value node was not created
+            if (!ctx->pool) {
+              free((void*) ctx->pending_key);
+            }
+            ctx->pending_key = 0;
+          }
           if (ctx->rc) {
             return 0;
           }
@@ -510,9 +536,14 @@ iwrc _jbl_write_json_string(const char *str, int len, jbl_json_printer pt, void 
     if ((ch == '"') || (ch == '\\')) {
       PT(0, 0, '\\', 1);
       PT(0, 0, ch, 1);
-    } else if ((ch >= '\b') && (ch <= '\r')) {
+    } else if ((ch >= '\b') && (ch <= '\r') && (ch != '\v')) {
       PT(0, 0, '\\', 1);
       PT(0, 0, specials[ch - '\b'], 1);
+    } else if ((ch < ' ') || (ch == 0x7f)) {
+      // JSON does not allow raw control characters, `\u` escape is the only option
+      char sbuf[7];
+      snprintf(sbuf, sizeof(sbuf), "\\u%04X", ch);
+      PT(sbuf, 6, 0, 0);
     } else if (isprint(ch)) {
       PT(0, 0, ch, 1);
     } else if (pf & JBL_PRINT_CODEPOINTS) {
@@ -551,13 +582,15 @@ iwrc jbl_fstream_json_printer(const char *data, int size, char ch, int count, vo
     return IW_ERROR_INVALID_ARGS;
   }
   if (!data) {
-    if (count) {
-      char cbuf[count]; // TODO: review overflow
-      memset(cbuf, ch, sizeof(cbuf));
-      size_t wc = fwrite(cbuf, 1, count, file);
-      if (wc != sizeof(cbuf)) {
+    // Do not put a user defined count on the stack, write it in fixed chunks
+    char cbuf[64];
+    memset(cbuf, ch, sizeof(cbuf));
+    for (int left = count; left > 0;) {
+      int chunk = MIN(left, (int) sizeof(cbuf));
+      if (fwrite(cbuf, 1, chunk, file) != (size_t) chunk) {
         return iwrc_set_errno(IW_ERROR_IO_ERRNO, errno);
       }
+      left -= chunk;
     }
   } else {
     if (size < 0) {
@@ -618,9 +651,20 @@ iwrc jbl_count_json_printer(const char *data, int size, char ch, int count, void
   return 0;
 }
 
+/** Returns `true` if the container node has at least one child with a value. */
+static bool _jbl_node_has_value(struct jbl_node *node) {
+  for (struct jbl_node *n = node->child; n; n = n->next) {
+    if (n->type != JBV_NONE) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *op, int lvl, jbl_print_flags_t pf) {
   iwrc rc = 0;
   bool pretty = pf & JBL_PRINT_PRETTY;
+  bool first = true;
   jbl_print_flags_t ppf = pf & ~JBL_PRINT_PRETTY;
   const int indent = (ppf & JBL_PRINT_PRETTY_INDENT2) ? 2 : (ppf & JBL_PRINT_PRETTY_INDENT4) ? 4 : 1;
 
@@ -632,39 +676,48 @@ static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *
   switch (node->type) {
     case JBV_ARRAY:
       PT(0, 0, '[', 1);
-      if (node->child && pretty) {
+      if (pretty && _jbl_node_has_value(node)) {
         PT(0, 0, '\n', 1);
       }
       for (struct jbl_node *n = node->child; n; n = n->next) {
-        if (n->type == JBV_NONE) {
+        if (n->type == JBV_NONE) { // No value, no element
           continue;
         }
+        if (!first) {
+          PT(0, 0, ',', 1);
+          if (pretty) {
+            PT(0, 0, '\n', 1);
+          }
+        }
+        first = false;
         if (pretty) {
           PT(0, 0, ' ', lvl * indent + indent);
         }
         rc = _jbl_node_as_json(n, pt, op, lvl + 1, pf);
         RCRET(rc);
-        if (n->next) {
-          PT(0, 0, ',', 1);
-        }
-        if (pretty) {
-          PT(0, 0, '\n', 1);
-        }
       }
-      if (node->child && pretty) {
+      if (pretty && !first) {
+        PT(0, 0, '\n', 1);
         PT(0, 0, ' ', lvl * indent);
       }
       PT(0, 0, ']', 1);
       break;
     case JBV_OBJECT:
       PT(0, 0, '{', 1);
-      if (node->child && pretty) {
+      if (pretty && _jbl_node_has_value(node)) {
         PT(0, 0, '\n', 1);
       }
       for (struct jbl_node *n = node->child; n; n = n->next) {
-        if (n->type == JBV_NONE) {
+        if (n->type == JBV_NONE) { // No value, no member
           continue;
         }
+        if (!first) {
+          PT(0, 0, ',', 1);
+          if (pretty) {
+            PT(0, 0, '\n', 1);
+          }
+        }
+        first = false;
         if (pretty) {
           PT(0, 0, ' ', lvl * indent + indent);
         }
@@ -677,14 +730,9 @@ static iwrc _jbl_node_as_json(struct jbl_node *node, jbl_json_printer pt, void *
         }
         rc = _jbl_node_as_json(n, pt, op, lvl + 1, pf);
         RCRET(rc);
-        if (n->next) {
-          PT(0, 0, ',', 1);
-        }
-        if (pretty) {
-          PT(0, 0, '\n', 1);
-        }
       }
-      if (node->child && pretty) {
+      if (pretty && !first) {
+        PT(0, 0, '\n', 1);
         PT(0, 0, ' ', lvl * indent);
       }
       PT(0, 0, '}', 1);
@@ -812,6 +860,9 @@ static jbn_visitor_cmd_t _jbl_clone_node_visit(
 }
 
 iwrc jbn_clone(struct jbl_node *src, struct jbl_node **targetp, struct iwpool *pool) {
+  if (!src || !targetp) {
+    return IW_ERROR_INVALID_ARGS;
+  }
   *targetp = 0;
   struct jbl_node *n = _jbl_clone_node_struct(src, pool);
   if (!n) {
@@ -834,6 +885,9 @@ iwrc jbn_clone(struct jbl_node *src, struct jbl_node **targetp, struct iwpool *p
 }
 
 iwrc jbn_as_json(struct jbl_node *node, jbl_json_printer pt, void *op, jbl_print_flags_t pf) {
+  if (!node || !pt) {
+    return IW_ERROR_INVALID_ARGS;
+  }
   return _jbl_node_as_json(node, pt, op, 0, pf);
 }
 
@@ -869,29 +923,42 @@ iwrc jbl_as_json_alloc(struct jbl *jbl, jbl_print_flags_t pf, char **out) {
   return rc;
 }
 
-iwrc jbn_from_json(const char *json, struct jbl_node **node, struct iwpool *pool) {
-  *node = 0;
-  struct JCTX ctx = {
-    .pool = pool,
-    .buf = json
-  };
-  _jbl_skip_bom(&ctx);
-  _jbl_parse_value(&ctx, 0, 0, 0, 0, ctx.buf);
-  *node = ctx.root;
-  return ctx.rc;
+static void _jbl_parse_result(struct JCTX *ctx, struct jbl_node **node) {
+  if (ctx->rc) {
+    if (!ctx->pool && ctx->root) { // Release the partially built tree
+      jbn_visit2(ctx->root, 0, _jbl_free_node_visitor);
+    }
+    *node = 0;
+  } else {
+    *node = ctx->root;
+  }
 }
 
-iwrc jbn_from_js(const char *json, struct jbl_node **node, struct iwpool *pool) {
+static iwrc _jbl_parse(const char *json, struct jbl_node **node, struct iwpool *pool, bool js) {
   *node = 0;
   struct JCTX ctx = {
     .pool = pool,
     .buf = json,
-    .js = true
+    .js = js
   };
   _jbl_skip_bom(&ctx);
-  _jbl_parse_value(&ctx, 0, 0, 0, 0, ctx.buf);
-  *node = ctx.root;
+  const char *end = _jbl_parse_value(&ctx, 0, 0, 0, 0, ctx.buf);
+  if (!ctx.rc) {
+    for ( ; *end && IS_WHITESPACE(*end); ++end) { }
+    if (*end) { // Only whitespace is allowed after the document
+      ctx.rc = JBL_ERROR_PARSE_JSON;
+    }
+  }
+  _jbl_parse_result(&ctx, node);
   return ctx.rc;
+}
+
+iwrc jbn_from_json(const char *json, struct jbl_node **node, struct iwpool *pool) {
+  return _jbl_parse(json, node, pool, false);
+}
+
+iwrc jbn_from_js(const char *json, struct jbl_node **node, struct iwpool *pool) {
+  return _jbl_parse(json, node, pool, true);
 }
 
 #define _TAG_ATTR 0x01U
@@ -1110,7 +1177,7 @@ static iwrc _jbn_as_xml(struct jbl_node *node, const struct jbn_as_xml_spec *spe
 }
 
 iwrc jbn_as_xml(struct jbl_node *node, const struct jbn_as_xml_spec *spec_) {
-  if (!node || !spec_ || !spec_->print_xml_header) {
+  if (!node || !spec_ || !spec_->printer_fn) {
     return IW_ERROR_INVALID_ARGS;
   }
 

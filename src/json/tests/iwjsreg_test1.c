@@ -666,6 +666,308 @@ static void _iwjsreg_replace_root(void) {
   IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
 }
 
+
+// Value accessors by path and the integer counter.
+static void _iwjsreg_at_inc(void) {
+  const char *path = "iwjsreg_at_inc.dat";
+  unlink(path);
+
+  // Prepare a registry with a null value, an array and a nested object
+  FILE *file = fopen(path, "w");
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(file);
+  fprintf(file, "{\"nul\":null,\"arr\":[1],\"obj\":{\"k\":\"v\"}}");
+  fclose(file);
+
+  struct iwjsreg *reg;
+  iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  int64_t iv = 0;
+  double fv = 0;
+  bool bv = false;
+  char *sv = 0;
+
+  // Increment of a missing counter
+  rc = iwjsreg_inc_i64(reg, "cnt", 3, &iv);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iv, 3);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_get_i64(reg, "cnt", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 3);
+
+  rc = iwjsreg_inc_i64(reg, "cnt", -1, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_get_i64(reg, "cnt", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 2);
+
+  // An increment of a non integer property replaces its value
+  rc = iwjsreg_set_str(reg, "strcnt", "abc");
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwjsreg_inc_i64(reg, "strcnt", 5, &iv);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iv, 5);
+
+  // Typed merge setters
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_i64(reg, "/m/i", -7), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_f64(reg, "/m/f", 1.5), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_bool(reg, "/m/b", true), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/m/s", "str", -1), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/m/s2", "abcdef", 3), 0);
+
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_i64(reg, "/m/i", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, -7);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_f64(reg, "/m/f", &fv), 0);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(fv, 1.5, 0.0001);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_bool(reg, "/m/b", &bv), 0);
+  IW_TEST_ASSERT_EQUAL(bv, true);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/m/s", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "str");
+  free(sv); sv = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/m/s2", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "abc");
+  free(sv); sv = 0;
+
+  // Numeric conversions
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_i64(reg, "/m/f", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 1);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_f64(reg, "/m/i", &fv), 0);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(fv, -7.0, 0.0001);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_bool(reg, "/m/i", &bv), 0);
+  IW_TEST_ASSERT_EQUAL(bv, true);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/m/i", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "-7");
+  free(sv); sv = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/m/b", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "true");
+  free(sv); sv = 0;
+
+  // String to number conversion
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/m/num", "42", -1), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_i64(reg, "/m/num", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 42);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/m/fnum", "2.5", -1), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_f64(reg, "/m/fnum", &fv), 0);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(fv, 2.5, 0.0001);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/m/badnum", "zzz", -1), 0);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_i64(reg, "/m/badnum", &iv), IW_ERROR_INVALID_ARGS);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_f64(reg, "/m/badnum", &fv), IW_ERROR_INVALID_ARGS);
+
+  // Null values
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_i64(reg, "/nul", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_f64(reg, "/nul", &fv), 0);
+  IW_TEST_ASSERT_DOUBLE_EQUAL(fv, 0, 0.0001);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_bool(reg, "/nul", &bv), 0);
+  IW_TEST_ASSERT_EQUAL(bv, false);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/nul", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "null");
+  free(sv); sv = 0;
+
+  // Containers are not convertible to scalars
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_i64(reg, "/obj", &iv), IW_ERROR_TYPE_NOT_COMPATIBLE);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_f64(reg, "/arr", &fv), IW_ERROR_TYPE_NOT_COMPATIBLE);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_bool(reg, "/obj", &bv), IW_ERROR_TYPE_NOT_COMPATIBLE);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_str(reg, "/arr", &sv), IW_ERROR_TYPE_NOT_COMPATIBLE);
+  IW_TEST_ASSERT_PTR_NULL(sv);
+
+  // Missing paths
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_i64(reg, "/zzz", &iv), JBL_ERROR_PATH_NOTFOUND);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_str(reg, "/zzz", &sv), JBL_ERROR_PATH_NOTFOUND);
+  IW_TEST_ASSERT_PTR_NULL(sv);
+
+  // Top level string getters convert scalars as well
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_set_i64(reg, "topi", 12), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_set_bool(reg, "topb", false), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_get_str(reg, "topi", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "12");
+  free(sv); sv = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_get_str(reg, "topb", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "false");
+  free(sv); sv = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_get_str(reg, "nul", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "null");
+  free(sv); sv = 0;
+  IW_TEST_ASSERT_EQUAL(iwjsreg_get_str(reg, "arr", &sv), IW_ERROR_TYPE_NOT_COMPATIBLE);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_get_str(reg, "obj", &sv), IW_ERROR_TYPE_NOT_COMPATIBLE);
+  IW_TEST_ASSERT_PTR_NULL(sv);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_get_str(reg, "nokey", &sv), IW_ERROR_NOT_EXISTS);
+
+  // Non standard true/false strings
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/m/bt", "true", -1), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_bool(reg, "/m/bt", &bv), 0);
+  IW_TEST_ASSERT_EQUAL(bv, true);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_bool(reg, "/m/s", &bv), 0);
+  IW_TEST_ASSERT_EQUAL(bv, false);
+
+  rc = iwjsreg_close(&reg);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  unlink(path);
+}
+
+// Merge/remove/replace/copy of nested values.
+static void _iwjsreg_merge_variants(void) {
+  const char *path = "iwjsreg_merge_variants.dat";
+  unlink(path);
+
+  struct iwjsreg *reg;
+  iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_i64(reg, "/a/b", 1), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_i64(reg, "/a/c", 2), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/a/d/e", "x", -1), 0);
+
+  int64_t iv = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_i64(reg, "/a/b", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 1);
+
+  // Merge remove
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_remove(reg, "/a/b"), 0);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_i64(reg, "/a/b", &iv), JBL_ERROR_PATH_NOTFOUND);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_i64(reg, "/a/c", &iv), 0);
+
+  // Merge remove of a missing path is a no-op
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_remove(reg, "/a/zzz"), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_remove(reg, "/yyy/zzz"), 0);
+
+  // Replace the nested subtree
+  struct iwpool *pool = iwpool_create_empty();
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pool);
+  struct jbl_node *repl = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_from_json("{\"n\":{\"x\":1},\"arr\":[1,2]}", &repl, pool), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_replace(reg, "/a", repl), 0);
+
+  char *sv = 0;
+  IW_TEST_ASSERT_EQUAL(iwjsreg_at_i64(reg, "/a/c", &iv), JBL_ERROR_PATH_NOTFOUND);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_merge_str(reg, "/a/n/y", "two", -1), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/a/n/y", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "two");
+  free(sv); sv = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_i64(reg, "/a/n/x", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 1);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_i64(reg, "/a/arr/1", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 2);
+
+  // Copy of a subtree
+  struct jbl_node *copy = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_copy(reg, "/a", pool, &copy), 0);
+  struct iwxstr *xstr = iwxstr_create_empty();
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(xstr);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_as_json(copy, jbl_xstr_json_printer, xstr, 0), 0);
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(xstr), "{\"n\":{\"x\":1,\"y\":\"two\"},\"arr\":[1,2]}");
+  iwxstr_clear(xstr);
+
+  // Copy of the whole registry
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_copy(reg, 0, pool, &copy), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_as_json(copy, jbl_xstr_json_printer, xstr, 0), 0);
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(xstr),
+                           "{\"a\":{\"n\":{\"x\":1,\"y\":\"two\"},\"arr\":[1,2]}}");
+  iwxstr_destroy(xstr);
+
+  // Copy of a missing path
+  IW_TEST_ASSERT_EQUAL(iwjsreg_copy(reg, "/zzz", pool, &copy), JBL_ERROR_PATH_NOTFOUND);
+
+  rc = iwjsreg_close(&reg);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  // The merge results are persisted
+  rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_at_str(reg, "/a/n/y", &sv), 0);
+  IW_TEST_ASSERT_STR_EQUAL(sv, "two");
+  free(sv);
+  rc = iwjsreg_close(&reg);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  iwpool_destroy(pool);
+  unlink(path);
+}
+
+// A malformed registry file is reported and does not leak resources.
+static void _iwjsreg_broken_file(void) {
+  const char *path = "iwjsreg_broken_file.dat";
+  unlink(path);
+
+  FILE *file = fopen(path, "w");
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(file);
+  fprintf(file, "{\"a\":[1,2,}");
+  fclose(file);
+
+  struct iwjsreg *reg = 0;
+  iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_PARSE_JSON);
+  IW_TEST_ASSERT_PTR_NULL(reg);
+
+  // A too short binary registry
+  file = fopen(path, "wb");
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(file);
+  fprintf(file, "x");
+  fclose(file);
+
+  rc = iwjsreg_open(&(struct iwjsreg_spec) {
+    .path = path,
+    .flags = IWJSREG_FORMAT_BINARY,
+  }, &reg);
+  IW_TEST_ASSERT_EQUAL(rc, JBL_ERROR_INVALID_BUFFER);
+  IW_TEST_ASSERT_PTR_NULL(reg);
+
+  // A binary registry holding a non JSON value
+  file = fopen(path, "wb");
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(file);
+  fprintf(file, "not a binn buffer");
+  fclose(file);
+
+  rc = iwjsreg_open(&(struct iwjsreg_spec) {
+    .path = path,
+    .flags = IWJSREG_FORMAT_BINARY,
+  }, &reg);
+  IW_TEST_ASSERT_NOT_EQUAL(rc, 0);
+  IW_TEST_ASSERT_PTR_NULL(reg);
+
+  // Invalid arguments
+  IW_TEST_ASSERT_EQUAL(iwjsreg_open(0, &reg), IW_ERROR_INVALID_ARGS);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, 0), IW_ERROR_INVALID_ARGS);
+  IW_TEST_ASSERT_EQUAL(iwjsreg_open(&(struct iwjsreg_spec) { 0 }, &reg), IW_ERROR_INVALID_ARGS);
+
+  unlink(path);
+}
+
+// A read-only registry must not modify its file.
+static void _iwjsreg_readonly(void) {
+  const char *path = "iwjsreg_readonly.dat";
+  unlink(path);
+
+  struct iwjsreg *reg;
+  iwrc rc = iwjsreg_open(&(struct iwjsreg_spec) { .path = path }, &reg);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_set_i64(reg, "a", 1), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_close(&reg), 0);
+
+  char *before = iwu_file_read_as_buf(path);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(before);
+
+  rc = iwjsreg_open(&(struct iwjsreg_spec) {
+    .path = path,
+    .flags = IWJSREG_READONLY,
+  }, &reg);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  int64_t iv = 0;
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_get_i64(reg, "a", &iv), 0);
+  IW_TEST_ASSERT_EQUAL(iv, 1);
+
+  // Synchronization of an unmodified read-only registry is a no-op
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_sync(reg), 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(iwjsreg_close(&reg), 0);
+
+  char *after = iwu_file_read_as_buf(path);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(after);
+  IW_TEST_ASSERT_STR_EQUAL(after, before);
+
+  free(before);
+  free(after);
+  unlink(path);
+}
+
 static const struct iw_test_case cases[] = {
   IW_TEST_CASE_AS("iwjsreg_basic1", _iwjsreg_basic1),
   IW_TEST_CASE_AS("iwjsreg_basic2", _iwjsreg_basic2),
@@ -678,6 +980,10 @@ static const struct iw_test_case cases[] = {
   IW_TEST_CASE_AS("iwjsreg_empty_string", _iwjsreg_empty_string),
   IW_TEST_CASE_AS("iwjsreg_replace_root", _iwjsreg_replace_root),
   IW_TEST_CASE_AS("iwjsreg_atomic_concurrent", _iwjsreg_atomic_concurrent),
+  IW_TEST_CASE_AS("iwjsreg_at_inc", _iwjsreg_at_inc),
+  IW_TEST_CASE_AS("iwjsreg_merge_variants", _iwjsreg_merge_variants),
+  IW_TEST_CASE_AS("iwjsreg_readonly", _iwjsreg_readonly),
+  IW_TEST_CASE_AS("iwjsreg_broken_file", _iwjsreg_broken_file),
 };
 
 int main(int argc, char *argv[]) {

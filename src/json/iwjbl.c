@@ -106,6 +106,7 @@ iwrc jbl_create_empty_object(struct jbl **jblp) {
   }
   if (!binn_create_value(&jbl->bn, &(struct binn_create_spec) { .type = BINN_TYPE_OBJECT })) {
     free(jbl);
+    *jblp = 0;
     return JBL_ERROR_CREATION;
   }
   return 0;
@@ -118,6 +119,7 @@ iwrc jbl_create_empty_array(struct jbl **jblp) {
   }
   if (!binn_create_value(&jbl->bn, &(struct binn_create_spec) { .type = BINN_TYPE_LIST })) {
     free(jbl);
+    *jblp = 0;
     return JBL_ERROR_CREATION;
   }
   return 0;
@@ -297,6 +299,7 @@ iwrc jbl_create_from_buf(struct jbl **jblp, void *buf, size_t bufsz, bool wrap) 
   iwrc rc = jbl_init_from_buf(jbl, buf, bufsz, wrap);
   if (rc) {
     free(jbl);
+    *jblp = 0;
     return rc;
   }
   return 0;
@@ -743,6 +746,8 @@ static jbn_visitor_cmd_t _jbl_get_visitor(
       return JBL_VCMD_TERMINATE;
     }
     if (!binn_create_view_from(&jbl->bn, bv)) {
+      free(jbl);
+      *rc = JBL_ERROR_CREATION;
       return JBL_VCMD_TERMINATE;
     }
     jbl->node = 0;
@@ -832,7 +837,6 @@ static iwrc _jbl_create_node(
     }
   }
   n->klidx = klidx;
-  n->parent = parent;
   switch (bv->type) {
     case BINN_TYPE_NULL:
       n->type = JBV_NULL;
@@ -1133,6 +1137,7 @@ iwrc jbl_fill_from_node(struct jbl *jbl, struct jbl_node *node) {
     return IW_ERROR_INVALID_ARGS;
   }
   if (node->type == JBV_NONE) {
+    binn_destroy(&jbl->bn);
     memcpy(jbl, &(struct jbl) JBL_INITIALIZER, sizeof(*jbl));
     return 0;
   }
@@ -1186,7 +1191,7 @@ iwrc jbl_merge_patch(struct jbl *jbl, const char *patchjson) {
 
 finish:
   iwpool_destroy(pool);
-  return 0;
+  return rc;
 }
 
 iwrc jbl_merge_patch_jbl(struct jbl *jbl, struct jbl *patch) {

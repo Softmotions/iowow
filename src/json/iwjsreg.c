@@ -584,38 +584,44 @@ finish:
   return rc;
 }
 
+// Converts a scalar node to its JSON text form.
+static iwrc _node_as_str(const struct jbl_node *n, char **out) {
+  char buf[IWNUMBUF_SIZE];
+  const char *src;
+  switch (n->type) {
+    case JBV_STR:
+      src = n->vptr;
+      break;
+    case JBV_BOOL:
+      src = n->vbool ? "true" : "false";
+      break;
+    case JBV_NULL:
+      src = "null";
+      break;
+    case JBV_I64:
+      iwitoa(n->vi64, buf, IWNUMBUF_SIZE);
+      src = buf;
+      break;
+    case JBV_F64:
+      iwftoa(n->vf64, buf);
+      src = buf;
+      break;
+    default:
+      return IW_ERROR_TYPE_NOT_COMPATIBLE;
+  }
+  *out = strdup(src);
+  return *out ? 0 : iwrc_set_errno(IW_ERROR_ALLOC, errno);
+}
+
 iwrc iwjsreg_at_str(struct iwjsreg *reg, const char *path, char **out) {
   iwrc rc = 0;
   struct jbl_node *n;
-  char buf[IWNUMBUF_SIZE];
 
   *out = 0;
 
   RCRET(reg->rlock_fn(reg->fn_data));
   RCC(rc, finish, jbn_at(reg->root, path, &n));
-
-  switch (n->type) {
-    case JBV_STR:
-      RCB(finish, *out = strdup(n->vptr));
-      break;
-    case JBV_BOOL:
-      RCB(finish, *out = strdup(n->vbool ? "true" : "false"));
-      break;
-    case JBV_NULL:
-      RCB(finish, *out = strdup("null"));
-      break;
-    case JBV_I64:
-      iwitoa(n->vi64, buf, IWNUMBUF_SIZE);
-      RCB(finish, *out = strdup(buf));
-      break;
-    case JBV_F64:
-      iwftoa(n->vf64, buf);
-      RCB(finish, *out = strdup(buf));
-      break;
-    default:
-      rc = IW_ERROR_TYPE_NOT_COMPATIBLE;
-      break;
-  }
+  RCC(rc, finish, _node_as_str(n, out));
 
 finish:
   IWRC(reg->unlock_fn(reg->fn_data), rc);
@@ -801,15 +807,9 @@ iwrc iwjsreg_get_str(struct iwjsreg *reg, const char *key, char **out) {
   RCRET(reg->rlock_fn(reg->fn_data));
   for (struct jbl_node *n = reg->root->child; n; n = n->next) {
     if (n->key && strcmp(n->key, key) == 0) {
-      if (n->type == JBV_STR) {
-        *out = strdup(n->vptr);
-        if (*out) {
-          found = true;
-        } else {
-          rc = iwrc_set_errno(IW_ERROR_ALLOC, errno);
-        }
-        break;
-      }
+      found = true;
+      rc = _node_as_str(n, out);
+      break;
     }
   }
   IWRC(reg->unlock_fn(reg->fn_data), rc);
