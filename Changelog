@@ -1,5 +1,5 @@
 2026-10-13 Anton Adamansky  <adamansky@gmail.com>  [v1.7.0-dev]
-  * iwfwsfile: Fixed misaligned in _fsm_bm_load_word_u64p()
+  * iwfwsfile: Fixed misaligned load in _fsm_bm_load_word_u64p()
   * Tests: CUnit is replaced by the dependency free `src/iwtests.h` (see `TESTS.md`).
   * Fixed UB reported by UBSAN: misaligned offsets in the kbtree based fs tests, WAL savepoint timestamps (iwp_current_time_ms), murmur3 block reads and iwhmap empty bucket lookup.
   * iwjson: Rework of iwjson module, migrated to binn-c external library.
