@@ -3,7 +3,7 @@ option { BINNC_URL                binn-c external project sources URL }
 if { !defined { BINNC_URL }
   set {
     BINNC_URL
-    https://github.com/Softmotions/binn-c/archive/refs/heads/master.zip
+    https://github.com/Softmotions/binn-c/archive/refs/tags/v0.2.0.zip
   }
 }
 
