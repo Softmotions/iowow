@@ -47,6 +47,7 @@ struct jbl_patch_ext {
   const struct jbl_patch *p;    /**< Original patch operation. */
   struct jbl_ptr *path;         /**< Pre-parsed target path. */
   struct jbl_ptr *from;         /**< Pre-parsed source path of `JBP_COPY`, `JBP_MOVE` and `JBP_SWAP`. */
+  struct jbl_node *value;       /**< Resolved operation value: `p->vnode` or the parsed `p->vjson`. */
 };
 
 IW_INLINE void _jbn_remove_item(struct jbl_node *parent, struct jbl_node *child);
@@ -1310,7 +1311,7 @@ static iwrc _jbl_target_apply_patch(struct jbl_node *target, const struct jbl_pa
   struct jbl_node *ntmp = 0;
   jbp_patch_t op = ex->p->op;
   struct jbl_ptr *path = ex->path;
-  struct jbl_node *value = ex->p->vnode;
+  struct jbl_node *value = ex->value;
   bool oproot = ex->path->cnt == 1 && *ex->path->n[0] == '\0';
 
   if (op == JBP_TEST) {
@@ -1493,6 +1494,11 @@ iwrc _jbl_patch_node(struct jbl_node *root, const struct jbl_patch *p, size_t cn
     RCC(rc, finish, _jbl_ptr_pool(p[i].path, &ext->path, pool));
     if (p[i].from) {
       RCC(rc, finish, _jbl_ptr_pool(p[i].from, &ext->from, pool));
+    }
+    if (p[i].vnode) {
+      ext->value = p[i].vnode;
+    } else if (p[i].vjson) {
+      RCC(rc, finish, jbn_from_json(p[i].vjson, &ext->value, pool));
     }
   }
   for (size_t i = 0; i < cnt; ++i) {

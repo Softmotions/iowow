@@ -160,6 +160,40 @@ static void jbn_test2_patch(void) {
   iwpool_destroy(pool);
 }
 
+static void jbn_test2_patch_vjson(void) {
+  struct iwpool *pool = iwpool_create_empty();
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pool);
+
+  struct jbl_node *root = from_json(pool, "{\"n\":1,\"arr\":[1,2]}");
+  struct jbl_patch p[] = {
+    { .op = JBP_ADD, .path = "/obj", .vjson = "{\"k\":[1,2]}" },
+    { .op = JBP_REPLACE, .path = "/n", .vjson = "10" },
+    { .op = JBP_TEST, .path = "/n", .vjson = "10" },
+    { .op = JBP_INCREMENT, .path = "/n", .vjson = "5" },
+    { .op = JBP_ADD, .path = "/arr/-", .vjson = "3" },
+    { .op = JBP_ADD_CREATE, .path = "/x/y", .vjson = "true" },
+  };
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_patch(root, p, sizeof(p) / sizeof(p[0]), pool), 0);
+  assert_as_json(root, "{\"arr\":[1,2,3],\"obj\":{\"k\":[1,2]},\"n\":15,\"x\":{\"y\":true}}");
+
+  // vnode takes precedence over vjson
+  struct jbl_node *root2 = from_json(pool, "{\"n\":1}");
+  struct jbl_node *vnode = from_json(pool, "7");
+  struct jbl_patch pboth[] = { { .op = JBP_REPLACE, .path = "/n", .vjson = "2", .vnode = vnode } };
+  IW_TEST_ASSERT_EQUAL_FATAL(jbn_patch(root2, pboth, 1, pool), 0);
+  assert_as_json(root2, "{\"n\":7}");
+
+  // Malformed value JSON is reported before any operation is applied
+  struct jbl_patch pbad[] = {
+    { .op = JBP_ADD, .path = "/y", .vjson = "4" },
+    { .op = JBP_ADD, .path = "/bad", .vjson = "{" },
+  };
+  IW_TEST_ASSERT_EQUAL(jbn_patch(root2, pbad, sizeof(pbad) / sizeof(pbad[0]), pool), JBL_ERROR_PARSE_JSON);
+  assert_as_json(root2, "{\"n\":7}");
+
+  iwpool_destroy(pool);
+}
+
 static void jbn_test2_patch_copy(void) {
   struct iwpool *pool = iwpool_create_empty();
   IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pool);
@@ -446,6 +480,7 @@ static void jbn_test2_patch_auto_merge(void) {
 static const struct iw_test_case cases[] = {
   IW_TEST_CASE(jbn_test2_ptr),
   IW_TEST_CASE(jbn_test2_patch),
+  IW_TEST_CASE(jbn_test2_patch_vjson),
   IW_TEST_CASE(jbn_test2_patch_copy),
   IW_TEST_CASE(jbn_test2_patch_errors),
   IW_TEST_CASE(jbn_test2_merge_patch),

@@ -557,6 +557,27 @@ static void jbl_test3_6(void) {
   iwpool_destroy(pool);
 }
 
+static void jbl_test3_7(void) {
+  // The operation value can be specified as JSON text
+  struct jbl *jbl = from_json("{\"a\":1,\"arr\":[1,2]}");
+  struct jbl_patch p[] = {
+    { .op = JBP_ADD, .path = "/obj", .vjson = "{\"k\":[1,2]}" },
+    { .op = JBP_REPLACE, .path = "/a", .vjson = "10" },
+    { .op = JBP_TEST, .path = "/a", .vjson = "10" },
+    { .op = JBP_INCREMENT, .path = "/a", .vjson = "5" },
+    { .op = JBP_ADD, .path = "/arr/-", .vjson = "3" },
+  };
+  IW_TEST_ASSERT_EQUAL_FATAL(jbl_patch(jbl, p, sizeof(p) / sizeof(p[0])), 0);
+  assert_as_json(jbl, 0, "{\"arr\":[1,2,3],\"obj\":{\"k\":[1,2]},\"a\":15}");
+
+  // Malformed value JSON is reported
+  struct jbl_patch pbad[] = { { .op = JBP_ADD, .path = "/bad", .vjson = "{" } };
+  IW_TEST_ASSERT_EQUAL(jbl_patch(jbl, pbad, 1), JBL_ERROR_PARSE_JSON);
+  assert_as_json(jbl, 0, "{\"arr\":[1,2,3],\"obj\":{\"k\":[1,2]},\"a\":15}");
+
+  jbl_destroy(&jbl);
+}
+
 static const struct iw_test_case cases[] = {
   IW_TEST_CASE(jbl_test3_1),
   IW_TEST_CASE(jbl_test3_2),
@@ -564,6 +585,7 @@ static const struct iw_test_case cases[] = {
   IW_TEST_CASE(jbl_test3_4),
   IW_TEST_CASE(jbl_test3_5),
   IW_TEST_CASE(jbl_test3_6),
+  IW_TEST_CASE(jbl_test3_7),
 };
 
 int main(int argc, char *argv[]) {

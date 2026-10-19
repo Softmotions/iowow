@@ -167,8 +167,8 @@ typedef struct jbl_patch {
   jbp_patch_t      op;     /**< Patch operation. */
   const char      *path;   /**< rfc6901 JSON pointer of the operation target. */
   const char      *from;   /**< rfc6901 JSON pointer of the operation source (`JBP_COPY`, `JBP_MOVE`, `JBP_SWAP`). */
-  const char      *vjson;  /**< JSON text of the operation value. */
-  struct jbl_node *vnode;  /**< JSON tree of the operation value. */
+  const char      *vjson;  /**< JSON text of the operation value. Parsed if `vnode` is not set. */
+  struct jbl_node *vnode;  /**< JSON tree of the operation value. Takes precedence over `vjson`. */
 } JBL_PATCH;
 
 /**
