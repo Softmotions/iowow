@@ -23,3 +23,15 @@ run {
     C{^{${INSTALL_PKGCONFIG_DIR} /libbinnc.pc}}
   }
 }
+
+run-on-install {
+  shell {
+    autark --prefix ${INSTALL_PREFIX}
+    set { _
+      if { ${IOWOW_BUILD_SHARED_LIBS}
+        -DBINNC_BUILD_SHARED_LIBS=1
+      }
+    }
+    ${BINNC_SRC_DIR}
+  }
+}
