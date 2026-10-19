@@ -31,7 +31,7 @@ if { ${IOWOW_RUN_TESTS}
     ${CC_OBJS}
     run {
       always
-      shell { S{.autark/test_run.sh} %{${OBJ}} }
+      shell { %{${OBJ}} }
       consumes { %{${OBJ}} }
     }
   }

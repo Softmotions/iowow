@@ -86,8 +86,8 @@
  *  `POSIX` systems only.
  *
  *  Colored output is used only when the report is written to a terminal (or is
- *  forced). `--color`/`IW_TEST_COLOR`/`FORCE_COLOR`/`CLICOLOR_FORCE` force the
- *  colors, `--no-color`/`IW_TEST_NO_COLOR`/`NO_COLOR` disable them. The output
+ *  forced). `--color`/`IW_TEST_COLOR`/`AUTARK_INTERACTIVE` force the
+ *  colors, `--no-color`/`IW_TEST_NO_COLOR` disable them. The output
  *  relayed by a build system is not a terminal, so such a build has to pass
  *  `--color` (or set `IW_TEST_COLOR`) to keep the colors, see the color notes
  *  in `TESTS.md`.
@@ -491,15 +491,12 @@ static bool iw_test_color(int cmdline) {
   } else if (cmdline < 0) {
     return false;
   }
-  if (iw_test_env_set("IW_TEST_NO_COLOR") || iw_test_env_set("NO_COLOR")) {
+  if (iw_test_env_set("IW_TEST_NO_COLOR")) {
     return false;
   }
   const char *force = getenv("IW_TEST_COLOR");
   if (!force || !*force) {
-    force = getenv("FORCE_COLOR");
-  }
-  if (!force || !*force) {
-    force = getenv("CLICOLOR_FORCE");
+    force = getenv("AUTARK_INTERACTIVE");
   }
   if (force && *force) {
     return strcmp(force, "0") != 0;
