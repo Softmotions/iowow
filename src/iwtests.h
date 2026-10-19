@@ -104,7 +104,6 @@
  */
 
 #include <errno.h>
-#include <math.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdatomic.h>
