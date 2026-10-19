@@ -136,7 +136,7 @@ IW_EXPORT iwrc jbl_create_from_buf(struct jbl **jblp, void *buf, size_t bufsz, b
  *
  * @note `targetp` should be disposed of by `jbl_destroy()`.
  */
-IW_EXPORT iwrc jbl_clone(struct jbl *src, struct jbl **targetp);
+IW_EXPORT iwrc jbl_clone(const struct jbl *src, struct jbl **targetp);
 
 /**
  * @brief Destroys the document and releases its heap resources.
@@ -267,17 +267,17 @@ IW_EXPORT iwrc jbl_set_nested(struct jbl *jbl, const char *key, struct jbl *nest
 /**
  * @brief Returns the type of the `jbl` document value.
  */
-IW_EXPORT jbl_type_t jbl_type(struct jbl *jbl);
+IW_EXPORT jbl_type_t jbl_type(const struct jbl *jbl);
 
 /**
  * @brief Returns the number of child elements of the `jbl` container, or zero.
  */
-IW_EXPORT size_t jbl_count(struct jbl *jbl);
+IW_EXPORT size_t jbl_count(const struct jbl *jbl);
 
 /**
  * @brief Returns the size of the serialized `binn` representation of the `jbl` value in bytes.
  */
-IW_EXPORT size_t jbl_size(struct jbl *jbl);
+IW_EXPORT size_t jbl_size(const struct jbl *jbl);
 
 /**
  * @brief Returns `sizeof(struct jbl)`.
@@ -289,28 +289,28 @@ IW_EXPORT size_t jbl_structure_size(void);
  *
  * @return Zero if the value cannot be converted.
  */
-IW_EXPORT int32_t jbl_get_i32(struct jbl *jbl);
+IW_EXPORT int32_t jbl_get_i32(const struct jbl *jbl);
 
 /**
  * @brief Interprets the `jbl` value as `int64_t`.
  *
  * @return Zero if the value cannot be converted.
  */
-IW_EXPORT int64_t jbl_get_i64(struct jbl *jbl);
+IW_EXPORT int64_t jbl_get_i64(const struct jbl *jbl);
 
 /**
  * @brief Interprets the `jbl` value as `double`.
  *
  * @return Zero if the value cannot be converted.
  */
-IW_EXPORT double jbl_get_f64(struct jbl *jbl);
+IW_EXPORT double jbl_get_f64(const struct jbl *jbl);
 
 /**
  * @brief Interprets the `jbl` value as a `\0` terminated character array.
  *
  * @return Zero if the value cannot be converted.
  */
-IW_EXPORT const char* jbl_get_str(struct jbl *jbl);
+IW_EXPORT const char* jbl_get_str(const struct jbl *jbl);
 
 /**
  * @brief Same as jbl_get_str() but also returns the string length.
@@ -318,7 +318,7 @@ IW_EXPORT const char* jbl_get_str(struct jbl *jbl);
  * @param jbl         Document value. Not zero.
  * @param [out] out_len Holder of the value length in bytes. Optional.
  */
-IW_EXPORT const char* jbl_get_str2(struct jbl *jbl, size_t *out_len);
+IW_EXPORT const char* jbl_get_str2(const struct jbl *jbl, size_t *out_len);
 
 /**
  * @brief Same as jbl_get_str() but copies at most `bufsz` bytes into the target `buf`.
@@ -327,14 +327,14 @@ IW_EXPORT const char* jbl_get_str2(struct jbl *jbl, size_t *out_len);
  *
  * @return Number of bytes copied.
  */
-IW_EXPORT size_t jbl_copy_strn(struct jbl *jbl, char *buf, size_t bufsz);
+IW_EXPORT size_t jbl_copy_strn(const struct jbl *jbl, char *buf, size_t bufsz);
 
 /**
  * @brief Returns the type of the object property `key`.
  *
  * @return Property type, or `JBV_NONE` if the property does not exist.
  */
-IW_EXPORT jbl_type_t jbl_object_get_type(struct jbl *jbl, const char *key);
+IW_EXPORT jbl_type_t jbl_object_get_type(const struct jbl *jbl, const char *key);
 
 /**
  * @brief Reads the integer object property `key`.
@@ -344,7 +344,7 @@ IW_EXPORT jbl_type_t jbl_object_get_type(struct jbl *jbl, const char *key);
  * @param [out] out Value holder. Not zero.
  * @return Zero on success, `JBL_ERROR_CREATION` if the property is missing or is not a number.
  */
-IW_EXPORT iwrc jbl_object_get_i64(struct jbl *jbl, const char *key, int64_t *out);
+IW_EXPORT iwrc jbl_object_get_i64(const struct jbl *jbl, const char *key, int64_t *out);
 
 /**
  * @brief Reads the floating point object property `key`.
@@ -354,26 +354,26 @@ IW_EXPORT iwrc jbl_object_get_i64(struct jbl *jbl, const char *key, int64_t *out
  * @param [out] out Value holder. Not zero.
  * @return Zero on success, `JBL_ERROR_CREATION` if the property is missing or is not a number.
  */
-IW_EXPORT iwrc jbl_object_get_f64(struct jbl *jbl, const char *key, double *out);
+IW_EXPORT iwrc jbl_object_get_f64(const struct jbl *jbl, const char *key, double *out);
 
 /**
  * @brief Reads the boolean object property `key`.
  *
  * @return Zero on success, `JBL_ERROR_CREATION` if the property is missing or is not a boolean.
  */
-IW_EXPORT iwrc jbl_object_get_bool(struct jbl *jbl, const char *key, bool *out);
+IW_EXPORT iwrc jbl_object_get_bool(const struct jbl *jbl, const char *key, bool *out);
 
 /**
  * @brief Returns a pointer to the string object property `key`.
  *
  * @return Zero on success, `JBL_ERROR_CREATION` if the property is missing or is not a string.
  */
-IW_EXPORT iwrc jbl_object_get_str(struct jbl *jbl, const char *key, const char **out);
+IW_EXPORT iwrc jbl_object_get_str(const struct jbl *jbl, const char *key, const char **out);
 
 /**
  * @brief Same as jbl_object_get_str() but also returns the value length.
  */
-IW_EXPORT iwrc jbl_object_get_str2(struct jbl *jbl, const char *key, const char **out, size_t *out_len);
+IW_EXPORT iwrc jbl_object_get_str2(const struct jbl *jbl, const char *key, const char **out, size_t *out_len);
 
 /**
  * @brief Copies the object property `key` into the `out` document.
@@ -383,7 +383,7 @@ IW_EXPORT iwrc jbl_object_get_str2(struct jbl *jbl, const char *key, const char 
  * @param out Initialized document holder. Not zero.
  * @return Zero on success, `JBL_ERROR_CREATION` if the property does not exist.
  */
-IW_EXPORT iwrc jbl_object_get_jbl(struct jbl *jbl, const char *key, struct jbl *out);
+IW_EXPORT iwrc jbl_object_get_jbl(const struct jbl *jbl, const char *key, struct jbl *out);
 
 //--- Serialization
 
@@ -422,7 +422,7 @@ IW_EXPORT iwrc jbl_serialize(
  *
  * @see jbl_xstr_json_printer(), jbl_fstream_json_printer(), jbl_count_json_printer()
  */
-IW_EXPORT iwrc jbl_as_json(struct jbl *jbl, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
+IW_EXPORT iwrc jbl_as_json(const struct jbl *jbl, jbl_json_printer pt, void *op, jbl_print_flags_t pf);
 
 /**
  * @brief Serializes the document into a newly allocated `\0` terminated C string.
@@ -431,7 +431,7 @@ IW_EXPORT iwrc jbl_as_json(struct jbl *jbl, jbl_json_printer pt, void *op, jbl_p
  * @param pf      JSON printing mode flags.
  * @param [out] out Holder of the allocated string, should be released by `free()`. Not zero.
  */
-IW_EXPORT iwrc jbl_as_json_alloc(struct jbl *jbl, jbl_print_flags_t pf, char **out);
+IW_EXPORT iwrc jbl_as_json_alloc(const struct jbl *jbl, jbl_print_flags_t pf, char **out);
 
 //--- JSON pointer
 
@@ -445,14 +445,14 @@ IW_EXPORT iwrc jbl_as_json_alloc(struct jbl *jbl, jbl_print_flags_t pf, char **o
  * @param path      rfc6901 JSON pointer. Not zero.
  * @param [out] res Output value holder. Not zero.
  */
-IW_EXPORT iwrc jbl_at(struct jbl *jbl, const char *path, struct jbl **res);
+IW_EXPORT iwrc jbl_at(const struct jbl *jbl, const char *path, struct jbl **res);
 
 /**
  * @brief Same as jbl_at() but accepts a pre-parsed JSON pointer.
  *
  * @see jbl_ptr_alloc()
  */
-IW_EXPORT iwrc jbl_at2(struct jbl *jbl, struct jbl_ptr *jp, struct jbl **res);
+IW_EXPORT iwrc jbl_at2(const struct jbl *jbl, struct jbl_ptr *jp, struct jbl **res);
 
 //--- DOM tree conversion
 
@@ -468,7 +468,7 @@ IW_EXPORT iwrc jbl_at2(struct jbl *jbl, struct jbl_ptr *jp, struct jbl **res);
  *                      or be independent of the `jbl` document.
  * @param pool          Memory pool used for the tree allocations. Optional.
  */
-IW_EXPORT iwrc jbl_to_node(struct jbl *jbl, struct jbl_node **node, bool clone_strings, struct iwpool *pool);
+IW_EXPORT iwrc jbl_to_node(const struct jbl *jbl, struct jbl_node **node, bool clone_strings, struct iwpool *pool);
 
 /**
  * @brief Fills the `jbl` document with data from the `node` tree.
@@ -479,7 +479,7 @@ IW_EXPORT iwrc jbl_to_node(struct jbl *jbl, struct jbl_node **node, bool clone_s
  * @param jbl  Document to be filled. Not zero.
  * @param node Source tree node. Not zero.
  */
-IW_EXPORT iwrc jbl_fill_from_node(struct jbl *jbl, struct jbl_node *node);
+IW_EXPORT iwrc jbl_fill_from_node(struct jbl *jbl, const struct jbl_node *node);
 
 /**
  * @brief Converts the `node` tree into a new `struct jbl` document.
@@ -489,7 +489,7 @@ IW_EXPORT iwrc jbl_fill_from_node(struct jbl *jbl, struct jbl_node *node);
  * @param [out] jblp Holder of the created document. Not zero.
  * @param node       Source tree node. The node must be an object or an array. Not zero.
  */
-IW_EXPORT iwrc jbl_from_node(struct jbl **jblp, struct jbl_node *node);
+IW_EXPORT iwrc jbl_from_node(struct jbl **jblp, const struct jbl_node *node);
 
 //--- Patching
 
@@ -527,7 +527,7 @@ IW_EXPORT iwrc jbl_merge_patch(struct jbl *jbl, const char *patchjson);
  * @param jbl   Target document. Not zero.
  * @param patch Merge patch document. Not zero.
  */
-IW_EXPORT iwrc jbl_merge_patch_jbl(struct jbl *jbl, struct jbl *patch);
+IW_EXPORT iwrc jbl_merge_patch_jbl(struct jbl *jbl, const struct jbl *patch);
 
 IW_EXTERN_C_END;
 #endif

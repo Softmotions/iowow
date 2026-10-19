@@ -98,7 +98,7 @@ static inline jbl_type_t _jbl_binn_type(int btype) {
 }
 
 // Forward declaration: defined in the DOM tree conversion section below
-static iwrc _jbl_from_node_impl(struct binn *res, struct jbl_node *node);
+static iwrc _jbl_from_node_impl(struct binn *res, const struct jbl_node *node);
 
 //--- Construction
 
@@ -310,12 +310,12 @@ iwrc jbl_create_from_buf(struct jbl **jblp, void *buf, size_t bufsz, bool wrap) 
 
 //--- Lifecycle
 
-iwrc jbl_clone(struct jbl *src, struct jbl **targetp) {
+iwrc jbl_clone(const struct jbl *src, struct jbl **targetp) {
   struct jbl *jbl = *targetp = calloc(1, sizeof(**targetp));
   if (!jbl) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);
   }
-  if (!binn_copy_from(&jbl->bn, (struct binn_val) { src, sizeof(*src) })) {
+  if (!binn_copy_from(&jbl->bn, (struct binn_val) { (void*) src, sizeof(*src) })) {
     free(jbl);
     return JBL_ERROR_CREATION;
   }
@@ -340,18 +340,18 @@ void jbl_reset(struct jbl *jbl) {
 
 //--- Introspection
 
-jbl_type_t jbl_type(struct jbl *jbl) {
+jbl_type_t jbl_type(const struct jbl *jbl) {
   if (jbl) {
     return _jbl_binn_type(jbl->bn.type);
   }
   return JBV_NONE;
 }
 
-size_t jbl_count(struct jbl *jbl) {
+size_t jbl_count(const struct jbl *jbl) {
   return (size_t) jbl->bn.count;
 }
 
-size_t jbl_size(struct jbl *jbl) {
+size_t jbl_size(const struct jbl *jbl) {
   return jbl->bn.size;
 }
 
@@ -387,7 +387,7 @@ finish:
 
 //--- JSON text serialization
 
-static iwrc _jbl_as_json(struct binn *bn, jbl_json_printer pt, void *op, int lvl, jbl_print_flags_t pf) {
+static iwrc _jbl_as_json(const struct binn *bn, jbl_json_printer pt, void *op, int lvl, jbl_print_flags_t pf) {
   iwrc rc = 0;
   struct binn_iter iter;
   bool pretty = pf & JBL_PRINT_PRETTY;
@@ -399,7 +399,7 @@ static iwrc _jbl_as_json(struct binn *bn, jbl_json_printer pt, void *op, int lvl
 
   switch (bn->type) {
     case BINN_TYPE_LIST:
-      if (!binn_iter_init((struct binn_val) { bn, sizeof(*bn) }, &iter)) {
+      if (!binn_iter_init((struct binn_val) { (void*) bn, sizeof(*bn) }, &iter)) {
         rc = JBL_ERROR_INVALID;
         goto finish;
       }
@@ -427,7 +427,7 @@ static iwrc _jbl_as_json(struct binn *bn, jbl_json_printer pt, void *op, int lvl
 
     case BINN_TYPE_OBJECT:
     case BINN_TYPE_MAP:
-      if (!binn_iter_init((struct binn_val) { bn, sizeof(*bn) }, &iter)) {
+      if (!binn_iter_init((struct binn_val) { (void*) bn, sizeof(*bn) }, &iter)) {
         rc = JBL_ERROR_INVALID;
         goto finish;
       }
@@ -505,7 +505,7 @@ finish:
 #undef PT
 }
 
-iwrc jbl_as_json(struct jbl *jbl, jbl_json_printer pt, void *op, jbl_print_flags_t pf) {
+iwrc jbl_as_json(const struct jbl *jbl, jbl_json_printer pt, void *op, jbl_print_flags_t pf) {
   if (!jbl || !pt) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -514,23 +514,23 @@ iwrc jbl_as_json(struct jbl *jbl, jbl_json_printer pt, void *op, jbl_print_flags
 
 //--- Value access
 
-int64_t jbl_get_i64(struct jbl *jbl) {
+int64_t jbl_get_i64(const struct jbl *jbl) {
   return binn_i64_get(&jbl->bn);
 }
 
-int32_t jbl_get_i32(struct jbl *jbl) {
+int32_t jbl_get_i32(const struct jbl *jbl) {
   return (int32_t) binn_i64_get(&jbl->bn);
 }
 
-double jbl_get_f64(struct jbl *jbl) {
+double jbl_get_f64(const struct jbl *jbl) {
   return binn_f64_get(&jbl->bn);
 }
 
-const char* jbl_get_str(struct jbl *jbl) {
+const char* jbl_get_str(const struct jbl *jbl) {
   return binn_text_get(&jbl->bn).buf;
 }
 
-const char* jbl_get_str2(struct jbl *jbl, size_t *out_len) {
+const char* jbl_get_str2(const struct jbl *jbl, size_t *out_len) {
   struct binn_val bv = binn_text_get(&jbl->bn);
   if (out_len) {
     *out_len = bv.size;
@@ -538,7 +538,7 @@ const char* jbl_get_str2(struct jbl *jbl, size_t *out_len) {
   return bv.buf;
 }
 
-size_t jbl_copy_strn(struct jbl *jbl, char *buf, size_t bufsz) {
+size_t jbl_copy_strn(const struct jbl *jbl, char *buf, size_t bufsz) {
   struct binn_val bv = binn_text_get(&jbl->bn);
   size_t ret = MIN(bv.size, bufsz);
   memcpy(buf, bv.buf, ret);
@@ -550,7 +550,7 @@ size_t jbl_copy_strn(struct jbl *jbl, char *buf, size_t bufsz) {
 
 //--- Object property access
 
-jbl_type_t jbl_object_get_type(struct jbl *jbl, const char *key) {
+jbl_type_t jbl_object_get_type(const struct jbl *jbl, const char *key) {
   struct binn res;
   if (jbl && binn_keyed_get(&jbl->bn, key, &res)) {
     jbl_type_t ret = _jbl_binn_type(res.type);
@@ -561,7 +561,7 @@ jbl_type_t jbl_object_get_type(struct jbl *jbl, const char *key) {
   }
 }
 
-iwrc jbl_object_get_i64(struct jbl *jbl, const char *key, int64_t *out) {
+iwrc jbl_object_get_i64(const struct jbl *jbl, const char *key, int64_t *out) {
   *out = 0;
   struct binn res;
   if (jbl && binn_keyed_get(&jbl->bn, key, &res)) {
@@ -575,7 +575,7 @@ iwrc jbl_object_get_i64(struct jbl *jbl, const char *key, int64_t *out) {
   return JBL_ERROR_CREATION;
 }
 
-iwrc jbl_object_get_f64(struct jbl *jbl, const char *key, double *out) {
+iwrc jbl_object_get_f64(const struct jbl *jbl, const char *key, double *out) {
   *out = 0;
   struct binn res;
   if (jbl && binn_keyed_get(&jbl->bn, key, &res)) {
@@ -589,7 +589,7 @@ iwrc jbl_object_get_f64(struct jbl *jbl, const char *key, double *out) {
   return JBL_ERROR_CREATION;
 }
 
-iwrc jbl_object_get_bool(struct jbl *jbl, const char *key, bool *out) {
+iwrc jbl_object_get_bool(const struct jbl *jbl, const char *key, bool *out) {
   *out = false;
   struct binn res;
   if (jbl && binn_keyed_get(&jbl->bn, key, &res)) {
@@ -603,7 +603,7 @@ iwrc jbl_object_get_bool(struct jbl *jbl, const char *key, bool *out) {
   return JBL_ERROR_CREATION;
 }
 
-iwrc jbl_object_get_str(struct jbl *jbl, const char *key, const char **out) {
+iwrc jbl_object_get_str(const struct jbl *jbl, const char *key, const char **out) {
   *out = 0;
   struct binn res;
   if (jbl && binn_keyed_get(&jbl->bn, key, &res)) {
@@ -617,7 +617,7 @@ iwrc jbl_object_get_str(struct jbl *jbl, const char *key, const char **out) {
   return JBL_ERROR_CREATION;
 }
 
-iwrc jbl_object_get_str2(struct jbl *jbl, const char *key, const char **out, size_t *out_len) {
+iwrc jbl_object_get_str2(const struct jbl *jbl, const char *key, const char **out, size_t *out_len) {
   *out = 0;
   *out_len = 0;
   struct binn res;
@@ -634,7 +634,7 @@ iwrc jbl_object_get_str2(struct jbl *jbl, const char *key, const char **out, siz
   return JBL_ERROR_CREATION;
 }
 
-iwrc jbl_object_get_jbl(struct jbl *jbl, const char *key, struct jbl *out) {
+iwrc jbl_object_get_jbl(const struct jbl *jbl, const char *key, struct jbl *out) {
   if (binn_keyed_get(&jbl->bn, key, &out->bn)) {
     return 0;
   }
@@ -664,8 +664,7 @@ iwrc jbl_serialize(
 
 //--- JSON pointer
 
-static iwrc _jbl_visit_children(
-  const struct binn *container, int lvl, struct jbl_vctx *vctx, jbl_visitor visitor) {
+static iwrc _jbl_visit_children(const struct binn *container, int lvl, struct jbl_vctx *vctx, jbl_visitor visitor) {
   iwrc rc = 0;
   struct binn_iter iter;
   jbn_visitor_cmd_t cmd;
@@ -754,7 +753,7 @@ static jbn_visitor_cmd_t _jbl_get_visitor(
   return JBL_VCMD_OK;
 }
 
-iwrc jbl_at2(struct jbl *jbl, struct jbl_ptr *jp, struct jbl **res) {
+iwrc jbl_at2(const struct jbl *jbl, struct jbl_ptr *jp, struct jbl **res) {
   if (jp->cnt == 0) {
     struct jbl *rv;
     RCRA(rv = malloc(sizeof(struct jbl)));
@@ -767,7 +766,7 @@ iwrc jbl_at2(struct jbl *jbl, struct jbl_ptr *jp, struct jbl **res) {
     return 0;
   }
   struct jbl_vctx vctx = {
-    .bn = &jbl->bn,
+    .bn = (struct binn*) &jbl->bn,
     .op = jp,
     .pos = -1
   };
@@ -785,7 +784,7 @@ iwrc jbl_at2(struct jbl *jbl, struct jbl_ptr *jp, struct jbl **res) {
   return rc;
 }
 
-iwrc jbl_at(struct jbl *jbl, const char *path, struct jbl **res) {
+iwrc jbl_at(const struct jbl *jbl, const char *path, struct jbl **res) {
   struct jbl_ptr *jp;
   iwrc rc = _jbl_ptr_pool(path, &jp, 0);
   if (rc) {
@@ -958,7 +957,9 @@ static iwrc _jbl_node_from_binn_impl(
   return rc;
 }
 
-static iwrc _jbl_node_from_binn(const struct binn *bn, struct jbl_node **node, bool clone_strings, struct iwpool *pool) {
+static iwrc _jbl_node_from_binn(
+  const struct binn *bn, struct jbl_node **node, bool clone_strings,
+  struct iwpool *pool) {
   struct jbl_ldr_ctx ctx = {
     .pool = pool
   };
@@ -971,7 +972,7 @@ static iwrc _jbl_node_from_binn(const struct binn *bn, struct jbl_node **node, b
   return rc;
 }
 
-static iwrc _jbl_from_node_impl(struct binn *res, struct jbl_node *node) {
+static iwrc _jbl_from_node_impl(struct binn *res, const struct jbl_node *node) {
   iwrc rc = 0;
   switch (node->type) {
     case JBV_OBJECT:
@@ -1036,7 +1037,7 @@ static iwrc _jbl_from_node_impl(struct binn *res, struct jbl_node *node) {
   return rc;
 }
 
-static iwrc _jbl_binn_from_node(struct binn *res, struct jbl_node *node) {
+static iwrc _jbl_binn_from_node(struct binn *res, const struct jbl_node *node) {
   return _jbl_from_node_impl(res, node);
 }
 
@@ -1076,7 +1077,7 @@ static iwrc _jbl_patch(struct jbl *jbl, const struct jbl_patch *p, size_t cnt, s
   return rc;
 }
 
-iwrc jbl_to_node(struct jbl *jbl, struct jbl_node **node, bool clone_strings, struct iwpool *pool) {
+iwrc jbl_to_node(const struct jbl *jbl, struct jbl_node **node, bool clone_strings, struct iwpool *pool) {
   if (jbl->node) {
     *node = jbl->node;
     return 0;
@@ -1133,7 +1134,7 @@ finish:
   return rc;
 }
 
-iwrc jbl_fill_from_node(struct jbl *jbl, struct jbl_node *node) {
+iwrc jbl_fill_from_node(struct jbl *jbl, const struct jbl_node *node) {
   if (!jbl || !node) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -1151,7 +1152,7 @@ iwrc jbl_fill_from_node(struct jbl *jbl, struct jbl_node *node) {
   return rc;
 }
 
-iwrc jbl_from_node(struct jbl **jblp, struct jbl_node *node) {
+iwrc jbl_from_node(struct jbl **jblp, const struct jbl_node *node) {
   if (!jblp || !node) {
     return IW_ERROR_INVALID_ARGS;
   }
@@ -1192,7 +1193,7 @@ finish:
   return rc;
 }
 
-iwrc jbl_merge_patch_jbl(struct jbl *jbl, struct jbl *patch) {
+iwrc jbl_merge_patch_jbl(struct jbl *jbl, const struct jbl *patch) {
   struct iwxstr *xstr = iwxstr_create_empty();
   if (!xstr) {
     return iwrc_set_errno(IW_ERROR_ALLOC, errno);

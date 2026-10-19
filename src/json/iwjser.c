@@ -924,7 +924,7 @@ iwrc jbn_as_json_alloc(struct jbl_node *node, jbl_print_flags_t pf, char **out) 
   return rc;
 }
 
-iwrc jbl_as_json_alloc(struct jbl *jbl, jbl_print_flags_t pf, char **out) {
+iwrc jbl_as_json_alloc(const struct jbl *jbl, jbl_print_flags_t pf, char **out) {
   iwrc rc = 0;
   struct iwxstr *xstr = iwxstr_create_empty();
   if (!xstr) {
