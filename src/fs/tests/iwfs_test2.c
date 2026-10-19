@@ -219,6 +219,39 @@ void test_fsm_bitmap(void) {
   IW_TEST_ASSERT_EQUAL(res, 64 + 2);
 }
 
+/* The free space bitmap base is derived from the file metadata (`bmoff`) and is
+ * not guaranteed to be 8 byte aligned. Bitmap word loads must not rely on the
+ * alignment of the bitmap pointer. */
+void test_fsm_bitmap_unaligned(void) {
+  uint8_t raw[3 * sizeof(uint64_t) + 1];
+  memset(raw, 0, sizeof(raw));
+
+  /* Deliberately unaligned bitmap base pointer */
+  const uint64_t *bm = (const uint64_t*) (raw + 1);
+  int found = 0;
+
+  uint64_t w0 = IW_HTOILL(0x1UL); /* 00000001 */
+  uint64_t w1 = IW_HTOILL(0x2UL); /* 00000010 */
+  memcpy(raw + 1, &w0, sizeof(w0));
+  memcpy(raw + 1 + sizeof(uint64_t), &w1, sizeof(w1));
+
+  uint64_t res = iwfs_fsmdbg_find_next_set_bit(bm, 0, 2 * sizeof(uint64_t) * 8, &found);
+  IW_TEST_ASSERT_EQUAL(found, 1);
+  IW_TEST_ASSERT_EQUAL(res, 0);
+
+  res = iwfs_fsmdbg_find_next_set_bit(bm, 1, 2 * sizeof(uint64_t) * 8, &found);
+  IW_TEST_ASSERT_EQUAL(found, 1);
+  IW_TEST_ASSERT_EQUAL(res, 64 + 1);
+
+  res = iwfs_fsmdbg_find_prev_set_bit(bm, 2 * sizeof(uint64_t) * 8, 0, &found);
+  IW_TEST_ASSERT_EQUAL(found, 1);
+  IW_TEST_ASSERT_EQUAL(res, 64 + 1);
+
+  res = iwfs_fsmdbg_find_prev_set_bit(bm, 64 + 1, 0, &found);
+  IW_TEST_ASSERT_EQUAL(found, 1);
+  IW_TEST_ASSERT_EQUAL(res, 0);
+}
+
 void test_fsm_open_close(void) {
   iwrc rc;
   struct iwfs_fsm_opts opts = {
@@ -745,6 +778,7 @@ void test_block_allocation2_impl(int mmap_all) {
 
 static const struct iw_test_case cases[] = {
   IW_TEST_CASE(test_fsm_bitmap),
+  IW_TEST_CASE(test_fsm_bitmap_unaligned),
   IW_TEST_CASE(test_fsm_open_close),
   IW_TEST_CASE(test_fsm_uniform_alloc),
   IW_TEST_CASE(test_fsm_uniform_alloc_mmap_all),

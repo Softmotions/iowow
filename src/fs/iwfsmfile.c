@@ -492,14 +492,9 @@ static void _fsm_node_destroy(struct iwavl_node *root) {
   }
 }
 
-IW_INLINE uint64_t _fsm_bm_load_word_u64p(const uint64_t *p) {
-#ifdef IW_BIGENDIAN
-  return IW_ITOHLL(*p);
-#else
-  return *p;
-#endif
-}
-
+/* Bitmap word load; the bitmap base pointer is derived from the file metadata
+ * (`bmoff`) and is not guaranteed to be 8 byte aligned, so the word is always
+ * loaded with memcpy to avoid undefined behavior on unaligned access. */
 IW_INLINE uint64_t _fsm_bm_load_word_u8p(const uint8_t *p) {
   uint64_t v;
   memcpy(&v, p, sizeof(v));
@@ -507,6 +502,10 @@ IW_INLINE uint64_t _fsm_bm_load_word_u8p(const uint8_t *p) {
   v = IW_ITOHLL(v);
 #endif
   return v;
+}
+
+IW_INLINE uint64_t _fsm_bm_load_word_u64p(const uint64_t *p) {
+  return _fsm_bm_load_word_u8p((const uint8_t*) p);
 }
 
 IW_INLINE iwrc _fsm_flush_free_run(
