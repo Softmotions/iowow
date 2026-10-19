@@ -168,6 +168,26 @@ a filtered project-wide run reports only what has really been executed:
  iowow · my_test · 2 of 7 case(s) · "addition,strings" · output: my_test.log
 ```
 
+### Arguments for the test code
+
+Everything after a `--` argument is not parsed by the harness and is passed to
+the test code through `iw_test_argc`/`iw_test_argv`, which makes it possible to
+combine the case filter with the options of the program under test:
+
+```sh
+./my_test -f reopen -- --listen localhost:8080 -n 1000
+```
+
+```c
+for (int i = 0; i < iw_test_argc; ++i) {
+  printf("test argument: %s\n", iw_test_argv[i]);
+}
+```
+
+`iw_test_argc` is `0` and `iw_test_argv` is `0` when there were no arguments
+after `--`. The values are set by ::iw_test_run() before the suite is
+initialized.
+
 ## Test code output
 
 The `stdout`/`stderr` written by the test cases (and by the suite
@@ -194,6 +214,7 @@ is not redirected and stays on the console.
 | `-l, --list`             | List the cases matching the filter, do not run them.              |
 | `-v, --verbose`          | Show the cases skipped by the filter.                             |
 | `--color`/`--no-color`   | Force or disable the colored output.                              |
+| `-- [ARG ...]`           | Stop option parsing, `ARG`s are passed to the test code.          |
 | `-h, --help`             | Usage help.                                                       |
 
 | Environment variable | Meaning                                                          |
@@ -208,7 +229,8 @@ is not redirected and stays on the console.
 | `IW_TEST_HARNESS`    | Compile time: the name shown in the report header.               |
 
 Exit codes: `0` - all executed cases passed (or nothing matched), `1` - at
-least one case failed, `2` - invalid command line.
+least one case failed (or a fatal assertion was raised outside of a test case),
+`2` - invalid command line.
 
 ## Console report
 
@@ -245,11 +267,40 @@ least one case failed, `2` - invalid command line.
 * A suite that fails to initialize is reported as a failed suite.
 * The process exit code is `1` if at least one case failed.
 
+## Standalone use
+
+`iw_test_run()` is not required to use the assertions: the assertion macros and
+their state are available as soon as `iwtests.h` is included. This is useful
+for a test fixture which is not a suite of cases, for example a server serving
+the requests of an external test script:
+
+```c
+#include "iwtests.h"
+
+int main(int argc, char *argv[]) {
+  serve_requests();                              /* assertions are used inside */
+  return iw_test_failures() ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+```
+
+* `iw_test_failures()` returns the number of failed assertions recorded so far,
+  which is the number of failures of the whole program when no suite is run.
+* A fatal assertion (`*_FATAL`) raised outside of a test case cannot be
+  unwound: it flushes the output and terminates the process with the exit code
+  `1`. `IW_TEST_SKIP()` used outside of a case does the same, so it makes sense
+  only inside a suite.
+* Assertions only record their failures, the details are printed by the
+  console report of ::iw_test_run(). A standalone program has no report, so
+  `iw_test_failures()` is the only way to detect the failures and it should be
+  used as the exit condition.
+
 ## Helpers
 
 | Helper                      | Purpose                                                    |
 | --------------------------- | ----------------------------------------------------------- |
 | `iw_test_cmp_files(f1, f2)` | Compares the content of two `FILE*`, returns `0` if equal.  |
+| `iw_test_failures()`        | Number of failed assertions recorded so far.                |
+| `iw_test_argc`, `iw_test_argv` | Arguments given after `--`, see above.                   |
 
 `iw_test_cmp_files()` is handy for the "dump the structure and compare it with
 the reference file" style tests:

@@ -76,6 +76,13 @@
  *  least one pattern. A suite without matching cases produces no output and
  *  exits with `0`.
  *
+ *  Everything after a `--` argument is not parsed by the harness and is
+ *  available to the test code as ::iw_test_argc and ::iw_test_argv:
+ *
+ *  @code{.sh}
+ *  ./my_test -f reopen -- --listen localhost:8080
+ *  @endcode
+ *
  *  <strong>Test code output</strong>
  *
  *  The `stdout`/`stderr` written by the test cases (and by the suite hooks) is
@@ -101,6 +108,23 @@
  *
  *  ::IW_TEST_SKIP() reports the current case as skipped without failing the
  *  run, it is intended for the opt-in (fuzzer/slow) test cases.
+ *
+ *  <strong>Standalone use</strong>
+ *
+ *  The assertion macros and the global state do not require ::iw_test_run(),
+ *  so a test fixture (for example a HTTP server serving the requests of an
+ *  external test script) can use the same assertions and report its failures
+ *  with ::iw_test_failures():
+ *
+ *  @code{.c}
+ *  int main(int argc, char *argv[]) {
+ *    serve_requests();
+ *    return iw_test_failures() ? EXIT_FAILURE : EXIT_SUCCESS;
+ *  }
+ *  @endcode
+ *
+ *  A fatal assertion raised outside of a test case terminates the process with
+ *  the exit code `1`.
  */
 
 #include <errno.h>
@@ -171,6 +195,12 @@ struct iw_test_suite {
 
 /** Runs the test suite and returns the process exit code: `0` on success. */
 static int iw_test_run(int argc, char *argv[], const struct iw_test_suite *suite);
+
+/** Number of arguments given after `--`, `0` when there were none. */
+static int iw_test_argc;
+
+/** Arguments given after `--`, `0` when there were none. */
+static char **iw_test_argv;
 
 /* -------------------------------------------------------------------------- */
 /*                                 Internals                                  */
@@ -299,9 +329,23 @@ static _Noreturn void iw_test_abort_case(void) {
   if (iw_test_state.armed && iw_test_case_thread) {
     longjmp(iw_test_state.jmp, 1);
   }
-  /* A fatal assertion reported by a foreign thread cannot be unwound. */
   fflush(0);
-  abort();
+  if (iw_test_state.armed) {
+    /* A fatal assertion reported by a foreign thread cannot be unwound. */
+    abort();
+  }
+  /* No case is running: the harness is used by a standalone test program. */
+  exit(1);
+}
+
+/** Returns the number of failed assertions recorded so far.
+ *
+ *  It is the number of failures of the current case, or the number of failures
+ *  of the whole program for a standalone test program which does not call
+ *  ::iw_test_run().
+ */
+static unsigned long iw_test_failures(void) {
+  return atomic_load(&iw_test_state.failures);
 }
 
 /// Marks the current test case as skipped and terminates it.
@@ -583,6 +627,8 @@ static void iw_test_usage(FILE *out, const char *prog, const struct iw_test_suit
           "                          into FILE to keep the report clean.\n"
           "                          Default: <program name>.log\n"
           "      --no-log            Do not redirect the test code output.\n"
+          "      -- [ARG ...]        Stop option parsing, ARG(s) are passed to the\n"
+          "                          test code (see iw_test_argc, iw_test_argv).\n"
           "  -l, --list              List the test cases, do not run them.\n"
           "  -v, --verbose           Show the cases skipped by the filter.\n"
           "      --color             Force colored output.\n"
@@ -663,6 +709,8 @@ static void iw_test_print_header(
 static int iw_test_run(int argc, char *argv[], const struct iw_test_suite *suite) {
   const char *patterns[IW_TEST_MAX_PATTERNS];
   char *filter_buf = 0;
+  iw_test_argc = 0;
+  iw_test_argv = 0;
   const char *output = 0;
   char output_auto[512];
   int npatterns = 0;
@@ -691,6 +739,11 @@ static int iw_test_run(int argc, char *argv[], const struct iw_test_suite *suite
       color = -1;
     } else if (!strcmp(arg, "--no-log")) {
       no_log = true;
+    } else if (!strcmp(arg, "--")) {
+      /* The rest of the arguments belong to the test code. */
+      iw_test_argc = argc - i - 1;
+      iw_test_argv = argv + i + 1;
+      break;
     } else if (!strcmp(arg, "-f") || !strcmp(arg, "--filter")) {
       if (++i >= argc) {
         fprintf(stderr, "%s: option '%s' requires an argument\n", prog, arg);
