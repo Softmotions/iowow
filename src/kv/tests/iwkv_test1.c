@@ -865,6 +865,85 @@ static void iwkv_test9(void) {
   IW_TEST_ASSERT_EQUAL(rc, IW_ERROR_INVALID_STATE);
 }
 
+/* Key peek without a destination buffer: `kbuf` can be zero when `kbufsz` is
+ * zero too, in this case only the key size is reported. */
+static void iwkv_test_cursor_copy_key_size_only(void) {
+  struct iwkv_opts opts = {
+    .path = "iwkv_test1_copysize.db",
+    .oflags = IWKV_TRUNC,
+    .fmt_version = 2
+  };
+  struct iwkv *iwkv;
+  struct iwdb *db1, *db2;
+  struct iwkv_cursor *cur;
+  struct iwkv_val key, val;
+  size_t ksz;
+  int64_t compound;
+  uint64_t vkey = 0x0123456789abcdefULL;
+  char kbuf[4];
+
+  memset(kbuf, 0, sizeof(kbuf));
+  val.data = (void*) "bar";
+  val.size = 3;
+
+  iwrc rc = iwkv_open(&opts, &iwkv);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_db(iwkv, 1, 0, &db1);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  key.data = (void*) "foo";
+  key.size = 3;
+  rc = iwkv_put(db1, &key, &val, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_cursor_open(db1, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  ksz = 0;
+  compound = 0;
+  rc = iwkv_cursor_copy_key(cur, 0, 0, &ksz, &compound);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(ksz, 3);
+  IW_TEST_ASSERT_EQUAL(compound, 0);
+
+  ksz = 0;
+  rc = iwkv_cursor_copy_key(cur, kbuf, 0, &ksz, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(ksz, 3);
+  IW_TEST_ASSERT_MEM_EQUAL(kbuf, "\0\0\0\0", sizeof(kbuf));
+
+  ksz = 0;
+  rc = iwkv_cursor_copy_key(cur, kbuf, sizeof(kbuf), &ksz, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(ksz, 3);
+  IW_TEST_ASSERT_MEM_EQUAL(kbuf, "foo", 3);
+  iwkv_cursor_close(&cur);
+
+  // VNUM64 (compound) keys
+  rc = iwkv_db(iwkv, 2, IWDB_VNUM64_KEYS, &db2);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  key.data = &vkey;
+  key.size = sizeof(vkey);
+  rc = iwkv_put(db2, &key, &val, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  rc = iwkv_cursor_open(db2, &cur, IWKV_CURSOR_BEFORE_FIRST, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  rc = iwkv_cursor_to(cur, IWKV_CURSOR_NEXT);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+
+  ksz = 0;
+  rc = iwkv_cursor_copy_key(cur, 0, 0, &ksz, 0);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(ksz, sizeof(vkey));
+  iwkv_cursor_close(&cur);
+
+  rc = iwkv_close(&iwkv);
+  IW_TEST_ASSERT_EQUAL_FATAL(rc, 0);
+}
+
 static const struct iw_test_case cases[] = {
   IW_TEST_CASE_AS("iwkv_test1_v1", iwkv_test1_v2),
   IW_TEST_CASE(iwkv_test2_v2),
@@ -873,6 +952,7 @@ static const struct iw_test_case cases[] = {
   IW_TEST_CASE(iwkv_test7_v2),
   IW_TEST_CASE(iwkv_test8_v2),
   IW_TEST_CASE(iwkv_test9),
+  IW_TEST_CASE(iwkv_test_cursor_copy_key_size_only),
 };
 
 int main(int argc, char *argv[]) {

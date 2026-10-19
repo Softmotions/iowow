@@ -432,8 +432,31 @@ static void test_iwconv_strtod_wrappers(void) {
   }
 }
 
+/* `iwxstr_cat()` must accept a zero `buf` when the size is zero (size only
+ * no-op), the buffer must stay null terminated. */
+static void test_iwxstr_cat_zero_size(void) {
+  struct iwxstr *xs = iwxstr_new();
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(xs);
+
+  iwrc rc = iwxstr_cat(xs, 0, 0);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iwxstr_size(xs), 0);
+  IW_TEST_ASSERT_EQUAL(iwxstr_ptr(xs)[0], '\0');
+
+  rc = iwxstr_cat(xs, "abc", 3);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
+
+  rc = iwxstr_cat(xs, 0, 0);
+  IW_TEST_ASSERT_EQUAL(rc, 0);
+  IW_TEST_ASSERT_EQUAL(iwxstr_size(xs), 3);
+  IW_TEST_ASSERT_STR_EQUAL(iwxstr_ptr(xs), "abc");
+
+  iwxstr_destroy(xs);
+}
+
 static const struct iw_test_case cases[] = {
   IW_TEST_CASE(test_iwu_replace_into),
+  IW_TEST_CASE(test_iwxstr_cat_zero_size),
   IW_TEST_CASE(test_iwpool_split_string),
   IW_TEST_CASE(test_iwpool_printf),
   IW_TEST_CASE(test_iwrb1),

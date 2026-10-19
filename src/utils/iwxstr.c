@@ -131,8 +131,12 @@ iwrc iwxstr_cat(struct iwxstr *xstr, const void *buf, size_t size) {
     }
     xstr->ptr = ptr;
   }
-  memcpy(xstr->ptr + xstr->size, buf, size);
-  xstr->size += size;
+  /* `buf` can be zero if `size` is zero, so the copy is skipped to avoid
+   * `memcpy()` with a null pointer. */
+  if (size) {
+    memcpy(xstr->ptr + xstr->size, buf, size);
+    xstr->size += size;
+  }
   xstr->ptr[xstr->size] = '\0';
   return IW_OK;
 }

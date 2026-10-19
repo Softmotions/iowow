@@ -4179,17 +4179,21 @@ iwrc iwkv_cursor_copy_key(struct iwkv_cursor *cur, void *kbuf, size_t kbufsz, si
       *compound = rkey.compound;
     }
     *ksz = rkey.size;
-    if (dbflg & IWDB_VNUM64_KEYS) {
-      memcpy(kbuf, rkey.data, MIN(kbufsz, rkey.size));
-    } else {
-      memcpy(kbuf, okey + (okeysz - rkey.size), MIN(kbufsz, rkey.size));
+    if (kbuf && kbufsz) {
+      if (dbflg & IWDB_VNUM64_KEYS) {
+        memcpy(kbuf, rkey.data, MIN(kbufsz, rkey.size));
+      } else {
+        memcpy(kbuf, okey + (okeysz - rkey.size), MIN(kbufsz, rkey.size));
+      }
     }
   } else {
     *ksz = okeysz;
     if (compound) {
       *compound = 0;
     }
-    memcpy(kbuf, okey, MIN(kbufsz, okeysz));
+    if (kbuf && kbufsz) {
+      memcpy(kbuf, okey, MIN(kbufsz, okeysz));
+    }
   }
 
 finish:
