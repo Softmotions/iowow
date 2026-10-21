@@ -1,3 +1,6 @@
+2026-10-21 Anton Adamansky  <adamansky@gmail.com>  [v1.7.1-dev]
+  * build: Better pthreads spinlock detection.
+
 2026-10-13 Anton Adamansky  <adamansky@gmail.com>  [v1.7.0]
   * iwjson: Fixed misusage of `jbl_patch::vjson` field.
   * iwfwsfile: Fixed misaligned load in _fsm_bm_load_word_u64p()

@@ -17,7 +17,7 @@
 
 #include "iwcfg.h"
 
-#if defined(__APPLE__) || defined(__ANDROID__)
+#ifndef PTHREAD_HAS_SPINLOCK
 #include "pthread_spin_lock_shim.h"
 #endif
 

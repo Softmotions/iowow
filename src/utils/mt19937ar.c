@@ -44,9 +44,10 @@
  */
 
 #include "mt19937ar.h"
-#include <stdlib.h>
 #include <pthread.h>
-#if defined(__APPLE__) || defined(__ANDROID__)
+#include "iwcfg.h"
+
+#ifndef PTHREAD_HAS_SPINLOCK
 #include "pthread_spin_lock_shim.h"
 #endif
 
