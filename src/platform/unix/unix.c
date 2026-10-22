@@ -80,7 +80,7 @@ IW_EXPORT iwrc iwp_clock_get_time(int clock_id, struct timespec *t) {
 iwrc iwp_current_time_ms(uint64_t *time, bool monotonic) {
   struct timespec spec;
   uint64_t ts;
-#if (IW_HAVE_CLOCK_MONOTONIC == 1)
+#ifdef IW_HAVE_CLOCK_MONOTONIC
   iwrc rc = iwp_clock_get_time(monotonic ? CLOCK_MONOTONIC : CLOCK_REALTIME, &spec);
 #else
   iwrc rc = iwp_clock_get_time(CLOCK_REALTIME, &spec);

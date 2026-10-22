@@ -123,7 +123,7 @@ static iwrc _checkpoint_exl(struct iwal *wal, uint64_t *tsp, bool no_fixpoint);
 static iwrc _resize_rollforward_exl(struct iwal *wal, struct iwfs_ext *extf, off_t target);
 static void _account_write(struct iwal *wal, off_t len);
 
-#if (IW_HAVE_CLOCK_MONOTONIC == 1) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
+#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
 #define IWAL_CPT_CLOCK CLOCK_MONOTONIC
 #else
 #define IWAL_CPT_CLOCK CLOCK_REALTIME
@@ -1805,7 +1805,7 @@ iwrc _init_cpt(struct iwal *wal) {
   if (rci) {
     return iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);
   }
-#if (IW_HAVE_CLOCK_MONOTONIC == 1) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
+#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
   rci = pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
   if (rci) {
     rc = iwrc_set_errno(IW_ERROR_THREADING_ERRNO, rci);

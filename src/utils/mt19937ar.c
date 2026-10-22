@@ -47,7 +47,7 @@
 #include <pthread.h>
 #include "iwcfg.h"
 
-#if !PTHREAD_HAS_SPINLOCK
+#ifndef PTHREAD_HAS_SPINLOCK
 #include "pthread_spin_lock_shim.h"
 #endif
 

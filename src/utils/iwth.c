@@ -11,7 +11,7 @@ iwrc iw_cond_timed_wait_ms(pthread_cond_t *cond, pthread_mutex_t *mtx, long time
   struct timespec tp;
   *out_is_timeout = false;
 
-#if (IW_HAVE_CLOCK_MONOTONIC == 1) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
+#if defined(IW_HAVE_CLOCK_MONOTONIC) && defined(IW_HAVE_PTHREAD_CONDATTR_SETCLOCK)
   rc = iwp_clock_get_time(CLOCK_MONOTONIC, &tp);
 #else
   rc = iwp_clock_get_time(CLOCK_REALTIME, &tp);
