@@ -1,4 +1,4 @@
-2026-10-21 Anton Adamansky  <adamansky@gmail.com>  [v1.7.1-dev]
+2026-10-21 Anton Adamansky  <adamansky@gmail.com>  [v1.7.1]
   * build: Fixe wrong pthreads spinlock detection.
 
 2026-10-13 Anton Adamansky  <adamansky@gmail.com>  [v1.7.0]
