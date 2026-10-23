@@ -934,6 +934,60 @@ void jbl_test1_13(void) {
   iwpool_destroy(pool);
 }
 
+// A binn value of a type not mapped by the binn->DOM conversion must be rejected cleanly.
+// The conversion node belongs to the conversion pool, so it must not be released with free().
+static void jbl_test1_14(void) {
+  // A binn list holding a single 4 byte blob: `e0 09 01 c0 04 01 02 03 04`
+  static const uint8_t expected[] = { 0xe0, 0x09, 0x01, 0xc0, 0x04, 0x01, 0x02, 0x03, 0x04 };
+  static const uint8_t payload[] = { 0x01, 0x02, 0x03, 0x04 };
+
+  struct binn list, blob;
+  IW_TEST_ASSERT_TRUE_FATAL(binn_create_list(&list));
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(binn_create_blob(&blob, payload, sizeof(payload)));
+  IW_TEST_ASSERT_TRUE_FATAL(binn_add(&list, *binnv(&blob), 0));
+  binn_destroy(&blob);
+
+  uint8_t buf[64];
+  struct binn_val sv = binn_serialize_into(&list, buf, sizeof(buf));
+  binn_destroy(&list);
+  IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(sv.buf);
+  IW_TEST_ASSERT_EQUAL_FATAL(sv.size, sizeof(expected));
+  IW_TEST_ASSERT_EQUAL_FATAL(memcmp(sv.buf, expected, sizeof(expected)), 0);
+
+  // The document itself is structurally valid and loads in both load modes.
+  for (int wrap = 0; wrap < 2; ++wrap) {
+    struct jbl *jbl = 0;
+    IW_TEST_ASSERT_EQUAL_FATAL(jbl_create_from_buf(&jbl, sv.buf, sv.size, wrap == 1), 0);
+
+    // jbl_patch()/jbl_patch_from_json()/jbl_merge_patch() create the conversion pool themselves,
+    // jbl_to_node() takes it from the caller.
+    struct jbl_patch jp = { .op = JBP_ADD, .path = "/x", .vjson = "1" };
+    IW_TEST_ASSERT_EQUAL(jbl_patch(jbl, &jp, 1), JBL_ERROR_CREATION);
+    IW_TEST_ASSERT_EQUAL(jbl_patch_from_json(jbl, "[{\"op\":\"add\",\"path\":\"/x\",\"value\":1}]"),
+                         JBL_ERROR_CREATION);
+    IW_TEST_ASSERT_EQUAL(jbl_merge_patch(jbl, "{\"x\":1}"), JBL_ERROR_CREATION);
+
+    struct jbl_node *node = 0;
+    struct iwpool *pool = iwpool_create(4096);
+    IW_TEST_ASSERT_PTR_NOT_NULL_FATAL(pool);
+    IW_TEST_ASSERT_EQUAL(jbl_to_node(jbl, &node, true, pool), JBL_ERROR_CREATION);
+    IW_TEST_ASSERT_PTR_NULL(node);
+    iwpool_destroy(pool);
+
+    // No conversion pool: the failing node is allocated on the heap and must be released.
+    // A standalone blob document is used here: the single conversion node is also the root,
+    // so nothing but that node is left behind by the failure.
+    static const uint8_t blob_doc[] = { 0xc0, 0x04, 0x01, 0x02, 0x03, 0x04 };
+    struct jbl *blobjbl = 0;
+    IW_TEST_ASSERT_EQUAL_FATAL(jbl_create_from_buf(&blobjbl, (void*) blob_doc, sizeof(blob_doc), wrap == 1), 0);
+    IW_TEST_ASSERT_EQUAL(jbl_to_node(blobjbl, &node, true, 0), JBL_ERROR_CREATION);
+    IW_TEST_ASSERT_PTR_NULL(node);
+    jbl_destroy(&blobjbl);
+
+    jbl_destroy(&jbl);
+  }
+}
+
 static const struct iw_test_case cases[] = {
   IW_TEST_CASE(jbl_test1_1),
   IW_TEST_CASE(jbl_test1_2),
@@ -948,6 +1002,7 @@ static const struct iw_test_case cases[] = {
   IW_TEST_CASE(jbl_test1_11),
   IW_TEST_CASE(jbl_test1_12),
   IW_TEST_CASE(jbl_test1_13),
+  IW_TEST_CASE(jbl_test1_14),
 };
 
 int main(int argc, char *argv[]) {

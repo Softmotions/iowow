@@ -895,7 +895,11 @@ static iwrc _jbl_create_node(
 
 finish:
   if (rc) {
-    free(n);
+    // The node is owned by the pool when one is given: iwpool_alloc() returns pool owned memory,
+    // so it must not be released with free().
+    if (!ctx->pool) {
+      free(n);
+    }
   } else {
     if (node) {
       *node = n;
