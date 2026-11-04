@@ -1,3 +1,9 @@
+2026-11-04 Anton Adamansky  <adamansky@gmail.com>  [v1.7.3]
+  * iwth: Fixed `iw_cond_timed_wait_ms()` deadline clock. `IW_HAVE_PTHREAD_CONDATTR_SETCLOCK` is now
+    detected by the build, so the deadline is computed using `CLOCK_MONOTONIC` on platforms which
+    support the `pthread_condattr_setclock()` call, as the API documentation requires.
+  * Tests: Added `iwth_test1` regression tests of the timed condition wait.
+
 2026-10-23 Anton Adamansky  <adamansky@gmail.com>  [v1.7.2]
   * iwjson: Fixed buffer double free in _jbl_create_node() on failed path.
 
