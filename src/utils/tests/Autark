@@ -1,6 +1,7 @@
 cc {
   set { _
     iwarr_test1.c
+    iwth_test1.c
     iwutils_test1.c
     iwhmap_test1.c
     iwrb_test1.c

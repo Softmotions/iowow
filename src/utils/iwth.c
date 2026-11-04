@@ -1,4 +1,5 @@
 #include "iwth.h"
+#include "iwcfg.h"   // IW_HAVE_CLOCK_MONOTONIC, IW_HAVE_PTHREAD_CONDATTR_SETCLOCK
 #include "iwp.h"
 #include "iwlog.h"
 

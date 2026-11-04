@@ -62,6 +62,7 @@
 #define IOWOW_VERSION_PATCH @META_VERSION_PATCH@
 
 //autarkdef IW_HAVE_CLOCK_MONOTONIC
+//autarkdef IW_HAVE_PTHREAD_CONDATTR_SETCLOCK
 //autarkdef PTHREAD_HAS_SPINLOCK
 
 #ifndef static_assert

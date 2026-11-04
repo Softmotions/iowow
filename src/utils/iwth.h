@@ -33,9 +33,32 @@
 
 /**
  * Timed condition wait.
- * NOTE: Condition `cond` must be initialized with CLOCK_MONOTONIC attribute if system supports monotonic clock.
  *
- *   pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
+ * The wait deadline is computed using the `CLOCK_MONOTONIC` clock when the platform
+ * provides the `pthread_condattr_setclock()` call, and using the `CLOCK_REALTIME` wall
+ * clock otherwise. Iowow build sources can test the `IW_HAVE_CLOCK_MONOTONIC` and
+ * `IW_HAVE_PTHREAD_CONDATTR_SETCLOCK` macros (see `iwcfg.h`) to select the clock.
+ *
+ * NOTE: POSIX requires the condition variable clock to be the same as the clock the
+ * deadline is expressed in. So `cond` MUST be initialized with the `CLOCK_MONOTONIC`
+ * attribute when `pthread_condattr_setclock()` is available:
+ *
+ *   pthread_condattr_t cattr;
+ *   pthread_condattr_init(&cattr);
+ *   if (pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC) != 0) {
+ *     // The platform does not support the monotonic clock: the wall clock is used
+ *   }
+ *   pthread_cond_init(&cond, &cattr);
+ *   pthread_condattr_destroy(&cattr);
+ *
+ * A condition variable initialized with another clock results in an incorrect deadline,
+ * that is a timed wait which does not complete at the expected time.
+ *
+ * @param cond Condition variable initialized as described above.
+ * @param mtx Locked mutex associated with `cond`.
+ * @param timeout_ms Wait timeout in milliseconds.
+ * @param[out] out_is_timeout Set to `true` if the wait timed out.
+ * @return `0` on success.
  */
 IW_EXPORT iwrc iw_cond_timed_wait_ms(
   pthread_cond_t  *cond,
